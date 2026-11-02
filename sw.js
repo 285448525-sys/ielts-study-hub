@@ -66,7 +66,8 @@
 // 未改任何加载策略/脚本顺序（HANDOFF 铁律：defer 顺序是契约，动它会连带出事）。
 // common.js → 20261013ad（25 页）、index.js → 20261017a（仅 home.html）、
 // bank.js → 20261012ac（仅 bank.html）。上一版 v409。
-const CACHE = 'ielts-hub-v726'; // 11-02 RV-AI-EXPLAIN-1（她口径「点了答案会显示 AI 讲解的功能在右下角」）：复盘态（交卷/只读回看）点作答控件或题号 → 右下角锚定该题 AI 讲解卡，无图标无触发按钮；走 common-ai 现有出口 callRelay（登录/额度/超时继承），失败走 aiErrMsg 人话表；无答案键篇目不触发；每题结果内存缓存（EX._aiExp）不重复扣额度；讲解只喂题干+作答+正答+文章相关一句（不整篇上传、禁编造）；当前题高亮（ex-qn/blankw/mx-no 三兜底）。bank.js 20261101r→s、bank.html 内联 AI 卡样式。上一版 v725 = WD-OPEN-LAG-1。
+const CACHE = 'ielts-hub-v727'; // 11-02 EXAM-QNBAR-LEFT-1（她：练习/模考题号栏统一移到最左边）：底栏题号行的对齐方式两档不一致——整卷态本来就是 flex-start（题号从左边第一格起），单篇练习态却在 .ex-nav--plain 里写死 justify-content:center（桌面 1280 实测首题号 x=365、手机 390 x=53，两档看着像两套界面）。改成 flex-start 与整卷同口径，实测三档首题号贴左：1280 x=12、390 x=8、360 x=8，与 .ex-nav 左内边距完全对齐；整卷态一个字没动（numsX 仍是 Part 行之后的 27/78），三档横向溢出 0。上一版 v726 = RV-AI-EXPLAIN-1。
+const _prevCacheNote49 = 'ielts-hub-v726'; // 11-02 RV-AI-EXPLAIN-1：复盘态点答案右下角出 AI 讲解。bank.js →20261101s。上一版 v725 = WD-OPEN-LAG-1。
 const _prevCacheNote48 = 'ielts-hub-v725'; // 11-02 WD-OPEN-LAG-1：词库默认只展开第一组 + 换书 _readStore 整轮一次。wordbank.js/words.js 串 →20261102c。上一版 v724 = EXAM-TIMER-POP-DUP-1。
 const _prevCacheNote47 = 'ielts-hub-v724'; // 11-02 EXAM-TIMER-POP-DUP-1：删计时弹框残留旧「自定义」死输入行（v723 两行时长并存，querySelector 永远绑步进器 input，旧行点了没反应）。exam-timer.js 20261102a→b，SW v723→v724。const _prevCacheNote46 = 'ielts-hub-v723'; // 11-02 EXAM-TIMER-POP-DUP-1：删弹框残留旧「自定义」死输入行（v723 遗留，点不了）。exam-timer.js 20261102a→b（bank.html defer+预载、writing.html defer）。上一版 v723。
 const _prevCacheNote45 = 'ielts-hub-v722'; // 11-02 RV-TOP390-1：复盘态手机 390 顶栏两开关出屏修复（rv-tooled 类放行换行）。js/bank.js 串 → 20261101q。

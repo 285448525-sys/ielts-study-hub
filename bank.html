@@ -880,7 +880,10 @@
 .ex-bar-main{height:44px;max-height:44px;padding:0 12px;display:flex;flex-direction:row;
   align-items:center;gap:10px}
 .ex-nav{flex:1;min-width:0;display:flex;align-items:center;justify-content:flex-start;gap:2px;min-height:32px}
-.ex-nav--plain{justify-content:center}   /* 单篇练习：只有题号行 → 居中 */
+/* 11-02 EXAM-QNBAR-LEFT-1（她：题号栏统一移到最左边）：单篇练习原来在这里居中，
+   整卷态的是 flex-start —— 两档对齐方式不一致，看着像两套界面。
+   改成 flex-start 与整卷同一口径（题号永远从左边第一格起）。 */
+.ex-nav--plain{justify-content:flex-start}
 /* ===== Part 行（整卷才有）=====
    纯文字标签（截图口径，不是白胶囊）：当前 Part 700 加粗，其他 Part 常规字重；
    已答数灰色小字「x of y」；绿勾 = 本 Part 全部答完（截图：☑ Part 2）。 */
