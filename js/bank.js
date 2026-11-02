@@ -3308,6 +3308,9 @@ window.__reportExamState = reportExamState;
     tg.innerHTML = '<button type="button" class="ex-tg' + (EX._rvShowAns ? ' on' : '') + '" data-rvtg="ans">Answers</button>'
       + '<button type="button" class="ex-tg' + (EX._rvShowHl ? ' on' : '') + '" data-rvtg="hl">Highlights</button>';
     var icons = top.querySelector('.ex-icons');
+    /* RV-TOP390-1（11-02）：多出两个开关后手机 390 一行放不下（实测 .ex-toggles x=476 出屏），
+       打上 rv-tooled 让 CSS 只对复盘态放开换行；做题态没有这个类，仍是「只要一行」。 */
+    top.classList.add('rv-tooled');
     if(icons){ top.insertBefore(tg, icons); top.insertBefore(mini, icons); }
     else top.appendChild(tg), top.appendChild(mini);
     applyReviewToggles();

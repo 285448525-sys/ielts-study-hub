@@ -1101,6 +1101,20 @@
   #examRoot .ex-top .ex-brand{display:none}
   #examRoot .ex-top .ex-name small{display:none}
   #examRoot .ex-top .ex-timer{white-space:nowrap}
+  /* ═══ RV-TOP390-1（11-02 B1 真机抓的 v719 遗留红）═══
+     交卷复盘态手机 390：篇名(flex:none 183px)+倒计时 64+对错小字 109+工具组 72 已经 428px，
+     再加 Answers/Highlights 两个 chip（130px）→ 实测 .ex-toggles x=476、.ex-icons x=397，
+     **整排落在 390 视口外，看不见也点不着**（页面没有横滚可救，纯裁切）。
+     上面那条 `#examRoot .ex-top{flex-wrap:nowrap}` 是 10-29 她定的「手机顶栏只要一行」——
+     那条讲的是**做题态**；复盘态多出两个开关，一行物理上放不下，所以只对复盘态放开换行：
+       ① 顶栏允许 wrap，两个开关整排落到第二行（order:9 + width:100% 本来就有）
+       ② 篇名允许收缩（原来 flex:none 抢着不还位置），保住工具组不被推出屏
+     做题态没有 .rv-tooled 这个类 → 一个像素都不变，「只要一行」依然是铁律。
+     ⚠️ 选择器必须带 #examRoot 前缀（1,2,0）才压得过上面那条 nowrap。 */
+  #examRoot .ex-top.rv-tooled{flex-wrap:wrap;row-gap:2px}
+  #examRoot .ex-top.rv-tooled .ex-name{flex:0 1 auto;min-width:64px}
+  #examRoot .ex-top.rv-tooled .ex-toggles{order:9;width:100%;justify-content:flex-start;padding-top:2px}
+  #examRoot .ex-top.rv-tooled .ex-score-mini{margin-left:auto}
   .mock-tabs .pill-tab,.partbar .pill-tab{padding:9px 12px;font-size:13.5px}
   .mock-tabs{width:100%}.mock-tabs .pill-tab{flex:1;justify-content:center}
   .bi-chips{display:none}
@@ -2652,7 +2666,7 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 <script defer src="js/common-shell.js?v=20261101m"></script>
 <script defer src="js/common-pwa.js?v=20261101m"></script>
 <script defer src="js/exam-timer.js?v=20261031b"></script>
-<script defer src="js/bank.js?v=20261101p"></script>
+<script defer src="js/bank.js?v=20261101q"></script>
 <!-- M-2（10-24）：模考页「没做过/做过」分组 + 展开更多。
      ⚠️ 本文件只做展示层（读 hub_bank_last_* 分组 + 首屏 20 条），判分/SRS/本地记录一律不碰；
         单条 DOM 由 js/bank.js 的 listHtml() 生成（当参数传进来），结构零改动。
