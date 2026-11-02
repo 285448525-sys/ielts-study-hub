@@ -1045,11 +1045,13 @@
         _stLines = null; _stBound = null;
         renderExam();
         /* renderExam 里 EX.submitted 的先手只覆盖了听力分支（showScript/decoratePassage），
-           阅读要在这里补：逐题结论条 + 成绩卡，与刚交卷时一致。 */
+           阅读要在这里补：逐题结论条 + 顶栏复盘工具，与刚交卷时一致（EXAM-SCORE-COMPACT-1：
+           回看 = 交卷同一套视图，含 Answers/Highlights 开关 + 对错小字；只读徽章照旧）。 */
         if(channel !== 'listening'){
-          if(EX.result) decoratePassage(1);
+          if(EX.result){ decoratePassage(1); mountReviewTools(EX.result); }
           addReadonlyBadge(rec);
         } else {
+          if(EX.result) mountReviewTools(EX.result);
           addReadonlyBadge(rec);
         }
       }).catch(function(err){
@@ -2845,6 +2847,9 @@ window.__reportExamState = reportExamState;
        否则她只是想看一眼上次错题，却被锁住切不了页面。 */
     if(!EX.readonly) reportExamState(true);   /* 10/15 告诉 SW：我在考试中，别刷我 */
     if(EX.submitted){ if(isListen){ showScript(); decoratePassage(EX.curP); hideAudioGate(); } }
+    /* EXAM-SCORE-COMPACT-1：软导航/切篇重渲染后顶栏开关不丢 —— 已交卷（含只读复盘）
+       就重挂（mountReviewTools 幂等：先清旧节点再插）。doSubmit 主路径也走它，无重复。 */
+    if(EX.submitted && EX.result) mountReviewTools(EX.result);
     /* 🔴 10/20 她 ⑤：听力单篇不显示计时（音频长短不一，30 分钟倒计时对单篇没意义），
        只有「完整模考」才开倒计时（line 1500 / line 1435 那两处）。这里不再起表，
        顺带顶栏计时小徽章也不显示 —— 单篇页面整个不出现时间数字。 */
@@ -3283,110 +3288,66 @@ window.__reportExamState = reportExamState;
     return 0;
   }
   function isListen(){ return !!(EX && EX.channel === 'listening'); }
-  function addScoreCard(res){
+
+  /* ═══ EXAM-SCORE-COMPACT-1（11-02 她 8 条口径）═══
+     交卷后顶栏 = 一行：品牌 + 篇名 + [显示答案][显示高亮] + 对错小字 + 工具组。
+     ① 成绩卡（.fx-score 分数块/按钮排/WHAT TO DO NEXT）整删；
+     ② 交卷 = 回看同页：不另做成绩视图，题目区就是复盘视图（decoratePassage 上色不变）；
+     ③ 对错个数顶栏右侧一行小字（32 correct · 8 incorrect）；
+     ④ 显示答案开关默认关：关 = 只看自己作答（图二口径），开 = 正确答案标绿/标进空格（图一口径）；
+     ⑤ 显示高亮开关默认开：控制她做题时画的 ex-hl/ex-nt 黄色标注（不是答案！）；
+     ⑥ AI 讲解挂既有「结论条」入口（右下角浮钮口径作废）——见 decoratePassage 的 .ex-rv；
+     ⑦ 答题卡 UI 不动：paintSheet 已有绿 hit / 红 miss（只变色，布局零改动）；
+     ⑧ 分隔线可拖动：exSplitHandle 既有能力，交卷态不没收（见 toggleReviewHl 里不动 split）。
+     🔴 只读复盘（openLastResult → renderExam → EX.submitted 先手分支）复用同一函数，
+        从外面回看卷子看到的就是同一套顶栏开关 —— 单一真相源，不长歪。 */
+  function mountReviewTools(res){
     var root = document.getElementById('examRoot'); if(!root) return;
-    var old = root.querySelector('.fx-score'); if(old && old.parentNode) old.parentNode.removeChild(old);
-    var raw = Math.round(res.right / (res.total || 1) * 40);
-    var cards = '';
-    if(EX.full){
-      var isLf = !!(EX && EX.channel === 'listening');
-      var pn = isLf ? 4 : 3, plabel = isLf ? 'PART ' : 'PASSAGE ';
-      for(var fpi = 1; fpi <= pn; fpi++){
-        var tot = 0, ok = 0;
-        qsOfPassage(fpi).forEach(function(e){
-          var d = null;
-          for(var i = 0; i < res.detail.length; i++){ if(res.detail[i].qn === String(e.g)){ d = res.detail[i]; break; } }
-          if(!d) return;
-          tot++; if(d.ok) ok++;
-        });
-        cards += '<div class="fx-pcard"><b>' + plabel + fpi + '</b><div>' + ok + ' / ' + tot + '</div></div>';
-      }
-    }
-    var lsn = isListen();
+    var top = root.querySelector('.ex-top'); if(!top) return;
+    var old = top.querySelector('.ex-toggles'); if(old) old.remove();
+    var oldMini = top.querySelector('.ex-score-mini'); if(oldMini) oldMini.remove();
+    /* 开关状态存 EX（同一篇软导航重渲染不丢）；默认：答案关、高亮开（她的口径） */
+    if(EX._rvShowAns == null) EX._rvShowAns = false;
+    if(EX._rvShowHl == null) EX._rvShowHl = true;
     var wrong = res.detail.filter(function(d){ return !d.ok; }).length;
-    /* 用时 mm:ss（EX._usedSec 由 doSubmit 算好：开局秒 − 剩余秒） */
-    var used = Math.max(0, Math.round(EX._usedSec || 0));
-    var mm = Math.floor(used / 60), ss = used % 60;
-    var usedTxt = mm + ':' + (ss < 10 ? '0' : '') + ss;
-    var el = document.createElement('div');
-    el.className = 'fx-score';
-    el.innerHTML = '<div class="fx-top"><b>' + res.right + ' / ' + res.total + '</b>'
-      /* 🔴 10/16 修：成绩卡里的「总分」「题换算」是中文 → 违反「考试页零中文」铁律（体检抓到）。改英文。 */
-      + '<span class="fx-band">Overall ' + Number((lsn ? bandOfListening : bandOfReading)(raw)).toFixed(1) + '</span>'
-      + '<span>' + (lsn ? 'Listening' : 'Academic Reading') + ' · converted from ' + res.total + ' questions</span></div>'
-      /* 10/17：一行 meta（爱听写实证：成绩页顶部就是「分数 / 正确题数 / 用时」一行，不是大数字卡）
-         —— 版面让给答题卡和错题，不做 48px 大数字。 */
-      + '<div class="fx-meta">'
-      +   '<span><b>' + (res.total - wrong) + '</b> correct</span>'
-      +   '<span><b>' + wrong + '</b> incorrect</span>'
-      +   '<span>Time <b>' + usedTxt + '</b></span>'
-      /* 10/17：「只看错题」通道（她 18:3x 报的第 4 个问题）。
-         做法 = 让底部答题卡只列出错题号（点一下跳过去），而不是隐藏题目本身 ——
-         隐藏题目会改变页面内容与定位（违反她「绝不切内容、绝不错位」的判据），
-         而「答题卡筛选」是爱听写同款做法（答题卡在顶部/底部，颜色区分 + 点击跳转）。 */
-      +   '<span class="fx-filt">'
-      +     '<button type="button" class="fx-chip on" data-fxfilter="all">All</button>'
-      +     '<button type="button" class="fx-chip" data-fxfilter="wrong">Incorrect only</button>'
-      +   '</span>'
-      + '</div>'
-      + (cards ? '<div class="fx-pgrid">' + cards + '</div>' : '')
-      /* 10/18 P0-3「下一步」三卡（对标 IELTS Mocks 成绩页的 WHAT TO DO NEXT）：
-         交卷后最常做的三件事一次给全，不用自己在页面里找入口。
-         ⚠️ 只给站内**真实存在**的能力（她 10/6 铁律：没有的能力不许出现在入口文案里）：
-            ① 看错题 = 复用 10/17 的 Incorrect only 筛选 + 跳到第一道错题（不是新功能）
-            ② 再做一次 = 复用 openExam / openFullTest（换一套随机卷）
-            ③ 回列表 = 复用既有 Exit */
-      + '<div class="fx-next">'
-      +   '<div class="fx-next-h">WHAT TO DO NEXT</div>'
-      +   '<div class="fx-next-g">'
-      +   (wrong
-            ? '<button type="button" class="fx-ncard" data-fxnext="wrong"><b>Review the ' + wrong + ' incorrect</b>'
-              + '<span>Jump to the first one, and show only wrong numbers in the answer sheet</span></button>'
-            : '<div class="fx-ncard is-done"><b>No incorrect answers</b><span>Nothing to review in this test</span></div>')
-      +     '<button type="button" class="fx-ncard" data-fxnext="retake"><b>'
-      +       (EX.full ? 'Start another full test' : ('Retake this ' + (lsn ? 'part' : 'passage')))
-      +     '</b><span>' + (EX.full ? 'A new random set, with a fresh timer' : 'Same passage, answers cleared') + '</span></button>'
-      +     '<button type="button" class="fx-ncard" data-fxnext="exit"><b>Back to the test list</b>'
-      +     '<span>Pick a different test</span></button>'
-      +   '</div>'
-      + '</div>';
-    /* 「看错题」要跳到第一道错题 —— 题号此刻算好存进 EX，点击时直接取（点击时 res 已不在作用域） */
-    EX._firstWrong = 0;
-    for(var wi = 0; wi < res.detail.length; wi++){
-      if(!res.detail[wi].ok){ EX._firstWrong = Number(res.detail[wi].qn) || 0; break; }
-    }
-    root.insertBefore(el, root.firstChild);   // 10/12 批A：ptabs 已删，直接插最前
+    var mini = document.createElement('span');
+    mini.className = 'ex-score-mini';
+    mini.setAttribute('data-rvmini', '1');
+    mini.innerHTML = '<b class="ok">' + (res.total - wrong) + '</b> correct · <b class="no">' + wrong + '</b> incorrect';
+    var tg = document.createElement('span');
+    tg.className = 'ex-toggles';
+    tg.innerHTML = '<button type="button" class="ex-tg' + (EX._rvShowAns ? ' on' : '') + '" data-rvtg="ans">Answers</button>'
+      + '<button type="button" class="ex-tg' + (EX._rvShowHl ? ' on' : '') + '" data-rvtg="hl">Highlights</button>';
+    var icons = top.querySelector('.ex-icons');
+    if(icons){ top.insertBefore(tg, icons); top.insertBefore(mini, icons); }
+    else top.appendChild(tg), top.appendChild(mini);
+    applyReviewToggles();
   }
-
-  /* 成绩卡「下一步」三卡的行为（10/18 P0-3）。全部复用既有能力，不新增状态。 */
-  function fxNext(act){
-    if(!EX) return;
-    if(act === 'wrong'){
-      EX._filt = 'wrong';
-      var chips = document.querySelectorAll('#examRoot .fx-chip');
-      for(var i = 0; i < chips.length; i++) chips[i].classList.toggle('on', chips[i].getAttribute('data-fxfilter') === 'wrong');
-      paintSheet();
-      if(EX._firstWrong) goTo(EX._firstWrong);
-      return;
-    }
-    if(act === 'retake'){
-      var id = (EX.unit && EX.unit.id) || '', ch = EX.channel, full = !!EX.full;
-      exitExam();
-      /* exitExam 里 boot() 会重画列表；等它落一拍再进考场（避免两条渲染互相覆盖） */
-      setTimeout(function(){
-        if(full){ if(ch === 'listening') openFullListenTest(); else openFullTest(); }
-        else openExam(id, ch);
-      }, 60);
-      return;
-    }
-    exitExam();
+  /* 开关落内容：答案 = .right/.wrong 上色 + 结论条 Show/Hide 显隐 + 空格填正答；
+     高亮 = ex-hl/ex-nt 显隐（visibility 而非 remove —— 再点开要原样回来，replayMarks 不重跑）。 */
+  function applyReviewToggles(){
+    var root = document.getElementById('examRoot'); if(!root || !EX || !EX.submitted) return;
+    root.classList.toggle('rv-noans', !EX._rvShowAns);
+    root.classList.toggle('rv-nohl', !EX._rvShowHl);
   }
-
+  /* 🔴 答案开关语义（她 11-02 两图口径）：图一「显示答案」= 正确答案标进空格 + 标绿；
+     图二「不显示」= 空格只留她的作答。关掉时**上色隐藏但不弃判分数据**：
+     CSS rv-noans 把 .right/.wrong/.ex-rv 藏掉；blank 正答由 decoratePassage 写进
+     style.borderBottomColor —— 用 class 反选盖回默认色（不碰判分字段）。 */
+  function toggleReview(k){
+    if(!EX || !EX.submitted) return;
+    if(k === 'ans') EX._rvShowAns = !EX._rvShowAns;
+    else if(k === 'hl') EX._rvShowHl = !EX._rvShowHl;
+    var btn = document.querySelector('#examRoot .ex-tg[data-rvtg="' + k + '"]');
+    if(btn) btn.classList.toggle('on', k === 'ans' ? EX._rvShowAns : EX._rvShowHl);
+    applyReviewToggles();
+  }
   /* 10/17 B：「本次未判分」横幅 —— 没有对错、没有总分、不进记录。
-     位置与 addScoreCard 相同（插到 examRoot 最前），版面语言沿用成绩卡的同一套。 */
+     EXAM-SCORE-COMPACT-1 保留：这是「无答案键」的如实告知（不是成绩卡），
+     版面沿用横幅语言，不违反她「成绩卡整删」口径（成绩卡=分数块+按钮排，这里是状态条）。 */
   function addNoScoreCard(){
     var root = document.getElementById('examRoot'); if(!root) return;
-    var old = root.querySelector('.fx-score, .fx-noscore');
+    var old = root.querySelector('.fx-noscore');
     if(old && old.parentNode) old.parentNode.removeChild(old);
     var used = Math.max(0, Math.round(EX._usedSec || 0));
     var mm = Math.floor(used / 60), ss = used % 60;
@@ -4009,6 +3970,8 @@ window.__reportExamState = reportExamState;
       EX.result.detail.forEach(function(d){ mark[String(d.qn)] = !!d.ok; });
     }
     /* 10/17「只看错题」：EX._filt='wrong' 时答题卡只列错题号（点一下跳过去）。
+       EXAM-SCORE-COMPACT-1 后成绩卡 chip 没了、_filt 无生产方 —— 分支保留（防御性：
+       老会话内存态可能残留 _filt='wrong'，软导航重渲染时仍能正确只列错题），成本一行判断。
        不改题目本身的显示——隐藏内容会违反她「绝不切内容、绝不错位」的判据。 */
     if(EX.submitted && EX._filt === 'wrong' && mark){
       nums = nums.filter(function(n){ return mark[String(n)] === false; });
@@ -4526,7 +4489,7 @@ window.__reportExamState = reportExamState;
     reportExamState(false, false);
     var res = score(); EX.correct = res.right; EX.result = res;
     /* 10/17 B：本篇无答案 → 「本次未判分」。
-       跳过逐题结论条（decoratePassage）、成绩卡（addScoreCard）、答题卡对错底色
+       跳过逐题结论条（decoratePassage）、未判分横幅也照走 addNoScoreCard、答题卡对错底色
        （paintSheet 的 mark 段靠 EX.result.detail，空 detail 自然不会涂色）与全部落库
        （DATA.mockRecords / hub_bank_last_*）—— 不产假分数、不写假记录。 */
     var _noAns = !!(EX && EX.scored === false);
@@ -4545,7 +4508,11 @@ window.__reportExamState = reportExamState;
 
     if(!_noAns){
       decoratePassage(EX.curP);
-      addScoreCard(res);
+      /* 🔴 EXAM-SCORE-COMPACT-1（11-02 她 8 条口径）：成绩卡整删 —— 交卷落在的页面 =
+         从外面回看卷子的同一个页面（题目回看 + 答题卡红绿），没有分数块/按钮排/WHAT TO DO NEXT。
+         对错个数 = 顶栏一行小字；「显示答案 / 显示高亮」两个开关也住顶栏（mountReviewTools）。
+         ⚠️ addScoreCard 已退役（函数删除），深链消费方走 openLastResult 同一条渲染链，无两套视图。 */
+      mountReviewTools(res);
     }
     if(isListen()) showScript();                       /* 交卷后才给听力原文 + 解锁音频复听 */
 
@@ -4812,21 +4779,10 @@ window.__reportExamState = reportExamState;
         openExam(el.getAttribute('data-unit'), el.getAttribute('data-ch'));
         return;
       }
-      if(t.closest && t.closest('[data-fxfilter]')){
-        /* 10/17：成绩卡「All / Incorrect only」——只筛底部答题卡，不动题目本身 */
-        if(EX && EX.submitted){
-          EX._filt = t.closest('[data-fxfilter]').getAttribute('data-fxfilter');
-          var fs = document.querySelectorAll('#examRoot .fx-chip');
-          for(var fi = 0; fi < fs.length; fi++){
-            fs[fi].classList.toggle('on', fs[fi].getAttribute('data-fxfilter') === EX._filt);
-          }
-          paintSheet();
-        }
-        return;
-      }
-      /* 10/18 P0-3：成绩卡「下一步」三卡 */
-      if((el = t.closest && t.closest('[data-fxnext]'))){
-        fxNext(el.getAttribute('data-fxnext'));
+      /* EXAM-SCORE-COMPACT-1：fx-chip「All / Incorrect only」随成绩卡退役（无生产方，死分支删除） */
+      /* EXAM-SCORE-COMPACT-1：复盘顶栏两开关（Answers / Highlights） */
+      if((el = t.closest && t.closest('.ex-tg[data-rvtg]'))){
+        toggleReview(el.getAttribute('data-rvtg'));
         return;
       }
       if(t.closest && t.closest('[data-rvtoggle]')){

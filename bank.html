@@ -19,7 +19,7 @@
 <meta http-equiv="Expires" content="0" />
 <title>模考 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css?v=20261101m" />
-<link rel="stylesheet" href="css/p/bank.css?v=20261101m" />
+<link rel="stylesheet" href="css/p/bank.css?v=20261101n" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -263,55 +263,7 @@
 
 /* 10/12 批A：顶部 Passage/Part 切换（.ex-ptabs）已删 —— 挪到底部篇切换器，见 .ex-nav 区 */
 
-/* ===== 交卷后的成绩卡（顶部横幅）===== */
-.fx-score{flex:none;background:var(--primary-50);border-bottom:1px solid var(--primary-100);padding:14px 18px}
-.fx-score .fx-top{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
-.fx-score .fx-top b{font-size:30px;font-weight:800;line-height:1;color:#111;font-variant-numeric:tabular-nums}
-.fx-score .fx-band{font-size:14px;font-weight:800;color:var(--primary-900);background:#fff;
-  border:1px solid var(--primary-100);border-radius:999px;padding:3px 12px}
-.fx-score .fx-top span{color:var(--muted);font-size:12.5px}
-/* 10/17：成绩 meta 行（爱听写实证：顶部就是「分数/正确数/用时」一行，不是大数字卡） */
-.fx-score .fx-meta{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;margin-top:7px;
-  font-size:12.5px;color:var(--muted)}
-.fx-score .fx-meta b{color:#111;font-weight:800;font-variant-numeric:tabular-nums;margin-right:2px}
-/* 10/17：「All / Incorrect only」筛选 chip。药丸小 chip 与站内 .pill-tab 同族；
-   .on 态用 primary 底白字；未选中是白底描边。 */
-.fx-score .fx-filt{display:inline-flex;gap:4px;margin-left:auto}
-.fx-score .fx-chip{appearance:none;border:1px solid var(--line);background:#fff;color:var(--muted);
-  font-size:11.5px;font-weight:700;line-height:1;padding:5px 11px;border-radius:999px;cursor:pointer;
-  font-family:inherit;min-height:26px}
-.fx-score .fx-chip:hover{border-color:var(--primary-300);color:var(--primary-700)}
-.fx-score .fx-chip.on{background:var(--primary);border-color:var(--primary);color:#fff}
-@media(max-width:860px){.fx-score .fx-filt{margin-left:0}}
-/* 10/17：黄底（Option>Colour = yellow）下 meta 行的次级文字要跟着反色，
-   否则灰字 #71767e 压在 #ffd400 上对比不足。 */
-#examRoot.ct-yellow .fx-score .fx-meta{color:#161616}
-#examRoot.ct-yellow .fx-score .fx-meta b{color:#000}
-#examRoot.ct-yellow .fx-score .fx-chip{background:#141414;color:#ffd400;border-color:#ffd400}
-#examRoot.ct-yellow .fx-score .fx-chip.on{background:#ffd400;color:#161616;border-color:#ffd400}
-.fx-score .fx-pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:11px}
-.fx-score .fx-pcard{border:1px solid var(--primary-100);background:#fff;border-radius:8px;padding:9px 12px}
-.fx-score .fx-pcard b{display:block;font-size:11.5px;color:var(--muted);letter-spacing:.04em;margin-bottom:3px}
-.fx-score .fx-pcard div{font-size:17px;font-weight:800;color:#111;font-variant-numeric:tabular-nums}
-@media(max-width:860px){.fx-score .fx-pgrid{grid-template-columns:1fr}}
 
-/* ===== 10-23 B-1c 洞①：成绩横幅深色档缺失（她 10-23 报）=====
-   .fx-score 族写死 #fff/#111，.ct-yellow 有一套反色，但**全文件没有 ct-dark 版本** →
-   深色考试档下成绩区还是浅底白卡亮条。下面按同一套反色口径补 ct-dark（与 ct-yellow 对称）。 */
-#examRoot.ct-dark .fx-score{background:#1c1f22;border-bottom-color:#3a3f45}
-#examRoot.ct-dark .fx-score .fx-top b{color:#f2f2f2}
-#examRoot.ct-dark .fx-score .fx-band{background:#262a24;color:#8fe0d6;border-color:#3a3f45}
-#examRoot.ct-dark .fx-score .fx-top span{color:#c8cbd0}
-#examRoot.ct-dark .fx-score .fx-meta{color:#c8cbd0}
-#examRoot.ct-dark .fx-score .fx-meta b{color:#f2f2f2}
-#examRoot.ct-dark .fx-score .fx-chip{background:#262a24;color:#c8cbd0;border-color:#5a5f66}
-#examRoot.ct-dark .fx-score .fx-chip:hover{border-color:#8fe0d6;color:#8fe0d6}
-/* 选中态原本想用「主色底 + 白字」，实测 11.5px 小字下只有 3.37:1 不达标（大字号才允许 3:1）
-   → 深色档改成「亮青底 + 深字」，与句子条 Q 徽章同一套口径（实测 8.98:1）。 */
-#examRoot.ct-dark .fx-score .fx-chip.on{background:#8fe0d6;border-color:#8fe0d6;color:#0f3330}
-#examRoot.ct-dark .fx-score .fx-pcard{background:#262a24;border-color:#3a3f45}
-#examRoot.ct-dark .fx-score .fx-pcard b{color:#9aa0a6}
-#examRoot.ct-dark .fx-score .fx-pcard div{color:#f2f2f2}
 
 /* ===== 做题页（全屏 · 全英文 · 仿真机考 · 10/12 对齐样子稿 104 v4，她拍板统一）===== */
 /* ===== 10/14 模考 UI 统一变量（按 design/模考UI统一_设计方案_2026-10-11.md 批1 落地）=====
@@ -342,6 +294,42 @@
 .ex-top{display:flex;align-items:center;gap:12px;padding:4px 14px;background:#fff;border-bottom:1px solid var(--line);flex:none;min-height:36px}
 .ex-name{font-size:12px;font-weight:700;color:#111;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:none}
 .ex-name small{font-weight:400;color:#333;margin-left:8px;font-size:11.5px}
+/* ===== EXAM-SCORE-COMPACT-1（11-02 她 8 条口径）：复盘顶栏开关 + 对错小字 =====
+   交卷后顶栏仍是一行（品牌+篇名+计时+[Answers][Highlights]+对错小字+工具组），不另起横幅。
+   .ex-tg 药丸 chip 沿用站内 .fx-chip/.rv2-segment 同族视觉（1px 边、999 圆角、on=主色底白字）。
+   .ex-score-mini 对错小字 11px 等宽数字，绿 correct / 红 incorrect（样子稿 v3 口径）。 */
+.ex-toggles{display:inline-flex;gap:4px;flex:none}
+.ex-tg{appearance:none;border:1px solid var(--line);background:#fff;color:var(--muted);
+  font-size:11px;font-weight:700;line-height:1;padding:5px 11px;border-radius:999px;cursor:pointer;
+  font-family:inherit;min-height:26px;white-space:nowrap;transition:border-color .14s,color .14s,background .14s}
+.ex-tg:hover{border-color:var(--primary-300);color:var(--primary-700)}
+.ex-tg.on{background:var(--primary);border-color:var(--primary);color:#fff}
+.ex-score-mini{font-size:11px;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums;flex:none}
+.ex-score-mini b{font-weight:800;font-variant-numeric:tabular-nums}
+.ex-score-mini .ok{color:#1f7a5c}
+.ex-score-mini .no{color:#b3261e}
+/* 复盘开关落内容（JS 侧 applyReviewToggles 切这两个根类，不改任何判分数据）：
+   rv-noans = 隐藏正确答案标记（.right 标绿/.ex-rv 结论条/correct-answer 行）→ 回到「只看自己作答」；
+   rv-nohl  = 隐藏她做题画的标注（.ex-hl/.ex-nt），visibility 保位（再开原样回来）。 */
+#examRoot.rv-noans .ex-opt.right,#examRoot.rv-noans .ex-pill.right,#examRoot.rv-noans .ex-drop.right,
+#examRoot.rv-noans .ex-pslot.right,#examRoot.rv-noans .ex-qn.hit,#examRoot.rv-noans .ex-qn.miss,
+#examRoot.rv-noans td.mx-right,#examRoot.rv-noans td.mx-wrong{background:transparent !important;border-color:var(--line) !important;color:inherit !important}
+#examRoot.rv-noans .ex-rv{display:none !important}
+#examRoot.rv-noans input.ex-blank[data-q]{border-bottom-color:var(--line) !important;color:inherit !important}
+#examRoot.rv-nohl .ex-hl,#examRoot.rv-nohl .ex-nt{background:transparent !important;color:inherit !important;outline:none !important;box-shadow:none !important}
+@media(max-width:860px){
+.ex-toggles{order:9;width:100%;justify-content:flex-start;padding-top:2px}
+.ex-top{flex-wrap:wrap;row-gap:4px}
+.ex-score-mini{margin-left:auto}
+}
+/* 深色/黄底考试档：顶栏深底（#161616），开关与对错小字按 ct-dark 同款反色（对齐 .ex-top .ex-name 口径）。 */
+#examRoot.ct-dark .ex-tg,#examRoot.ct-yellow .ex-tg{background:#262a24;color:#c8cbd0;border-color:#5a5f66}
+#examRoot.ct-dark .ex-tg:hover,#examRoot.ct-yellow .ex-tg:hover{border-color:#8fe0d6;color:#8fe0d6}
+#examRoot.ct-dark .ex-tg.on{background:#8fe0d6;border-color:#8fe0d6;color:#0f3330}
+#examRoot.ct-yellow .ex-tg.on{background:#ffd400;border-color:#ffd400;color:#161616}
+#examRoot.ct-dark .ex-score-mini,#examRoot.ct-yellow .ex-score-mini{color:#c8cbd0}
+#examRoot.ct-dark .ex-score-mini b{color:#f2f2f2}
+#examRoot.ct-yellow .ex-score-mini b{color:#f0e3a8}
 .ex-timer{margin:0 auto;font-variant-numeric:tabular-nums;font-weight:700;font-size:12px;color:#111;background:none;border:none;border-radius:0;padding:0}
 .ex-timer.warn{color:#b3261e;animation:exblink 1s step-start infinite}
 .ex-timer.soon{color:#8a5a00}
@@ -2253,7 +2241,7 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 
 /* 10/17 B：没有答案的篇目 —— 未判分横幅 + 进场提示条
    文案全英文（考试页零中文铁律）。三档配色：默认浅薄荷底、深色档墨绿底、黄底档黄底黑字，
-   与 .fx-score 的反色完全同套（.fx-score 的深色/黄底规则在 L161-164，特异性同为 1-1-1，
+   与 .fx-noscore 独立成套（成绩卡 .fx-score 已随 EXAM-SCORE-COMPACT-1 整删，未判分横幅保留，
    文档序在通用规则之前，靠的也是「显式给色」而不是顺序 —— 这里照抄同一套写法）。 */
 .fx-noscore{flex:none;background:var(--primary-50);border-bottom:1px solid var(--primary-100);padding:14px 18px}
 .fx-noscore .fx-top{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
@@ -2265,7 +2253,7 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 #examRoot.ct-dark .fx-noscore{background:#22312f;border-bottom-color:#3a4a48}
 #examRoot.ct-dark .fx-noscore .fx-top b,#examRoot.ct-dark .fx-noscore .fx-meta b{color:#f2f2f2}
 #examRoot.ct-dark .fx-noscore .fx-top span,#examRoot.ct-dark .fx-noscore .fx-meta{color:#c8cbd0}
-/* 黄底档：黄底黑字（与 .fx-score 的 ct-yellow 反色完全一致） */
+/* 黄底档：黄底黑字（与未判分横幅的 ct-yellow 反色同一套口径） */
 #examRoot.ct-yellow .fx-noscore{background:#ffd400;border-bottom-color:#e6bc00}
 #examRoot.ct-yellow .fx-noscore .fx-top b,#examRoot.ct-yellow .fx-noscore .fx-meta b{color:#000}
 #examRoot.ct-yellow .fx-noscore .fx-top span,#examRoot.ct-yellow .fx-noscore .fx-meta{color:#161616}
@@ -2328,23 +2316,7 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 .full-card .fc-last .fl-bar i{display:block;height:100%;background:#fff;border-radius:999px}
 .full-card .fc-last.is-none{color:rgba(255,255,255,.62);font-size:12px}
 
-/* ===== 10/18 成绩卡「下一步」三卡（P0-3）=====
-   对标 IELTS Mocks 成绩页的 WHAT TO DO NEXT：交卷后把人直接送到下一步，
-   而不是留在一个只能往回滚的长页里。文案全英文（考试页零中文铁律）。
-   三卡 = 看错题 / 再做一次 / 回列表，全部复用站内已有能力，不承诺任何没有的功能。
-   与 .fx-score 同一视觉语言（白卡 + primary-100 细边），不加阴影不加图标，避免抢分数。 */
-.fx-score .fx-next{margin-top:12px}
-.fx-score .fx-next-h{font-size:11.5px;font-weight:800;letter-spacing:.06em;color:var(--muted);margin-bottom:7px}
-.fx-score .fx-next-g{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.fx-score .fx-ncard{appearance:none;text-align:left;font-family:inherit;border:1px solid var(--primary-100);
-  background:#fff;border-radius:8px;padding:9px 12px;cursor:pointer;transition:border-color .14s,box-shadow .14s}
-.fx-score .fx-ncard b{display:block;font-size:13px;font-weight:800;color:#111;margin-bottom:2px;line-height:1.35}
-.fx-score .fx-ncard span{display:block;font-size:12px;color:var(--muted);line-height:1.45}
-.fx-score .fx-ncard:hover{border-color:var(--primary-300);box-shadow:0 2px 10px rgba(35,122,116,.12)}
-.fx-score .fx-ncard:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
-.fx-score .fx-ncard.is-done{cursor:default;background:var(--primary-50);border-style:dashed}
-.fx-score .fx-ncard.is-done:hover{border-color:var(--primary-100);box-shadow:none}
-@media(max-width:860px){.fx-score .fx-next-g{grid-template-columns:1fr}}
+
 
 /* ===== 10/18 交卷确认弹窗：未答跳转（P1-4）+ 标记题号清单（P2-2）=====
    两件事都在同一个弹窗里做，因为它们是同一个决策点的两个盲区：
@@ -2698,7 +2670,7 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 <script defer src="js/common-shell.js?v=20261101m"></script>
 <script defer src="js/common-pwa.js?v=20261101m"></script>
 <script defer src="js/exam-timer.js?v=20261031b"></script>
-<script defer src="js/bank.js?v=20261101h"></script>
+<script defer src="js/bank.js?v=20261101n"></script>
 <!-- M-2（10-24）：模考页「没做过/做过」分组 + 展开更多。
      ⚠️ 本文件只做展示层（读 hub_bank_last_* 分组 + 首屏 20 条），判分/SRS/本地记录一律不碰；
         单条 DOM 由 js/bank.js 的 listHtml() 生成（当参数传进来），结构零改动。
