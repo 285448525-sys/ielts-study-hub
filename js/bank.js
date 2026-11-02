@@ -187,8 +187,27 @@
     }
     return h + '</div>';
   }
+  /* 🔴 11-02 BK-LOAD-CANCEL-1（她报「开一篇阅读加载几分钟不出，界面出不去进不来」）：
+     实测根因有两条，缺的正是那个能让人出去的出口 ——
+       ① 进考场的四条路径全传了 noCancel:true → 载入页上**根本没有取消按钮**；
+       ② 全文件没有任何 fetch 超时，网络一卡 fetch 就一直挂着，载入页永久停在那里。
+     修法：进场路径也给「取消加载」，并给 opts.onCancel 让上层退回题库列表；
+           再加一个 25 秒超时兜底，超时转失败态（带「重试」），不再无限转圈。
+     无答案篇/弱网都不受影响：只影响「卡住」这一种情况。 */
+  var BK_FETCH_TIMEOUT = 25000;
+
+  /* 进场载入被取消 / 超时 → 退回题库列表（列表本来就还在 DOM 里，不用重拉 manifest） */
+  function bkExitLoading(){
+    var host = document.getElementById('examRoot');
+    if(host){ host.hidden = true; host.innerHTML = ''; }
+    var root = document.getElementById('bankRoot'); if(root) root.style.display = '';
+    try{ reportExamState(false, true); }catch(e){}
+  }
+
   /* fetchWithStates(container, objName, url, renderFn, opts)
-     opts.noCancel = true 时不显示「取消」（用于「已点了开始」的正文加载，避免误取消丢上下文） */
+     opts.noCancel  = true 时不显示「取消」
+     opts.onCancel  = 点取消时交给上层处理（进场路径传 bkExitLoading 退回列表）
+     opts.timeout   = 单次请求超时毫秒（默认 BK_FETCH_TIMEOUT = 25s） */
   function fetchWithStates(container, objName, url, renderFn, opts){
     if(!container) return;
     opts = opts || {};
@@ -202,6 +221,11 @@
     if(cancelBtn){
       cancelBtn.addEventListener('click', function(){
         if(ac){ try{ ac.abort(); }catch(e){} }
+        if(typeof opts.onCancel === 'function'){
+          try{ opts.onCancel(); }
+          catch(e){ if(window.console && console.error) console.error('[bank] 取消回调出错：', e); }
+          return;
+        }
         container.innerHTML = bkStateBox('cancelled', '已取消加载', '', '重新加载');
         var again = container.querySelector('[data-bk-act=cancelled]');
         if(again) again.addEventListener('click', function(){ fetchWithStates(container, objName, url, renderFn, opts); });
@@ -209,10 +233,18 @@
     }
     var fo = { cache: 'no-cache' };
     if(ac) fo.signal = ac.signal;
+    /* 超时兜底：到点主动 abort 并打标，catch 里据此转失败态（否则 AbortError 会被当成用户取消静默吞掉）。
+       opts.noTimeout = true 的调用（只读复盘）不设超时。 */
+    var _to = opts.noTimeout ? null : setTimeout(function(){
+      if(!ac) return;
+      ac._timedOut = true;
+      try{ ac.abort(); }catch(e){}
+    }, opts.timeout || BK_FETCH_TIMEOUT);
     fetch(url, fo).then(function(r){
       if(!r.ok) throw new Error('HTTP ' + r.status);
       return r.json();
     }).then(function(data){
+      clearTimeout(_to);
       if(ac && container._bkAbort !== ac) return;              // 已被更新的请求取代
       if(!data || (Array.isArray(data.tests) && !data.tests.length)){
         container.innerHTML = bkStateBox('empty', '这一部分暂时没有篇目。', '', '');
@@ -220,9 +252,12 @@
       }
       renderFn(container, data);
     }).catch(function(e){
-      if(e && e.name === 'AbortError') return;                 // 取消是自己的事，不当错误报
+      clearTimeout(_to);
+      var aborted = !!(e && e.name === 'AbortError');
+      if(aborted && !(ac && ac._timedOut)) return;             // 用户点的取消：按钮那边已接管（或已退回列表）
       if(window.console && console.error) console.error('[bank] 加载失败：', url, e);
-      container.innerHTML = bkStateBox('error', objName + '没加载出来', '可能是网络问题，重试一下', '重试');
+      container.innerHTML = bkStateBox('error', objName + '没加载出来',
+        aborted ? '网络卡住了，点了重试再来一次' : '可能是网络问题，重试一下', '重试');
       var retry = container.querySelector('[data-bk-act=error]');
       if(retry) retry.addEventListener('click', function(){ fetchWithStates(container, objName, url, renderFn, opts); });
     });
@@ -926,11 +961,11 @@
     var host = document.getElementById('examRoot');
     if(host){
       host.hidden = false;
-      /* B-1a：正文也走四态。noCancel = 已点了开始，不给「取消」（避免误取消丢上下文），
-         但失败态仍可「重试」，取消态不会出现。 */
+      /* B-1a：正文也走四态。11-02 BK-LOAD-CANCEL-1：进场不再 noCancel ——
+         她报过「加载几分钟不出、界面出不去进不来」，取消就退回题库列表（onCancel）。 */
       fetchWithStates(host, 'Test ' + String(unitId).replace(/^.*\//, ''), 'bank/' + channel + '/' + unitId + '.json', function(box, unit){
         startUnitExam(unit, unitId, channel);
-      }, { noCancel: true, lpTitle: '正在载入试卷',
+      }, { onCancel: bkExitLoading, lpTitle: '正在载入试卷',
            lpSub: channel === 'listening' ? 'IELTS Listening · 听力练习' : 'IELTS Reading · 阅读练习' });
     }
   }
@@ -1061,7 +1096,9 @@
           + '<p><button class="btn-ghost" type="button" data-exit>返回</button></p></div>';
         if(root) root.style.display = '';
       });
-    }, { noCancel: true, lpTitle: '正在载入上次结果', lpSub: '只读复盘 · 不重新计时' });
+    /* 只读复盘：11-02 同改给取消（退回列表），但**不加超时兜底** ——
+       复盘是只读，慢一点不算错，超时反而会把她想看的结果掐掉。 */
+    }, { onCancel: bkExitLoading, noTimeout: true, lpTitle: '正在载入上次结果', lpSub: '只读复盘 · 不重新计时' });
   }
 
   /* 只读复盘顶部的小标记：明确告诉用户「这是上次的记录，不是现在在做题」。 */
@@ -2904,12 +2941,12 @@ window.__reportExamState = reportExamState;
     var root = document.getElementById('bankRoot');
     if(root) root.style.display = 'none';
     var host = document.getElementById('examRoot');
-    /* B-1a：完整模考也走四态（noCancel：已点 Start；失败可重试 = 重新抽篇组卷） */
+    /* B-1a：完整模考也走四态。11-02 同改：给取消（退回列表）+ 25s 超时兜底。 */
     if(host){
       host.hidden = false;
       fetchWithStates(host, 'Test', 'bank/reading/' + picks[0].id + '.json', function(box){
         startFullTest(picks);
-      }, { noCancel: true, lpTitle: '正在载入试卷', lpSub: 'IELTS Reading Test · Full Test · 40 题' });
+      }, { onCancel: bkExitLoading, lpTitle: '正在载入试卷', lpSub: 'IELTS Reading Test · Full Test · 40 题' });
       return;
     }
     startFullTest(picks);
@@ -2998,12 +3035,12 @@ window.__reportExamState = reportExamState;
     var root = document.getElementById('bankRoot');
     if(root) root.style.display = 'none';
     var host = document.getElementById('examRoot');
-    /* B-1a：同阅读完整模考，走四态（noCancel；失败可重试） */
+    /* B-1a：同阅读完整模考，走四态。11-02 同改：给取消 + 25s 超时兜底。 */
     if(host){
       host.hidden = false;
       fetchWithStates(host, 'Test', 'bank/listening/' + picks[0].id + '.json', function(box){
         startFullListenTest(picks);
-      }, { noCancel: true, lpTitle: '正在载入试卷', lpSub: 'IELTS Listening Test · Full Test · 40 题' });
+      }, { onCancel: bkExitLoading, lpTitle: '正在载入试卷', lpSub: 'IELTS Listening Test · Full Test · 40 题' });
       return;
     }
     startFullListenTest(picks);
