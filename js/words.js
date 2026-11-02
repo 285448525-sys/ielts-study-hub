@@ -1437,10 +1437,23 @@ function renderWords(){
       groups.forEach(g => { _bankGroups[g.key] = g.items; });
       /* 10/3 A 版接入后修的坑：筛选激活时若该组从未展开过（_bankExpanded 为空），
          组壳会渲染出来但组体是空的 → 「筛了却看不到词」。
-         修法：没手动折叠过的组（undefined）默认展开；只有显式 false（用户点过收起）才保持收起。 */
-      groups.forEach(g => {
-        if(_bankExpanded[g.key] === false){ /* 用户显式收起过 → 尊重 */ }
-        else _bankExpanded[g.key] = true;
+         修法：没手动折叠过的组（undefined）默认展开；只有显式 false（用户点过收起）才保持收起。
+
+         ═══ 11-02 WD-OPEN-LAG-1（她：「打开词库就是渲染几个词库的块就行了，又不是叫你渲染所有词」）═══
+         官方词库这条分支原来把**所有组**都设成默认展开：题干高频词 50 章 × 每组首屏 30 条
+         = 进词库页一次就塞 1500 行、13176 个 DOM 节点（实测 390 档），她手机上这就是那 705ms 长任务。
+         改成：默认只展开**第一组**，其余收起，点哪章展哪章。
+         用户手动点开过的组照旧尊重（=== true 保留展开，=== false 保留收起），只是「从没点过」的
+         从「默认展开」改成「默认收起」。
+         custom 视图那段（上一分支）不动，仍默认展开前两组。 */
+      groups.forEach((g, gi) => {
+        if(!official){                      // custom / 筛选视图：沿用原口径
+          if(_bankExpanded[g.key] === false){ /* 用户显式收起过 → 尊重 */ }
+          else _bankExpanded[g.key] = true;
+          return;
+        }
+        // 官方词库：没点过的（undefined）只让第一组默认展开，其余收起
+        if(_bankExpanded[g.key] === undefined) _bankExpanded[g.key] = (gi === 0);
       });
       box.innerHTML = groups.map(g => groupHeadHtml(g)).join('');
       groups.forEach(g => {   // 恢复此前展开的组（只渲染首屏）

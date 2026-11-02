@@ -66,7 +66,8 @@
 // 未改任何加载策略/脚本顺序（HANDOFF 铁律：defer 顺序是契约，动它会连带出事）。
 // common.js → 20261013ad（25 页）、index.js → 20261017a（仅 home.html）、
 // bank.js → 20261012ac（仅 bank.html）。上一版 v409。
-const CACHE = 'ielts-hub-v724'; // 11-02 EXAM-TIMER-POP-DUP-1：她截图「怎么点不了」实锤——v723 弹框残留旧「自定义」死输入行（前笔正则替换只吃掉半段，querySelector 永远绑步进器的 input，旧行点了没反应）。删该行（连注释），时长只剩「− 数字 ＋」一行；show() 头补 cb 取值契约（Number/null/'exit'，B2 上轮 P2）。exam-timer.js 20261102a→b 两页。上一版 v723 = EXAM-TIMER-POP-FIX-1。 // 11-02 EXAM-TIMER-POP-FIX-1（她四条口径）：计时弹框档位排整删、自定义行改 −/＋ 箭头一次 5 分钟（1–180 钳制）、✕/Esc=放弃退出回列表（cb 传 'exit'，bank.js/writing.js 消费方分流）、「不计时」「按这个时长开始」保留。exam-timer.js（bank/writing 两页共用）20261031b→20261102a、bank.js 20261101q→r、writing.js 20261101k→l。上一版 v722 = RV-TOP390-1。
+const CACHE = 'ielts-hub-v725'; // 11-02 WD-OPEN-LAG-1：她「打开词库就是渲染几个词库的块就行了，又不是叫你渲染所有词」。① 官方词库默认只展开第一组（原来 50 章全展开 → 一次塞 1500 行 / 13176 个 DOM 节点，实测 390 档这就是那段长任务），改后 30 行 / 1410 节点，点哪章展哪章、收起即释放；custom 视图与「用户手动点开过的组」照旧尊重。② wbSetActive→_persist 里 _readStore() 原来写在 for 循环中，每个未标脏的非活跃库都重解析一遍整个 obank 包（六库 1.4MB，五次换书实测 JSON.parse 30 次 158ms），改成一整轮只读一次 → 10 次 55ms，换书中位 49.8→29.3ms。practice/home 的 wordbank.js 串 20261101a→20261102c、practice 的 words.js 串 20261101k→20261102c。上一版 v724 = EXAM-TIMER-POP-DUP-1。
+const _prevCacheNote47 = 'ielts-hub-v724'; // 11-02 EXAM-TIMER-POP-DUP-1：删计时弹框残留旧「自定义」死输入行（v723 两行时长并存，querySelector 永远绑步进器 input，旧行点了没反应）。exam-timer.js 20261102a→b，SW v723→v724。
 const _prevCacheNote46 = 'ielts-hub-v723'; // 11-02 EXAM-TIMER-POP-DUP-1：删弹框残留旧「自定义」死输入行（v723 遗留，点不了）。exam-timer.js 20261102a→b（bank.html defer+预载、writing.html defer）。上一版 v723。
 const _prevCacheNote45 = 'ielts-hub-v722'; // 11-02 RV-TOP390-1：复盘态手机 390 顶栏两开关出屏修复（rv-tooled 类放行换行）。js/bank.js 串 → 20261101q。
 const _prevCacheNote44 = 'ielts-hub-v721'; // 11-02 BK-LOAD-CANCEL-1：进场载入页出「取消加载」+ 25s 超时兜底。js/bank.js 串 → 20261101p。上一版 v720。

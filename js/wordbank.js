@@ -73,11 +73,17 @@
     if(state.memOnly) return;
     try{
       var out = { active: state.active, banks: {} };
+      /* 11-02 WD-OPEN-LAG-1：盘上副本**整轮只读一次**。
+         原来这行 var raw = _readStore() 写在 for 循环里 —— 每遇到一个「未标脏的非活跃库」
+         就把整个 obank（六库叠加实测 1.0~3.7 MB）重新 JSON.parse 一遍，六库就是 5 次重复解析。
+         实测（390 档、1.4 MB 库）单次 _persist 里 _readStore 自耗 50.9 ms、JSON.parse 6 次共 54.7 ms，
+         占整次换书 85 ms 的大头。盘上内容在一轮里不会变，读一次就够。 */
+      var raw = null, rawRead = false;
       for(var id in state.banks){
         if(!Object.prototype.hasOwnProperty.call(state.banks, id)) continue;
         if(id === state.active){ out.banks[id] = _serializeBank(state.banks[id]); }
         else if(!_dirty[id]){ // 未标脏的非活跃库，盘上就是最新的，原样带上（体积不变、只省序列化后的写入波动）
-          var raw = _readStore();
+          if(!rawRead){ raw = _readStore(); rawRead = true; }
           if(raw && raw.banks && raw.banks[id]) out.banks[id] = raw.banks[id];
         }
         // 标脏的非活跃库：跳过，等 _flushDirty 补写
