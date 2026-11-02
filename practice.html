@@ -55,7 +55,7 @@
   <script defer src="js/wordbank.js?v=20261102c"></script>
   <!-- design/77 DHP+SSP-MMC 策略表：必须在 practice.js 之前（defer 按文档序执行，表未加载时 practice.js 有回退兜底） -->
   <script defer src="js/dhp_policy.js?v=20260921a"></script>
-  <script src="js/practice.js?v=20261101m" defer></script>
+  <script src="js/practice.js?v=20261102d" defer></script>
   <script src="js/words.js?v=20261102c" defer></script>
   <script src="js/wd-dict.js?v=20261101a" defer></script>
 <style>
@@ -952,11 +952,23 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
     setTxt('wdModeTxt', MODE_TXT[m] || MODE_TXT.visual);
   }
 
-  function closeModePop(){ var p = $('wdModePopList'); if (p) p.remove(); }
+  /* 🔴 WD-DICT-TYPE-2（11-02 A1 实测）：原来这里是 `closeModePop(){ 删节点 }` +
+     openModePop 里 `document.addEventListener('click', closeModePop, {once:true})`。
+     真 bug：切完模式后那枚 once 监听还在（选项按钮走了 stopPropagation，事件没冒到 document，
+     监听没被消耗），于是**下一次点开模式菜单，新弹层刚建出来就被这枚旧监听立刻关掉** ——
+     表现就是「切过一次模式以后，再点模式钮没反应，怎么点都弹不出来」。
+     修法：把监听句柄存起来，关闭时连同监听一起摘掉；并且打开时先清一遍再挂新的。
+     挂监听也不再靠 once 自己消费，改成显式判定：点在自己弹层里/点在触发钮上都不关。 */
+  var _modePopDocH = null;
+  function closeModePop(){
+    var p = $('wdModePopList'); if (p) p.remove();
+    if (_modePopDocH){ document.removeEventListener('click', _modePopDocH); _modePopDocH = null; }
+  }
 
   function openModePop(){
     var host = $('wdModePop');
-    if (!host || $('wdModePopList')) { closeModePop(); return; }
+    closeModePop();                                 // 先把上一轮的节点与监听清干净
+    if (!host) return;
     var cur = 'visual';
     try{ cur = (typeof pc === 'function' ? pc() : {}).questionMode || 'visual'; }catch(e){}
     var box = document.createElement('div');
@@ -979,9 +991,13 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
       box.appendChild(b);
     });
     host.appendChild(box);
-    setTimeout(function(){
-      document.addEventListener('click', closeModePop, { once: true });
-    }, 0);
+    /* 点空白处关闭。排除触发钮本身（这个 click 事件还在冒泡途中，新挂的监听会被同一事件命中）。 */
+    _modePopDocH = function(ev){
+      var t = ev.target;
+      if (t && t.closest && (t.closest('#wdModePopList') || t.closest('#wdModeBtn'))) return;
+      closeModePop();
+    };
+    document.addEventListener('click', _modePopDocH);
   }
 
   /* ── 入口绑定（幂等）── */

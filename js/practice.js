@@ -1570,7 +1570,7 @@ function renderQuestion(cur, isRehold){
     '</div>' +
     /* WD-DICT-LOG-1（11-01）：听写提示行尾巴加一个「听写记录」小入口。
        放这里而不是头部工具组：手机档头部右上是模式/设置/全屏三枚，加第四枚会挤掉模式钮。 */
-    (dictMode ? '<div class="pw-audio-hint pw-dict-hint"><span class="pw-dict-tag">听写模式</span>听发音，选拼写 · 点喇叭重播'
+    (dictMode ? '<div class="pw-audio-hint pw-dict-hint"><span class="pw-dict-tag">听写模式</span>听发音，打出单词 · 点喇叭重播'
               + '<button class="wdd-log-entry" id="wddLogEntry" type="button">听写记录</button></div>'
               : (audioMode ? '<div class="pw-audio-hint">听发音，选释义 · 点喇叭重播</div>' : '')) +
     '<div class="pw-cn" id="pwCn"></div>' +
@@ -1637,7 +1637,13 @@ function renderQuestion(cur, isRehold){
   // 🔴 WD-PAGE-REDESIGN-1（10-28）：头部左上角要显示「上一个单词」（她口述第⑦条）。
   //   注意 pq.lastEn 语义是「当前题」（渲染完就被覆盖成 cur），真正要显示的上一词是局部 _lastEn ——
   //   另存到 pq._prevEn 供 practice.html 的 syncPrevWord() 读，避免把当前词当成上一词显示。
-  if(!isRehold && _lastEn) pq._prevEn = _lastEn;
+  /* 🔴 WD-DICT-TYPE-2（11-02 A1 实测）：听写模式必须把「上一个」整条藏掉 ——
+     听写题的题干本来就故意隐藏（只留音标），而头部那枚「上一个 xxx」胶囊印的是**上一个词的英文拼写**；
+     第 1 题时 pq.lastEn 已被上一次渲染写成当前词，实测屏上就是「上一个 analyse」而本题答案正是 analyse，
+     等于把答案直接印出来。所以听写模式一律清空 _prevEn，让 practice.html 的 syncPrevWord() 走 hidden 分支。
+     其他两种模式（看词选义/听音选义）行为一字不变。 */
+  if(dictMode){ pq._prevEn = ''; }
+  else if(!isRehold && _lastEn) pq._prevEn = _lastEn;
   if(!isRehold) pq.lastEn = String(cur.en).trim().toLowerCase();
   if(typeof window.syncPrevWord === 'function'){ try{ window.syncPrevWord(); }catch(e){} }
   const left0 = document.getElementById('unknownBtn');
