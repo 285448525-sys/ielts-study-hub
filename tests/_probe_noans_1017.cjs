@@ -72,8 +72,10 @@ const ok = (c, m) => { if (c) { pass++; console.log('  ✓ ' + m); } else { fail
     const q = s => document.querySelector(s);
     const all = s => Array.from(document.querySelectorAll(s));
     const meta = q('#examRoot .fx-meta') ? q('#examRoot .fx-meta').innerText.replace(/\s+/g, ' ').trim() : null;
+    /* 11-02 结论条整块退役：verdicts / rightCells 恒空；这条取证口径保留（打在日志里），
+       判据改成「结论条 0 条」。上色改用 .ex-qn.hit/.miss 与答题卡红绿。 */
     const verdicts = all('#examRoot .ex-rv-v').map(e => e.textContent.trim());
-    const rightCells = all('#examRoot .ex-rv .ex-rv-r b').map(e => e.textContent.trim());
+    const rvCount = all('#examRoot .ex-rv').length;
     const sheet = all('#examRoot .ex-num');
     let rec = null;
     try {
@@ -82,11 +84,9 @@ const ok = (c, m) => { if (c) { pass++; console.log('  ✓ ' + m); } else { fail
       if (rs.length) { const r = rs[0]; rec = { correct: r.correct, total: r.total, title: r.title || r.unitId, parts: r.parts ? r.parts.length : 0, hasDetail: Array.isArray(r.detail) }; }
     } catch (e) { rec = { err: String(e && e.message || e) }; }
     return {
-      meta, verdicts,
-      nIncorrect: verdicts.filter(v => /Incorrect/i.test(v)).length,
-      nCorrect: verdicts.filter(v => /Correct/i.test(v) && !/Incorrect/i.test(v)).length,
-      rightCellsSample: rightCells.slice(0, 3),
-      nBlankRight: rightCells.filter(t => !t || t === '—' || t === '-').length,
+      meta, verdicts, rvCount,
+      nQnHit: all('#examRoot .ex-qn.hit').length,
+      nQnMiss: all('#examRoot .ex-qn.miss').length,
       nSheetHit: sheet.filter(e => e.classList.contains('ex-num--hit')).length,
       nSheetMiss: sheet.filter(e => e.classList.contains('ex-num--miss')).length,
       nSheetTotal: sheet.length,
@@ -94,13 +94,13 @@ const ok = (c, m) => { if (c) { pass++; console.log('  ✓ ' + m); } else { fail
     };
   });
   console.log('\n== 交卷后用户看到的 ==');
-  console.log('  成绩卡文字 = ' + JSON.stringify(view.meta));
-  console.log('  逐题结论条 = ' + view.nIncorrect + ' 条 Incorrect / ' + view.nCorrect + ' 条 Correct');
-  console.log('  「Correct answer」栏 前 3 个 = ' + JSON.stringify(view.rightCellsSample) + '（空白/破折号 ' + view.nBlankRight + ' 个）');
+  console.log('  成绩卡/横幅文字 = ' + JSON.stringify(view.meta));
+  console.log('  逐题结论条 = ' + view.rvCount + ' 条（11-02 起应为 0）');
+  console.log('  题号上色 = hit ' + view.nQnHit + ' / miss ' + view.nQnMiss);
   console.log('  答题卡 = 绿底 ' + view.nSheetHit + ' / 红底 ' + view.nSheetMiss + ' / 共 ' + view.nSheetTotal);
   console.log('  写进回顾页的记录 = ' + JSON.stringify(view.record));
 
-  ok(view.meta !== null, '成绩卡渲染存在');
+  ok(view.rvCount === 0, '逐题结论条已删干净（' + view.rvCount + ' 条，期望 0）');
   await pg.screenshot({ path: path.join(SHOT, 'before_desktop.png'), fullPage: false });
   const card = await pg.$('#examRoot');
   if (card) await card.screenshot({ path: path.join(SHOT, 'before_card.png') });

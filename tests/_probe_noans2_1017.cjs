@@ -133,14 +133,18 @@ async function answerFew(pg, sel) {
   await pg.waitForSelector('#exSubmitModal', { timeout: 5000 });
   await pg.click('#exSubmitModal [data-sok]');
   await pg.waitForTimeout(1200);
+  /* 11-02 EXAM-SCORE-COMPACT-1：成绩卡整删，改成顶栏一行对错小字 → 判据随之反转 */
   const sc = await pg.$('#examRoot .fx-score');
-  ok(!!sc, 'D2 有答案篇目照常出成绩卡');
-  const scTxt = sc ? await sc.innerText() : '';
-  ok(/(\d+)\s*\/\s*(\d+)/.test(scTxt), 'D3 成绩卡有分数');
+  ok(!sc, 'D2 没有成绩卡（EXAM-SCORE-COMPACT-1 起已整删）');
+  const miniTxt = await pg.evaluate(() => {
+    const el = document.querySelector('#examRoot .ex-score-mini');
+    return el ? el.innerText.replace(/\s+/g, ' ').trim() : null;
+  });
+  ok(!!miniTxt && /correct/i.test(miniTxt), 'D3 顶栏对错小字在（' + JSON.stringify(miniTxt) + '）');
   const miss2 = await pg.$$('#examRoot .ex-num--miss');
   ok(miss2.length > 0, 'D4 答题卡照常涂对错（' + miss2.length + ' 个 miss）');
   const rv2 = await pg.$$('#examRoot .ex-rv');
-  ok(rv2.length > 0, 'D5 照常出逐题结论条（' + rv2.length + ' 条）');
+  ok(rv2.length === 0, 'D5 逐题结论条同样零条（11-02 整块退役，实得 ' + rv2.length + '）');
   const recs2 = await pg.evaluate((id) => {
     const d = JSON.parse(localStorage.getItem('ielts_study_hub_v1') || '{}');
     return (d.mockRecords || []).filter(r => r.src === 'bank' && r.unitId === id);

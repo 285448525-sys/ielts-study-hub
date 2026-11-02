@@ -3158,38 +3158,15 @@ window.__reportExamState = reportExamState;
     paintSheet();
   }
 
-  /* ===== 复盘：逐题结论条（10/17）=====
-     背景：原实现把每题的 Correct/Yours 直接 append 到题组末尾，答对的题也挂 → 整卷 40 题时
-     解析墙把题目顶下去（她 18:3x 报的「解析滚不完」）。
-     改法（对齐爱听写实证）：
-       · 每题只留一条【折叠的结论条】= "Q14  Correct: X  Yours: Y"，默认收起
-       · 只有错题的结论条预置 ▶ 展开提示；答对的题不展开也不给解析入口
-       · 展开后列出该题的正确答案/你的答案（解析文本全站为空 → 不虚构「AI 解析」栏目）
-     ⚠️ 铁律：站内没有的能力不能出现在入口文案 —— analyses 实测 0 命中，所以不写「查看解析」。 */
-  var RVIEW_MAXN = 3;   /* 单组可完全展开的题数上限（爱听写同款防失控） */
+  /* ===== 复盘：逐题上色（10/17 起；11-02 结论条整条退役）=====
+     🔴 11-02 她点名删：「Q1 Incorrect / Show」那一排还在 → 逐题结论条整块删干净。
+        删的是渲染（原 box.innerHTML 的 Q<n>/Correct|Incorrect/Show 三件套）、
+        样式（bank.html .ex-rv 全族）、展开监听（原 RVIEW_MAXN/rviewToggle/EX._rview/
+        data-rvtoggle 点击分支）。**判分与上色一个字段都没动**：.ex-qn.hit/.miss、
+        .ex-opt.right/.wrong、答题卡红绿、d.ok/d.right/d.user 全在 —— 复盘对错照旧看得见。
+     ⚠️ 铁律仍在：站内没有解析能力（analyses 实测 0 命中），不写「查看解析」这类入口文案。 */
 
-  /* 结论条展开/收起：组内同时展开数超上限时，自动收起最早展开的那一题 */
-  function rviewToggle(box){
-    if(!box || !EX || !EX._rview) return;
-    var gid = box.getAttribute('data-g') || '';
-    var qn = box.getAttribute('data-q') || '';
-    var open = EX._rview.open[gid] || (EX._rview.open[gid] = []);
-    var idx = open.indexOf(qn);
-    if(idx > -1){ open.splice(idx, 1); }
-    else {
-      if(open.length >= RVIEW_MAXN){
-        var oldest = open.shift();
-        var ob = document.querySelector('.ex-rv[data-g="' + gid + '"][data-q="' + oldest + '"]');
-        if(ob) ob.classList.remove('open');
-      }
-      open.push(qn);
-    }
-    box.classList.toggle('open', open.indexOf(qn) > -1);
-    var btn = box.querySelector('.ex-rv-tg');
-    if(btn) btn.textContent = box.classList.contains('open') ? 'Hide' : 'Show';
-  }
-
-  /* 交卷后给「当前这一篇」逐题上色 + 挂解析（切篇时按篇重跑） */
+  /* 交卷后给「当前这一篇」逐题上色（切篇时按篇重跑） */
   function decoratePassage(pi){
     var root = document.getElementById('examRoot'); if(!root || !EX || !EX.result) return;
     EX.result.detail.forEach(function(d){
@@ -3240,34 +3217,9 @@ window.__reportExamState = reportExamState;
       var bl = root.querySelector('input.ex-blank[data-q="' + d.qn + '"]'); if(bl) bl.disabled = true;
       if(bl && !d.ok){ bl.style.borderBottomColor = '#e6b3ae'; bl.style.color = '#b3261e'; }
 
-      /* 🔴 10/19 修（HANDOFF §二 挂了两天的「map 组交卷后没有逐题结论条」）：
-         段落信息匹配（`type:"map"` + reading）走的是**矩阵表格**，题号在 `<b class="mx-no">` 里，
-         不是 `.ex-qn[data-qn]`；也没有 `.ex-blank`。于是 anchor 恒 null → groupEl 恒 null →
-         这一组一题都不挂结论条（实测 Muscle Loss 13 题只出 7 条 = 单选 2 + 填空 5）。
-         补一条矩阵行的兜底锚点：找到该题号所在 <tr>，再拿它所属的 .ex-group。 */
-      var mxEl = root.querySelector('#examRoot .ex-lomatrix input[type=radio][data-q="' + d.qn + '"]');
-      var anchor = qnEl || (bl ? bl.closest('.ex-group') : null) || (mxEl ? mxEl.closest('tr') : null);
-      var groupEl = anchor ? anchor.closest('.ex-group') : null;
-      if(groupEl){
-        /* 10/17：改挂「可折叠的结论条」（原 .ex-expl 平铺会把题目顶下去）。
-           错题默认收起但带 ▶ Show；答对的题也给条（要让用户能核对），只是不预展开。 */
-        var gid = groupEl.getAttribute('data-g') || ('g' + pi);
-        var box = document.createElement('div');
-        box.className = 'ex-rv' + (d.ok ? ' rv-ok' : ' rv-no');
-        box.setAttribute('data-g', gid);
-        box.setAttribute('data-q', String(d.qn));
-        var yourTxt = d.user ? esc(String(d.user)) : '—';
-        box.innerHTML = '<div class="ex-rv-h">'
-          +   '<span class="ex-rv-no">Q' + esc(d.qn) + '</span>'
-          +   '<span class="ex-rv-v">' + (d.ok ? 'Correct' : 'Incorrect') + '</span>'
-          +   '<button type="button" class="ex-rv-tg" data-rvtoggle="' + esc(d.qn) + '">Show</button>'
-          + '</div>'
-          + '<div class="ex-rv-b">'
-          +   '<div><span>Correct answer</span><b>' + esc(d.right || '—') + '</b></div>'
-          +   '<div><span>Your answer</span><b class="' + (d.ok ? '' : 'bad') + '">' + yourTxt + '</b></div>'
-          + '</div>';
-        groupEl.appendChild(box);
-      }
+      /* 11-02 她拍板：逐题结论条（Q<n> / Correct|Incorrect / Show）整块退役，
+         这里不再往题组里 append 任何节点 —— 复盘只靠上面那套上色（.ex-qn.hit/.miss、
+         .ex-opt.right/.wrong、矩阵 td.mx-right/.mx-wrong、blank 红边）表达对错。 */
     });
   }
 
@@ -3296,7 +3248,7 @@ window.__reportExamState = reportExamState;
      ③ 对错个数顶栏右侧一行小字（32 correct · 8 incorrect）；
      ④ 显示答案开关默认关：关 = 只看自己作答（图二口径），开 = 正确答案标绿/标进空格（图一口径）；
      ⑤ 显示高亮开关默认开：控制她做题时画的 ex-hl/ex-nt 黄色标注（不是答案！）；
-     ⑥ AI 讲解挂既有「结论条」入口（右下角浮钮口径作废）——见 decoratePassage 的 .ex-rv；
+     ⑥ 逐题结论条（Q<n> Correct/Incorrect Show）11-02 她点名删除，已整块退役；不做解析入口；
      ⑦ 答题卡 UI 不动：paintSheet 已有绿 hit / 红 miss（只变色，布局零改动）；
      ⑧ 分隔线可拖动：exSplitHandle 既有能力，交卷态不没收（见 toggleReviewHl 里不动 split）。
      🔴 只读复盘（openLastResult → renderExam → EX.submitted 先手分支）复用同一函数，
@@ -3332,7 +3284,7 @@ window.__reportExamState = reportExamState;
   }
   /* 🔴 答案开关语义（她 11-02 两图口径）：图一「显示答案」= 正确答案标进空格 + 标绿；
      图二「不显示」= 空格只留她的作答。关掉时**上色隐藏但不弃判分数据**：
-     CSS rv-noans 把 .right/.wrong/.ex-rv 藏掉；blank 正答由 decoratePassage 写进
+     CSS rv-noans 把 .right/.wrong 藏掉；blank 正答由 decoratePassage 写进
      style.borderBottomColor —— 用 class 反选盖回默认色（不碰判分字段）。 */
   function toggleReview(k){
     if(!EX || !EX.submitted) return;
@@ -4497,8 +4449,6 @@ window.__reportExamState = reportExamState;
     res.detail.forEach(function(d){ EX.marks[d.qn] = d.ok ? 'hit' : 'miss'; });
     if(_noAns) addNoScoreCard();
 
-    /* 10/17：复盘状态初始化（结论条展开表）。必须在 decoratePassage 之前 —— 它要读 EX._rview。 */
-    EX._rview = { open: {}, expanded: false };
     /* 用时 = 开局秒 − 剩余秒（startTimer 已记 _totalSec；EX._leftSec 每 tick 更新）
        🔴 EXAM-TIMER-CHOICE-1：不计时卷的 _leftSec 是「已用秒的负值」（-used），
           所以用时直接取反，而不是走 _totalSec - _leftSec（那样会算出负数或 0）。 */
@@ -4783,11 +4733,6 @@ window.__reportExamState = reportExamState;
       /* EXAM-SCORE-COMPACT-1：复盘顶栏两开关（Answers / Highlights） */
       if((el = t.closest && t.closest('.ex-tg[data-rvtg]'))){
         toggleReview(el.getAttribute('data-rvtg'));
-        return;
-      }
-      if(t.closest && t.closest('[data-rvtoggle]')){
-        /* 复盘结论条展开/收起 */
-        if(EX && EX._rview) rviewToggle(t.closest('.ex-rv'));
         return;
       }
       if(t.closest && t.closest('[data-exit]')){ exitExam(); return; }

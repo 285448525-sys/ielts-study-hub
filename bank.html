@@ -309,12 +309,11 @@
 .ex-score-mini .ok{color:#1f7a5c}
 .ex-score-mini .no{color:#b3261e}
 /* 复盘开关落内容（JS 侧 applyReviewToggles 切这两个根类，不改任何判分数据）：
-   rv-noans = 隐藏正确答案标记（.right 标绿/.ex-rv 结论条/correct-answer 行）→ 回到「只看自己作答」；
+   rv-noans = 隐藏正确答案标记（.right 标绿/correct-answer 行）→ 回到「只看自己作答」；
    rv-nohl  = 隐藏她做题画的标注（.ex-hl/.ex-nt），visibility 保位（再开原样回来）。 */
 #examRoot.rv-noans .ex-opt.right,#examRoot.rv-noans .ex-pill.right,#examRoot.rv-noans .ex-drop.right,
 #examRoot.rv-noans .ex-pslot.right,#examRoot.rv-noans .ex-qn.hit,#examRoot.rv-noans .ex-qn.miss,
 #examRoot.rv-noans td.mx-right,#examRoot.rv-noans td.mx-wrong{background:transparent !important;border-color:var(--line) !important;color:inherit !important}
-#examRoot.rv-noans .ex-rv{display:none !important}
 #examRoot.rv-noans input.ex-blank[data-q]{border-bottom-color:var(--line) !important;color:inherit !important}
 #examRoot.rv-nohl .ex-hl,#examRoot.rv-nohl .ex-nt{background:transparent !important;color:inherit !important;outline:none !important;box-shadow:none !important}
 @media(max-width:860px){
@@ -827,28 +826,11 @@
 .ex-html img{max-width:100%}
 .ex-expl{margin-top:8px;font-size:12.5px;color:var(--n-600);line-height:1.75;background:var(--surface-2);
   border-left:3px solid var(--line);border-radius:0 6px 6px 0;padding:8px 11px}
+/* ===== 11-02 她点名删除：逐题结论条（.ex-rv 全族）已整块退役 =====
+   她原话「这个你们还是没删」——交卷后那排「Q1 Incorrect / Show」不再渲染、不再有样式、
+   不再有展开监听。复盘对错靠 .ex-qn.hit/.miss、.ex-opt.right/.wrong、td.mx-right/.mx-wrong、
+   input.ex-blank 红边表达，判分数据（d.ok/d.right/d.user、EX.marks）一字未动。 */
 .ex-expl b{color:#111;font-weight:700}
-/* ===== 10/17 复盘：逐题结论条（取代原来的 .ex-expl 平铺）=====
-   原实现每题把 Correct/Yours 直接 append 到题组末尾，答对的题也挂 → 整卷 40 题时
-   解析墙把题目顶下去（她 18:3x 报的「解析滚不完」）。改：默认折叠成一行条，点 Show 才展开。
-   ⚠️ 本站 analyses 实测 0 命中 → 不写「查看解析 / AI 解析」这类站内没有的能力（她的铁律）。 */
-.ex-rv{border:1px solid var(--line);border-radius:8px;background:var(--surface-2);margin-top:8px;overflow:hidden}
-.ex-rv.rv-no{border-color:#f0c9c4;background:#fdf6f5}
-.ex-rv.rv-ok{border-color:#cfe6dd;background:#f4faf8}
-.ex-rv-h{display:flex;align-items:center;gap:10px;padding:7px 11px}
-.ex-rv-no{font-size:12px;font-weight:800;color:var(--muted);font-variant-numeric:tabular-nums;flex:none}
-.ex-rv-v{font-size:12px;font-weight:700;flex:1;min-width:0}
-.ex-rv.rv-ok .ex-rv-v{color:#1f7a5c}
-.ex-rv.rv-no .ex-rv-v{color:#b3261e}
-.ex-rv-tg{border:1px solid var(--line);background:#fff;color:var(--ink);font:inherit;font-size:11.5px;
-  font-weight:700;border-radius:999px;padding:3px 11px;cursor:pointer;line-height:1.5;flex:none;min-height:28px}
-.ex-rv-tg:hover{background:var(--primary-50);border-color:var(--primary-200);color:var(--primary-900)}
-.ex-rv-b{display:none;padding:2px 11px 10px;gap:14px;flex-wrap:wrap}
-.ex-rv.open .ex-rv-b{display:flex}
-.ex-rv-b > div{font-size:12.5px;line-height:1.6}
-.ex-rv-b > div span{display:block;font-size:11px;color:var(--muted);letter-spacing:.03em}
-.ex-rv-b > div b{color:#111;font-weight:700;word-break:break-word}
-.ex-rv-b > div b.bad{color:#b3261e}
 /* ===== 10/20 阅读/听力模考底栏：照她发来的爱听写（idictation）真实机考截图重做 =====
    🔴 她 10/20 22:3x 原话「底栏听力阅读模考的做成这个样子，你改错了」—— 截图 = 爱听写里跑的
    官方机考（剑雅21 Test 4 听力）。与 IDP 英文文档冲突之处以**截图为准**（她的明确指示 > 外部
@@ -2670,7 +2652,7 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 <script defer src="js/common-shell.js?v=20261101m"></script>
 <script defer src="js/common-pwa.js?v=20261101m"></script>
 <script defer src="js/exam-timer.js?v=20261031b"></script>
-<script defer src="js/bank.js?v=20261101n"></script>
+<script defer src="js/bank.js?v=20261101o"></script>
 <!-- M-2（10-24）：模考页「没做过/做过」分组 + 展开更多。
      ⚠️ 本文件只做展示层（读 hub_bank_last_* 分组 + 首屏 20 条），判分/SRS/本地记录一律不碰；
         单条 DOM 由 js/bank.js 的 listHtml() 生成（当参数传进来），结构零改动。
