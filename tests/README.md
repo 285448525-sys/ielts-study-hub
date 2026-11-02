@@ -93,6 +93,10 @@
 | 回归白名单 | `_with_server.cjs` | 起服务器 → 跑目标探针 → 收尾（所有探针都从它进） |
 | 在途 | `_probe_ablate_1017.cjs` | 脚本依赖实测：拦掉单个脚本看首屏是否照常（被 bank.html 注释点名，留根目录） |
 | 在途 | `_probe_examcompact_1102.cjs` | EXAM-SCORE-COMPACT-1 八条口径（在途） |
+| 在途 | `_probe_rvbottom_1102.cjs` | RV-BOTTOM-23 复盘底部布局三条口径（在途） |
+| 在途 | `_probe_rvcolor_1102.cjs` | RV-COLOR-LOGIC-1/RV-BLANK-CA-2 对错颜色+框内正答（在途） |
+| 在途 | `_probe_timerpop_1102.cjs` | EXAM-TIMER-POP 两笔 计时弹窗四条口径（在途） |
+| 在途 | `_probe_aiexplain_1102.cjs` | RV-AI-EXPLAIN-1 复盘态 AI 讲解（在途） |
 | 在途 | `_probe_examui3_p1_1031.cjs` | UNIFIED-EXAM-UI-3 笔1（在途） |
 | 在途 | `_probe_hl_1101.cjs` | HIGHLIGHT-REGRESS-1101 划词高亮（在途） |
 | 在途 | `smoke_sd_1415.cjs` | 14 砍换词 + 15 堵 AI 超时静默放行 回归 |
