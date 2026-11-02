@@ -3487,7 +3487,7 @@ window.__reportExamState = reportExamState;
        空格正答 = 打开态把 input 值换成本题正答、关闭态还原她的作答（data-rv-user 里存着原值）。
        判分数据（d.ok/d.right/d.user、EX.marks）一字不动；她的作答有 data-rv-user 兜底不丢。 */
     var showAns = !!EX._rvShowAns;
-    root.querySelectorAll('.ex-ca').forEach(function(n){ n.parentNode && n.parentNode.removeChild(n); });
+    root.querySelectorAll('.ex-ca, .ex-ca-in').forEach(function(n){ n.parentNode && n.parentNode.removeChild(n); });
     if(!EX.result || !Array.isArray(EX.result.detail)) return;
     EX.result.detail.forEach(function(d){
       var qn = String(d.qn);
@@ -3502,8 +3502,19 @@ window.__reportExamState = reportExamState;
         }
         var w = bl.closest('.ex-blankw'); if(w) w.classList.toggle('filled', !!bl.value);
       }
-      /* 错项旁绿字正答行：答错 + 有正答 + 答案打开态才挂 */
+      /* 错项旁绿字正答行：答错 + 有正答 + 答案打开态才挂。
+         她 11-02 口径：填空不再挂框外「Correct: xx」行 —— 正答直接进框内，绿字跟在她写的红字后面；
+         选择/胶囊/拖槽/矩阵仍走 .ex-ca 行（她只嫌填空那个形式）。 */
       if(!showAns || d.ok || d.right == null || !String(d.right).length) return;
+      if(bl){
+        var w2 = bl.closest('.ex-blankw'); if(!w2) return;
+        var oldIn = w2.querySelector('.ex-ca-in'); if(oldIn) oldIn.parentNode.removeChild(oldIn);
+        var cin = document.createElement('span');
+        cin.className = 'ex-ca-in';
+        cin.textContent = String(d.right);
+        w2.appendChild(cin);
+        return;
+      }
       var anchorEl = root.querySelector('.ex-opt.wrong[data-v], .ex-pill.wrong[data-v], .ex-drop.wrong[data-q="' + qn + '"], .ex-pslot.wrong[data-q="' + qn + '"]');
       /* 行内归属：优先本题 qn 关联容器内的错项；找不到再退到全局（同题多错只挂一次） */
       var scoped = root.querySelectorAll('.ex-opts[data-q="' + qn + '"] .ex-opt.wrong, .ex-pills[data-q="' + qn + '"] .ex-pill.wrong');

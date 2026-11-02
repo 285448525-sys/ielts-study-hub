@@ -320,10 +320,12 @@
 #examRoot.rv-noans .ex-opt.right::before{border-color:var(--line) !important}
 #examRoot.rv-noans .ex-pill.right::before{border-color:var(--line) !important;background:none !important}
 #examRoot.rv-noans td.mx-right input[type=radio]{accent-color:#6b7280 !important}
-/* 填词题红变黑修复（她截图：答案关闭态填空错字不该红）：
-   decoratePassage 给错 blank 写的内联 style.borderBottomColor/color 在关闭态盖回默认墨色，
-   开启态由内联样式恢复红（不动判分数据、不动她的作答值）。 */
-#examRoot.rv-noans input.ex-blank[data-q]{border-bottom-color:var(--line) !important;color:#24272c !important}
+/* 填词题关闭态口径（11-02 她定）：对错都照显——
+   对的 blank 零标识（边框/字色回默认），错的 blank 一直红；
+   decoratePassage 的内联红边已改 class（.ex-blank.right/.wrong），
+   正答填入/还原走 applyReviewToggles（data-rv-user 存她的作答，判分数据不动）。 */
+#examRoot.rv-noans input.ex-blank.right[data-q]{border-bottom-color:var(--line) !important;color:#24272c !important}
+/* .wrong 不在这条规则里——错字靠 #examRoot .ex-blankw input.ex-blank.wrong 的红一直显（她对错照显口径） */
 #examRoot.rv-nohl .ex-hl,#examRoot.rv-nohl .ex-nt{background:transparent !important;color:inherit !important;outline:none !important;box-shadow:none !important}
 @media(max-width:860px){
 .ex-toggles{order:9;width:100%;justify-content:flex-start;padding-top:2px}
@@ -632,6 +634,10 @@
 .ex-ca{display:block;margin:3px 0 0 34px;font-size:12px;font-weight:700;color:#1f7a5c;line-height:1.5}
 .ex-ca::before{content:'Correct: ';font-weight:400;color:#1f7a5c;opacity:.8}
 .ex-ca--blank{margin-left:0;display:inline-block;vertical-align:middle}
+/* RV-CA-IN-1（她 11-02 口径）：填空正答不再走框外「Correct: xx」行（.ex-ca--blank 退役），
+   改框内绿字后缀 .ex-ca-in（JS 挂进 .ex-blankw，跟在她写的红字后面）；关闭态随 rv-noans 整藏。 */
+.ex-ca-in{display:inline-block;margin-left:6px;font-size:12px;font-weight:700;color:#1f7a5c;line-height:1.4;vertical-align:middle}
+#examRoot.rv-noans .ex-ca-in{display:none !important}
 .ex-opt .ex-ca{flex-basis:100%;margin-left:0}
 .ex-blankw.right input{color:#1f7a5c}
 .ex-blankw.wrong input{color:#b3261e}
@@ -2716,7 +2722,7 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 <script defer src="js/common-shell.js?v=20261101m"></script>
 <script defer src="js/common-pwa.js?v=20261101m"></script>
 <script defer src="js/exam-timer.js?v=20261102b"></script>
-<script defer src="js/bank.js?v=20261101t"></script>
+<script defer src="js/bank.js?v=20261101v"></script>
 <!-- M-2（10-24）：模考页「没做过/做过」分组 + 展开更多。
      ⚠️ 本文件只做展示层（读 hub_bank_last_* 分组 + 首屏 20 条），判分/SRS/本地记录一律不碰；
         单条 DOM 由 js/bank.js 的 listHtml() 生成（当参数传进来），结构零改动。

@@ -66,7 +66,8 @@
 // 未改任何加载策略/脚本顺序（HANDOFF 铁律：defer 顺序是契约，动它会连带出事）。
 // common.js → 20261013ad（25 页）、index.js → 20261017a（仅 home.html）、
 // bank.js → 20261012ac（仅 bank.html）。上一版 v409。
-const CACHE = 'ielts-hub-v729'; // 11-02 WD-DICT-TYPE-2（听写打字型收尾，11-01 那笔的三处遗留）：①听写模式头部的「上一个 <英文拼写>」胶囊直接把本题答案印出来（听写题故意隐藏题干只留音标，而第 1 题时 pq.lastEn 已被上次渲染写成当前词，实测屏上是「上一个 analyse」而本题答案正是 analyse）→ dictMode 一律清空 pq._prevEn，走 syncPrevWord 的 hidden 分支；另两种模式行为不变。②提示文案还写着「听发音，选拼写」与实际打字形态不符 → 改「听发音，打出单词」。③模式菜单切过一次后再点就打不开：选项按钮 stopPropagation 了，openModePop 里挂的 document once 监听没被消耗，残留到下一次点开把新弹层立刻关掉 → 改成句柄可摘的常驻监听，关闭时一并 removeEventListener，且排除点在触发钮与弹层内的点击。practice.js 串 20261101m→20261102d。上一版 v728 = RV-COLOR-LOGIC-1。
+const CACHE = 'ielts-hub-v731'; // 11-02 RV-BLANK-CA-2：填空正答改框内绿字后缀 .ex-ca-in（她截图口径：正答写进填空里、绿字跟在她写的红字后面，不再挂框外 Correct 行）+ L326 补丁（rv-noans 只压 .right，blank 错字红一直显，对错照显口径）。bank.js →20261101v。上一版 v729 = WD-DICT-TYPE-2（听写打字型收尾）。
+const _prevCacheNote52 = 'ielts-hub-v729'; // 11-02 WD-DICT-TYPE-2：听写打字型收尾（不泄答案/文案对上/模式菜单可反复开）。上一版 v728 = RV-COLOR-LOGIC-1。
 const _prevCacheNote51 = 'ielts-hub-v728'; // 11-02 RV-COLOR-LOGIC-1：复盘对错颜色口径统一（对=浅绿/错=红），bank.js →20261101t。上一版 v727 = EXAM-QNBAR-LEFT-1。
 const _prevCacheNote50 = 'ielts-hub-v727'; // 11-02 EXAM-QNBAR-LEFT-1：练习/模考题号栏统一移左。上一版 v726 = RV-AI-EXPLAIN-1。
 const _prevCacheNote49 = 'ielts-hub-v726'; // 11-02 RV-AI-EXPLAIN-1：复盘态点答案右下角出 AI 讲解。bank.js →20261101s。上一版 v725 = WD-OPEN-LAG-1。const _prevCacheNote48 = 'ielts-hub-v725'; // 11-02 WD-OPEN-LAG-1：词库默认只展开第一组 + 换书 _readStore 整轮一次。wordbank.js/words.js 串 →20261102c。上一版 v724 = EXAM-TIMER-POP-DUP-1。
