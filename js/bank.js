@@ -1670,10 +1670,14 @@
     var h=e.target.closest&&e.target.closest('#exAiHandle'); if(!h||window.innerWidth<=860)return;
     e.preventDefault();
     h.setPointerCapture&&h.setPointerCapture(e.pointerId);
+    /* RV-FIX5 挑刺②（自测实锤）：面板是 sticky bottom:0 —— 高度一变 top 就跟着动，
+       move 里重读 top 会让增量被「面板自己上移」吃掉（sticky 自锁：想拖大只挪 13px 就咬死）。
+       改固定参考：pointerdown 时刻的 top/clientY 为基准，new = downH + (downY - ev.clientY)。 */
+    var downTop = h.getBoundingClientRect().top + 5;   /* 手柄中心≈新面板顶 */
+    var downY = e.clientY;
+    var downH = (document.getElementById('exAiCard')||{getBoundingClientRect:function(){return{height:240}}}).getBoundingClientRect().height;
     var move=function(ev){
-      var card=document.getElementById('exAiCard'); if(!card)return;
-      var top=card.getBoundingClientRect().top;
-      setExAiH(top - ev.clientY + 14);   /* 拖点以上全是面板（14=手柄半高近似，clamp 兜底） */
+      setExAiH(downH + (downY - ev.clientY));   /* 鼠标上移 = 面板变高，clamp 兜底 */
     };
     var up=function(){document.removeEventListener('pointermove',move,true);document.removeEventListener('pointerup',up,true);document.removeEventListener('pointercancel',up,true)};
     document.addEventListener('pointermove',move,true);document.addEventListener('pointerup',up,true);document.addEventListener('pointercancel',up,true);
@@ -3425,6 +3429,24 @@ window.__reportExamState = reportExamState;
     if(!qn){
       var badge2 = t.closest('.ex-qn[data-qn]');
       if(badge2) qn = badge2.getAttribute('data-qn');
+    }
+    /* RV-FIX5 挑刺①：多选共享组（.ex-q--mgroup）—— 组 qn 挂在 .ex-cbox[data-q] 容器、
+       题号徽章是 data-qns（"9 10"）而非 data-qn，上面两条链全落空 → AI 讲解点不开（她多选必踩）。
+       补两条兜底：行内 cbox 容器 data-q / data-qns 空格拆分匹配。 */
+    if(!qn){
+      var row2 = ctl && ctl.closest('.ex-q');
+      var cbox = row2 && row2.querySelector('.ex-cbox[data-q]');
+      if(cbox) qn = cbox.getAttribute('data-q');
+    }
+    if(!qn){
+      var qnsEl = t.closest('.ex-qn[data-qns]');
+      if(qnsEl){
+        var nums = String(qnsEl.getAttribute('data-qns') || '').split(/\s+/).filter(Boolean);
+        /* 点到组内某选项 → 优先取「该选项所属 cbox 的 q」；无 cbox 上下文时取组首题 */
+        var optIn = t.closest && t.closest('.ex-opt[data-v], input.ex-check');
+        var cb2 = optIn && optIn.closest && optIn.closest('.ex-cbox[data-q]');
+        qn = (cb2 && cb2.getAttribute('data-q')) || nums[0] || null;
+      }
     }
     if(qn == null || qn === '') return null;
     var d = (EX.result.detail || []).filter(function(x){ return String(x.qn) === String(qn); })[0];
