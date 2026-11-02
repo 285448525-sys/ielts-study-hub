@@ -66,7 +66,8 @@
 // 未改任何加载策略/脚本顺序（HANDOFF 铁律：defer 顺序是契约，动它会连带出事）。
 // common.js → 20261013ad（25 页）、index.js → 20261017a（仅 home.html）、
 // bank.js → 20261012ac（仅 bank.html）。上一版 v409。
-const CACHE = 'ielts-hub-v743'; // 11-03 COACH-ERR-KEEP-1（B1 夜查真机红）：口语陪练未登录发消息——她的气泡从不渲染、「思考中…」5 秒消失、无任何提示（/api/ai 回 401）。根因：js/coach.js 失败分支是 v1 的「失败绝不推进」口径——把最后一行 .cu-row 删掉。而那行正是她刚发的气泡。叠上 toast 2.4 秒就没，体感就是「消息被吞」。改法：① 气泡留着（说了就是说了）② 思考中照旧清掉 ③ 失败原因走共享层 aiErrMsg 人话口径，并且以一条常驻气泡留在聊天流里（不只 toast）。上下文 st.thread 照旧回退（这次没答上不进历史），输入框回填原话方便重发。新增 .coach-err 气泡样式（speaking.html，警示色区分「这不是 AI 的回答」）。验收 _probe_coachkeep 401/501 两种失败码 × M390/D1280 共 32 项 0 红（基线 ca2de437 上 8 红）；best回归 precore 148/0、shell5 46/46。coach.js →20261102p。上一版 v742 = GRADE-RELAX-6。
+const CACHE = 'ielts-hub-v744'; // 11-03 TOAST-TOP-LAYER-1（B1 夜查 P3：回顾页录入成绩空值保存「没提示」）：根因不是没弹提示——提示确实弹了（文案也对），但 <dialog> 用 showModal() 打开后进入浏览器的 top layer，而 #toast 一直是 body 里的普通 fixed 元素 —— top layer 整层盖在普通文档之上，toast 就画在弹层下面。实测（elementFromPoint）toast 中心命中的是 #rv2AddDialog。修法：js/common.js 的 toast() 弹提示时若有打开的 dialog，把节点挂进那个 dialog 里跟着进 top layer；并补一手：保存成功那条 toast 是在 dialog 关闭之前弹的，若不接回就会随着关闭的弹层一起不渲染（「已保存」丢了）—— 所以给弹层挂一个一次性 close 监听，关窗那一刻把它接回 body 继续显示完。只改挂载位置，不改文案/时长/样式；没有 dialog 的页面行为与以前完全一致。不用 popover（会抢焦点、弹窗里输入框会失焦）。验收 _probe_toast_layer 28 项 0 红（空值保存/正常保存/无弹层页面 × M390/D1280，含真遮挡命中判据），基线 f60fd900 上 4 红。回归 precore 148/0、shell5 46/46。common.js →20261103a（22 个页面引用同 bump）。上一版 v743 = COACH-ERR-KEEP-1。
+const _prevCacheNote61 = 'ielts-hub-v743'; // 11-03 COACH-ERR-KEEP-1 口语陪练 AI 失败不吞消息。上一版 v742。
 const _prevCacheNote60 = 'ielts-hub-v742'; // 11-03 GRADE-RELAX-6 判分放宽（连字符/撇号/日期等价）。上一版 v741。
 const _prevCacheNote59 = 'ielts-hub-v741'; // 11-02 LISTEN-RV-TOP-1（ssr）：单篇听力交卷复盘顶栏四钮不可达（源头 submitted 守卫 + mountReviewTools 兜底摘 inline）。上一版 v740。
 const _prevCacheNote55 = 'ielts-hub-v738'; // 11-02 P2 清理批（.ex-opt .ex-ca 死规则删 + #exAiHandle 去 stopPropagation）。上一版 v737 = RV-FIX5 六笔。

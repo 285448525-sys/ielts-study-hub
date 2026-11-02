@@ -2261,7 +2261,32 @@ function applyStep5Prefs(){
 
 function toast(msg){
   let t = document.getElementById('toast');
-  if(!t){ t = document.createElement('div'); t.id='toast'; t.className='toast'; document.body.appendChild(t); }
+  if(!t){ t = document.createElement('div'); t.id='toast'; t.className='toast'; }
+  /* ═══ TOAST-TOP-LAYER-1（11-03 B1 夜查 P3：回顾页录入成绩空值提示「看不见」）═══
+     根因：<dialog> 用 showModal() 打开后会进入浏览器的 **top layer**，
+     而 #toast 一直是 document.body 里的普通 fixed 元素 —— top layer 整层盖在普通文档之上，
+     于是 dialog 开着的时候，所有 toast 都**画在弹层下面**，用户看到的就是「点了一下，什么都没发生」。
+     实测（回顾页录入成绩，输入留空点保存）：toast 确实被调用、文案也对（「请填写答对题数」），
+     但 document.elementFromPoint 落在 toast 中心位置上命中的是 #rv2AddDialog —— 它被整个盖住了。
+     
+     修法：toast 出现时若有打开的 dialog，就把 toast 节点挂进那个 dialog 里。
+     节点跟着进 top layer，对话框关掉后 toast 自然随它一起消失；下一次 toast 若无 dialog 会挂回 body。
+     只改挂载位置，不改文案、不改时长、不改样式 —— 没有 dialog 的页面行为与以前完全一致。
+     ⚠️ 不要改成 popover：popover 会抢焦点，弹窗里的输入框会失焦（她最烦输入时跳）。 */
+  const dlg = document.querySelector('dialog[open]');
+  const host = dlg || document.body;
+  if(t.parentNode !== host) host.appendChild(t);
+  /* 保存成功那条 toast 是在 dialog **关闭之前**弹出的（关窗是保存回调里 setTimeout 50ms 之后的事），
+     挂进 dialog 的节点会随它一起不渲染 → 用户看不到「已保存」。关窗那一刻把它接回 body 继续显示完。
+     ⚠️ 只接这一条：监听里判 t.parentNode === dlg，toast 已经挪走就不会被它拽回来。 */
+  if(dlg && !t._hostWatch){
+    t._hostWatch = 1;
+    dlg.addEventListener('close', function(){
+      if(t.parentNode === dlg){ document.body.appendChild(t); }
+    }, { once: true });
+  }else if(!dlg && t._hostWatch){
+    t._hostWatch = 0;   /* 回到普通页面：旧监听已随 dialog 用完，标记复位 */
+  }
   t.textContent = msg; t.hidden = false;
   clearTimeout(toast._t); toast._t = setTimeout(() => t.hidden = true, 2400);
 }
