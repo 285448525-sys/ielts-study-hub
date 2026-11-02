@@ -2869,8 +2869,9 @@ window.__reportExamState = reportExamState;
       var artHtml = '';
       parts.forEach(function(p){ artHtml += clean(p.article || ''); });
       var _rm = (EX._timerMin == null) ? 60 : EX._timerMin;
+      /* RV-TOP-24（她口径①）：复盘态删「Part 1 · Questions 1–13」整行列——做题态照旧渲染。 */
       host.innerHTML = shellHtml(u.title, '', _rm > 0 ? examTimerLabel(_rm * 60) : examUsedLabel(0))
-        + partBannerHtml((parts[0] && parts[0].partNum) || u.partNum || 'Part 1', nums.length ? nums[0] : null, nums.length ? nums[nums.length - 1] : null)
+        + (!EX.submitted ? partBannerHtml((parts[0] && parts[0].partNum) || u.partNum || 'Part 1', nums.length ? nums[0] : null, nums.length ? nums[nums.length - 1] : null) : '')
         + splitHtml(artHtml, groups.map(function(g, i){ return groupHtml(g, i, null, 'reading'); }).join(''))
         + barHtml() + ctxHtml();
     }
@@ -3311,20 +3312,31 @@ window.__reportExamState = reportExamState;
     if(EX._rvShowAns == null) EX._rvShowAns = false;
     if(EX._rvShowHl == null) EX._rvShowHl = true;
     var wrong = res.detail.filter(function(d){ return !d.ok; }).length;
+    /* RV-TOP-24（她口径③）：用时数字搬进顶栏中间原「已用几分钟/计时」位 ——
+       值取本场实际用时（EX._usedSec 交卷时已结算；只读复盘 rec.usedSec 传入 mountReviewTools 前已还原进 EX）。 */
+    var usedSec = Math.max(0, Math.round(EX._usedSec || 0));
+    var usedTxt = usedSec ? (Math.floor(usedSec / 60) + ' min') : '';
     var mini = document.createElement('span');
     mini.className = 'ex-score-mini';
     mini.setAttribute('data-rvmini', '1');
-    mini.innerHTML = '<b class="ok">' + (res.total - wrong) + '</b> correct · <b class="no">' + wrong + '</b> incorrect';
+    mini.innerHTML = (usedTxt ? '<b>' + usedTxt + '</b> · ' : '')
+      + '<b class="ok">' + (res.total - wrong) + '</b> correct · <b class="no">' + wrong + '</b> incorrect';
     var tg = document.createElement('span');
     tg.className = 'ex-toggles';
     tg.innerHTML = '<button type="button" class="ex-tg' + (EX._rvShowAns ? ' on' : '') + '" data-rvtg="ans">Answers</button>'
       + '<button type="button" class="ex-tg' + (EX._rvShowHl ? ' on' : '') + '" data-rvtg="hl">Highlights</button>';
     var icons = top.querySelector('.ex-icons');
+    var nameEl = top.querySelector('.ex-name');
     /* RV-TOP390-1（11-02）：多出两个开关后手机 390 一行放不下（实测 .ex-toggles x=476 出屏），
        打上 rv-tooled 让 CSS 只对复盘态放开换行；做题态没有这个类，仍是「只要一行」。 */
     top.classList.add('rv-tooled');
-    if(icons){ top.insertBefore(tg, icons); top.insertBefore(mini, icons); }
-    else top.appendChild(tg), top.appendChild(mini);
+    /* RV-TOP-24（她口径②）：红绿对错块移到最左 —— 篇名右侧第一格（ex-timer 在复盘态整藏，
+       mini 顶到中间原计时位，视觉即「最左的内容块」）。 */
+    if(nameEl && nameEl.nextSibling){ top.insertBefore(mini, nameEl.nextSibling); }
+    else if(icons){ top.insertBefore(mini, icons); }
+    else top.appendChild(mini);
+    if(icons){ top.insertBefore(tg, icons); }
+    else top.appendChild(tg);
     applyReviewToggles();
     if(EX.submitted && EX.result) mountAiExplain();          /* RV-AI-EXPLAIN-1：讲解卡宿主（无图标无按钮，点答案才出） */
   }
@@ -4842,6 +4854,9 @@ window.__reportExamState = reportExamState;
       if(_b) _b.classList.add('rv-done');
       var _sp = document.getElementById('exSplit');
       if(_sp) _sp.classList.add('rv-done');
+      /* RV-TOP-24：交卷瞬间「Part 1 · Questions 1–13」横幅整藏（不重渲染，随类走） */
+      var _pb = document.getElementById('exPartBanner');
+      if(_pb) _pb.style.display = 'none';
     })();
     bankCommitTimer();                                /* C-3：交卷即结算专注计时（含 <30s 过滤） */
   }
