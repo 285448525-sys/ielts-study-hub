@@ -3323,8 +3323,15 @@ window.__reportExamState = reportExamState;
       + '<b class="ok">' + (res.total - wrong) + '</b> correct · <b class="no">' + wrong + '</b> incorrect';
     var tg = document.createElement('span');
     tg.className = 'ex-toggles';
+    /* RV-SW-26：第三钮「答案句」（默认开）—— 只有听力复盘（有 timeline 答案句数据）才渲染；
+       阅读的答案标识已由 Answers 开关管，不造重复钮。 */
+    var isListenRv = !!(EX && EX.channel === 'listening');
+    if(EX._rvShowAnsQ == null) EX._rvShowAnsQ = true;    /* 她口径：默认开 */
+    if(EX._rvShowCn == null) EX._rvShowCn = false;       /* 她口径：默认关 */
     tg.innerHTML = '<button type="button" class="ex-tg' + (EX._rvShowAns ? ' on' : '') + '" data-rvtg="ans">Answers</button>'
-      + '<button type="button" class="ex-tg' + (EX._rvShowHl ? ' on' : '') + '" data-rvtg="hl">Highlights</button>';
+      + '<button type="button" class="ex-tg' + (EX._rvShowHl ? ' on' : '') + '" data-rvtg="hl">Highlights</button>'
+      + (isListenRv ? '<button type="button" class="ex-tg' + (EX._rvShowAnsQ ? ' on' : '') + '" data-rvtg="ansq">Answer sentences</button>' : '')
+      + (isListenRv ? '<button type="button" class="ex-tg' + (EX._rvShowCn ? ' on' : '') + '" data-rvtg="cn">中文翻译</button>' : '');
     var icons = top.querySelector('.ex-icons');
     var nameEl = top.querySelector('.ex-name');
     /* RV-TOP390-1（11-02）：多出两个开关后手机 390 一行放不下（实测 .ex-toggles x=476 出屏），
@@ -3548,13 +3555,95 @@ window.__reportExamState = reportExamState;
      图二「不显示」= 空格只留她的作答。关掉时**上色隐藏但不弃判分数据**：
      CSS rv-noans 把 .right/.wrong 藏掉；blank 正答由 decoratePassage 写进
      style.borderBottomColor —— 用 class 反选盖回默认色（不碰判分字段）。 */
+  /* RV-SW-26：答案句开关（听力复盘）—— 根类 rv-noansq 切换 .sc-ans 高亮与 Q 徽章显隐；
+     visibility 保位（再开原样回来，不重渲染不丢收藏）。 */
+  function applyReviewAnsQ(){
+    var root = document.getElementById('examRoot'); if(!root) return;
+    root.classList.toggle('rv-noansq', !EX._rvShowAnsQ);
+  }
+  /* RV-SW-26：逐句中文翻译（AI 实时，方案 b）——
+     打开时把当前篇听力稿句子合并成一次 callRelay 请求（不一句一个请求烧额度），
+     译文按篇缓存在 EX（EX._rvCnCache[linesKey]，同一篇重开不重翻），
+     失败 aiErrMsg 人话提示不炸页面；译文渲染在句下方小一号灰字（ex-cn 子行）。 */
+  var RV_CN_CACHE_KEY = '_rvCnCache';
+  function rvCnLinesKey(){
+    var unit = EX && EX.unit;
+    return unit ? String(unit.id || '') + ':' + ((EX.channel === 'listening') ? 'L' : 'R') : '';
+  }
+  function rvCnToggle(){
+    var root = document.getElementById('examRoot'); if(!root) return;
+    var script = root.querySelector('.ex-script .sc-body');
+    if(!script){ toast && toast('这篇没有可翻译的原文'); return; }
+    if(!EX._rvShowCn){
+      root.classList.remove('rv-cn-on');
+      return;
+    }
+    root.classList.add('rv-cn-on');
+    var lines = _stLines || [];
+    if(!lines.length){ return; }
+    var key = rvCnLinesKey();
+    EX[RV_CN_CACHE_KEY] = EX[RV_CN_CACHE_KEY] || {};
+    var cached = EX[RV_CN_CACHE_KEY][key];
+    if(cached){ rvCnPaint(cached); return; }
+    /* 合并请求：全部句子一次发 */
+    var joined = lines.map(function(l, i){ return (i + 1) + '. ' + (l.text || ''); }).join('\n');
+    var btn = document.querySelector('#examRoot .ex-tg[data-rvtg="cn"]');
+    if(btn){ btn.disabled = true; }
+    var relay = (typeof callRelay === 'function') ? callRelay : null;
+    if(!relay){
+      if(btn){ btn.disabled = false; }
+      if(typeof toast === 'function') toast('AI 通道未就绪，稍后再试');
+      return;
+    }
+    relay('gpt', [
+      { role: 'system', content: '你是雅思听力/阅读原文的翻译。把用户给的编号句子逐句翻成简体中文。只输出与输入相同编号格式的译文列表，一行一条「编号. 译文」，不解释、不加原文。' },
+      { role: 'user', content: joined }
+    ], 0.2, { max_tokens: 2000 }).then(function(out){
+      var text = (out && (out.content || out.text || (out.choices && out.choices[0] && out.choices[0].message && out.choices[0].message.content))) || '';
+      var map = {};
+      String(text).split(/\n+/).forEach(function(row){
+        var m = row.match(/^\s*(\d+)[.、．]\s*(.+)$/);
+        if(m) map[Number(m[1]) - 1] = m[2].trim();
+      });
+      var result = lines.map(function(l, i){ return map[i] || ''; });
+      EX[RV_CN_CACHE_KEY][key] = result;
+      rvCnPaint(result);
+      if(btn){ btn.disabled = false; }
+    }).catch(function(e){
+      if(btn){ btn.disabled = false; }
+      EX._rvShowCn = false;
+      var b2 = document.querySelector('#examRoot .ex-tg[data-rvtg="cn"]');
+      if(b2) b2.classList.remove('on');
+      root.classList.remove('rv-cn-on');
+      var msg = (typeof aiErrMsg === 'function') ? aiErrMsg(e) : '翻译失败，请稍后重试';
+      if(typeof toast === 'function') toast(msg);
+    });
+  }
+  function rvCnPaint(cns){
+    var rows = document.querySelectorAll('#examRoot .ex-script .sc-body .sc-line');
+    rows.forEach(function(row, i){
+      var old = row.querySelector('.sc-cn');
+      if(old) old.remove();
+      var cn = cns[i];
+      if(!cn) return;
+      var sub = document.createElement('span');
+      sub.className = 'sc-cn';
+      sub.textContent = cn;
+      row.appendChild(sub);
+    });
+  }
   function toggleReview(k){
     if(!EX || !EX.submitted) return;
     if(k === 'ans') EX._rvShowAns = !EX._rvShowAns;
     else if(k === 'hl') EX._rvShowHl = !EX._rvShowHl;
+    else if(k === 'ansq'){ EX._rvShowAnsQ = !EX._rvShowAnsQ; applyReviewAnsQ(); }
+    else if(k === 'cn'){ EX._rvShowCn = !EX._rvShowCn; rvCnToggle(); }
     var btn = document.querySelector('#examRoot .ex-tg[data-rvtg="' + k + '"]');
-    if(btn) btn.classList.toggle('on', k === 'ans' ? EX._rvShowAns : EX._rvShowHl);
-    applyReviewToggles();
+    if(btn){
+      var on = k === 'ans' ? EX._rvShowAns : k === 'hl' ? EX._rvShowHl : k === 'ansq' ? EX._rvShowAnsQ : EX._rvShowCn;
+      btn.classList.toggle('on', on);
+    }
+    if(k === 'ans' || k === 'hl') applyReviewToggles();
   }
   /* 10/17 B：「本次未判分」横幅 —— 没有对错、没有总分、不进记录。
      EXAM-SCORE-COMPACT-1 保留：这是「无答案键」的如实告知（不是成绩卡），

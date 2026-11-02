@@ -66,7 +66,7 @@
 // 未改任何加载策略/脚本顺序（HANDOFF 铁律：defer 顺序是契约，动它会连带出事）。
 // common.js → 20261013ad（25 页）、index.js → 20261017a（仅 home.html）、
 // bank.js → 20261012ac（仅 bank.html）。上一版 v409。
-const CACHE = 'ielts-hub-v735'; // 11-02 RV-TOP-24 红修（B2 抓）：完整模考路径 partBannerHtml 漏 EX.submitted 守卫——只读复盘进完整模考时「Passage 1 · Questions」绿横幅照渲染，违反她复盘态删横幅口径。一行补守卫与单篇路径 L2874 同款。bank.js →20261102d。上一版 v734 = RV-TOP-24/25。
+const CACHE = 'ielts-hub-v736'; // 11-02 RV-SW-26（台账 26 号她拍板两开关，听力复盘专属，做题态零碰）：①「Answer sentences」默认开（根类 rv-noansq 关=藏 .sc-ans 高亮与 Q 徽章，visibility 保位）；②「中文翻译」默认关（AI 实时逐句翻方案 b：打开把当前篇句子合并一次 callRelay（不一句一个请求烧额度），译文按篇缓存 EX._rvCnCache 重开不重翻，失败 aiErrMsg 人话提示不炸页；译文 .sc-cn 句下小一号灰字不挤行高）。阅读侧不渲染这两钮（答案标识已由 Answers 管）。bank.js →20261102e。上一版 v735 = RV-TOP-24 红修。
 const _prevCacheNote54 = 'ielts-hub-v732'; // 11-02 MAT-DEAD-THEMEBTN-1：素材页死按钮「切到深色」删除。上一版 v731 = RV-BLANK-CA-2。
 const _prevCacheNote53 = 'ielts-hub-v731'; // 11-02 RV-BLANK-CA-2：填空正答框内绿显。bank.js →20261101v。上一版 v729 = WD-DICT-TYPE-2。
 const _prevCacheNote52 = 'ielts-hub-v729'; // 11-02 WD-DICT-TYPE-2：听写打字型收尾（不泄答案/文案对上/模式菜单可反复开）。上一版 v728 = RV-COLOR-LOGIC-1。

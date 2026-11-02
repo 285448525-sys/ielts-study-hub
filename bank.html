@@ -641,6 +641,17 @@
 .ex-opt .ex-ca{flex-basis:100%;margin-left:0}
 .ex-blankw.right input{color:#1f7a5c}
 .ex-blankw.wrong input{color:#b3261e}
+/* ═══ RV-SW-26（她 11-02 台账 26 号两开关）═══
+   ① rv-noansq（听力复盘「Answer sentences」开关默认开）：关=藏 .sc-ans 高亮与 Q 徽章，visibility 保位；
+   ② sc-cn（「中文翻译」开关默认关，AI 实时逐句翻）：句下方小一号灰字子行，不挤原文行高；手机档不越界。 */
+#examRoot.rv-noansq .ex-script .sc-line.sc-ans .sc-tx,
+#examRoot.rv-noansq .ex-script .sc-line.sc-ans .sc-t{color:inherit;font-weight:inherit}
+#examRoot.rv-noansq .ex-script .sc-line.sc-ans{background:none}
+#examRoot.rv-noansq .ex-script .sc-q{display:none}
+.sc-cn{display:block;font-size:.82em;color:#6b7280;line-height:1.45;margin-top:1px;font-weight:400}
+#examRoot:not(.rv-cn-on) .sc-cn{display:none}
+@media(max-width:640px){.sc-cn{font-size:.8em;line-height:1.4}}
+
 /* 段落信息匹配（她 10/12 22:16 截图要求的真机考形态）：文章每段上方虚线槽 + 题号气泡。
    槽 = .ex-pslot（细虚线，放入题号后变实线）；气泡 = .ex-lohb（可拖可点选）。
    判分色 .right/.wrong 与 .ex-drop 同款；交互见 bank.js loh* 函数组。 */
@@ -2751,7 +2762,7 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 <script defer src="js/common-shell.js?v=20261101m"></script>
 <script defer src="js/common-pwa.js?v=20261101m"></script>
 <script defer src="js/exam-timer.js?v=20261102b"></script>
-<script defer src="js/bank.js?v=20261102d"></script>
+<script defer src="js/bank.js?v=20261102e"></script>
 <!-- M-2（10-24）：模考页「没做过/做过」分组 + 展开更多。
      ⚠️ 本文件只做展示层（读 hub_bank_last_* 分组 + 首屏 20 条），判分/SRS/本地记录一律不碰；
         单条 DOM 由 js/bank.js 的 listHtml() 生成（当参数传进来），结构零改动。
