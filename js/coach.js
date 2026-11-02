@@ -284,6 +284,18 @@ window.__COACH_ON = true;
     if(sc) sc.insertAdjacentHTML('beforeend', html);
   }
 
+  /* 失败提示常驻聊天流（COACH-ERR-KEEP-1）：toast 只活 2.4 秒，用户会以为什么都没发生。
+     用 AI 侧气泡样式，不参与 st.thread —— 它是一句提示，不是 AI 的回复。 */
+  function errNote(txt){
+    var sc = $('coachScroll'); if(!sc || !txt) return;
+    var el = document.createElement('div');
+    el.className = 'ca-row coach-err';
+    el.innerHTML = avAiHtml()
+      + '<div class="ca-bubble coach-err-b">' + escapeHtml(txt) + '</div>';
+    sc.appendChild(el);
+    scrollBottom();
+  }
+
   function topicCardHtml(t){
     var tag = t.isP2 ? '<span class="cq-part">P2 连讲</span>' : '<span class="cq-part">P1</span>';
     var freq = t.freq ? '<span class="cq-freq">' + escapeHtml(FREQ_ZH[t.freq] || '') + '</span>' : '';
@@ -532,19 +544,27 @@ function userHtml(text){
     }catch(e){ failed = e; }
 
     if(failed){
-      /* 失败绝不推进：撤上下文、撤气泡、回填输入，让她原样重发（v1 口径） */
+      /* ═══ COACH-ERR-KEEP-1（11-02 B1 真机红：未登录发消息「气泡从不渲染、无任何提示」）═══
+         原来这段是 v1 的「失败绝不推进」口径：撤上下文 + **把最后一行 cu-row 删掉** + 回填输入。
+         问题在于那行 cu-row 就是**她自己刚发的那条气泡** —— 删掉之后屏幕上「我说了话，但什么都没有」，
+         再配上 2.4 秒就消失的 toast，体感就是「消息被吞了」。
+         现在改成：
+           ① 她的气泡**留着**（说了就是说了，看得见自己发过什么、也能对照重发）；
+           ② 「思考中」照旧清掉（不能留在屏幕上冒充答案）；
+           ③ 失败原因走共享层 aiErrMsg 说人话，并且**以一条常驻提示留在聊天流里** ——
+              toast 2.4 秒就没了，光靠它等于没提示（她这次报的就是「无任何提示」）。
+         上下文 st.thread 仍然回退：这次没答上，不算进对话历史，重发不会带脏上下文。 */
       st.thread.pop();
-      var rows = document.querySelectorAll('#coachScroll .cu-row');
-      if(rows.length) rows[rows.length - 1].remove();
       hideThinking();     /* 🔴 思考气泡必须一起撤，否则留在屏幕上冒充答案 */
       renderCtx();    // 10/3 A版：失败已撤上下文，右栏轮次必须同步回退
       if(inp && text == null) inp.value = msg;
       setBusy(false);
-      var code = failed.code;
-      if(code === 'AUTH_REQUIRED' || code === 'auth_required') toast('请先登录后再用 AI 陪练');
-      else if(code === 'user_limit') toast('本周免费 AI 额度用完了，会员不限次（VIP 页开通）');
-      else if(failed.isTimeout) toast(failed.message);
-      else toast('网络异常，没发出去，再试一次');
+      /* 人话口径与 bank / 素材 / 语料三页统一走 aiErrMsg（AI-ERR-RELAY-1）*/
+      var why = (failed && failed.isTimeout && failed.message)
+        ? failed.message
+        : ((typeof aiErrMsg === 'function') ? aiErrMsg(failed) : '网络异常，没发出去，再试一次');
+      toast(why);
+      errNote(why);
       return;
     }
 

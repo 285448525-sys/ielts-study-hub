@@ -63,7 +63,7 @@
        10/3 22:55 扩展：陪练页弹层（avOpen('coach') / avCoachSrc）。
        10/22 T-006：考官页签已删（模考纯随机、不许选），此处不再涉及考官选择器。 -->
   <script defer src="js/av-picker.js?v=20261028j"></script>
-  <script defer src="js/coach.js?v=20261031n"></script>
+  <script defer src="js/coach.js?v=20261102p"></script>
   <!-- 10-23 T-009 S-1：口语页脚本按功能域拆分（方案 §二）。顺序 = 底层 → 顶层，
        全部 defer，**不能改相对顺序**（sentence-drill/coach 的顶层旗仍必须更早立，见上）。
        拆文件后 const 跨文件不可见 → 新文件一律 var/function 声明。 -->
@@ -2773,6 +2773,14 @@ html[data-theme="dark"] #detailBody .sp-tc-head{
    ========================================================================== */
 
 /* ---------- A. 思考中气泡（她：「他思考的时候不能没有任何反馈」）---------- */
+/* ---------- A2. 失败提示气泡（COACH-ERR-KEEP-1，11-02 B1 真机红：未登录发消息被吞）----------
+   原来是 toast 2.4 秒就消失 + 把她的气泡一起删了 → 体感「消息发出去没反应」。
+   现在失败原因以一条常驻气泡留在聊天流里，用警示色区分「这不是 AI 的回复」。 */
+#coachView .coach-err{align-items:center}
+#coachView .coach-err-b{
+  background:rgba(220,38,38,.06);border-color:rgba(220,38,38,.22);color:var(--danger-text);
+  font-size:14px;line-height:1.55;padding:11px 15px;
+}
 #coachView .coach-thinking{align-items:center}
 #coachView .coach-thinking-b{
   display:flex;align-items:center;gap:9px;
