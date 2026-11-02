@@ -103,6 +103,8 @@
        scene : SCENES 的键
        opts  : { def: 覆盖默认分钟（写作 Task2=40 / Task1=20 要按题变）, presets: 覆盖档位 }
        cb    : function(minutes|null) —— null 表示「不计时」 */
+  /* show(scene, opts, cb) 的 cb 取值契约：Number=分钟数（>0，计时进场）/
+     null=不计时进场 / 'exit'=放弃退出（消费方退列表，不开卷）。 */
   function show(scene, opts, cb){
     /* 🔴 自动化旁路闸（只给探针用，产品路径不受影响）：
        tests/ 里有 12 支回归探针靠「点 Start Test / 点一条题」直接进考场做断言，
@@ -132,7 +134,7 @@
     wrap.className = 'tmr'; wrap.id = 'tmrBox';
     /* EXAM-TIMER-POP-FIX-1（11-02 她四条口径）：
        ① 档位排整删（presets 不再渲染，data-tmrp 分支退役）；
-       ② 自定义行改「− 输入框 ＋」左右箭头，一次 5 分钟，钳 1–180；
+       ② 时长只有一行：「− 输入框 ＋」左右箭头，一次 5 分钟，钳 1–180（旧「自定义」重复行已删，EXAM-TIMER-POP-DUP-1）；
        ③ ✕/Esc = 放弃退出回列表（cb 传 'exit'，消费方识别后不开卷）；
        ④ 「不计时」「按这个时长开始」两按钮保留（❌ 与「不计时」语义分开：❌ 是不做这篇）。
        ❌ 退出协议：cb('exit') —— bank.js/writing.js 消费方判 'exit' 走退列表路径。 */
@@ -146,10 +148,6 @@
       +     '" step="' + STEP_MIN + '" value="' + cur + '" data-tmrin aria-label="自定义分钟数">'
       +   '<button type="button" class="tmr-arr" data-tmrup aria-label="增加 5 分钟">＋</button>'
       +   '<span class="tmr-unit">分钟</span>'
-      + '</div>'
-      + '<div class="tmr-row"><span>自定义</span>'
-      +   '<input class="tmr-i" type="number" inputmode="numeric" min="' + MIN_MIN + '" max="' + MAX_MIN
-      +     '" step="1" value="' + cur + '" data-tmrin aria-label="自定义分钟数"><span>分钟</span>'
       + '</div>'
       + '<div class="tmr-b">'
       +   '<button type="button" class="tmr-no" data-tmrno>不计时</button>'
@@ -169,7 +167,7 @@
       if(el && el.parentNode) el.parentNode.removeChild(el);
       document.removeEventListener('keydown', onKey, true);
     }
-    /* 关闭 = 不计时（✕ 与 Esc 同一个语义；弹框里永远有一个明确出口） */
+    /* finish('exit')=放弃退出；finish(null)=不计时进场。✕/Esc 走 exit。 */
     function finish(min){
       if(fired) return; fired = true;
       teardown();

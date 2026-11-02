@@ -66,7 +66,8 @@
 // 未改任何加载策略/脚本顺序（HANDOFF 铁律：defer 顺序是契约，动它会连带出事）。
 // common.js → 20261013ad（25 页）、index.js → 20261017a（仅 home.html）、
 // bank.js → 20261012ac（仅 bank.html）。上一版 v409。
-const CACHE = 'ielts-hub-v723'; // 11-02 EXAM-TIMER-POP-FIX-1（她四条口径）：计时弹框档位排整删、自定义行改 −/＋ 箭头一次 5 分钟（1–180 钳制）、✕/Esc=放弃退出回列表（cb 传 'exit'，bank.js/writing.js 消费方分流）、「不计时」「按这个时长开始」保留。exam-timer.js（bank/writing 两页共用）20261031b→20261102a、bank.js 20261101q→r、writing.js 20261101k→l。上一版 v722 = RV-TOP390-1。
+const CACHE = 'ielts-hub-v724'; // 11-02 EXAM-TIMER-POP-DUP-1：她截图「怎么点不了」实锤——v723 弹框残留旧「自定义」死输入行（前笔正则替换只吃掉半段，querySelector 永远绑步进器的 input，旧行点了没反应）。删该行（连注释），时长只剩「− 数字 ＋」一行；show() 头补 cb 取值契约（Number/null/'exit'，B2 上轮 P2）。exam-timer.js 20261102a→b 两页。上一版 v723 = EXAM-TIMER-POP-FIX-1。 // 11-02 EXAM-TIMER-POP-FIX-1（她四条口径）：计时弹框档位排整删、自定义行改 −/＋ 箭头一次 5 分钟（1–180 钳制）、✕/Esc=放弃退出回列表（cb 传 'exit'，bank.js/writing.js 消费方分流）、「不计时」「按这个时长开始」保留。exam-timer.js（bank/writing 两页共用）20261031b→20261102a、bank.js 20261101q→r、writing.js 20261101k→l。上一版 v722 = RV-TOP390-1。
+const _prevCacheNote46 = 'ielts-hub-v723'; // 11-02 EXAM-TIMER-POP-DUP-1：删弹框残留旧「自定义」死输入行（v723 遗留，点不了）。exam-timer.js 20261102a→b（bank.html defer+预载、writing.html defer）。上一版 v723。
 const _prevCacheNote45 = 'ielts-hub-v722'; // 11-02 RV-TOP390-1：复盘态手机 390 顶栏两开关出屏修复（rv-tooled 类放行换行）。js/bank.js 串 → 20261101q。
 const _prevCacheNote44 = 'ielts-hub-v721'; // 11-02 BK-LOAD-CANCEL-1：进场载入页出「取消加载」+ 25s 超时兜底。js/bank.js 串 → 20261101p。上一版 v720。
 const _prevCacheNote43 = 'ielts-hub-v720'; // 11-02 RV-RVROW-RETIRE-1：交卷后逐题结论条「Q1 Incorrect / Show」整块退役（渲染+样式+监听零残留，判分与上色一字未动）。js/bank.js 串 → 20261101o。上一版 v719。
