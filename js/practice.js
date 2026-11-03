@@ -14,7 +14,9 @@
 // =====================================================================
 
 var pq = null;            // 学习会话状态（仅内存，不落库）
-var _speakTimers = [];    // 朗读定时器，必须在 ready() 前初始化
+var _speakTimers = [];    // 朗读定时器（repeat 多次朗读的间隔），必须在 ready() 前初始化
+var _autoSpeakT = null;   // 自动朗读排的那一个定时器（MODE-DOUBLE-READ-1，11-03）
+var _autoSpeakLast = { en: '', t: 0 };   // 上一次自动朗读的词与时刻，用于折叠重复触发
 
 // 熟练度 0-7 级标准间隔（天）：索引 = 等级
 // 0→1天 1→2天 2→4天 3→7天 4→15天 5→30天 6→60天 7→90天
@@ -1660,8 +1662,10 @@ function renderQuestion(cur, isRehold){
   /* WD-DICT-LOG-1（11-01）：听写记录入口。每题重建 DOM，所以每题重新绑（onclick 直赋即幂等） */
   const wle = document.getElementById('wddLogEntry');
   if(wle) wle.onclick = () => { try{ wddLogOpen(); }catch(e){ try{ console.error('[wdd-log] open failed', e); }catch(_e){} } };
-  if(c.autoPlay) setTimeout(() => speakN(cur.en), 300);   // autoPlay=false 时不自动朗读，仅手动点喇叭
-  if((audioMode || dictMode) && !c.autoPlay) setTimeout(() => speakN(cur.en), 300);   // 听音/听写题必须先发音：即便关了自动播报，本题也强制读一次（喇叭可手动重播）
+  /* MODE-DOUBLE-READ-1（11-03）：这两行原来各排一个裸 setTimeout(300)，改走 _scheduleAutoSpeak
+     统一去重 —— 同一个词 800ms 内只自动读一次，切模式/重渲染都不会叠读。手动喇叭不受影响。 */
+  if(c.autoPlay) _scheduleAutoSpeak(cur.en, 300);   // autoPlay=false 时不自动朗读，仅手动点喇叭
+  if((audioMode || dictMode) && !c.autoPlay) _scheduleAutoSpeak(cur.en, 300);   // 听音/听写题必须先发音：即便关了自动播报，本题也强制读一次（喇叭可手动重播）
   if(!hideStem) fitWordOneLine();   // 9/9：渲染完立即按单词长度自适应字号（题干隐藏的模式，揭示后再补算）
 }
 
@@ -2448,7 +2452,29 @@ function toggleCfgShowIf(){
 function cancelSpeak(){
   (_speakTimers || []).forEach(t => clearTimeout(t));
   _speakTimers = [];
+  /* MODE-DOUBLE-READ-1（11-03 B1 报的模式切回双读）：自动朗读那个定时器原来没人管，
+     cancelSpeak 清不掉 → 快速切模式/切题时会有多个 pending 定时器各自 speakN。一并清。 */
+  if(_autoSpeakT){ clearTimeout(_autoSpeakT); _autoSpeakT = null; }
   try{ window.speechSynthesis.cancel(); }catch(e){}
+}
+/* MODE-DOUBLE-READ-1（11-03 · B1 报「听音选义切走再切回，同一个词连读 2 次」）：
+   自动朗读原来是一句裸 setTimeout(300) —— ①句柄没人管，cancelSpeak 清不掉，快速切模式/切题时
+   会有多个 pending 定时器各自 speakN；②模式切换与切题都走 renderQuestion，同一个词被渲染两次
+   就排两次 300ms → 双读。现在自动朗读统一从 _scheduleAutoSpeak 走：
+     · 先清掉自己排的上一个定时器（同一时刻只留一个）；
+     · 同一个词 800ms 内已经自动读过就不再读（折叠重复触发）。
+   手动点喇叭（音标旁 / 底部「再读一遍」/ 快捷键 R）不走这里 —— 连点几次播几次，行为一字不变。 */
+function _scheduleAutoSpeak(text, delay){
+  const key = String(text || '').trim().toLowerCase();
+  if(!key) return;
+  if(_autoSpeakT){ clearTimeout(_autoSpeakT); _autoSpeakT = null; }
+  _autoSpeakT = setTimeout(() => {
+    _autoSpeakT = null;
+    const now = Date.now();
+    if(key === _autoSpeakLast.en && (now - _autoSpeakLast.t) < 800) return;
+    _autoSpeakLast = { en: key, t: now };
+    speakN(text);
+  }, delay || 300);
 }
 function speakN(text){
   if(!text || !('speechSynthesis' in window)) return;
