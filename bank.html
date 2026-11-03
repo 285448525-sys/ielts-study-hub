@@ -19,7 +19,7 @@
 <meta http-equiv="Expires" content="0" />
 <title>模考 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css?v=20261101m" />
-<link rel="stylesheet" href="css/p/bank.css?v=20261103e" />
+<link rel="stylesheet" href="css/p/bank.css?v=20261103f" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -838,7 +838,9 @@
    笔记 = 黄色下划线（乐问乐学「点击原文中带下划线的标注位置可调出笔记」；与棕色块一眼可分：块 vs 线）。 */
 .ex-hl{background:#8b3a2e;color:#fff;border-radius:2px;cursor:pointer}
 .ex-hl.rep{background:#c7417b;color:#fff}
-.ex-nt{background:transparent;color:inherit;border-bottom:2px solid #f0a020;cursor:pointer}
+/* RV-FIX5-8（她 11-03「note是蓝色高亮不是下划线」）：Note 标注 = 蓝色高亮块（对齐爱听写机考口径），
+   橙色下划线退役 */
+.ex-nt{background:#b3d7ff;color:inherit;border-bottom:none;border-radius:2px;padding:0 1px;cursor:pointer}
 .ex-hl:hover,.ex-nt:hover{outline:1px solid rgba(0,0,0,.35)}
 /* 划词浮动工具条（10/12 改：由「必须右键」改为「选中即弹」，横向一行）
    来源：Notion / Medium 的 selection bubble menu 已是现代网页默认范式 ——
@@ -851,7 +853,8 @@
 .ex-ctx button{display:inline-flex;align-items:center;gap:5px;border:none;background:transparent;font:inherit;
   font-size:13px;color:#111;padding:7px 10px;border-radius:6px;cursor:pointer;white-space:nowrap;min-height:36px}
 .ex-ctx button:hover{background:var(--primary-50);color:var(--primary-900)}
-.ex-ctx hr{flex:none;border:none;border-left:1px solid var(--line);width:0;height:20px;margin:0 3px}
+/* RV-FIX5-7（她 11-03「中间多出来一条线」）：工具条中间的 hr 竖线整删（B2 P2 同项）——真机考工具条
+   Note/Highlight/Clear Highlight 三项之间没有分隔线 */
 /* MOCK-SPLIT-DRAG-1：桌面端中间分隔线可拖动；手机维持上下布局。 */
 #examRoot .ex-split{position:relative}
 #examRoot .ex-split-handle{position:absolute;top:0;bottom:0;left:calc(var(--ex-art-pct,50)*1%);width:16px;margin-left:-8px;padding:0;border:0;background:transparent;cursor:col-resize;z-index:5;touch-action:none}
@@ -2786,7 +2789,7 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 <script defer src="js/common-shell.js?v=20261101m"></script>
 <script defer src="js/common-pwa.js?v=20261101m"></script>
 <script defer src="js/exam-timer.js?v=20261102b"></script>
-<script defer src="js/bank.js?v=20261103e"></script>
+<script defer src="js/bank.js?v=20261103f"></script>
 <!-- M-2（10-24）：模考页「没做过/做过」分组 + 展开更多。
      ⚠️ 本文件只做展示层（读 hub_bank_last_* 分组 + 首屏 20 条），判分/SRS/本地记录一律不碰；
         单条 DOM 由 js/bank.js 的 listHtml() 生成（当参数传进来），结构零改动。

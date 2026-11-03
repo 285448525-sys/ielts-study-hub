@@ -1962,9 +1962,10 @@ window.__reportExamState = reportExamState;
     return '<div class="ex-ctx" id="exCtx">'
       +    '<button type="button" data-hact="note">Note</button>'
       +    '<button type="button" data-hact="hl">Highlight</button>'
-      +    '<hr>'
       +    '<button type="button" data-hact="unhl">Clear Highlight</button>'
       +  '</div>';
+    /* RV-FIX5-7：Note/Highlight 与 Clear Highlight 之间的 <hr> 已删（她 11-03「中间多出来一条线」，
+       真机考工具条三项间无分隔线，B2 复审 P2 同项） */
   }
 
   /* ===== 听力音频条（10/11 第 9 项）=====
