@@ -1121,6 +1121,19 @@ function saveDailySession(){
   s.lastTouch = Date.now();
   wbSave();
 }
+/* PERF-WRITE-1（11-04 夜班，B2 审计 R1）：一次作答只落一次盘。
+   原来每条答题分支各自 wbSave()，末尾 saveDailySession() 内部又 wbSave() 一次 ——
+   同一份内存状态被整包序列化+写盘两遍（官方词库 2651 词实测约 60ms/遍，她一题吃 120ms）。
+   这里把「一定落盘」收成一个口子：saveDailySession 正常路径内部已写过；
+   它在三种情况下 early return（无 session / 重练错词 / 跨天），那三种才补写一次。
+   🔴 不动 saveDailySession 内部、不动 wbSave、不动 _persist/_dirty、不动判分与 SRS 字段。 */
+function ensureAnswerSaved(){
+  saveDailySession();
+  const s = wbSession();
+  if(!pq || pq.isWrongReview || !s || s.date !== todayKey()){
+    try{ wbSave(); }catch(e){ console.error('[practice] 作答落盘失败', e); }
+  }
+}
 // 清空当日 session 并重建（"再来一轮"用：当天内重新锁定一份词表）
 function restartToday(){
   cancelSpeak();
@@ -1719,7 +1732,7 @@ function bindOpts(cur){
         clearTimeout(pq._holdTimer); pq._holdTimer = null; pq._holdCur = null;
         pq.revealed = false;
         shortLineCorrect(c2, todayKey(), String(c2.en).trim().toLowerCase());
-        saveDailySession();
+        ensureAnswerSaved();   // PERF-WRITE-1：同一条「只落一次盘」口径（重练错词/跨天时补写）
         updateProgBar();
         updateWordStats();
         nextQuestion();
@@ -1746,7 +1759,6 @@ function shortLineCorrect(cur, today, k){
     pq.shortMode.delete(k);
     if(!pq.counted.has(k)){ pq.counted.add(k); pq.total++; }   // 连续答对满 3 次，此时才算过
     if(!pq.isWrongReview){ const _ws = wbSession(); if(_ws) _ws.total = pq.total; }
-    wbSave();
     return 'pass';
   }
   cur.shortCount = n;                            // 记录进度（持久化，续背接得上）
@@ -1756,7 +1768,6 @@ function shortLineCorrect(cur, today, k){
   const pos = Math.min(pq.queue.length, pq.idx + gap);
   if(pos >= pq.queue.length) pq.queue.push(cur);
   else pq.queue.splice(pos, 0, cur);
-  wbSave();
   return 'requeue';
 }
 
@@ -1857,7 +1868,6 @@ function judge(cur, pickedEn, correct, isUnknownBtn){
       pq.passed.push(String(cur.en).trim().toLowerCase());
       if(!pq.counted.has(k)){ pq.counted.add(k); pq.total++; }   // 完全过关才计入进度
       if(!pq.isWrongReview){ const _ws = wbSession(); if(_ws) _ws.total = pq.total; }  // 持久化，刷新续背时不丢（design/78 路由）
-      wbSave();
       result = 'pass';
     } else {
       // 答错/不认识的词 → 短线分散重复：需连续答对 SHORT_PASS(3) 次才过关（10/9 她拍板改回 3 次；中途答错清零，见错误分支）
@@ -1877,7 +1887,8 @@ function judge(cur, pickedEn, correct, isUnknownBtn){
     // 兜底仍在：MAX_ATTEMPT(15) 次还没答对 → 移出本轮队列，留到明天（下方死循环防护）
     // （errTotal 由 demoteLongTerm 每次 +1，此处不额外加，避免重考链把错误数刷爆）
     pq.reholdMap[k] = (pq.reholdMap[k] || 0) + 1;
-    wbSave();   // 显式落盘：重练错词模式下 saveDailySession 会跳过，不落盘则本次降级/dailyWrong 全丢（design/78 路由）
+    /* PERF-WRITE-1：这句落盘挪到末尾 ensureAnswerSaved() —— 它对「重练错词模式下 saveDailySession
+       会跳过」这一条专门补写，所以「不落盘则本次降级/dailyWrong 全丢」的顾虑照样被照顾到，只是不再写两遍。 */
     result = 'rehold';
   }
 
@@ -1892,7 +1903,6 @@ function judge(cur, pickedEn, correct, isUnknownBtn){
     if(!pq.wrongList.some(x => String(x.en).toLowerCase() === k)){
       pq.wrongList.push({ en: cur.en, cn: cur.cn || '', user: '(本轮放弃)', grade: 'unknown' });
     }
-    wbSave();
     result = 'requeue';
     // toast 已删
   }
@@ -1907,7 +1917,7 @@ function judge(cur, pickedEn, correct, isUnknownBtn){
 
   updateProgBar();
   updateWordStats();
-  saveDailySession();   // 每次作答后持久化进度（草稿自动存档）
+  ensureAnswerSaved();   // PERF-WRITE-1：每次作答只落一次盘（原来这里 + 各分支各写一遍 = 两遍）
 
   if(result === 'rehold'){
     // 9/24 她需求：答错后的强制停顿期内，若她主动点中了正确答案 → 立刻算「重考答对」并跳转，
