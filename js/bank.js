@@ -1320,9 +1320,36 @@
     });
   }
 
+  /* HEAD-STEMMARK（11-03，她截图「heading题不要有这个删掉」）：
+     heading 组的题干在题库里只是一句占位词 —— 「Paragraph」「Paragraph A」「Section」「Section A」
+     （实测 132 题只写 Paragraph、34 题只写 Section、20 题带字母）。
+     渲染到题目行里就变成「14 Paragraph」这种多余前缀，她明确要去掉。
+     处理：纯占位词不出文本；带字母的只留字母（段落定位信息不能丢，原文侧锚点槽靠它对齐）。
+     ⚠️ 配对题（matching 非 heading）的题干是真内容，绝不走这里。 */
+  function headStem(q){
+    var t = plain(q && q.question).replace(/\s+/g, ' ').trim();
+    if(!t) return { text: '', letter: '' };
+    var m = /^(paragraph|section)\s*([A-Z])?$/i.exec(t);
+    if(!m) return { text: t, letter: '' };
+    return { text: (m[2] || '').toUpperCase(), letter: (m[2] || '').toUpperCase() };
+  }
+  /* HEAD-BLOCK-DEL：heading 题目行整块隐藏的样式。
+     从本文件注入而不是写进 bank.html / css/p/bank.css —— 页面样式归属不在本单范围内，
+     且这条规则只服务于本文件的渲染结构，放一起更好维护。 */
+  function ensureHeadGhostCss(){
+    if(document.getElementById('exHeadGhostCss')) return;
+    var st = document.createElement('style');
+    st.id = 'exHeadGhostCss';
+    st.textContent = '#examRoot .ex-q--headghost{display:none !important}'
+      + '#examRoot .ex-hslot{position:relative}'
+      + '#examRoot .ex-hslot .ex-hslot-n{display:inline-block;min-width:14px;margin-right:4px;font-size:11px;'
+        + 'font-weight:600;line-height:1;color:inherit;opacity:.62;vertical-align:middle}';
+    (document.head || document.documentElement).appendChild(st);
+  }
   function groupHtml(g, idx, numOf, channel){
     numOf = numOf || idNum();
     channel = channel || (EX && EX.channel) || 'reading';
+    ensureHeadGhostCss();
     var h = '<div class="ex-group" data-gtype="' + esc(g.type) + '" data-g="g' + idx + '">';
     var ns = qNums(g).map(numOf);
     h += '<p class="ex-grp-h">Questions ' + esc(ns.length ? (ns[0] + '–' + ns[ns.length - 1]) : '') + '</p>';
@@ -1382,8 +1409,17 @@
          我一度把 isHead 改成表格行，改错了，恢复原拖放槽形态（她 10/12 亲自拍板）。 */
       qs.forEach(function(q){
         var n = numOf(q.qNumber);
-        h += '<div class="ex-q"><span class="ex-qn" data-qn="' + esc(n) + '">' + esc(n) + '</span>'
-          + flagHtml(n) + '<span class="ex-qt">' + esc(plain(q.question)) + '</span>'
+        /* HEAD-BLOCK-DEL（11-03，她口径）：「Paragraph 占位词 + 答案胶囊 + ✕」这一整块不要——
+           heading 题的题干本来就是原文各自然段，题目行这块是重复展示。
+           做法：整行 .ex-q--headghost 视觉不出现，但 DOM 保留 —— 原文各段上方的虚线框靠它取题号与选项池
+           （headSlotsInto 从题目区 DOM 读 data-q / data-g），collect/判分也走同一套 .ex-drop。
+           作答入口只剩原文段落上方的虚线框（真机考形态），dgSyncQ 双向同步照旧。
+           ⚠️ 不能真删 DOM：删了 .ex-drop 就没有题号→选项池的对应关系，题会答不了。 */
+        /* 只在 heading 组（选项是罗马数字）套用清理；别的 matching 组题干是真内容，原样输出 */
+        var hs = isHead ? headStem(q) : { text: plain(q.question), letter: '' };
+        h += '<div class="ex-q ex-q--headghost"><span class="ex-qn" data-qn="' + esc(n) + '">' + esc(n) + '</span>'
+          + flagHtml(n)
+          + (hs.text ? '<span class="ex-qt"' + (hs.letter ? ' data-l="' + esc(hs.letter) + '"' : '') + '>' + esc(hs.text) + '</span>' : '')
           + '<div class="ex-drop" data-q="' + esc(n) + '" data-g="' + gid + '"></div></div>';
       });
     } else if(g.type === 'map' && channel === 'reading'){
@@ -1418,14 +1454,36 @@
       h += '</tbody></table></div>';
     } else if(g.type === 'map'){
       /* map 这一个 type 在题库里是两种题：
-         · 阅读 —— 实为「哪一段包含以下信息」的段落信息匹配：字母指段落，靠左边文章作答；
+         · 阅读 —— 实为「哪一段包含以下信息」的段落信息匹配（上面那个分支已经处理）；
          · 听力 —— 真地图标注题：字母指地图上的位置，靠上面的 g.imageUrl 配图作答。
-         两者渲染方式相同（题干 + 一排字母），差别只在有没有配图 → 上面统一挂图即可。 */
+         🔴 MAP-MATRIX（11-03，她口径「听力地图题是这样子的跟段落匹配题一样的」）：
+         原来是每题下面竖排一列 A–I 圆点 → 一屏放不下、也和她给的官方答题卡样子不符。
+         改成与段落匹配同一套「答题卡矩阵」：表头一排字母、每行一道题、交叉处一个圆点。
+         答案口径零改动（EX.user[题号] = 字母，collect/判分/落库全复用）。 */
+      var letters = [];
+      var gopts = (g.options && g.options.length) ? g.options : [];
+      var poolSrc = gopts.length ? gopts : ((qs[0] && qs[0].options) || []);
+      poolSrc.forEach(function(o){ var v = o.optionNum || o.option || ''; if(v) letters.push(String(v).toUpperCase()); });
+      qs.forEach(function(q){
+        (q.options || []).forEach(function(o){
+          var v = o.optionNum || o.option || ''; if(v && letters.indexOf(String(v).toUpperCase()) < 0) letters.push(String(v).toUpperCase());
+        });
+      });
+      if(!letters.length) letters = 'ABCDEFGHI'.split('');
+      letters.sort();
+      h += '<div class="ex-lomatrix-wrap"><table class="ex-lomatrix"><thead><tr><th class="mx-stem-h"></th>'
+        + letters.map(function(L){ return '<th>' + esc(L) + '</th>'; }).join('')
+        + '</tr></thead><tbody>';
       qs.forEach(function(q){
         var n = numOf(q.qNumber);
-        h += '<div class="ex-q"><span class="ex-qn" data-qn="' + esc(n) + '">' + esc(n) + '</span>'
-          + flagHtml(n) + '<span class="ex-qt">' + esc(plain(q.question)) + pillsHtml(q, numOf, g) + '</span></div>';
+        h += '<tr class="ex-q-lohr">'
+          + '<td class="mx-stem">' + flagHtml(n) + '<b class="mx-no">' + esc(n) + '</b> ' + esc(plain(q.question)) + '</td>'
+          + letters.map(function(L){
+              return '<td class="mx-cell"><input type="radio" name="lomx-' + esc(n) + '" value="' + esc(L) + '" data-q="' + esc(n) + '" aria-label="Question ' + esc(n) + ' position ' + esc(L) + '"></td>';
+            }).join('')
+          + '</tr>';
       });
+      h += '</tbody></table></div>';
     } else if(g.type === 'multiple-choice'){
       var need = groupNeed(g);
       /* 🔴 10/16 修（她实测 Q9-10：题干被压成 40px 窄条 + 词中断 + Choose TWO 能勾 3 个 + Q10 无法作答）
@@ -3559,6 +3617,8 @@ window.__reportExamState = reportExamState;
     /* 题目上下文：题干（detail.q.question 在交卷/只读内存链上都活着；没有就从 DOM 题干取） */
     var stem = '';
     if(d.q && d.q.question) stem = String(d.q.question).replace(/<[^>]*>/g, '').trim();
+    /* HEAD-STEMMARK：heading 组题干只是占位词（Paragraph/Section[ A]），别把占位词喂给 AI */
+    if(/^(paragraph|section)\s*[A-Z]?$/i.test(stem)) stem = '';
     if(!stem){
       var qRow = root.querySelector('.ex-qn[data-qn="' + hit.qn + '"]');
       var qWrap = qRow && qRow.closest('.ex-q');
@@ -3830,7 +3890,8 @@ window.__reportExamState = reportExamState;
     drop.setAttribute('data-v', v);
     drop.classList.add('filled');
     drop.classList.remove('right', 'wrong');
-    drop.innerHTML = (src ? src.innerHTML : esc(v)) + '<span class="ex-x" title="Remove">✕</span>';
+    drop.innerHTML = (drop.getAttribute('data-q') ? '<span class="ex-hslot-n">' + esc(drop.getAttribute('data-q')) + '</span>' : '')
+      + (src ? src.innerHTML : esc(v)) + '<span class="ex-x" title="Remove">✕</span>';
     dgMark(v, true, gid);
     dgSyncQ(drop);
     if(!silent){ saveDraft(); paintSheet(); }
@@ -3846,11 +3907,12 @@ window.__reportExamState = reportExamState;
         var src = dgPoolChip(v, drop.getAttribute('data-g'));
         o.setAttribute('data-v', v);
         o.classList.add('filled'); o.classList.remove('right', 'wrong');
-        o.innerHTML = (src ? src.innerHTML : esc(v)) + '<span class="ex-x" title="Remove">✕</span>';
+        o.innerHTML = (o.getAttribute('data-q') ? '<span class="ex-hslot-n">' + esc(o.getAttribute('data-q')) + '</span>' : '')
+          + (src ? src.innerHTML : esc(v)) + '<span class="ex-x" title="Remove">✕</span>';
       } else {
         o.removeAttribute('data-v');
         o.classList.remove('filled', 'right', 'wrong');
-        o.innerHTML = '';
+        o.innerHTML = o.getAttribute('data-q') ? '<span class="ex-hslot-n">' + esc(o.getAttribute('data-q')) + '</span>' : '';
       }
     });
   }
@@ -3859,7 +3921,7 @@ window.__reportExamState = reportExamState;
     dgMark(drop.getAttribute('data-v'), false, drop.getAttribute('data-g'));
     drop.removeAttribute('data-v');
     drop.classList.remove('filled', 'right', 'wrong');
-    drop.innerHTML = '';
+    drop.innerHTML = drop.getAttribute('data-q') ? '<span class="ex-hslot-n">' + esc(drop.getAttribute('data-q')) + '</span>' : '';
     dgSyncQ(drop);
     saveDraft(); paintSheet();
   }
@@ -3938,8 +4000,11 @@ window.__reportExamState = reportExamState;
         var d = q.querySelector('.ex-drop');
         if(!d) return;
         var qt = q.querySelector('.ex-qt');
-        var m = /(?:paragraph|section)\s+([A-Z])\b/i.exec(qt ? (qt.textContent || '') : '');
-        rows.push({ q: d.getAttribute('data-q'), g: gid, L: m ? m[1].toUpperCase() : '' });
+        /* HEAD-STEMMARK：题干里的「Paragraph/Section」占位词已不渲染，段落字母改挂在 data-l 上
+           （旧形态仍回退文本正则，防别的入口灌进来的 DOM 没有 data-l）。 */
+        var dl = qt ? (qt.getAttribute('data-l') || '').toUpperCase() : '';
+        var m = dl ? null : /(?:paragraph|section)?\s*([A-Z])\b/i.exec(qt ? (qt.textContent || '') : '');
+        rows.push({ q: d.getAttribute('data-q'), g: gid, L: dl || (m ? m[1].toUpperCase() : '') });
       });
     });
     if(!rows.length) return;
@@ -3951,7 +4016,11 @@ window.__reportExamState = reportExamState;
     art.querySelectorAll('p, div, h1, h2, h3, h4, li').forEach(function(b){
       var t = (b.textContent || '').replace(/\u00a0/g, ' ').trim();
       if(!t) return;
-      var m = /^\(([A-Z])\)/.exec(t) || /^([A-Z])[\s\.\)]/.exec(t);
+      /* HEAD-BLOCK-DEL（11-03）：原先只认「A 正文…」「(A) 正文…」。实测两篇（Music Language We All Speak、
+         New Zealand Seaweed）原文段落头写成「Section A」「Section A - Music and language contrasted」→ 认不出
+         → 这两篇一个锚点槽都没有。题目行一旦隐藏，这两篇就没有作答入口了，所以先把识别补上。 */
+      var m = /^\(([A-Z])\)/.exec(t) || /^([A-Z])[\s\.\)]/.exec(t)
+        || /^(?:section|paragraph)\s+([A-Z])(?:\s|$|[\-–—:：])/i.exec(t);
       if(!m) return;
       if(m[1].charCodeAt(0) !== expected) return;
       expected++;
@@ -3969,6 +4038,9 @@ window.__reportExamState = reportExamState;
       var slot = document.createElement('div');
       slot.className = 'ex-drop ex-hslot';
       slot.setAttribute('data-q', qn);
+      /* HEAD-BLOCK-DEL：题目行整块隐藏后，答案框成了唯一入口 —— 框上直接标题号，
+         否则用户看不出哪一段对应第几题（段落字母 A–G 与题号 14–20 的对应关系看不见）。 */
+      slot.innerHTML = '<span class="ex-hslot-n">' + esc(qn) + '</span>';
       if(row.g) slot.setAttribute('data-g', row.g);
       slot.setAttribute('title', 'Drag a heading here');
       /* ⚠️ 10/16 踩坑：题库文章是**嵌套 div**，命中的段落块往往不是 #exArt 的直接子节点 →
