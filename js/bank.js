@@ -3732,6 +3732,18 @@ window.__reportExamState = reportExamState;
       /* RV-FIX5-2（她 11-02 复盘截图：框外「Correct: C,E,F」行全删 + 共享选项组曾重复挂 3 遍）——
          框外 .ex-ca 行整族退役；正确答案的展示只剩两条路：选项本题内 green 标（.right）与
          填空框内绿字后缀（.ex-ca-in）。判分数据零碰。 */
+      /* RV-FIX5-4（她 11-03 真机①「开不开答案都一样」另一半根因）：FIX5-2 只让 decoratePassage
+         给「勾过的选项」标色，正答展示承诺走「选项本题内 green 标」却没人挂 —— 打开答案态
+         选项题连正答标都不出现，两态又少一处差别。现在打开态把未勾的正答项补标 .right
+         （多选正答集逐项标），关闭态摘掉；她勾对的 .right（decoratePassage 挂）不吃这条、照显。 */
+      var rightsSet = String(d.right == null ? '' : d.right).toUpperCase().split(/[,\s\/]+/).filter(Boolean);
+      root.querySelectorAll('.ex-opts[data-q="' + qn + '"] .ex-opt').forEach(function(lb){
+        var inp = lb.querySelector('input');
+        if(inp && inp.checked) return;                     /* 她勾的（对绿/错红）由 decoratePassage 定色，不动 */
+        var isRight = rightsSet.indexOf(String(lb.getAttribute('data-v') || '').toUpperCase()) > -1;
+        if(showAns && isRight) lb.classList.add('right');
+        else lb.classList.remove('right');
+      });
     });
   }
   /* 🔴 答案开关语义（她 11-02 两图口径）：图一「显示答案」= 正确答案标进空格 + 标绿；
