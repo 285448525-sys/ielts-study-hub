@@ -3351,6 +3351,7 @@ window.__reportExamState = reportExamState;
     list.forEach(function(e){ if(EX.user[e.g] != null) applyAnswer(e.g, EX.user[e.g]); });
     syncExamStates();
     if(EX.submitted) decoratePassage(pi);
+    if(EX.submitted && EX.result) mountAiExplain();   /* RV-FIX5-6：切篇重渲染冲掉了讲解壳（qcol.innerHTML），按篇重挂（幂等） */
     replayMarks();
     updatePartBanner('Passage ' + pi, list.length ? list[0].g : null, list.length ? list[list.length - 1].g : null);
     paintSheet();
@@ -3530,21 +3531,31 @@ window.__reportExamState = reportExamState;
   var AI_EXP_CACHE_KEY = '_aiExp';
   function mountAiExplain(){
     var root = document.getElementById('examRoot'); if(!root) return;
-    if(root.querySelector('#exAiCard')) return;             /* 幂等：mountReviewTools 三处挂载点会重复进 */
     if(!EX || !EX.submitted || !EX.result) return;
     if(EX.scored === false) return;                         /* 无答案键篇目不挂（无正答可讲） */
     if(EX[AI_EXP_CACHE_KEY] == null) EX[AI_EXP_CACHE_KEY] = {};
-    /* RV-FIX5-5（她 11-02 口径）：右下角浮卡退役 → 右栏上下分栏：上=题干（原 #exQCol 内容），
-       下=AI 讲解面板，中间分隔线可上下拖（桌面档）；手机档讲解贴在题目下方（面板固定高度上限）。
-       panel 挂在 #exQCol 尾部（它已 overflow:auto —— 拖动改的是面板高度变量，不是滚动）。 */
-    var qcol = root.querySelector('#exQCol') || root;
-    var card = document.createElement('section');
-    card.className = 'ex-ai-panel'; card.id = 'exAiCard'; card.hidden = true;
-    card.innerHTML = '<button type="button" class="ex-ai-handle" id="exAiHandle" role="separator" aria-orientation="horizontal" aria-label="拖动调整讲解区高度" tabindex="0"></button>'
-      + '<div class="ex-ai-h"><b id="exAiTitle">AI 讲解</b>'
-      + '<button type="button" class="ex-ai-x" data-aiexpclose aria-label="Close">✕</button></div>'
-      + '<div class="ex-ai-b" id="exAiBody"></div>';
-    qcol.appendChild(card);
+    /* RV-FIX5-6（她 11-03 口径「把右边分成两块，不是弄一个悬浮框」）：讲解嵌进右栏文档流——
+       右栏分上下两块：上 = 题干滚动区（原 #exQCol 内容包进 #exQScroll），下 = AI 讲解面板，
+       中间 #exAiHandle 分隔线可上下拖。分栏只在讲解开着时存在（openAiExplain 挂 ai-open /
+       ✕ 摘除还原单列），做题态零影响。手机档 scroll 壳 display:contents 交还页面滚动。 */
+    var qcol = root.querySelector('#exQCol'); if(!qcol) return;
+    var card = root.querySelector('#exAiCard');
+    if(!card){
+      var scroll = qcol.querySelector('#exQScroll');
+      if(!scroll){
+        scroll = document.createElement('div');
+        scroll.className = 'ex-qscroll'; scroll.id = 'exQScroll';
+        while(qcol.firstChild) scroll.appendChild(qcol.firstChild);
+        qcol.appendChild(scroll);
+      }
+      card = document.createElement('section');
+      card.innerHTML = '<button type="button" class="ex-ai-handle" id="exAiHandle" role="separator" aria-orientation="horizontal" aria-label="拖动调整讲解区高度" tabindex="0"></button>'
+        + '<div class="ex-ai-h"><b id="exAiTitle">AI 讲解</b>'
+        + '<button type="button" class="ex-ai-x" data-aiexpclose aria-label="Close">✕</button></div>'
+        + '<div class="ex-ai-b" id="exAiBody"></div>';
+      card.className = 'ex-ai-panel'; card.id = 'exAiCard'; card.hidden = true;
+      qcol.appendChild(card);
+    }
   }
   /* 点击锚：作答控件优先（选项 / 空格 / 槽 / 矩阵格），都没有再认题号徽章。
      返回 { qn, detail }；detail 取自 EX.result.detail（含 right/user/ok/q）。 */
@@ -3590,6 +3601,11 @@ window.__reportExamState = reportExamState;
     var root = document.getElementById('examRoot'); if(!root) return;
     var card = root.querySelector('#exAiCard'); if(!card) return;
     card.hidden = false;
+    /* RV-FIX5-6：点开讲解才分栏（右栏上下两块）；✕ 关闭摘 ai-open 还原单列滚动 */
+    var qcol = root.querySelector('#exQCol'); if(qcol) qcol.classList.add('ai-open');
+    /* 手机档面板挂在题目末尾（display:contents 交还页面滚动）——不滚过去她看到的就是「点了没反应」；
+       桌面档分栏在视口内恒可见，不需要滚。 */
+    if(window.innerWidth <= 860 && card.scrollIntoView){ try{ card.scrollIntoView({ block: 'start', behavior: 'smooth' }); }catch(e){} }
     var title = card.querySelector('#exAiTitle');
     if(title) title.textContent = 'Q' + hit.qn + ' · AI 讲解';
     var body = card.querySelector('#exAiBody'); if(!body) return;
@@ -3690,6 +3706,7 @@ window.__reportExamState = reportExamState;
   function closeAiExplain(){
     var root = document.getElementById('examRoot'); if(!root) return;
     var card = root.querySelector('#exAiCard'); if(card) card.hidden = true;
+    var qcol = root.querySelector('#exQCol'); if(qcol) qcol.classList.remove('ai-open');   /* RV-FIX5-6：关讲解 = 撤分栏还原单列 */
     root.querySelectorAll('.ai-cur').forEach(function(n){ n.classList.remove('ai-cur'); });
   }
   /* 开关落内容：答案 = .right/.wrong 上色 + 结论条 Show/Hide 显隐 + 空格填正答；

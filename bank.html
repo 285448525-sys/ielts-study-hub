@@ -19,7 +19,7 @@
 <meta http-equiv="Expires" content="0" />
 <title>模考 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css?v=20261101m" />
-<link rel="stylesheet" href="css/p/bank.css?v=20261103d" />
+<link rel="stylesheet" href="css/p/bank.css?v=20261103e" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -349,12 +349,16 @@
    只有她点作答控件/题号时才出现；✕ 收卡不动作答与判分数据。
    宽度桌面 320、手机左右各留 12px 安全边（390 档三查：不横滑/不被裁/可点）。
    🔴 样式写死 hex（考场钉死色系口径，不用外观变量）。 */
-/* ═══ RV-FIX5-5（她 11-02 口径）：AI 讲解从右下浮卡改右栏上下分栏 ═══
-   桌面：#exAiCard 挂 #exQCol 尾部 sticky 底部 —— 上=题干滚动区（不受影响），下=讲解面板；
-   中间 #exAiHandle 分隔线可上下拖（JS 改 --ex-ai-h，记忆 hub_ex_ai_h）。手机：讲解贴题目下方，限高 42vh。 */
-#exQCol .ex-ai-panel{position:sticky;bottom:0;flex:none;display:flex;flex-direction:column;
-  height:var(--ex-ai-h,240px);min-height:120px;background:#fff;border-top:1px solid #d5d9de;
-  box-shadow:0 -6px 18px rgba(0,0,0,.08);z-index:6}
+/* ═══ RV-FIX5-6（她 11-03 口径「答案区域我是叫你把右边分成两块，不是弄一个悬浮框」）═══
+   讲解从 sticky 浮层改文档流真分栏：ai-open 时右栏上下两块——
+   上 #exQScroll 题干滚动区（flex:1），下 #exAiCard 讲解面板（flex:none 定高 --ex-ai-h），
+   中缝 #exAiHandle 分隔线可上下拖；去 sticky / 去投影 = 不再悬浮（内边距随分栏移进 scroll 壳）。
+   分栏只在她点开讲解时存在（openAiExplain 挂 ai-open / ✕ 摘除还原单列），做题态零影响。
+   🔴 特异度：#examRoot .ex-qcol.ai-open (1,2,0) 压过下面 #examRoot .ex-qcol (1,1,0) 的 padding。 */
+#examRoot .ex-qcol.ai-open{overflow:hidden;display:flex;flex-direction:column;padding:0}
+#exQCol .ex-qscroll{flex:1 1 auto;min-height:0;overflow:auto;padding:20px 28px 40px}
+#exQCol .ex-ai-panel{position:static;flex:none;display:flex;flex-direction:column;
+  height:var(--ex-ai-h,240px);min-height:120px;background:#fff;border-top:1px solid #d5d9de}
 #exQCol .ex-ai-handle{appearance:none;border:0;background:transparent;height:10px;margin-top:-5px;
   cursor:row-resize;flex:none;position:relative;touch-action:none}
 #exQCol .ex-ai-handle::after{content:'';position:absolute;left:0;right:0;top:4px;height:2px;background:rgba(0,0,0,.35)}
@@ -368,6 +372,10 @@
 .ex-ai-b{padding:11px 13px 13px;font-size:13px;line-height:1.75;color:#24272c;overflow:auto;
   white-space:pre-wrap;word-break:break-word;flex:1;min-height:0}
 @media(max-width:860px){
+  /* 手机：scroll 壳 display:contents，子元素直接落进 #exQCol 的既有滚动（L450 overflow:auto 不撤——
+     撤了整栏没滚动容器，点讲解 scrollIntoView 无处可滚）。讲解贴题目下方、限高 42vh，分隔线拖动不渲染 */
+  #exQCol .ex-qscroll{display:contents}
+  #examRoot .ex-qcol.ai-open{display:block;overflow:auto;padding:14px 14px 90px}
   #exQCol .ex-ai-panel{position:static;height:auto;max-height:42vh}
   #exQCol .ex-ai-handle{display:none}
 }
@@ -2778,7 +2786,7 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 <script defer src="js/common-shell.js?v=20261101m"></script>
 <script defer src="js/common-pwa.js?v=20261101m"></script>
 <script defer src="js/exam-timer.js?v=20261102b"></script>
-<script defer src="js/bank.js?v=20261103d"></script>
+<script defer src="js/bank.js?v=20261103e"></script>
 <!-- M-2（10-24）：模考页「没做过/做过」分组 + 展开更多。
      ⚠️ 本文件只做展示层（读 hub_bank_last_* 分组 + 首屏 20 条），判分/SRS/本地记录一律不碰；
         单条 DOM 由 js/bank.js 的 listHtml() 生成（当参数传进来），结构零改动。
