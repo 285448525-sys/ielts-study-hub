@@ -109,6 +109,7 @@
 | 在途 | `_probe_dictslim_1103.cjs` | DICT-HEADER-SLIM-1 听写态瘦身（剩下什么/该删的全不可见/例句不泄答案/模式往返/判分落盘/自动读/无横滑，17 项；四档 1280·390 × 浅色·深色） |
 | 在途 | `_probe_examui3_p1_1031.cjs` | UNIFIED-EXAM-UI-3 笔1（在途） |
 | 在途 | `_probe_hl_1101.cjs` | HIGHLIGHT-REGRESS-1101 划词高亮（在途） |
+| 在途 | `_probe_perfnav_1104.cjs` | PERF-VERIFY-B1-1 全站启动基线（七页冷/热 responseEnd·FCP·load + 首页→今日单词路径 + 长任务/pageerror；v760 40821c23 首跑 17 过 0 红 4 WARN 即基线） |
 | 在途 | `smoke_sd_1415.cjs` | 14 砍换词 + 15 堵 AI 超时静默放行 回归 |
 
 ## `_archived/`（393 个文件）
@@ -117,3 +118,5 @@
 留在这里只为将来有人问「当初那个问题是拿什么量的」时能翻回来。
 
 搬进来时按三条判据筛的：①不在回归白名单；②不是基建/夹具；③没被任何脚本 require、没被产品注释点名、最近 3 天没改过。
+
+| `_probe_perfwrite_1104.cjs` | 在途 | PERF-WRITE-1（v761）：一次作答只落一次盘。八项判据 × 390/1280：①OB_KEY 每答写入 ≤2.3 次（基线 3.2）②HUB_KEY 写入≈题数 ③单题落盘阻塞 ≤45ms ④续背回归 ⑤答错降级 ⑥跨天补写 ⑦已掌握写盘 ⑧零 pageerror。用 `addInitScript` 包 `Storage.prototype.setItem` 按调用栈归类（answer/next/mastered/book/other），**不要替换 wbSave**（会打断作答链）。`_base.txt` 可切本地/线上。 |
