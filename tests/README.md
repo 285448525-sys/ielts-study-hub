@@ -120,3 +120,28 @@
 搬进来时按三条判据筛的：①不在回归白名单；②不是基建/夹具；③没被任何脚本 require、没被产品注释点名、最近 3 天没改过。
 
 | `_probe_perfwrite_1104.cjs` | 在途 | PERF-WRITE-1（v761）：一次作答只落一次盘。八项判据 × 390/1280：①OB_KEY 每答写入 ≤2.3 次（基线 3.2）②HUB_KEY 写入≈题数 ③单题落盘阻塞 ≤45ms ④续背回归 ⑤答错降级 ⑥跨天补写 ⑦已掌握写盘 ⑧零 pageerror。用 `addInitScript` 包 `Storage.prototype.setItem` 按调用栈归类（answer/next/mastered/book/other），**不要替换 wbSave**（会打断作答链）。`_base.txt` 可切本地/线上。 |
+
+## 11-04 夜班（v761–v764）一次性探针
+
+| 文件 | 状态 | 说明 |
+|---|---|---|
+| `_probe_perfwrite_1104.cjs` | 在途 | PERF-WRITE-1（v761）：一次作答只落一次盘，八项判据 × 390/1280。`FILL_PROG=1` 灌真实规模（2651 词），`HISTN` 控历史条数。 |
+| `_probe_slim2_1104.cjs` | 在途 | SLIM-2 idle 补装 + activate 时刻（本地 loopback 口径，见下方说明） |
+| `_probe_slim2_min_1104.cjs` | 在途 | SLIM-2 分阶段最小版，定位崩溃用 |
+| `_probe_slim2_warm_1104.cjs` | 在途 | warmKeys 缓存命中 + 首键，**口径已过时**（判据 7 已移出验收） |
+| `_probe_slim2_key_1104.cjs` | 在途 | 真实 keyClick 链路 play→playing，5/5 |
+| `_probe_slim2_race_1104.cjs` | 在途 | 竞态专项：60/120/200/300/450/600ms 六个时间点按键全部有声，7/7 |
+| `_probe_slim2_mech_1104.cjs` | 在途 | mechanical 音色 0/5→5/5 + 首键中位（直接调 warmKeys） |
+| `_probe_slim2_dictenter_1104.cjs` | 在途 | **真实进听写题链路**：必须 `wbSetActive('rdtext')` 再 `obBankReady`，否则 wbWords 为 0 出不了题 |
+| `_probe_slim2_idlemech_1104.cjs` | 在途 | idle 补装能否补到 mechanical（第 87~91 位）。**本地 loopback 能跑满 138，线上 90 秒只 42 条** |
+| `_probe_slim2_wavdiag_1104.cjs` | 在途 | wav 请求 status 与 SW cache 对照 |
+| `_probe_slim2_range206_1104.cjs` | 在途 | **206 定案**：CDP Network 域看真实 status + Node 直连对照，四种方式全 200，本站不返回 206 |
+| `_probe_slim2_pauseabort_1104.cjs` | 在途 | 40KB/s 下核对 pause() 是否掐断 media 下载：5 条全 finished、零失败 |
+| `_probe_slim2_concur_1104.cjs` | 在途 | 产品形态（7 并发）5 轮缓存写入稳定性 |
+| `_probe_slim2_onlinewav_1104.cjs` | 在途 | 线上直接 new Audio×5 落缓存（带 autoplay 豁免） |
+| `_probe_slim2_onlinewarm_1104.cjs` | 在途 | 线上点开始→进听写→mount 预热（**默认策略**，不加豁免） |
+| `_probe_slim2_ric_1104.cjs` | 在途 | 核实 SW 作用域无 requestIdleCallback（`sw.js:758` 死分支）；配套 `swricprobe.js` |
+| `_probe_slim1_weaknet_1104.cjs` | 在途 | 弱网 install 装成哪几条：底线 10 条 + 分类计数 |
+| `_slowsrv_1104.cjs` | **不可信** | 带限速的本地静态服（全局令牌桶）。**40KB/s 下 372KB 文件实测 26.1s，理论 9.1s，过慢，数据不可用**，泵逻辑要重写才准 |
+
+**本地 loopback 口径的坑（务必记住）**：`python -m http.server` 不实现 Range，恒返回 200 全量；线上 Cloudflare 实测也是 200。但本地 loopback 带宽接近无限，`_probe_slim2_idlemech` 在本地能跑满 138 条、20 秒补到 mechanical，**线上 90 秒只补到 42 条永远补不到 mechanical**。凡涉及"能不能补满"，只认线上数据。
