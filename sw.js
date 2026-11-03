@@ -591,12 +591,21 @@ self.addEventListener('install', e => {
     // SW-INSTALL-SLIM-1（11-04 夜定稿，领头牛裁定=三方案合并）：6 条一波分波下发——原 138 条 Promise.all
     // 并发时每条的 10s 定时器同时起跑，排队时间全算进自己的超时窗口，sfx 排 76+ 位 fetch 还没开始 timer
     // 已数完（实测装成 0~2/17 随机态、听写首键无声）。分波后排队病自愈，单条超时恢复 20s 弱网保护：
-    // 30KB/s 下波2（common.css+common-shell 等 470KB）10s 会整波 abort 丢掉保命底线，20s 才守得住；
+    // （原写「30KB/s 下波2 10s 会整波 abort」——30KB/s 源自流体模型推算，已被 B1 实测长尾 2.58/2.64
+    //  否掉：均分模型预测 2.89、流体模型预测 1.00，现实贴近均分端。真实门槛 65~73KB/s，
+    //  台账口径=「40KB/s 以下不承诺保命底线，只承诺 core 6 条」。20s 钳位仍是对的方向，只是别拿 30KB/s 当承诺。）
     // 且每波单条用 min(20s, 剩余 deadline) 钳住（B1 合并方案）——只查波首会把最坏耗时拖到 40s，钳住后=30s 整。
-    // 用 allSettled：单条 abort 不炸整波，波内已下完的条目照常落缓存（race 方案会把它们一起丢，否）。
+    // allSettled 在这里是纯防御层，不是承重件（11-04 B2 审计 + A1 复核）：
+    //   真正让「单条 abort 不炸整波」的是 fetchPrecache 自带的 try/catch（sw.js:582-593）——
+    //   它是 async 函数、catch 吞掉全部异常、永不 reject，所以 map 出来的 6 个 promise 100% fulfilled，
+    //   Promise.all 与 allSettled 在上面的输入下行为完全一致、零可观测差异。
+    //   保留 allSettled 的收益只有一个：以后有人往 map 里塞可能 reject 的东西，也不会炸整波。
+    //   不要把 allSettled 写成「承重件」——将来要么误以为改回 all 会坏，要么在别处依赖错对象。
     // deadline break 后代码直接掉出循环走 skipWaiting，_precoreReady 循环外赋值一次、break 后必 resolve
     // ——activate（下方 await _precoreReady）绝不挂死，10/8「怎么刷都卡旧版」底线不变。
-    // 正常网 ~17s 装完 47 条。验收：装成条数必须=47 整（防最后一波 await 漏写提前 resolve）。
+    // 47 条装完耗时：B1 线上实测 10.0s（v763）/ 9.1s（v4 定稿），本机乐观值，她的网络未知；
+    //   ~17s 是 151KB/s 的推算值，别当实测引用。
+    // 验收：装成条数必须=47 整（防最后一波 await 漏写提前 resolve）。
     const _slimT0 = Date.now();
     _precoreReady = (async () => {
       for(let i = 0; i < PRECORE.length; i += 6){
