@@ -66,7 +66,8 @@
 // 未改任何加载策略/脚本顺序（HANDOFF 铁律：defer 顺序是契约，动它会连带出事）。
 // common.js → 20261013ad（25 页）、index.js → 20261017a（仅 home.html）、
 // bank.js → 20261012ac（仅 bank.html）。上一版 v409。
-const CACHE = 'ielts-hub-v763';  // 11-04 v763 = SW-INSTALL-SLIM-1 第一批（她 11-03 报全站卡顿，B1 实锤第二抢带宽者=SW install）：PRECORE 138 条 5.96MB 拆为 install 47 条 2504KB（core js 9 → common.css → sfx 12 → html 25 尾部），6 条一波分波下发 + 单条超时保持 10s + 全局 30s deadline 必 skipWaiting（B2 定稿）；idle 补装 91 条属第二批（A1）不并入 _precoreReady。同批 W1-PRELOAD-1（8ad06e46）已在 main。
+const CACHE = 'ielts-hub-v764';  // 11-04 v764 = SW-INSTALL-SLIM-2（idle 补装 91 条 + wd-dict mount 预热）：install 47 条一字未动，剩余 91 条 3.5MB 挪到 activate 完成后的 requestIdleCallback 逐条串行补装（独立 Promise，绝不并入 _precoreReady——并进去 activate 就会挂到补装完，瘦身当场白做）；导航进行中让路、3g/slow-2g 与 saveData 不补、单条失败退避 3 次、先查缓存已有副本才拉。js/wd-dict.js 加 warmKeys：mount 时 fetch 当前音色 9 文件 + correct/error（只 fetch 不播放，keyAudio 懒建池与 play 链路一行未改，她「自动读是产品特性」红线）。收益口径不变：在线首访一分不省，只在断网兜底与不让补装跟页面抢带宽。上一笔 v763 = SW-INSTALL-SLIM-1 第一批（她 11-03 报全站卡顿，B1 实锤第二抢带宽者=SW install）：PRECORE 138 条 5.96MB 拆为 install 47 条 2504KB（core js 9 → common.css → sfx 12 → html 25 尾部），6 条一波分波下发 + 单条超时 min(20s,剩余deadline) + 全局 30s deadline 必 skipWaiting（B2 定稿）；idle 补装 91 条属第二批（A1）不并入 _precoreReady。同批 W1-PRELOAD-1（8ad06e46）已在 main。
+const _prevCacheNote80 = 'ielts-hub-v763'; // 11-04 v763 世代：SW-INSTALL-SLIM-1 第一批（PRECORE 138→47 条分波 + min(20s,剩余deadline) 钳单条 + 全局 30s deadline）；同代三笔 ffe8db31/fcc6fe8d/a648f2c2。
 const _prevCacheNote79 = 'ielts-hub-v762'; // 11-04 v762 世代：W0 PREFETCH-HTML-ONLY-1（预热只收 HTML + 等 SW ready 再让 3 秒）。
 const _prevCacheNote78 = 'ielts-hub-v761';  // 11-04 v761 世代：PERF-WRITE-1 一次作答只落一次盘（js/practice.js →20261104a）。
 const _prevCacheNote77 = 'ielts-hub-v760';  // 11-03 v760 世代：RV-FIX5-10c 窄屏断点 640→860px + break-word。
@@ -567,7 +568,7 @@ let _swIsUpdate = false;   // 10/8 晚：install 时记录本次是「更新」�
 //   → 窗口期内页面请求 /js/common-shell.js?v=xxx：缓存里没有、网络又一抖 → 拿到 503 的 JS。
 //   浏览器把 503 的 script 当执行成功 → window.ready 从未定义 → 25 个页面脚本集体罁绎。
 // 线上实证：vip.html 40 轮 1 次异常（typeof ready=undefined、价格卡 0 张）。
-// 不动单条 10s 硬超时（10/8 晚修 install 挂起的，动了回归）；不动 skipWaiting 位置。
+// 不动单条超时钳位（10/8 晚修 install 挂起的，动了回归）；不动 skipWaiting 位置。
 
 self.addEventListener('install', e => {
   e.waitUntil((async () => {
@@ -650,9 +651,113 @@ self.addEventListener('activate', e => {
         }catch(_){}
       });
     }catch(_){}
+    // SLIM-2：activate 全部收尾（含旧 cache 清理与 claim）之后才排 idle 补装。
+    // 放这里是刻意的：补装若跑在 activate 前面，就等于把瘦身又拖回原样。
+    _idleKick();
   })());
 });
 
+/* ---- 分级③：idle 补装 91 条（SLIM-2，11-04 夜）-----------------------------
+   ⚠️ 红线：本段的 Promise 是独立的，**绝不并入 _precoreReady**。
+   _precoreReady 一旦被拖到补装完成，activate 的 await（上面那行）就会挂到补装结束，
+   瘦身当场白做 —— 这是第一批定的硬红线，谁改谁负责。
+   ⚠️ 为什么补装：install 只装 47 条（2.45MB），原 138 条里剩下这 91 条（3.5MB）
+   在线时 88 条裸路径命中率为零（页面请求带 ?v= 走精确键），只在断网时兜底。
+   放 idle 装的收益不是「打开更快」，是「部署重装窗口不被这 3.5MB 拖长」。
+   纪律：导航 fetch 进行中时暂停（不跟页面抢带宽）、3g/slow-2g 不补、
+   单条失败同会话内退避最多 3 次。
+*/
+const IDLE_PRECACHE = [
+  '/css/p/bank.css', '/css/p/beginner.css', '/css/p/corpus.css', '/css/p/home.css',
+  '/css/p/login.css', '/css/p/materials.css', '/css/p/meds.css', '/css/p/pay.css',
+  '/css/p/plans.css', '/css/p/practice.css', '/css/p/review.css', '/css/p/settings.css',
+  '/css/p/speaking.css', '/css/p/timer.css', '/css/p/vip.css', '/css/p/writing.css',
+  '/data/announce.json', '/data/materialsets.json', '/data/official-banks/awl.json', '/data/official-banks/lstans.json',
+  '/data/official-banks/qstem.json', '/data/scenes.json', '/data/sentences.json', '/data/writing_prompts.json',
+  '/favicon.ico', '/favicon.svg', '/icons/apple-touch-icon.png', '/icons/favicon-16x16.png',
+  '/icons/favicon-32x32.png', '/icons/icon-192.png', '/icons/icon-512.png', '/icons/maskable-512.png',
+  '/js/announce.js', '/js/av-picker.js', '/js/bank-groups.js', '/js/bank.js',
+  '/js/coach.js', '/js/corpus.js', '/js/dhp_policy.js', '/js/exam-timer.js',
+  '/js/factory-writing.js', '/js/feedback.js', '/js/history.js', '/js/home-quick.js',
+  '/js/hubgroup.js', '/js/index.js', '/js/materials.js', '/js/meds.js',
+  '/js/mock-history.js', '/js/mock-report.js', '/js/mock-summary.js', '/js/mock.js',
+  '/js/pay.js', '/js/plans.js', '/js/practice.js', '/js/pricing.js',
+  '/js/progress.js', '/js/rec-all.js', '/js/review.js', '/js/rv-record.js',
+  '/js/rvx-data.js', '/js/scene-drill.js', '/js/scores.js', '/js/sentence-drill.js',
+  '/js/settings.js', '/js/sp-core.js', '/js/sp-detail.js', '/js/sp-diag.js',
+  '/js/sp-late.js', '/js/sp-list.js', '/js/sp-p3.js', '/js/sp-q.js',
+  '/js/sp-stats.js', '/js/sp-story.js', '/js/sp-timer.js', '/js/speaking-practice.js',
+  '/js/speaking.js', '/js/sprint.js', '/js/timer.js', '/js/vip.js',
+  '/js/wd-dict.js', '/js/wordbank.js', '/js/words.js', '/js/writing.js',
+  '/js/writing_prompts.js', '/manifest.json', '/sfx/mechanical/1.wav', '/sfx/mechanical/2.wav',
+  '/sfx/mechanical/3.wav', '/sfx/mechanical/4.wav', '/sfx/mechanical/5.wav',
+];
+
+let _idleStarted = false;          // 同会话只启一次
+const _idleFail = Object.create(null);   // path -> 已失败次数（退避用，最多 3）
+let _navInFlight = 0;              // 进行中的页面导航数，>0 时补装让路
+
+function _idleNetOk(){
+  try{
+    const c = self.navigator && self.navigator.connection;
+    if(!c) return true;            // 老浏览器无 connection API：按可补装处理
+    const t = c.effectiveType || '';
+    if(t === 'slow-2g' || t === '2g' || t === '3g') return false;
+    if(c.saveData) return false;   // 她开了省流量：不补
+    return true;
+  }catch(_){ return true; }
+}
+
+/* 单条补装：失败记一次，同一会话最多试 3 次 */
+async function _idleOne(u){
+  const tried = _idleFail[u] | 0;
+  if(tried >= 3) return;
+  try{
+    const hit = await caches.match(u);
+    if(hit) return;                            // 已有副本（install 装的或导航顺手写的）
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 20000);
+    let res = null;
+    try{
+      res = await fetch(u, { cache: 'reload', signal: ctl.signal });
+    }finally{
+      clearTimeout(timer);   // 11-04 B2 指出：原来只在成功路径 clear，fetch 抛异常时 timer 白跑 20 秒，
+                             // 会把 SW 存活期拖长（SW 空闲 30 秒就会被浏览器回收，这 20 秒很贵）
+    }
+    if(res && res.ok){
+      const cache = await caches.open(CACHE);
+      await cache.put(u, res);
+    }
+  }catch(_){
+    _idleFail[u] = (_idleFail[u] | 0) + 1;
+  }
+}
+
+/* 补装主循环：一条一条来（不并发，绝不跟页面抢带宽），每步前查让路条件 */
+async function _idleRun(){
+  for(const u of IDLE_PRECACHE){
+    if(_navInFlight > 0){                      // 页面正在拉东西：等它，最多等 5 秒再试
+      let waited = 0;
+      while(_navInFlight > 0 && waited < 5000){
+        await new Promise(r => setTimeout(r, 200));
+        waited += 200;
+      }
+    }
+    if(!_idleNetOk()) return;                  // 网络变差：本次不补了
+    if((_idleFail[u] | 0) >= 3) continue;
+    await _idleOne(u);
+    await new Promise(r => setTimeout(r, 60));  // 条间小间隔，留出主线程
+  }
+}
+
+/* 启动：activate 完成后（clients.claim 之后）才排 idle，绝不早于 install/activate */
+function _idleKick(){
+  if(_idleStarted) return;
+  _idleStarted = true;
+  const go = () => { try{ _idleRun(); }catch(_){} };
+  if(self.requestIdleCallback) self.requestIdleCallback(go, { timeout: 8000 });
+  else setTimeout(go, 8000);
+}
 /* ---- 工具：响应是否可入缓存（只缓存同源 200 全量响应，防 206/opaque 混入） ---- */
 function cacheable(res){
   return res && res.status === 200 && res.type === 'basic';
@@ -791,7 +896,8 @@ self.addEventListener('fetch', e => {
 
   // ① 页面导航（request.mode==='navigate' 或 .html）→ network-first
   if(req.mode === 'navigate' || /\.html$/.test(url.pathname)){
-    e.respondWith(handleNavigate(req, url));
+    _navInFlight++;                     // SLIM-2：页面导航进行中，idle 补装让路
+    e.respondWith(handleNavigate(req, url).finally(() => { _navInFlight--; }));
     return;
   }
   // ② 静态资源 → stale-while-revalidate

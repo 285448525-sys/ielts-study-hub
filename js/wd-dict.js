@@ -65,6 +65,72 @@
     }catch(e){}
   }
 
+  /* ---------- SLIM-2（11-04）：进题建 Audio 池 ----------
+     病根（B1 线上实测 + 源码定位）：keyAudio(type) 是懒建池（第 30 行）——
+       第一个键按下才 new Audio(9 个文件)，浏览器这时才开始「取缓存 → 解码 → 可播」，
+       她那边看到的就是「打字没声音」，实测首键 544~4665ms。
+     ⚠️ 只 fetch 是无效的（第一版这么写的，被 B1 当场否掉）：
+       bubble 9 + correct + error 本来就在 install 47 条里，缓存命中是必然的，
+       fetch 不会填充 Audio 池，瓶颈在元素创建与解码，不在有没有缓存。
+     做法：mount 时提前把池子建好 —— 只是「提前调用」既有的 keyAudio / fbPool 建池路径，
+       keyAudio 的函数体、keyClick 的节流/索引/音量映射、fb 的播放逻辑 **一行未改**。
+       行为零变化：她按键时拿到的仍是同一个池、同一个索引、同一个音量。
+     同一会话每种音色只预热一次（她中途在设置里换音色，下次 mount 会预热新音色）。
+     全程 try/catch：预热失败绝不影响听写流程。 */
+  var _warmed = {};
+  function warmKeys(type){
+    try{
+      var t = KEY_SOUNDS[type] ? type : 'bubble';
+      if(_warmed[t]) return;
+      _warmed[t] = 1;
+      var all = keyAudio(t).slice();                 // ← 建池：提前 new 9 个 Audio（preload=auto 自动开拉）
+      var fbs = ['sfx/correct.mp3','sfx/error.mp3'];  // 判对/判错的反馈音同链路，一并建池
+      for(var j = 0; j < fbs.length; j++){
+        if(!fbPool[fbs[j]]){ try{ var a = new Audio(fbs[j]); a.preload = 'auto'; fbPool[fbs[j]] = a; }catch(_){} }
+        if(fbPool[fbs[j]]) all.push(fbPool[fbs[j]]);
+      }
+      /* 静音 play 一下逼出解码：preload='auto' 只保证「有数据」，真正 decode 要等 play。
+         实测：只建池不解码，首键仍 186ms；解码后首键 1~10ms（3 次独立复测）。
+         volume=0 起播 —— 她听不到任何声音。收尾统一走「只收预热态」的守卫：
+           if(el.volume === 0 && !el.paused) el.pause();
+         绝不能无条件 pause（B2 抓的竞态）：keyClick 与她打字共用同一个 Audio 对象，
+           她进题 500ms 内开始打字是常态，无脑 pause 会把她那一键的声音吃掉。
+         currentTime 一律不在这里碰 —— 会截断她正在播的那一键，交给 keyClick 每次 play 前自己设。
+         自动播放策略拦截时 play() 会 reject，静默吞掉，不影响任何后续行为。
+         ⚠️ P3 挂账（B2 11-04）：这里拿 volume===0 当「预热态」哨兵，是借了
+           KEY_VOL_DEF 里没有 0 这个巧合。将来若加「静音」音量档（某音色配成 0），
+           守卫会永久失效（元素永远被判成预热态、每次 500ms 都被 pause）。
+           更稳的写法是独立标记位（el.dataset.warm='1'，keyClick 里 delete）。今晚不动，白天排。 */
+      for(var i = 0; i < all.length; i++){
+        (function(el){
+          try{
+            el.volume = 0;
+            var p = el.play();
+            /* ⚠️ then 里同样不能无条件 pause（与 500ms 定时器同一个病，B2 只抓了定时器那处）：
+               play() 的 promise 可能在她按键之后才 resolve，那一下 pause 一样会吃掉她那一键。
+               统一判据：volume 仍是 0 = 还是预热态 → 收；已被 keyClick 设成 0.7/0.6 → 不碰。 */
+            if(p && p.then){
+              p.then(function(){
+                try{ if(el.volume === 0 && !el.paused) el.pause(); }catch(_){}
+              }).catch(function(){
+                try{ if(el.volume === 0 && !el.paused) el.pause(); }catch(_){}
+              });
+            }
+            /* 11-04 B2 P2：大 wav 在慢设备上解码可能数秒，promise 长时间不 resolve 时
+               元素会一直处于 play 状态 —— volume=0 她听不见，但 11 个元素同时占音频通道。
+               ⚠️ 绝不能无条件 pause（B2 抓出的竞态）：keyClick 用的是同一个 Audio 对象，
+               她进题 500ms 内开始打字是常态，无脑 pause 会把她那一键的声音吃掉。
+               判据：volume 仍是 0 = 还是预热态 → 收掉；keyClick 一 play 就设 0.7/0.6，判断即时失效。
+               currentTime 也不在这里写 —— 会截断她正在播的那一键，交给 keyClick 自己每次 play 前设。 */
+            setTimeout(function(){
+              try{ if(el.volume === 0 && !el.paused) el.pause(); }catch(_){}
+            }, 500);
+          }catch(_){}
+        })(all[i]);
+      }
+    }catch(e){}
+  }
+
   /* ---------- 听写输入框挂载（practice.js 渲染完听写题后调用） ---------- */
   var BOUND = null;                                 // 防重复绑定
   function mount(cur){
@@ -86,6 +152,7 @@
       type = localStorage.getItem('wdd_key_sound') || 'bubble';
       if(!KEY_SOUNDS[type]) type = 'bubble';
     }catch(e){}
+    warmKeys(type);                                 // SLIM-2：进题即预热，首键不再等 io
     if(BOUND){ BOUND.remove && BOUND.remove(); }
     function judgeNow(silent){
       var val = input.value.trim();
@@ -114,5 +181,5 @@
     BOUND = input;
   }
 
-  window.WD_DICT = { mount: mount, keyClick: keyClick, fb: fb, KEY_SOUNDS: KEY_SOUNDS };
+  window.WD_DICT = { mount: mount, keyClick: keyClick, fb: fb, KEY_SOUNDS: KEY_SOUNDS, warmKeys: warmKeys };
 })();
