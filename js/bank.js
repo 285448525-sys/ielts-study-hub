@@ -3720,7 +3720,13 @@ window.__reportExamState = reportExamState;
        空格正答 = 打开态把 input 值换成本题正答、关闭态还原她的作答（data-rv-user 里存着原值）。
        判分数据（d.ok/d.right/d.user、EX.marks）一字不动；她的作答有 data-rv-user 兜底不丢。 */
     var showAns = !!EX._rvShowAns;
+    root.classList.toggle('rv-ans-on', showAns);   /* RV-FIX5-11：复盘打开答案态根标记（未勾正答满浓度绿用） */
     root.querySelectorAll('.ex-ca-in').forEach(function(n){ n.parentNode && n.parentNode.removeChild(n); });
+    /* RV-FIX5-10 收尾：关答案/重跑先把上轮的「框宽自适应」还原（她 11-03 晚截图：绿字跑框外压题干） */
+    root.querySelectorAll('.ex-blankw.rv-open').forEach(function(w){
+      w.classList.remove('rv-open');
+      var i = w.querySelector('input.ex-blank'); if(i) i.style.width = '';
+    });
     if(!EX.result || !Array.isArray(EX.result.detail)) return;
     EX.result.detail.forEach(function(d){
       var qn = String(d.qn);
@@ -3745,6 +3751,13 @@ window.__reportExamState = reportExamState;
           cin.className = 'ex-ca-in';
           cin.textContent = String(d.right);
           w2.appendChild(cin);
+          /* RV-FIX5-10（她 11-03 晚截图：「正确答案应该出现在同一个框内的右边，而不是跑到框外
+             把题干也覆盖了」）：框宽自适应 —— td 里的 .ex-blankw 钉死 118px（段落档 min118/max200），
+             她的错词 + 正答绿字排不进去，绿字从框右缘外 50~63px 开始、表格题还出 td 30px
+             （11-03 晚实测数据）。给 input 按她的词长定宽、整框放开截断，绿字就落在同一个框内、
+             紧跟红字右边。关闭态/重跑由函数开头统一还原（rv-open 摘除 + 内联宽清空）。 */
+          w2.classList.add('rv-open');
+          bl.style.width = Math.max(2, String(bl.value || '').length + 1) + 'ch';
         }
       }
       /* RV-FIX5-2（她 11-02 复盘截图：框外「Correct: C,E,F」行全删 + 共享选项组曾重复挂 3 遍）——

@@ -19,7 +19,7 @@
 <meta http-equiv="Expires" content="0" />
 <title>模考 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css?v=20261101m" />
-<link rel="stylesheet" href="css/p/bank.css?v=20261103f" />
+<link rel="stylesheet" href="css/p/bank.css?v=20261103g" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -657,7 +657,16 @@
    （JS 已不挂，这里清掉死 CSS）。正确答案展示只剩：选项勾对绿标 + 填空框内绿字后缀 .ex-ca-in。 */
 /* RV-CA-IN-1（她 11-02 口径）：填空正答不再走框外「Correct: xx」行（.ex-ca--blank 退役），
    改框内绿字后缀 .ex-ca-in（JS 挂进 .ex-blankw，跟在她写的红字后面）；关闭态随 rv-noans 整藏。 */
-.ex-ca-in{display:inline-block;margin-left:6px;font-size:12px;font-weight:700;color:#1f7a5c;line-height:1.4;vertical-align:middle}
+.ex-ca-in{display:inline-block;margin-left:6px;font-size:12px;font-weight:700;color:#1f7a5c;line-height:1.4;vertical-align:middle;flex:none;white-space:nowrap}
+/* RV-FIX5-10（她 11-03 晚：「正答该在同一个框内的右边，不是跑到框外把题干盖了」）：
+   打开答案态框宽自适应 —— rv-open 时放开 118/200px 与 td 的宽度截断，整框按
+   「她的原词（input 按词长定宽）+ 正答绿字」自然撑开；绿字不再溢出框外、压住题干。 */
+#examRoot .ex-blankw.rv-open{width:auto;max-width:none}
+#examRoot .ex-blankw.rv-open input.ex-blank{width:auto;flex:none}
+#examRoot .ex-html td .ex-blankw.rv-open{width:auto;max-width:none;flex:0 1 auto}
+/* RV-FIX5-11（她 11-03 晚：「未勾的正答绿不用这么淡，跟勾对的绿一个浓度，靠前面框没打勾区分」）：
+   做题态的 .dis 淡度（.35）只针对未勾的普通项；复盘打开答案态里，未勾的正答项恢复满浓度绿。 */
+#examRoot.rv-ans-on .ex-opt.dis.right{opacity:1}
 #examRoot.rv-noans .ex-ca-in{display:none !important}
 
 .ex-blankw.right input{color:#1f7a5c}
@@ -2789,7 +2798,9 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 <script defer src="js/common-shell.js?v=20261101m"></script>
 <script defer src="js/common-pwa.js?v=20261101m"></script>
 <script defer src="js/exam-timer.js?v=20261102b"></script>
-<script defer src="js/bank.js?v=20261103g"></script>
+<script defer src="js/bank.js?v=20261103h"></script>
+<!-- RV-FIX5-10/11（11-03 合流修正）：bank.js 内容改了但引用串此前漏 bump（串还是 g，与上一版撞）——
+     按 11-02 判据「bump 不覆盖页面 js 引用串」人工改 h；bank.css 保持 g（本笔未再动它）。 -->
 <!-- M-2（10-24）：模考页「没做过/做过」分组 + 展开更多。
      ⚠️ 本文件只做展示层（读 hub_bank_last_* 分组 + 首屏 20 条），判分/SRS/本地记录一律不碰；
         单条 DOM 由 js/bank.js 的 listHtml() 生成（当参数传进来），结构零改动。
