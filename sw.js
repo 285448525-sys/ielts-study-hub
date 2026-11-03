@@ -66,7 +66,7 @@
 // 未改任何加载策略/脚本顺序（HANDOFF 铁律：defer 顺序是契约，动它会连带出事）。
 // common.js → 20261013ad（25 页）、index.js → 20261017a（仅 home.html）、
 // bank.js → 20261012ac（仅 bank.html）。上一版 v409。
-const CACHE = 'ielts-hub-v763';  // 11-04 v763 = SW-INSTALL-SLIM-1 第一批（她 11-03 报全站卡顿，B1 实锤第二抢带宽者=SW install）：PRECORE 138 条 5.96MB 拆为 install 47 条 2.43MB（core js 9 → common.css → sfx 12 → html 25 尾部），6 条一波分波下发 + 单条超时保持 10s + 全局 30s deadline 必 skipWaiting（B2 定稿）；idle 补装 91 条属第二批（A1）不并入 _precoreReady。同批 W1-PRELOAD-1（8ad06e46）已在 main。
+const CACHE = 'ielts-hub-v763';  // 11-04 v763 = SW-INSTALL-SLIM-1 第一批（她 11-03 报全站卡顿，B1 实锤第二抢带宽者=SW install）：PRECORE 138 条 5.96MB 拆为 install 47 条 2504KB（core js 9 → common.css → sfx 12 → html 25 尾部），6 条一波分波下发 + 单条超时保持 10s + 全局 30s deadline 必 skipWaiting（B2 定稿）；idle 补装 91 条属第二批（A1）不并入 _precoreReady。同批 W1-PRELOAD-1（8ad06e46）已在 main。
 const _prevCacheNote79 = 'ielts-hub-v762'; // 11-04 v762 世代：W0 PREFETCH-HTML-ONLY-1（预热只收 HTML + 等 SW ready 再让 3 秒）。
 const _prevCacheNote78 = 'ielts-hub-v761';  // 11-04 v761 世代：PERF-WRITE-1 一次作答只落一次盘（js/practice.js →20261104a）。
 const _prevCacheNote77 = 'ielts-hub-v760';  // 11-03 v760 世代：RV-FIX5-10c 窄屏断点 640→860px + break-word。
