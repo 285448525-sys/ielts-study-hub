@@ -371,18 +371,21 @@
           qEl.innerHTML = opts.qHtml || '';
         }
       }
-      /* 🔴 MOCK-AUTOSPEAK-OFF-1（10-31 A2，P0 二次返工）：这里原来无条件自动朗读一次。
-         她 19:26 原话「还是一直在读啊，只不过是读一半就停了好吵」。
-         机制：模考里点下一题 → speechSynthesis.cancel 砍断上一句（=「读一半就停」）
-             → 新题又被这里自动开读（=「一直在读」）。
-         ⚠️ 原注释的理由「用户刚点过下一题，属用户手势，浏览器允许」跟我在 sp-list.js
-            删掉的那条是同一个错误理由：她的手势是「翻题」，不是「我要听」。
-         现在只保留点喇叭那一下（下面 ttsBtn 的 click 绑定），渲染完不再自动发声。
-         allowTts 语义随之收窄为「这道题要不要给喇叭按钮」。 */
+      /* 🟢 AUTO-READ-RESTORE-1（11-03，她 11-02 亲口翻案：「所有地方都是自动读」）：恢复自动读。
+         她 10-31 真正嫌的是两件事，本笔都不重演：
+         ①「读一半就停」—— 上一句被 cancel 砍断；②「一直在读」—— 新题立刻又开口。
+         口径：每题进入时**只读一次当前这题的题干**（P1 小问 / P3 追问），读完就停，不连读、不循环；
+         喇叭键照旧是重播。speakQuestion.speak 内部先 cancel 是老行为（换题时把上一句收掉是必须的），
+         但不再有「cancel 完后立刻自动开下一句」的连读效果——每题只有一次触发点。 */
       if(opts.allowTts && qEl){
         const ttsBtn = qEl.querySelector('.sp-tts');
         const ttsText = opts.ttsText || (qEl.querySelector('.mock-q-text') ? qEl.querySelector('.mock-q-text').textContent.trim() : '');
-        if(ttsText && ttsBtn) ttsBtn.addEventListener('click', e => { e.stopPropagation(); speakQuestion.speak(ttsText, ttsBtn); });
+        if(ttsText && ttsBtn){
+          ttsBtn.addEventListener('click', e => { e.stopPropagation(); speakQuestion.speak(ttsText, ttsBtn); });
+          /* AUTO-READ-RESTORE-1：进题自动读一次（就这一处触发点，不挂在按钮上、不递归）。
+             P2 两段（准备/陈述）没有 allowTts → 照旧不读，维持原来的题面形态。 */
+          speakQuestion.speak(ttsText, ttsBtn);
+        }
       }
       const liveEl = $('#mockLive'); if(liveEl) liveEl.textContent = '';
       const manual = $('#mockManual');

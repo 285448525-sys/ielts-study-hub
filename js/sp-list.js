@@ -306,12 +306,17 @@ function p1FlowInit(s){
   function render(){
     items.forEach(function(li, idx){ li.classList.toggle('active', idx === cur); });
 
-    /* 🔴 SPK-AUTOSPEAK-OFF-1（10-31 A2，P0）：这里原来有一条「切到一道小题就自动朗读一次」，
-       点「下一题/上一题」或在列表里点题都会触发 —— 也就是说她只要翻题，机器就自己开口。
-       她 10-31 19:0x 原话：「不要再播放口语第一句话了，我在看剧很烦」。
-       朗读改为**只由用户主动点喇叭触发**（点按钮那条绑定在 sp-q.js，仍在）。
-       ⚠️ 别再以「用户刚点过下一题，算用户手势，浏览器允许」为理由加回来：
-          她的手势是「翻题」，不是「我要听」。 */
+    /* 🟢 AUTO-READ-RESTORE-1（11-03，她 11-02 亲口翻案）：
+       「其实我想的是所有地方都是自动读……我没让你把这个功能删掉」—— 自动读是产品特性，恢复。
+       口径：切到一道小题自动读一次（只读当前这题，不连读、不轰炸）；喇叭键留着当重播。
+       每次 render 只对「当前这题」读一次；翻回去再读一次是合理的（那是又一次切题）。
+       ⚠️ 探针/调试窗口一律 --mute-audio 静音，不许外放吵到她（她真正反感的是这个）。 */
+    var _arCur = items[cur];
+    if(_arCur){
+      var _arTx = _arCur.querySelector('.sp-q-text');
+      var _arBtn = _arCur.querySelector('.sp-tts');
+      if(_arTx && _arTx.textContent.trim()) speakQuestion.speak(_arTx.textContent.trim(), _arBtn);
+    }
 
     // 进度点：9/15 之之要求删除（圆点 + n/n 徽章不再渲染）
 
