@@ -3597,8 +3597,28 @@ window.__reportExamState = reportExamState;
         qn = (cb2 && cb2.getAttribute('data-q')) || nums[0] || null;
       }
     }
-    if(qn == null || qn === '') return null;
-    var d = (EX.result.detail || []).filter(function(x){ return String(x.qn) === String(qn); })[0];
+    /* RV-FIX5-13（她 11-03 晚「我点了错题弹不出讲解」）：容器级点击兜底 —— 填空整框
+       .ex-blankw[data-q]、框内绿字正答 .ex-ca-in、矩阵单元格、共享组容器 .ex-cbox[data-q]
+       这些「要素外层」原来一条 closest 链都匹配不上（.ex-blankw 是容器、绿字是它的孩子），
+       点了就是没反应。这里两级兜底：祖先 [data-q] → 所在行（.ex-q / td）内的控件。 */
+    if(!qn){
+      var qEl = t.closest('[data-q]');
+      if(qEl) qn = qEl.getAttribute('data-q');
+    }
+    if(!qn){
+      var rowEl = t.closest('.ex-q, td, .ex-group');
+      if(rowEl){
+        var inner = rowEl.querySelector('[data-q], [data-qn], [data-qns]');
+        if(inner) qn = inner.getAttribute('data-q') || inner.getAttribute('data-qn') || inner.getAttribute('data-qns');
+      }
+    }
+    if(qn == null || String(qn) === '') return null;
+    /* 合并题号（"9 10" / "A,D"）按「首个在答案明细里存在的题号」取，别整串去比对 */
+    var cands = String(qn).split(/[,\s\/]+/).filter(Boolean);
+    var d = null;
+    for(var ci = 0; ci < cands.length && !d; ci++){
+      d = (EX.result.detail || []).filter(function(x){ return String(x.qn) === String(cands[ci]); })[0] || null;
+    }
     if(!d) return null;
     if(d.right == null || String(d.right).length === 0) return null;   /* 无答案键的题不触发 */
     return { qn: String(qn), detail: d };
@@ -5487,7 +5507,15 @@ window.__reportExamState = reportExamState;
          跨 Part 翻题仍可走底部题号行（.ex-nav）与 Part 切换，不断路。 */
       /* 题号行跳题（10/12 批A：.ex-sq 答题卡退役 → .ex-num 题号行） */
       if((el = t.closest && t.closest('.ex-num[data-jump]')) && EX){
-        goTo(el.getAttribute('data-jump'));
+        var jn = el.getAttribute('data-jump');
+        goTo(jn);
+        /* RV-FIX5-13（她 11-03 晚「我点了错题弹不出讲解」）：复盘态点答题卡题号 = 点错题（绿/红都是
+           复盘标记）——原来只跳题、讲解永远弹不出来（题号行在底栏，不在 #exQCol/#exArt 内，
+           aiExpTargetOf 直接判空）。现在跳完顺手把该题讲解打开（有答案键才开）。 */
+        if(EX.submitted && EX.result && EX.scored !== false){
+          var jd = (EX.result.detail || []).filter(function(x){ return String(x.qn) === String(jn); })[0];
+          if(jd && jd.right != null && String(jd.right).length) openAiExplain({ qn: String(jn), detail: jd });
+        }
         return;
       }
       /* Part 并排切换器（10/15：Part 1|2|3 全部并排，对标爱听写/IDP 真机考） */
