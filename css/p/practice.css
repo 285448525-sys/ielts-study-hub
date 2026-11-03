@@ -1382,3 +1382,31 @@ body.word-fullscreen #practiceBody.practice-body-fit .opt-big{height:auto;min-he
 @media(max-width:700px){
   #practiceBody .wdd-input{font-size:18px;padding:11px 13px;border-radius:10px}
 }
+
+/* ═══ DICT-HEADER-SLIM-1（11-03 她 19:0x 截图 + 领头牛裁定「形态 A」）═══
+   听写态只留三件：输入横线 / 音标 / 音标右边那枚话筒；外加模式钮（唯一模式出口，删了会把人
+   困死在听写模式里）。另外两条答题出口「不知道 / 已掌握」留着 —— 它们是功能不是装饰。
+   实现只用 :has() 从 #practiceBody 的听写根类反推（站内 CSS 本来就用 :has()，见上方
+   body:not(.word-fullscreen) #practiceBody.practice-body-fit:has(.opts-grid) 那条）。
+   🔴 零 DOM 改动、零 JS 改动：其他两种模式（看词选义 / 听音选义）一个像素都不动。
+   🔴 下面这些节点都还在 DOM 里（JS 还在写它们），只是听写态视觉上不出现；切回别的模式立刻回来。 */
+body:has(#practiceBody .practice-word-area.pw-dict) #wdWordHeader .ws-wh-home,
+body:has(#practiceBody .practice-word-area.pw-dict) #wdWordHeader #wsPrevBtn,
+body:has(#practiceBody .practice-word-area.pw-dict) #wdWordHeader .ws-book-pop-wrap,
+body:has(#practiceBody .practice-word-area.pw-dict) #wdWordHeader #cfgGear,
+body:has(#practiceBody .practice-word-area.pw-dict) #wdWordHeader #fullscreenBtn,
+body:has(#practiceBody .practice-word-area.pw-dict) #progBarWrap,
+body:has(#practiceBody .practice-word-area.pw-dict) #statProgress,
+body:has(#practiceBody .practice-word-area.pw-dict) #practiceTools,
+body:has(#practiceBody .practice-word-area.pw-dict) #wdFoot{
+  display: none !important;
+}
+/* 题目块内多余的提示行 / 底部第二颗喇叭 / 例句占位 / 输入框下那行小字 */
+#practiceBody .practice-word-area.pw-dict .pw-dict-hint,
+#practiceBody .practice-word-area.pw-dict #wdExample{
+  display: none !important;
+}
+#practiceBody:has(.practice-word-area.pw-dict) .wd-bottom-audio,
+#practiceBody:has(.practice-word-area.pw-dict) .wdd-hint{
+  display: none !important;
+}

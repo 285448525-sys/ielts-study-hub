@@ -1599,6 +1599,22 @@ function renderQuestion(cur, isRehold){
 
   const body = $('#practiceBody');
   body.innerHTML = html;
+  /* 🔴 DICT-HEADER-SLIM-1（11-03）：听写态把例句彻底关掉。
+     原逻辑两处：①renderQuestion 的模板对 dictMode 已经不输出 .wd-example；
+     ②practice.html 的 refreshExampleFor() 在例句表异步到位后，只判断「#wdExample 有没有」就往回补 ——
+       它不看模式，于是听写态会被补进一条含目标词拼写的真题原句（等于把答案印在题干上，她截图里
+       那句 Most species use camouflage… 就是这么来的）。
+     这一版在渲染时先插一个隐藏占位：#wdExample 存在 → refreshExampleFor 直接 return；
+     反过来也不影响看词选义/听音选义（那两种模式整块 HTML 重渲染，占位不会带过去）。
+     这是本笔唯一改判分之外的一处逻辑，判分/SRS/落盘一行未动。 */
+  if(dictMode){
+    var _ar = document.querySelector('#practiceBody .practice-word-area');
+    if(_ar && !document.getElementById('wdExample')){
+      var _ph = document.createElement('p');
+      _ph.id = 'wdExample'; _ph.className = 'wd-example'; _ph.hidden = true;
+      _ar.appendChild(_ph);
+    }
+  }
   /* WD-DICT-TYPE-1（11-01 她口令）：听写模式改打字型 —— 不再渲染四选一拼写变体，
      改成「听发音 → 键盘打出单词 → 逐键打字音 + 对/错反馈音」（音效素材与逻辑在 js/wd-dict.js，
      与她自己 sentence-typing 站同一套）。判定走既有 judge(cur, 输入值, 对错)：
