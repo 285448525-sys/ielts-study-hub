@@ -66,7 +66,8 @@
 // 未改任何加载策略/脚本顺序（HANDOFF 铁律：defer 顺序是契约，动它会连带出事）。
 // common.js → 20261013ad（25 页）、index.js → 20261017a（仅 home.html）、
 // bank.js → 20261012ac（仅 bank.html）。上一版 v409。
-const CACHE = 'ielts-hub-v759';  // 11-03 v759 = RV-FIX5-10b（手机档填空绿字被裁）+ RV-TIMER-DESC-1（计时弹窗文案与记住值一致）。
+const CACHE = 'ielts-hub-v760';  // 11-03 v760 = RV-FIX5-10c：rv-open 窄屏断点 640→860px（对齐整站手机档主断点，消灭 641~860 盲区，B2 审计 P2）+ overflow-wrap:anywhere→break-word（B2 P3 断字观感）。
+const _prevCacheNote76 = 'ielts-hub-v759'; // 11-03 v759 世代：RV-TIMER-DESC-1 计时弹窗文案与记住值对齐（记住值命中且≠默认时改说「上次用了 X 分钟」；exam-timer.js 20261102b→c 三处引用全改）。
 const _prevCacheNote75 = 'ielts-hub-v758'; // 11-03 v758 世代：RV-FIX5-10b 手机档（≤640px）.ex-blankw.rv-open 封 max-width:100% + flex-wrap，绿字允许换行，390 档不再被右栏裁（桌面一行并排不动）。
 const _prevCacheNote74 = 'ielts-hub-v757'; // 11-03 v757 世代：11-03 本世代两笔：【RV-FIX5-12】11-03 题干指令按题目原文（她真机：「系统答案两个词、题干却要求一个词」）——instrFor 阅读也改为自带 group.description 优先（与答案键同源、唯一权威），拼接口径降为兜底；另给 Building A Castle Q10 加备选答案 alts{'10':['wedges']}。bank.js →20261103h。上一版 v755 = RV-FIX5-10/11。 【RV-FIX5-13】11-03 RV-FIX5-13 错题点不出讲解（她真机）：aiExpTargetOf 加容器级兜底（祖先[data-q] → 所在行控件），填空整框 .ex-blankw / 框内绿字 .ex-ca-in / 矩阵格 / 共享组容器都能触发；答题卡 .ex-num[data-jump] 复盘态跳题后顺手打开该题讲解（题号行在底栏、原来 aiExpTargetOf 判空）。bank.js →20261103i。上一版 v756 = RV-FIX5-12。
 const _prevCacheNote72 = 'ielts-hub-v755';  // 11-03 DICT-HEADER-SLIM-1（她 10:0x 截图 + 领头牛裁定形态 A）：听写态只留「输入横线 / 音标 / 音标右侧话筒 / 模式钮」，另留不知道与已掌握两个功能出口；头部回站链·上一词·书钮·设置齿轮·全屏、底部工具行、头部进度条、题内提示行、底部第二颗「再读一遍」、输入框下那行小字 全部在听写态不显示。实现只有 CSS（从 #practiceBody 的 .practice-word-area.pw-dict 反推）+ js 里一处隐藏 #wdExample 占位（挡住 practice.html 的 refreshExampleFor 异步补例句把答案拼写印出来）。零 DOM 删除、零判分/落盘/SRS 改动，看词选义与听音选义一个像素未动。验收 _probe_dictslim_1103 17/17 × 四档（1280/390 × 浅色/深色）；回归 precore 148/0、shell5 46/46、latespk 21/21、modedouble 8/0。css/p/practice.css →20261103a、js/practice.js →20261103b（practice.html 两处引用同 bump）。
