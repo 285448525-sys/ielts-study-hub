@@ -894,9 +894,20 @@ function renderMockList(){
       const pct = tt ? Math.round(tc/tt*100) : 0;
       overallBadge = `<span class="badge overall">${pct}%</span>`;
     }
-    const partsHtml = r.parts.map(p => partIsScore(p)
-      ? `<span class="badge">${p.label} · ${p.score}</span>`
-      : `<span class="badge">${p.label} ${p.correct||0}/${p.total||0}</span>`).join(' ');
+    /* RV2-DETAIL-UNDEF-1（11-03，B1 报「详情弹窗头部出现 undefined 9/10」）：
+       旧格式记录的 parts[0] 没有 label 字段，模板直接把 undefined 拼进徽章。
+       兜底取与页面其它地方一致的档位文案：按该科 parts 定义的第 n 个档位名（P1/P2…），
+       没有对应档位就退回 'Part'——绝不把 undefined 摆到用户眼前。 */
+    const partLabelOf = (p, i) => {
+      const raw = p && p.label;
+      if (raw != null && String(raw).trim() !== '') return String(raw);
+      const def = (cfg.parts || [])[i];
+      if (def && def.label) return def.label;
+      return 'Part';
+    };
+    const partsHtml = r.parts.map((p, i) => partIsScore(p)
+      ? `<span class="badge">${partLabelOf(p, i)} · ${p.score}</span>`
+      : `<span class="badge">${partLabelOf(p, i)} ${p.correct||0}/${p.total||0}</span>`).join(' ');
     // 整卷客观题：顺带估算卷面分 + 距目标反馈（目标对个数由设置页目标分推导，9/15）
     let estBadge = '';
     if(r.granularity === 'whole' && !hasScore){
