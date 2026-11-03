@@ -498,9 +498,9 @@ const _prevCacheNote = 'ielts-hub-v664'; // 10-29 PLAN-SKELETON-FAKE-1（A2 自�
 
 /* 核心壳预缓存清单（Node 脚本枚举目录生成，2026-09-20；与 14 页实际引用核对无遗漏）。
    不含 js/vendor/xlsx.full.min.js（861KB 体积大 → 走运行时 SWR 缓存）。 */
-  /* SW-INSTALL-SLIM-1（11-04 夜，领头牛终裁 47 条/2.43MB 版）：install 只装 47 条，按「掉了最疼」排序——
+  /* SW-INSTALL-SLIM-1（11-04 夜，领头牛终裁 47 条/2504KB 版）：install 只装 47 条，按「掉了最疼」排序——
      core js 9 → common.css → sfx 12 → 25 个 html 放尾（network-first 被 abort 损失最小）。
-     配套：6 条一波分波下发 + 单条超时保持 10s + 全局 30s deadline；idle 补装 91 条属第二批（A1）。
+     配套：6 条一波分波下发 + 单条超时 min(20s,剩余deadline) + 全局 30s deadline；idle 补装 91 条属第二批（A1）。
      红线：html 一条不许摘——fetch 处 isKnownPage 查本数组判「登记过的真页面」，摘了离线 503 退化成冒充首页。 */
 const PRECORE = [
   '/js/common.js',
@@ -661,7 +661,7 @@ self.addEventListener('activate', e => {
    ⚠️ 红线：本段的 Promise 是独立的，**绝不并入 _precoreReady**。
    _precoreReady 一旦被拖到补装完成，activate 的 await（上面那行）就会挂到补装结束，
    瘦身当场白做 —— 这是第一批定的硬红线，谁改谁负责。
-   ⚠️ 为什么补装：install 只装 47 条（2.45MB），原 138 条里剩下这 91 条（3.5MB）
+   ⚠️ 为什么补装：install 只装 47 条（2504KB），原 138 条里剩下这 91 条（3.5MB）
    在线时 88 条裸路径命中率为零（页面请求带 ?v= 走精确键），只在断网时兜底。
    放 idle 装的收益不是「打开更快」，是「部署重装窗口不被这 3.5MB 拖长」。
    纪律：导航 fetch 进行中时暂停（不跟页面抢带宽）、3g/slow-2g 不补、
