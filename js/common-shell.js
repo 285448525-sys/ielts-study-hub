@@ -1556,13 +1556,24 @@ function navPrefetchAllowed(){
     return !(c.effectiveType && /^(slow-)?2g$/.test(c.effectiveType));
   }catch(e){ return true; }
 }
+/* ═══ W0 PREFETCH-HTML-ONLY-1（11-04 夜班，她报单词页卡死） ═══
+   实锤（B1 真机 + A1 独立复现，两组数据同量级）：
+     · 进站 8 秒后预热启动，到 45 秒累计 85 条请求 / 4018KB（B1：72 条 / 3166KB）；
+     · 关掉预热的对照 45 秒恒定 17 条 / 1003KB（就是首屏本身的开销）。
+   也就是说预热在「她最可能点模块的那个时间窗」把整站脚本抢着拉完，她点哪个都在排队。
+   B1 七模块对照：进站就点 vs 等预热跑完，口语 5.7 倍、单词 4.5 倍、计划 2.9 倍。
+   
+   改法（领头牛裁定，三方一致）：**预热只拉 HTML，不拉脚本**。
+     · HTML 只有 13~22KB/页，17 页合计约 300KB，一页一页流水拉，抢带宽可忽略；
+     · 脚本不进预热 —— 软导航时 runPageScript 的 navGetCode 本来就按 HTML 的 ?v= 串现拉，
+       预热提前拉的那份源码还要跟 HTML 里的版本串保持一致才不会踩版本漂移，收益远小于风险；
+     · 软导航仍然吃得到收益：_navDocCache 命中 HTML → 省掉一次文档往返 + 解析。
+   不改：预热的调用点、节流/暂停/让路逻辑、_navDocCache 结构、runPageScript 取脚本的路径。
+   最差情况：退回「没预热」的状态，功能零影响（HTML 现拉照常可用）。 */
 function prefetchPage(id){
   const p = PAGES.find(pp => pp.id === id);
   if(!p || _navDocCache.has(p.file)) return Promise.resolve();
-  return navGetDoc(p.file).then(doc => {
-    const srcs = pageScriptSources(id, doc);
-    return Promise.all(srcs.map(s => navGetCode(s).catch(() => '')));
-  }).catch(() => {});
+  return navGetDoc(p.file).catch(() => {});   // 只把 HTML 收进 _navDocCache，脚本留给软导航现拉
 }
 let _prefetchRunning = false;
 /* ═══ WARMUP-THROTTLE-1（10-29，她报「随便点大模块就卡住」） ═══
@@ -1574,10 +1585,13 @@ let _prefetchRunning = false;
      ② 节流：一次空闲只预取一页，两页之间至少 1.5 秒（原来是一次 idle 连打到底）
      ③ 让路：她一点导航就暂停 3 秒（原实现只在导航进行中挂起，导航一结束立刻继续猛拉）
    ⚠️ 不动预热范围（仍是邻居+收藏+全部可见页），不动缓存机制，不改调用点。 */
-const PREFETCH_DELAY_MS = 8000;   // ① 首屏后 8 秒
-const PREFETCH_GAP_MS = 1500;     // ② 两页之间至少 1.5 秒
-const PREFETCH_PAUSE_MS = 3000;   // ③ 她一点导航，预热停 3 秒
-let _prefetchStartAt = 0;         // 本次启动时间（进站或软导航后重置为 0 表示待排）
+const PREFETCH_DELAY_MS = 15000;      // ① 无 SW 时的启动延时（首屏后 15 秒）
+const PREFETCH_SW_TIMEOUT_MS = 30000; // ① 等 SW ready 的兜底上限：到点无论如何都开跑
+const PREFETCH_AFTER_SW_MS = 3000;    // ① SW 就绪后再让 3 秒，避开 install 收尾那阵
+const PREFETCH_GAP_MS = 3000;         // ② 两页之间至少 3 秒（W0：只拉 HTML，放慢后总流量更小）
+const PREFETCH_PAUSE_MS = 3000;       // ③ 她一点导航，预热停 3 秒
+let _prefetchStartAt = 0;             // 本次启动时间
+let _prefetchArmed = false;           // 是否已排过一次启动（W0：避免每次软导航重复排）
 let _lastPrefetchAt = 0;
 function prefetchAll(curId){
   if(_softNavBusy) return;   // 10/8 导航优先：切页瞬间不排新的预热请求
@@ -1619,14 +1633,26 @@ function prefetchAll(curId){
     _lastPrefetchAt = Date.now();
     prefetchPage(id).then(() => idle(step)).catch(() => idle(step));
   };
-  /* ① 首屏后 8 秒才启动。每次软导航不重排（否则她一直点就永远不预热），
-     只记首次调度时刻；已排过的就直接接上流水。 */
-  if(_prefetchStartAt && Date.now() - _prefetchStartAt < PREFETCH_DELAY_MS){
-    setTimeout(() => idle(step), PREFETCH_DELAY_MS - (Date.now() - _prefetchStartAt));
-  }else{
-    _prefetchStartAt = Date.now();
-    setTimeout(() => idle(step), PREFETCH_DELAY_MS);
-  }
+  /* ① 启动时机：**等 Service Worker 就绪**再开跑（W0，领头牛 11-04 拍板）。
+   依据（B1 实测）：首访时 SW install 自己在拉 3.46MB / 127 条，一直到第 60 秒还在装；
+   预热若在第 8 秒并行开跑，就是「install + 预热 + 她的点击」三方抢同一条带宽，
+   她点模块要等 2.5~4 秒（七模块里四个被拖慢 3~6 倍）。串行化后首访只剩 install 一路。
+   兜底：SW 不可用（隐私模式/老浏览器）或 30 秒还没就绪 → 退回原来的定时启动，不会永不预热。 */
+  if(_prefetchArmed) return;                 // 已排过（含正在等 SW ready）→ 不重复排
+  _prefetchArmed = true;
+  _prefetchStartAt = Date.now();
+  let armed = false;
+  const arm = ms => { if(armed) return; armed = true; setTimeout(() => idle(step), ms); };
+  try{
+    if('serviceWorker' in navigator && navigator.serviceWorker && navigator.serviceWorker.ready){
+      navigator.serviceWorker.ready
+        .then(() => arm(PREFETCH_AFTER_SW_MS))
+        .catch(() => arm(PREFETCH_DELAY_MS));
+      setTimeout(() => arm(PREFETCH_SW_TIMEOUT_MS), PREFETCH_SW_TIMEOUT_MS);   // 兜底超时
+      return;
+    }
+  }catch(e){}
+  arm(PREFETCH_DELAY_MS);
 }
 
 /* ⭐ 引导用的常量必须声明在「本文件末尾的引导函数区」之前：common.js 是 defer 脚本，
