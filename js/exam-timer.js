@@ -125,6 +125,10 @@
     var defMin = (opts.def > 0) ? opts.def : cfg.def;
     var remembered = lastMin(scene);
     var cur = remembered || defMin;
+    /* RV-TIMER-DESC-1（B1 11-03 模考深查 P2）：文案写死「默认 X 分钟」，但输入框预填的是上次记住的值——
+       用过一次以后文案就与实际不符。记住值命中且与本场景默认值不同时，改说「上次用了 X 分钟」。 */
+    var desc = cfg.desc;
+    if(remembered && remembered !== defMin) desc = '上次用了 ' + remembered + ' 分钟，可以自己改。';
 
     injectCss();
     var old = document.getElementById('tmrBox');
@@ -141,7 +145,7 @@
     wrap.innerHTML = '<div class="tmr-c" role="dialog" aria-modal="true" aria-label="计时设置">'
       + '<button type="button" class="tmr-x" data-tmrclose aria-label="Close">✕</button>'
       + '<h4>' + cfg.title + '</h4>'
-      + '<p class="tmr-d">' + cfg.desc + '</p>'
+      + '<p class="tmr-d">' + desc + '</p>'
       + '<div class="tmr-row tmr-stepper">'
       +   '<button type="button" class="tmr-arr" data-tmrdn aria-label="减少 5 分钟">−</button>'
       +   '<input class="tmr-i" type="number" inputmode="numeric" min="' + MIN_MIN + '" max="' + MAX_MIN
