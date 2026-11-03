@@ -125,6 +125,13 @@
             setTimeout(function(){
               try{ if(el.volume === 0 && !el.paused) el.pause(); }catch(_){}
             }, 500);
+            /* 11-04 领头牛批的 P2 兜底：慢设备解码可能拖到数秒，promise 迟迟不 resolve 时
+               元素会一直占着音频通道（volume=0 她听不见，但 11 个元素同时在播）。
+               3 秒后再收一次 —— 仍按 volume===0 判「还是预热态」，她按键后 volume 变 0.6/0.7 就不碰。
+               为什么不无条件 pause：同一个 Audio 对象与 keyClick 共用，她进题 500ms~3s 内打字是常态。 */
+            setTimeout(function(){
+              try{ if(el.volume === 0 && !el.paused) el.pause(); }catch(_){}
+            }, 3000);
           }catch(_){}
         })(all[i]);
       }
