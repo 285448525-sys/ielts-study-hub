@@ -777,15 +777,20 @@
   }
 
   /* ===== 做题页 ===== */
-  /* 每组题上面那行英文指令（按真机考的标准措辞，按题型给）
-     听力：源数据自带平台官方指令原文 group.description（748 组都有），**优先直接用** —— 比我们拼的准。
-     阅读：这一批刻意不动，仍走下面的拼接口径（避免顺手改出阅读的差异）。 */
+  /* 每组题上面那行英文指令
+     听力与阅读**同口径：源数据自带 group.description（平台官方指令原文，与答案键同源）优先直接用** ——
+     比我们拼的准。拼接口径降级为兜底（description 为空时才用；实测阅读 779 组 / 听力 748 组全部自带）。
+     ⚠️ 11-03 教训（她真机截图）：这一行曾按题型写死（填空一律「ONE WORD…」），与自带要求为
+     「NO MORE THAN TWO WORDS」的答案键矛盾 → 她照题干写一个词被判错。指令必须来自题目本身。 */
   function instrFor(g, channel){
     var listen = (channel === 'listening');
-    if(listen){
-      var d = clean(String(g.description || '')).trim();
-      if(d) return d;
-    }
+    /* 11-03 她真机截图（原话「系统的答案不是两个词的吗？但是题干要求是一个词的」）：阅读这边一直走
+       下面的拼接口径，把每组都写死成「ONE WORD AND/OR A NUMBER / ONE WORD ONLY」—— 而题目自带的
+       description（与答案键同源、唯一权威）写的是「NO MORE THAN TWO WORDS」，于是题干与标准答案
+       自相矛盾、她按题干写的单字答案被判错。现在阅读与听力同口径：**自带指令优先，拼接口径只兜底**
+       （实测阅读 779 组全部自带 description，兜底分支基本不会走到）。 */
+    var d = clean(String(g.description || '')).trim();
+    if(d) return d;
     var qs = g.questions || [], opts = ((qs[0] && qs[0].options) || []);
     var txt = opts.map(function(o){ return String(o.optionContent || ''); }).join(' ').toUpperCase();
     var src = listen ? 'recording' : 'passage';
