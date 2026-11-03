@@ -1270,8 +1270,33 @@
     return Math.max(stemNeed, g._needAns || 0) || (qs.length > 1 ? qs.length : 0);
   }
   /* 共享选项形态：组内部分题带选项、部分不带（真机考「Questions X–Y Choose N」= 一份选项全组共用；
-     题库 109 个多选组 102 个如此）。 */
+     题库 109 个多选组 102 个如此）。
+
+     🔴 BANK-SHARED-MAP-1（11-03）：**只对 multiple-choice 成立**。
+     原判据只看「组内部分题带 options」，于是 map / matching 也被判成共享组 ——
+     但这两类是真机考的「一份字母池 + 每题各自一个字母」：
+       · 听力 map：组级 options 全空，字母池只错落在组内前几题的 q.options 上
+         （渲染靠 groupOptPool 回退借池，见 :1176）→ 每题仍应各自判各题的字母；
+       · matching / 阅读段落信息匹配：同样是每题一字母。
+     被误判后 annotateGroups 把组内全部答案并成 gset，实测两处真错（探针
+     `_audit1_1027/_probe_sharedmap.cjs`，基线 07e25a53 上 5 红、修后 17/0）：
+       ① **缺答案键的题被 gset 遮蔽**：`_hasKey(key, gset)` 只要 gset 非空就认定"有键"，
+          于是 map 组里没答案的那几题照样进分母并恒判错。Home Improvement 按官方答案填
+          11=H/12=C/13=G/14=E/15=D，基线 total=10（应为 6），12-15 全判错；
+          修后 12-15 标 noKey、不进分母。全库逐组核过：map/matching 里「有缺键又被 gset
+          遮蔽」的只有这一组 4 题；另外 Foot Injuries、William Gilbert 两组是多选，
+          收窄不影响它们，归 BANK-KEY-FILL-1 补键解决。
+       ② **复盘"正确答案"列显示错**：detail.right 取的是 gset.toUpperCase()，于是
+          Corporate Social Responsibility Q23 明明答案是 C，基线复盘显示 "A,B,C"（组内并集）；
+          修后显示 C。逐组实测这类 355 组 1814 题全都显示错。
+     ⚠️ 判分结果本身（对错）在 map/matching 上没受影响 —— 那两类的作答值是字符串，
+        `Array.isArray(ua)` 为假 → 从来不进 setEq 分支，逐题各判。受影响的只有上面两处。
+     📐 误判面实测：map 115 组 608 题 + matching 245 组 1233 题 = 360 组 1841 题；
+        真共享组 multiple-choice 102 组 213 题不受影响。
+     ➜ 收窄到 multiple-choice：多选的「Choose TWO letters、一份选项全组共用、两题同答案、
+        作答值是数组」才是 10/16 那套共享口径真正要覆盖的形态（102 组 213 题）。 */
   function isSharedGroup(g){
+    if(!g || g.type !== 'multiple-choice') return false;
     var qs = g.questions || [];
     var withOpts = qs.filter(function(q){ return (q.options || []).length; }).length;
     return withOpts > 0 && withOpts < qs.length;
