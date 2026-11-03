@@ -4338,7 +4338,14 @@ window.__reportExamState = reportExamState;
     var box = cboxForQ(qn);
     if(box){
       var need = Number(box.getAttribute('data-need') || 0);
-      var arr = Array.isArray(val) ? val.slice() : (val ? [val] : []);
+      /* RV-FIX5-9（她 11-03 真机②「多选题选的答案提交就消失了」）：只读复盘回放的 EX.user
+         来自落库明细 d.user —— 多选在 score() 里就是 ua.join(',') 的**逗号串**（"A,D"），
+         而本分支原写法 (val ? [val] : []) 会把它包成 ["A,D"]，跟单值 "A"/"D" 永远配不上
+         → 复盘打开勾选全空（radio 题是整串直接比对所以幸存，与她截图「radio 有选中、多选全空」一致）。
+         修：字符串值按逗号/斜杠/空格拆回数组再勾（checkbox 的 value 是单字母，无内嵌逗号，拆分安全）；
+         数组值（草稿链）原样走，行为不变。 */
+      var arr = Array.isArray(val) ? val.slice()
+        : (val == null || val === '' ? [] : String(val).split(/[,\s\/]+/).filter(Boolean));
       /* 10/16：旧草稿里可能存着超限的勾选（限数修复前留下的）→ 恢复时裁到 need，避免「又超限了」 */
       if(need && arr.length > need) arr = arr.slice(0, need);
       box.querySelectorAll('input[type=checkbox]').forEach(function(c){ c.checked = arr.indexOf(c.value) > -1; });
@@ -5015,6 +5022,15 @@ window.__reportExamState = reportExamState;
        但**不执行**待刷新（flushHeal 不传）—— 她刚交卷要在这看成绩解析，
        此刻刷掉等于「页面乱动」。等她点 Exit 真正离开时再刷。 */
     reportExamState(false, false);
+    /* RV-FIX5-9（她 11-03 真机②「多选题选的答案提交就消失了」，B2 根因报告 + ssr 自查双证）：
+       交卷链上 collect() 的结果一直是局部变量（submit() 算未答数、score() 判分），**从不回灌 EX.user**；
+       多选 ex-check 的 onchange 又只调 syncCboxDis+paintSheet 不调 saveDraft（pill 单选是写了的）
+       → 只做多选直接交卷时 EX.user 还是 startTest 的空对象。判分不受影响（score 读 DOM 现值），
+       但复盘态 applyAnswer 全读 EX.user → 空值把勾选清掉，她勾的答案「提交就消失」。
+       修：交卷时把 DOM 现值回灌 EX.user（一行，放在 score() 之前，判分口径不变）；
+       只读回看那条链的逗号串问题（openLastResult ← rec.detail.user "A,D"）由 applyAnswer
+       多选分支的拆串修复兜住（见 cboxForQ 分支注释）。 */
+    EX.user = collect();
     var res = score(); EX.correct = res.right; EX.result = res;
     /* 10/17 B：本篇无答案 → 「本次未判分」。
        跳过逐题结论条（decoratePassage）、未判分横幅也照走 addNoScoreCard、答题卡对错底色
