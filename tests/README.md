@@ -102,6 +102,7 @@
 | 在途 | `_probe_sharedmap_1103.cjs` | BANK-SHARED-MAP-1 地图/配对题不再走共享组判分（缺键不进分母 / 复盘正答按单题 key / 真共享组照旧计分；基线 5 红） |
 | 在途 | `_probe_headmap_1103.cjs` | HEADING-BLOCK-DEL + MAP-MATRIX（heading 题目行整块隐藏仍可作答 / 段落槽带题号 / 地图题答题卡矩阵；基线 07e25a53 上 11 红，改后 0 红） |
 | 在途 | `_probe_headmap_mobile_1103.cjs` | 同上手机档 390 复核（整页无左右滑 / 矩阵容器内滚 / 触屏点格 / heading 槽尺寸） |
+| 在途 | `_probe_keyfill_matrix_1103.cjs` | 交叉验证：v746 补键（6 篇地图题按官方键点满）+ v747 地图矩阵化叠在一起 —— 每题进分母、判对、复盘正答一致、无缺键题混入；37/0 |
 | 在途 | `_probe_examui3_p1_1031.cjs` | UNIFIED-EXAM-UI-3 笔1（在途） |
 | 在途 | `_probe_hl_1101.cjs` | HIGHLIGHT-REGRESS-1101 划词高亮（在途） |
 | 在途 | `smoke_sd_1415.cjs` | 14 砍换词 + 15 堵 AI 超时静默放行 回归 |
