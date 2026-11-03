@@ -578,32 +578,34 @@ self.addEventListener('install', e => {
     // ⚠️ 10/8 晚致命修复：慢网络下单条 fetch 可能无限挂起（不报错不返回）→ await 永远不结束
     //    → skipWaiting 永远不执行 → 新版本永远不接管 → 用户无论怎么刷新都卡旧版（她 10/8 晚实锤，
     //    无痕窗口正常+正常窗口卡旧版=唯一能解释的机制）。每条加 10s 硬超时。
-    const fetchPrecache = async u => {
+    const fetchPrecache = async (u, timeoutMs) => {
       try{
         const ctl = new AbortController();
-        const timer = setTimeout(() => ctl.abort(), 10000);
+        const timer = setTimeout(() => ctl.abort(), timeoutMs || 20000);
         const res = await fetch(u, { cache: 'reload', signal: ctl.signal });
         clearTimeout(timer);
         if(res && res.ok){ await cache.put(u, res); }
       }catch(_){ /* 单条失败/超时静默：只丢该条的离线可用 */ }
     };
-    // SW-INSTALL-SLIM-1（B2 定稿口径）：6 条一波分波下发——原 138 条 Promise.all 并发，每条的 10s 定时器
-    // 同时起跑，排队时间全算进自己的超时窗口，sfx 排 76+ 位 fetch 还没开始 timer 已数完（实测装成 0~2/17 随机态）。
-    // 分波后排队病自愈：单条 fetch 真实耗时 0.1~0.6s，10s 超时余量 16 倍起——**单条 10s 保持不动**（放宽 20s
-    // 只会把最坏 install 从 80s 放大到 160s，10/8 那晚「怎么刷都卡旧版」的死法窗口翻倍）。
-    // 全局 30s deadline（B2 按保命底线卡出：30KB/s 下 core+css 836KB 需 27.9s）：超时弃装剩余波、必 skipWaiting
-    // ——deadline 分支 break 后代码直接掉出循环走 skipWaiting，绝不让 waitUntil 挂死（10/8 卡旧版底线）。
+    // SW-INSTALL-SLIM-1（11-04 夜定稿，领头牛裁定=三方案合并）：6 条一波分波下发——原 138 条 Promise.all
+    // 并发时每条的 10s 定时器同时起跑，排队时间全算进自己的超时窗口，sfx 排 76+ 位 fetch 还没开始 timer
+    // 已数完（实测装成 0~2/17 随机态、听写首键无声）。分波后排队病自愈，单条超时恢复 20s 弱网保护：
+    // 30KB/s 下波2（common.css+common-shell 等 470KB）10s 会整波 abort 丢掉保命底线，20s 才守得住；
+    // 且每波单条用 min(20s, 剩余 deadline) 钳住（B1 合并方案）——只查波首会把最坏耗时拖到 40s，钳住后=30s 整。
+    // 用 allSettled：单条 abort 不炸整波，波内已下完的条目照常落缓存（race 方案会把它们一起丢，否）。
+    // deadline break 后代码直接掉出循环走 skipWaiting，_precoreReady 循环外赋值一次、break 后必 resolve
+    // ——activate（下方 await _precoreReady）绝不挂死，10/8「怎么刷都卡旧版」底线不变。
     // 正常网 ~17s 装完 47 条。验收：装成条数必须=47 整（防最后一波 await 漏写提前 resolve）。
     const _slimT0 = Date.now();
     _precoreReady = (async () => {
       for(let i = 0; i < PRECORE.length; i += 6){
-        if(Date.now() - _slimT0 > 30000) break;   // 30s 全局硬顶：弱网弃装尾部（html 掉了不心疼，卡旧版才是大忌）
-        await Promise.all(PRECORE.slice(i, i + 6).map(fetchPrecache));
+        const remain = 30000 - (Date.now() - _slimT0);   // 30s 全局 deadline
+        if(remain <= 0) break;                            // 弱网弃装尾部（html 掉了不心疼，卡旧版才是大忌）
+        const per = Math.min(20000, remain);              // 单条 20s 上限，但不超过剩余 deadline
+        await Promise.allSettled(PRECORE.slice(i, i + 6).map(u => fetchPrecache(u, per)));
       }
     })();
-    const swSlimHardCap = setTimeout(() => { try{ self.skipWaiting(); }catch(_){} }, 32000);
     await _precoreReady;
-    clearTimeout(swSlimHardCap);
     await self.skipWaiting();
   })());
 });
