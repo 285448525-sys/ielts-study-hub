@@ -66,7 +66,8 @@
 // 未改任何加载策略/脚本顺序（HANDOFF 铁律：defer 顺序是契约，动它会连带出事）。
 // common.js → 20261013ad（25 页）、index.js → 20261017a（仅 home.html）、
 // bank.js → 20261012ac（仅 bank.html）。上一版 v409。
-const CACHE = 'ielts-hub-v762';  // 11-04 v762 = W0 PREFETCH-HTML-ONLY-1（她 11-03 报单词页卡死，B1 真机复现 + A1 独立复现）：预热只收 HTML，不再连页面脚本一起拉。依据：进站 8 秒后预热启动，45 秒拉 85 条/4018KB（B1 72 条/3166KB 同量级），关掉预热的对照 45 秒恒定 17 条/1003KB；B1 七模块对照进站就点 vs 等预热跑完，口语 5.7 倍、单词 4.5 倍、计划 2.9 倍。改法（领头牛裁定，三方一致）：prefetchPage 只 navGetDoc、不再 navGetCode 那批脚本；启动改等 navigator.serviceWorker.ready 再让 3 秒（首访时 SW install 自己在拉 3.46MB/127 条、到 60 秒还在装，串行化后不再三方抢带宽），30 秒兜底超时防 SW 不可用时永不预热；间隔 1.5s→3s。实测（_probe_w0b 390 档）：60 秒内预热额外 js = 0 条（改前 +30 条级）、额外 html 17 条仅 14KB；点单词页 43ms。不动：预热调用点、让路/暂停逻辑、_navDocCache 结构、runPageScript 取脚本路径（仍按 HTML 的 ?v= 现拉，不吃版本漂移）。bump 判据：common-shell.js →20261104a（22 页引用同 bump）；CACHE v761→v762 顶值唯一；note78=v761。
+const CACHE = 'ielts-hub-v763';  // 11-04 v763 = SW-INSTALL-SLIM-1 第一批（她 11-03 报全站卡顿，B1 实锤第二抢带宽者=SW install）：PRECORE 138 条 5.96MB 拆为 install 47 条 2.43MB（core js 9 → common.css → sfx 12 → html 25 尾部），6 条一波分波下发 + 单条超时保持 10s + 全局 30s deadline 必 skipWaiting（B2 定稿）；idle 补装 91 条属第二批（A1）不并入 _precoreReady。同批 W1-PRELOAD-1（8ad06e46）已在 main。
+const _prevCacheNote79 = 'ielts-hub-v762'; // 11-04 v762 世代：W0 PREFETCH-HTML-ONLY-1（预热只收 HTML + 等 SW ready 再让 3 秒）。
 const _prevCacheNote78 = 'ielts-hub-v761';  // 11-04 v761 世代：PERF-WRITE-1 一次作答只落一次盘（js/practice.js →20261104a）。
 const _prevCacheNote77 = 'ielts-hub-v760';  // 11-03 v760 世代：RV-FIX5-10c 窄屏断点 640→860px + break-word。
 const _prevCacheNote76 = 'ielts-hub-v759'; // 11-03 v759 世代：RV-TIMER-DESC-1 计时弹窗文案与记住值对齐（记住值命中且≠默认时改说「上次用了 X 分钟」；exam-timer.js 20261102b→c 三处引用全改）。
@@ -496,190 +497,61 @@ const _prevCacheNote = 'ielts-hub-v664'; // 10-29 PLAN-SKELETON-FAKE-1（A2 自�
 
 /* 核心壳预缓存清单（Node 脚本枚举目录生成，2026-09-20；与 14 页实际引用核对无遗漏）。
    不含 js/vendor/xlsx.full.min.js（861KB 体积大 → 走运行时 SWR 缓存）。 */
+  /* SW-INSTALL-SLIM-1（11-04 夜，领头牛终裁 47 条/2.43MB 版）：install 只装 47 条，按「掉了最疼」排序——
+     core js 9 → common.css → sfx 12 → 25 个 html 放尾（network-first 被 abort 损失最小）。
+     配套：6 条一波分波下发 + 单条超时保持 10s + 全局 30s deadline；idle 补装 91 条属第二批（A1）。
+     红线：html 一条不许摘——fetch 处 isKnownPage 查本数组判「登记过的真页面」，摘了离线 503 退化成冒充首页。 */
 const PRECORE = [
-  '/corpus.html',
-  '/errorbook.html',
-  '/index.html',      // 9/30：根 = 落地页（产品介绍），仍要能离线打开
-  '/home.html',       // 9/30：学习主页由 index.html 改名而来（离线回退壳也用它）
-  '/login.html',      // 10/1：独立登录页（落地页底部引导键/右上角登录键都跳这里）
-  '/beginner.html',   // 10/10：新手入门页（落地页「first time?」入口）。必须进 PRECORE —— 不进则弱网/直访会被回退成 index 壳
-  '/materials.html',
-  '/meds.html',
-  '/plans.html',
-  '/practice.html',
-  '/review.html',
-  '/settings.html',
-  '/speaking.html',
-  '/timer.html',
-  '/writing.html',
-  '/bank.html',       // 10/11：题库页（学习组第 5 成员）。不进 PRECORE 则弱网/直访会被回退成 index 壳
-  // 10/4 18:42 三个组页（必须进 PRECORE：直接访问/弱网时否则会被回退成 index 壳，
-  // 表现为「页面不存在跳回主页」—— 10/1 她撞过一次同款事故）
-  '/plans-hub.html',
-  '/study.html',
-  '/me.html',
-  '/js/hubgroup.js',
-  // 10/5 15:25 站长面板 admin.html 必须进 PRECORE —— 她 15:24 报「手机端打不开」。
-  // 病根：① CF 会 308 把 /admin.html 跳到 /admin，而缓存键是 pathname（带 .html）→ 跳转后 caches.match 拿不到；
-  //       ② /admin.html 不在 PRECORE，弱网/离线时 handleNavigate 拿不到缓存 → 掉进 '/home.html' 兜底
-  //          → 手机上表现为「打不开」或「莫名跳到学习主页」（与 10/1 她撞过的 index 壳事故同款）。
-  // 预缓存 /admin.html 而不是 /admin：PRECORE 走 cache:'reload' 请求的是真实文件路径，
-  // 而 CF 只对 .html 文件名做 308 —— 两者一致才能在跳转后仍命中缓存。
-  '/admin.html',
-  '/legal.html',       // 10/13 合规页（隐私政策 + 用户协议 + AI 免责）——收费站必须随时可看，含离线
-  '/vip.html',        // 10/1 付费方案：会员中心页（价格/权益/开通流程）
-  '/announce.html',   // 10-25 W-UI-1：公告页（全站公告条「去看看」的落点，19 页都能点到）。
-                      // ⚠️ 虽不进一级导航，但公告条在每页都能点 → 必须预缓存，
-                      //    否则弱网/离线点进去会掉进 '/home.html' 兜底（10/1 index 壳事故同款）。
-                      //    写 /announce.html 而不是 /announce：CF 只把 .html 308 到无扩展名，
-                      //    缓存键是 pathname（带 .html），两边一致才能在跳转后仍命中（admin.html 同款坑）。
-  '/help.html',       // 10-26 W-UI-1：帮助/常见问题页（设置页 + 消息中心底部两条入口）。
-                      //    同上：不进一级导航但入口常驻，弱网点进去掉 home 兜底 = 「打不开」。
-  '/css/common.css',
-  // 10/17 首屏减重第一步：页面专属样式表（从 common.css 拆出，每页约省 14KB）。
-  // ⚠️ 必须进 PRECORE —— 它是页面渲染的第一个阻塞资源，弱网下运行时才拉等于白屏（同 av-picker.js 的教训）。
-  '/css/p/bank.css',
-  '/css/p/beginner.css',   // 10-26 合流补登（KIMI-P4 新建）：合流那笔只搬了页面文件，PRECORE 漏登 → 弱网/离线进 beginner.html 无样式（页面仍能开，但是裸 DOM）
-  '/css/p/corpus.css',
-  '/css/p/home.css',
-  '/css/p/login.css',      // 10-26 合流补登（KIMI-P6 新建）：同上，login.html 是首访必经页，漏登代价最高
-  '/css/p/materials.css',  // 10-26 合流补登（KIMI-P3 新建）：同上
-  '/css/p/meds.css',
-  '/css/p/plans.css',
-  '/css/p/practice.css',
-  '/css/p/review.css',
-  '/css/p/settings.css',
-  '/css/p/speaking.css',
-  '/css/p/timer.css',
-  '/css/p/vip.css',
-  '/css/p/writing.css',
-  '/js/av-picker.js',  // 10/4 09:30 补缓存：设置页头像弹层 + 口语陪练考官选择器都依赖它。
-                       // 之前只在 network-first 名单里 → 弱网/离线时拿不到或拿旧版，
-                       // 表现是「点头像没反应」「弹层里完成/叉/我页签全点不动」。
-  '/js/data-static.js',// DATA-1（10/26）：口语题库 89 条从 js/data.js 搬到这里。必须进 PRECORE ——
-                       // 它由 speaking.html 直接 defer 引、其余页在页面可用后按需拉；
-                       // 不预缓存的话，弱网/离线进口语页会拿到空题库（列表空白、进度分母为 0）。
-  '/js/sp-q.js',       // T-009 S-8（10/26 合流补登）：I 区（题卡交互与提交记录）从 js/speaking.js 拆出，
-                       // 由 speaking.html defer 引。不预缓存 → 弱网/离线时「练这道题 / 提交记录」整块 undefined。
   '/js/common.js',
-  // 10/19：共享外壳按功能拆成 7 块（common.js + 6 块 common-*.js，每块 ≤1073 行）。
-  // ⚠️ 必须**整组**进 PRECORE：漏任何一块，弱网/离线时该块拿不到 → 页面半死（同 av-picker.js 的教训）。
-  //    拆分只改文件边界、代码逐字节未改（切分时做过「去 banner 后逐字节相等」+「每块可独立解析」双重校验，
-  //    校验脚本属一次性工具、已按 tests/ 纪律清理）；整组版本号用 scripts/bump-assets.cjs 换。
-  '/js/common-ai.js',
-  '/js/common-sync.js',
-  '/js/common-merge.js',
-  '/js/common-cloud.js',
   '/js/common-shell.js',
   '/js/common-pwa.js',
-  '/js/corpus.js',
   '/js/data.js',
-  '/js/announce.js',   // 10-25 W-UI-1：公告页主脚本。announce.html 是 defer 平铺加载，
-                       //    不预缓存 → 弱网下进公告页列表永远空（页面不报错，只是没内容）。
-  '/js/factory-writing.js',   // 10/17 首屏减重第二步：写作出厂内容按需加载 —— 不预缓存则离线/弱网下写作壳会空模板
-  '/js/exam-timer.js',   // 10-31 EXAM-TIMER-CHOICE-1：模考「要不要计时」选择框（bank.html 与 writing.html 共用）。
-                     //   裸路径预缓存只在 install 时刷 → 加进 PRECORE 必须同批换代 CACHE，否则老客户端拿不到。
-  '/js/bank.js',      // 10/11：题库页目录脚本。⚠️ bank/manifest.json 与 bank/*/*.json 不进 PRECORE（415 篇体积大，运行时 SWR 按需拉）
-  '/js/bank-groups.js',  // 10-26 补登（历史遗漏）：M-2 批起 bank.html 就 defer 引它（搜索 + 没做过/做过分组 + 展开更多），
-                         // PRECORE 一直没登记 → 弱网/离线进模考页，627 篇题只剩一根裸滚动条。
-  '/js/pricing.js',      // 10-26 补登（历史遗漏）：vip / materials / speaking 三页首屏都引它，
-                         // 而且 **会员页的对比表就是它渲染的** —— 不预缓存 = 离线开会员页看不到价格表。
-  '/js/rec-all.js',      // 10-26 补登（历史遗漏）：R-4 批起 review.html 就引它（「全部记录」合并列表 +
-                         // 「看上次结果/重新做一遍」两个按钮都挂在这里）→ 不预缓存则离线回顾页那块是空的。
-  '/js/rv-record.js',    // 10-26 补登（历史遗漏）：同上，回顾页「轨迹」栏的渲染脚本。
-  '/js/feedback.js',
-  '/js/dhp_policy.js',
-  '/js/history.js',
-  '/js/index.js',
-  '/js/home-quick.js',   // 10-23 5-1：首页快速入口渲染层（首页必须在离线时也长全，否则弱网只显示一块空侧轨）
-  '/js/materials.js',
-  '/js/meds.js',
-  '/js/mock-history.js',
-  '/js/mock-report.js',
-  '/js/mock-summary.js',
-  '/js/mock.js',
-  '/js/plans.js',
-  '/js/practice.js',
-  '/js/wd-dict.js',       // 11-01 WD-DICT-TYPE-1：单词听写打字层（听音打词+逐键音效+对错反馈音）。
-                          // practice.html defer 引它 → 必须进 PRECORE，且与 CACHE 换代同批，否则离线/弱网听写模式无输入框。
-  '/sfx/keys/default.mp3', // 同上批：听写打字音与反馈音素材（bubble 9 件 + mechanical 5 件 + 对/错两件），
-  '/sfx/correct.mp3',      // 与 wd-dict.js 同批进 PRECORE，离线听写才有声音。
+  '/js/data-static.js',
+  '/js/common-merge.js',
+  '/js/common-sync.js',
+  '/js/common-ai.js',
+  '/js/common-cloud.js',
+  // —— 9 条 core js（common*/data* 家族 0.61MB）：任何页面开机都要 ——
+  '/css/common.css',  // 213KB 全站样式壳
+  '/sfx/bubble/8.wav',
+  '/sfx/bubble/1.wav',
+  '/sfx/bubble/6.wav',
+  '/sfx/bubble/4.wav',
+  '/sfx/bubble/3.wav',
+  '/sfx/bubble/2.wav',
+  '/sfx/bubble/5.wav',
+  '/sfx/bubble/enter.mp3',
+  '/sfx/bubble/7.wav',
+  '/sfx/correct.mp3',
+  '/sfx/keys/default.mp3',
   '/sfx/error.mp3',
-  '/sfx/bubble/1.wav','/sfx/bubble/2.wav','/sfx/bubble/3.wav','/sfx/bubble/4.wav',
-  '/sfx/bubble/5.wav','/sfx/bubble/6.wav','/sfx/bubble/7.wav','/sfx/bubble/8.wav','/sfx/bubble/enter.mp3',
-  '/sfx/mechanical/1.wav','/sfx/mechanical/2.wav','/sfx/mechanical/3.wav','/sfx/mechanical/4.wav','/sfx/mechanical/5.wav',
-  '/js/progress.js',
-  '/js/review.js',
-  '/js/rvx-data.js',     // 10-26 补登（历史遗漏）：R-E2 批（8a3cb5b6）起 review.html 就 defer 引它，
-                         // 但 PRECORE 一直没登记 → 弱网/离线进回顾页会「页面能开、成绩条与全部记录是空的」。
-                         // 与 av-picker.js / home-quick.js 同款教训：页面在 PRECORE 里 ≠ 它引的脚本也在。
-  '/js/scene-drill.js',
-  '/js/scores.js',
-  '/js/sentence-drill.js',
-  '/js/settings.js',
-  '/js/speaking-practice.js',
-  // 10-23 T-009 S-1：口语页脚本按功能域拆分（js/speaking.js 3888 行 → sp-core/sp-stats + 入口）。
-  // ⚠️ 拆出来的两块**必须一起进 PRECORE** —— speaking.html 是 defer 平铺加载，
-  //    少预缓存任何一块，弱网下要么口语页整体空、要么（更糟）函数 undefined 半死。
-  '/js/sp-core.js',
-  '/js/sp-stats.js',
-  '/js/sp-list.js',    // 10-23 T-009 S-2 拆出（E 区列表渲染 + K 区 P1 问答流）。
-                       // ⚠️ S-2 那批漏了把它写进 PRECORE（1589e0f 只改了 speaking.html 与 speaking.js），
-                       //    弱网/离线下进口语页会拿不到 → renderList / p1FlowInit 全 undefined、列表空白。
-                       //    本批（S-3）一并补上，并在下面 CACHE 注释里留痕。
-  '/js/sp-story.js',   // 10-24 T-009 S-4：G 区（P2 串题，design/87）拆出。
-  '/js/sp-p3.js',      // 10-24 T-009 S-4b：H 区（P3 追问与 AI）拆出。
-  '/js/sp-diag.js',    // 10-23 T-009 S-3：J 区（AI 诊断 / 纠错 / 评分净化）拆出。
-  '/js/sp-detail.js',   // 10-24 T-009 S-5：F 区（详情页与保存，含 515 行 openDetail）拆出。
-  '/js/sp-late.js',     // 10-24 T-009 S-6：B 区（按需加载框架 lateReady/lateLoad + 模考忙碌态）拆出。
-                        // ⚠️ S-6 那批（19fbee1）按规矩把 CACHE 留给 A，但**忘了写「待 bump PRECORE」**
-                        //    → 线上 SW 一直停在 v516，这两个文件从未进过预缓存：弱网/离线下进口语页，
-                        //    口语模考的按需加载与自动计时全部 undefined（页面不报错、只是功能静默缺失）。
-                        //    本条与下一条是 R-1 批顺手补的，属 S-6 的欠账，不是新功能。
-  '/js/sp-timer.js',    // 10-24 T-009 S-6：L/M 区（口语自动计时 + 回车跳题钩子）拆出。同批同因漏登。
-
-  '/js/speaking.js',
-  '/js/sprint.js',   // 10/7 补进 PRECORE：回顾页模考 Tab 的考前冲刺卡，一直漏着。
-                     // 漏的原因 = 审计脚本 tests/_audit_class_names.cjs 自己的 PRECORE 正则是坏的
-                     // （从注释里首次出现的 'PRECORE' 开始抓 → 一个数组元素都没抓到 → 一直误报「全漏」，
-                     //  反而把这种真漏淹没了）。修好脚本后才第一次看到真实的唯一缺口。
-  '/js/coach.js',
-  '/js/timer.js',
-  '/js/vip.js',
-  '/js/wordbank.js',
-  '/js/words.js',
-  '/js/writing.js',
-  '/js/writing_prompts.js',
-  '/data/announce.json',  // 10-25 W-UI-1：公告数据（2.4KB，她以后加公告只改这个文件）。
-                          //    进 PRECORE 的理由 = 公告条在**首访第一帧**就要读它决定挂不挂，
-                          //    走运行时 SWR 会先空一拍再补上（条凭空冒出来 = 布局跳动）。
-                          //    ⚠️ 她改了 json 要立刻生效：json 内的 version 字段要跟着改，
-                          //    且 SW CACHE +1（静态资源走 SWR，不 bump 就拿旧缓存）。
-  '/data/materialsets.json',
-  '/data/official-banks/awl.json',
-  '/data/official-banks/qstem.json',   // 10-24：题干高频词 2779 词（50 章）
-  '/data/official-banks/lstans.json',  // 10-24：听力填空答案词 160 词（只有 19KB，是「必须拼对」的那批，值得进预缓存）
-  /* 10-24：另外三本不进 PRECORE（rdtext 515K / phr 510K / lstext 300K，合计 1.3MB）。
-     理由同 bank/manifest.json 那条：体积大，走 fetch 的 SWR 按需拉 —— 用户点开哪本才缓存哪本，
-     不影响首次安装体积，也不吃 Storage 配额。词书库网格里的卡片来自 OB_BANKS 注册表，不依赖预缓存。 */
-  '/data/scenes.json',
-  '/data/sentences.json',
-  '/data/writing_prompts.json',
-  '/manifest.json',
-  '/favicon.svg',
-  '/favicon.ico',
-  '/icons/apple-touch-icon.png',
-  '/icons/favicon-16x16.png',
-  '/icons/favicon-32x32.png',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png',
-  '/icons/maskable-512.png',
-  /* 10-28 合流放行批：P2-PAY-NEW 新建的独立开通页三件（pay.html / js/pay.js / css/p/pay.css）。
-     会员页「立即开通」已改为跳 pay.html（P2-VIP-DEL），弱网/离线时这一跳若不进缓存 = 白屏。
-     与 bank.html/speaking.html 同口径：页面 + 它独有的脚本与样式一并预缓存。 */
+  // —— sfx 12（bubble 9 + default/correct/error）：原 138 条并发时排 76+ 位被淘汰，听写首键无声 ——
+  '/speaking.html',
+  '/bank.html',
+  '/practice.html',
+  '/admin.html',
+  '/writing.html',
+  '/settings.html',
+  '/plans.html',
+  '/materials.html',
+  '/login.html',
+  '/timer.html',
+  '/corpus.html',
+  '/index.html',
+  '/vip.html',
+  '/beginner.html',
+  '/home.html',
+  '/legal.html',
+  '/review.html',
   '/pay.html',
-  '/js/pay.js',
-  '/css/p/pay.css'
+  '/meds.html',
+  '/study.html',
+  '/plans-hub.html',
+  '/help.html',
+  '/me.html',
+  '/errorbook.html',
+  '/announce.html',
+  // —— 25 个 html（1.16MB）放尾；isKnownPage 依赖本数组，一条不许少 ——
 ];
 
 /* HTML 导航 network-first 的网络超时（弱网 4s 拿不到就回退缓存，绝不让用户干等白屏） */
@@ -705,7 +577,7 @@ self.addEventListener('install', e => {
     // 某一条 404/弱网失败只丢那一条的离线可用，不能让整个 install 失败导致 SW 永远装不上
     // ⚠️ 10/8 晚致命修复：慢网络下单条 fetch 可能无限挂起（不报错不返回）→ await 永远不结束
     //    → skipWaiting 永远不执行 → 新版本永远不接管 → 用户无论怎么刷新都卡旧版（她 10/8 晚实锤，
-    //    无痕窗口正常+正常窗口卡旧版=唯一能解释的机制）。每条加 10s 硬超时，install 最坏 ~10s 必完成。
+    //    无痕窗口正常+正常窗口卡旧版=唯一能解释的机制）。每条加 10s 硬超时。
     const fetchPrecache = async u => {
       try{
         const ctl = new AbortController();
@@ -715,8 +587,23 @@ self.addEventListener('install', e => {
         if(res && res.ok){ await cache.put(u, res); }
       }catch(_){ /* 单条失败/超时静默：只丢该条的离线可用 */ }
     };
-    _precoreReady = Promise.all(PRECORE.map(fetchPrecache));   // 10-24 W-1：存句柄，activate 要等它落盘
+    // SW-INSTALL-SLIM-1（B2 定稿口径）：6 条一波分波下发——原 138 条 Promise.all 并发，每条的 10s 定时器
+    // 同时起跑，排队时间全算进自己的超时窗口，sfx 排 76+ 位 fetch 还没开始 timer 已数完（实测装成 0~2/17 随机态）。
+    // 分波后排队病自愈：单条 fetch 真实耗时 0.1~0.6s，10s 超时余量 16 倍起——**单条 10s 保持不动**（放宽 20s
+    // 只会把最坏 install 从 80s 放大到 160s，10/8 那晚「怎么刷都卡旧版」的死法窗口翻倍）。
+    // 全局 30s deadline（B2 按保命底线卡出：30KB/s 下 core+css 836KB 需 27.9s）：超时弃装剩余波、必 skipWaiting
+    // ——deadline 分支 break 后代码直接掉出循环走 skipWaiting，绝不让 waitUntil 挂死（10/8 卡旧版底线）。
+    // 正常网 ~17s 装完 47 条。验收：装成条数必须=47 整（防最后一波 await 漏写提前 resolve）。
+    const _slimT0 = Date.now();
+    _precoreReady = (async () => {
+      for(let i = 0; i < PRECORE.length; i += 6){
+        if(Date.now() - _slimT0 > 30000) break;   // 30s 全局硬顶：弱网弃装尾部（html 掉了不心疼，卡旧版才是大忌）
+        await Promise.all(PRECORE.slice(i, i + 6).map(fetchPrecache));
+      }
+    })();
+    const swSlimHardCap = setTimeout(() => { try{ self.skipWaiting(); }catch(_){} }, 32000);
     await _precoreReady;
+    clearTimeout(swSlimHardCap);
     await self.skipWaiting();
   })());
 });
