@@ -664,6 +664,15 @@
 #examRoot .ex-blankw.rv-open{width:auto;max-width:none}
 #examRoot .ex-blankw.rv-open input.ex-blank{width:auto;flex:none}
 #examRoot .ex-html td .ex-blankw.rv-open{width:auto;max-width:none;flex:0 1 auto}
+/* RV-FIX5-10b（B1 11-03 390 取证：绿字右缘 404/430/456px 全超视口 390，被右栏裁掉）：
+   窄屏（≤640px）打开答案态不再让整框无上限撑开 —— 框宽封在栏宽内，input 与绿字允许换行
+   （绿字落到框内第二行也不出框）；≥641px 桌面档一行并排的口径原样不动。 */
+@media (max-width:640px){
+  #examRoot .ex-blankw.rv-open{max-width:100%;flex-wrap:wrap;row-gap:2px}
+  #examRoot .ex-blankw.rv-open input.ex-blank{flex:0 1 auto;min-width:0;max-width:100%}
+  #examRoot .ex-blankw.rv-open .ex-ca-in{flex:0 1 auto;max-width:100%;white-space:normal;overflow-wrap:anywhere;margin-left:0}
+  #examRoot .ex-html td .ex-blankw.rv-open{flex-wrap:wrap;max-width:100%}
+}
 /* RV-FIX5-11（她 11-03 晚：「未勾的正答绿不用这么淡，跟勾对的绿一个浓度，靠前面框没打勾区分」）：
    做题态的 .dis 淡度（.35）只针对未勾的普通项；复盘打开答案态里，未勾的正答项恢复满浓度绿。 */
 #examRoot.rv-ans-on .ex-opt.dis.right{opacity:1}
