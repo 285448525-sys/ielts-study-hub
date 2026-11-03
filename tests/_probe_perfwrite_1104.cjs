@@ -14,6 +14,8 @@ const BASE = (function(){ try{ return fs.readFileSync(__dirname+'/_base.txt','ut
 const EXE = 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
 const W = parseInt(process.env.W||'390',10), H = parseInt(process.env.H||'844',10);
 const N = parseInt(process.env.N||'6',10);
+const LIMIT = parseInt(process.env.LIMIT||'60',10);
+const HISTN = parseInt(process.env.HISTN||'8',10);
 const OB_KEY = 'ielts_hub_obank_v1', HUB_KEY = 'ielts_study_hub_v1';
 
 let pass=0, fail=0;
@@ -48,13 +50,55 @@ const INSTR = `(function(){
   window.addEventListener('pageerror', e => { (window.__pe=window.__pe||[]).push(String(e).slice(0,150)); });
 })();`;
 
-async function enterPractice(ctx, opts) {
+async function enterPractice(ctx, histn) {
   const p = await ctx.newPage();
   await p.goto(BASE + '/practice.html', { waitUntil:'commit', timeout:60000 });
   await p.waitForTimeout(2200);
   await p.evaluate(() => { const x=document.querySelector('#hubAncX'); if(x) x.click(); });
   await p.evaluate(() => { try{ wbSetActive('rdtext'); }catch(e){} });
-  await p.evaluate(() => { try{ pcSave({ questionMode:'visual', autoPlay:false, repeat:1, wordLimit:60 }); }catch(e){} });
+  await p.evaluate((lim) => { try{ pcSave({ questionMode:'visual', autoPlay:false, repeat:1, wordLimit:lim }); }catch(e){} }, LIMIT);
+  /* 真实规模档（FILL_PROG=1）：把官方词库 prog 灌到 2651 条 × 19 字段 + hist 20 条，
+     目标是 OB_KEY ≈1.3MB —— 与 B2 node 实测的 1.36MB 同规模，这样单次写盘的 stringify 成本才是真的。 */
+  if (process.env.FILL_PROG === '1') {
+    const ready = await p.evaluate(async () => { try { await obBankReady('rdtext'); return 'ok'; } catch(e) { return String(e).slice(0,80); } });
+    if (ready !== 'ok') console.log('  [warn] obBankReady:', ready);
+    const filled = await p.evaluate((HISTN) => {
+      try {
+        var w = (typeof wbWords === 'function') ? wbWords() : [];
+        var banks = (window.__OB && window.__OB.banks) ? window.__OB.banks : null;
+        var act = (typeof wbActive === 'function') ? wbActive() : null;
+        if (!banks || !act || !banks[act]) return { err: 'no banks' };
+        var HISTN = parseInt(8,10) || 8;
+        var prog = {}, now = Date.now();
+        /* 按 wordbank.js:35 的 PROG_FIELDS 19 个真字段灌，否则 wbSave 重建 prog 时会全部丢掉、体积失真 */
+        for (var i = 0; i < w.length; i++) {
+          var k = String(w[i].en || '').trim().toLowerCase();
+          if (!k) continue;
+          var hist = [];
+          for (var h = 0; h < HISTN; h++) hist.push({ t: now - (i*20+h)*60000, g: h % 3 ? 'ok' : 'ng' });
+          var rec = { level: i%3, nextReview: now + i*1000, errTotal: i%5, errStreak: i%4,
+                      okStreak: i%6, lastReview: now - i*2000, cleared: i%2,
+                      shortCount: i%4, lastShortTouch: i%2 ? null : now, cleanRounds: i%3,
+                      hist: hist, resetEpoch: 0, dd: i%7, dh: i%5, mcDue: i%9,
+                      hardWord: i%2, keyWord: i%3, ts: now - i*500, lastPracticeAt: now - i*1000 };
+          prog[k] = rec;
+          /* wbSave 是从 rec.words 上按 PROG_FIELDS pick 回 prog 的 —— 字段必须也落到 word 对象上，
+             否则下一次 wbSave 会把 prog 重建成空、体积失真。 */
+          for (var f in rec) { if (Object.prototype.hasOwnProperty.call(rec, f)) w[i][f] = rec[f]; }
+        }
+        banks[act].prog = prog;
+        var t0 = performance.now();
+        wbSave();
+        return { n: Object.keys(prog).length, saveMs: Math.round(performance.now() - t0) };
+      } catch (e) { return { err: String(e).slice(0, 100) }; }
+    }, HISTN);
+    await p.waitForTimeout(800);
+    const sz = await p.evaluate(() => ({
+      ob: Math.round((localStorage.getItem('ielts_hub_obank_v1')||'').length/1024),
+      hub: Math.round((localStorage.getItem('ielts_study_hub_v1')||'').length/1024)
+    }));
+    console.log('  真实规模：' + JSON.stringify(filled) + ' → OB_KEY ' + sz.ob + 'KB / HUB_KEY ' + sz.hub + 'KB');
+  }
   let entered=false;
   for (let i=0;i<10;i++){
     await p.evaluate(() => { const b=[...document.querySelectorAll('button')].find(x=>/开始今天的练习|继续/.test(x.textContent||'')); if(b) b.click(); });
