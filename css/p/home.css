@@ -32,13 +32,22 @@ body.hub-home{ background-image:none; }
    🔴 首页不需要这层装饰（它服务的卡片形态在本页已不存在）→ 只在首页关掉，别的页/别的组件一行不碰。 */
 body.hub-home .hero::before{ display:none; }
 
-/* ===== hero 一行（稿 §二.1）：左 eyebrow + 问候大字 + 副行；右 距考大数字 ===== */
+/* ===== hero 一行（稿 §二.1）：左 eyebrow + 问候大字 + 副行；右 距考大数字 =====
+   PAGEHEAD-SLIM-1 第 3 笔（11-04，她点头定版第 5 节首页那行）：「问候与『还没设考试日期』
+   压成一行小字；去设置、30 秒搞定、四张统计卡、去计划页全部保留」。
+   🔴 首页这一笔跟前两笔不同 —— **不是删页头，是压缩**：日期、问候都是她的功能信息，只降视觉
+      权重、不隐藏。所以 h1 标签不动（仍是本页 h1）、id 一个不改、只改字号与排布。
+   🔴 只做减法：h1 24px→14px 并入日期那一行；副行 chips 不再单独占一行高度；不加任何底色/边框/阴影。 */
 .hero{display:flex;border-radius:0 !important;background:none !important;border:0 !important;box-shadow:none !important;
   padding:0 !important;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:0}
-.hero .eyebrow{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--primary-700);
-  font-weight:750;margin-bottom:5px}
-.hero h1{font-size:24px;line-height:1.25;letter-spacing:-.02em;color:var(--ink);margin:0;font-weight:760}
-.hero-sub{margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-height:20px}
+/* 左块改横向排：日期（.eyebrow）与问候（h1）同一基线一行，副行 chips 强制换到下一行。
+   原来这三样是纵向三行（eyebrow 18 + h1 30 + hero-sub 20 + 间距 = 79px），现在压成一行 + 可选 chip 行。 */
+.hero>div:first-child{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:10px;row-gap:2px;min-width:0}
+.hero .eyebrow{font-size:12px;letter-spacing:.02em;color:var(--primary-700);
+  font-weight:700;margin-bottom:0;flex:none}
+.hero h1{font-size:14px;line-height:1.35;letter-spacing:0;color:var(--ink-2);margin:0;font-weight:650;
+  min-width:0;overflow-wrap:anywhere}
+.hero-sub{flex:1 0 100%;margin-top:0;display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-height:0}
 /* 连续 chip 从旧绿条挪到副行：改成浅青底细 chip（稿内没有绿条） */
 .hero .streak-chip{background:var(--surface-2);color:var(--muted);border:1px solid var(--line);
   font-size:11.5px;padding:2px 9px;border-radius:999px;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
@@ -62,11 +71,14 @@ body.hub-home .hero::before{ display:none; }
 .countdown span{font-size:11px;color:var(--muted);white-space:nowrap}
 /* 未设考试日期态：一行小 chip（§四.1 要求，不许出现稿上没有的承诺）
    🔴 chip 内部两个 span 也必须是 inline —— 一行显示，不能拆成两段。 */
-.countdown .hero-setdate{display:inline-flex;align-items:center;gap:6px;background:var(--primary-50);
-  border:1px solid var(--primary-200);color:var(--primary-800);text-decoration:none;
-  font-size:12px;font-weight:700;padding:6px 12px;border-radius:10px;white-space:nowrap;width:auto;
+/* 未设考试日期态：PAGEHEAD-SLIM-1 第 3 笔 —— 定版要「压成一行小字」，所以把原来的浅青底
+   chip（底色 + 边框 + 10px 圆角 + 6/12 padding）收成纯文字一行，只留颜色区分可点。
+   🔴 这里只减不加：底色、边框、圆角、padding 全归零，字号比大数字小一档，链接照旧可点。 */
+.countdown .hero-setdate{display:inline-flex;align-items:center;gap:5px;background:none;
+  border:0;color:var(--primary-700);text-decoration:none;
+  font-size:12px;font-weight:650;padding:0;border-radius:0;white-space:nowrap;width:auto;
   vertical-align:middle}
-.countdown .hero-setdate:hover{background:var(--primary-100)}
+.countdown .hero-setdate:hover{background:none;text-decoration:underline}
 .countdown .hero-setdate .hs-t,.countdown .hero-setdate .hs-a{display:inline;white-space:nowrap}
 .countdown .hero-setdate .hs-a{font-size:11.5px;color:var(--primary-700)}
 
@@ -380,6 +392,15 @@ body.hub-home .hero::before{ display:none; }
 .setup .bar{width:120px;height:6px;border-radius:999px;background:var(--surface-2);overflow:hidden;flex:none}
 .setup .bar i{display:block;height:100%;background:var(--primary-500);border-radius:999px}
 
+/* PAGEHEAD-SLIM-1 第 3 笔 · 设置补齐条收敛（只收空间，**文案一个字没动** ——
+   这句「还有 N 项没设置（…）配齐后…才准。30 秒搞定 →」是 js/index.js:489 拼出来的，
+   本笔禁改动任何 js；所以只在 CSS 里把 padding / 行高 / 图标 / 进度条收紧，
+   让它在首屏少占高度，文字与两个链接（去设置、30 秒搞定）照旧完整可点。 */
+.setup{padding:10px 14px;gap:10px;margin-top:10px;border-radius:11px}
+.setup .ic{width:26px;height:26px;border-radius:8px}
+.setup .tx{min-width:0;font-size:12.5px;line-height:1.55}
+.setup .bar{width:88px;height:5px}
+
 /* 7 格小日历：本周（周一起），格内当天小时数，没学 = --，今天格外框 */
 .week7{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:12px}
 .w7{text-align:center}
@@ -407,10 +428,12 @@ body.hub-home .hero::before{ display:none; }
 /* 手机端：设计稿只给了桌面形态。照搬会把首屏撑长一大截（flex-wrap 后文字三行 + 进度条掉行），
    而她手机端「少即是多」是一贯口径 → 收紧凑：进度条收掉（缺几项文字里已经说了，纯重复）。 */
 @media (max-width:860px){
-  .setup{padding:11px 14px;gap:10px;margin-top:10px;border-radius:10px}
-  .setup .ic{width:26px;height:26px}
-  .setup .ic svg{width:14px;height:14px}
-  .setup .tx{font-size:12.5px;min-width:0}
+  /* PAGEHEAD-SLIM-1 第 3 笔：窄档这条原来比桌面还松（padding 11px > 桌面 14px 的外径感），
+     现在跟桌面同口径收紧，避免手机上补齐条反而更占高度。 */
+  .setup{padding:9px 12px;gap:9px;margin-top:9px;border-radius:10px}
+  .setup .ic{width:24px;height:24px;border-radius:7px}
+  .setup .ic svg{width:13px;height:13px}
+  .setup .tx{font-size:12px;line-height:1.5;min-width:0}
   .setup .bar{display:none}
 }
 @media (max-width:860px){
