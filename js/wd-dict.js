@@ -137,7 +137,8 @@
       }
       /* ===== 11-04 T13-AUDIOPUT-1（她拍板「修」）：显式落缓存，不依赖 SW 顺带写 =====
          为什么必须有这一段：部署 bump 之后第一轮，SW 缓存刚被清空、浏览器 HTTP 缓存还在。
-         此时 Audio 元素的 media 请求带 `Range: bytes=0-` → 拿到 206 → `cache.put` 在规范层直接抛
+         此时浏览器 HTTP 缓存层会对已在缓存里的条目合成 `Range: bytes=0-` 切片请求 → 拿到 206
+         → `cache.put` 在规范层直接抛
          TypeError（Partial response (status code 206) is unsupported）→ 落不了缓存 →
          她更新后第一次断网用听写，打字音就是哑的。实测证据：fromSW:true + 5 条 206 + 缓存 0/5。
          ⚠️ 三条硬约束，改这段的人一条都别动：
@@ -155,24 +156,50 @@
           for(var n = 0; n < files.length; n++) urls.push('/' + files[n]);
           urls.push('/sfx/correct.mp3', '/sfx/error.mp3');   // 判对/判错的反馈音同链路
           caches.keys().then(function(keys){
-            var cur = null;
-            for(var k = 0; k < keys.length; k++){ if(/^ielts-hub-v\d+$/.test(keys[k])) cur = keys[k]; }
-            if(!cur){
-              /* SW 还没装好（首访实测要 8~9 秒才接管）。这时请求根本不经过 SW，谁也不会写缓存——
-                 但不是永久失败：她刚装站那一轮也必须能落上，所以退避重试，4 次 × 2 秒 ≈ 覆盖装配窗口。
-                 这是 B1 整晚那个假 0/5 的根因，别再把它当产品缺陷。 */
-              if(_warmCacheTry++ < 4) setTimeout(warmCache, 2000);
+            var curKeys = [];
+            for(var k = 0; k < keys.length; k++){ if(/^ielts-hub-v\d+$/.test(keys[k])) curKeys.push(keys[k]); }
+            if(!curKeys.length){
+              /* SW 还没装好（首访实测要 8~9 秒才接管）。这时请求根本不经过 SW，谁也不会写缓存。
+                 她刚装站那一轮也必须能落上，所以退避重试：6 次 × 2 秒 = 12 秒，覆盖接管窗口
+                 （原先 4×2=8 秒刚好差一点点，B2 实测接管要 8858ms）。 */
+              if(_warmCacheTry++ < 6) setTimeout(warmCache, 2000);
               return;
             }
-            return caches.open(cur).then(function(c){
-              for(var m = 0; m < urls.length; m++){
-                (function(u){
-                  fetch(u).then(function(res){                  // ① 不带 Range
-                    if(!res || res.status !== 200) return;      // ② 只收 200
-                    return c.put(u, res);
-                  }).catch(function(){});                       // ③ 单条失败不打断
-                })(urls[m]);
-              }
+            /* 🔴 关键：先等 Audio 建池那批 media 请求跑完（默认 4 秒），再查缓存。
+               为什么不立刻查：缓存全空时立刻查一定全是 miss，fetch 一发出去就和 Audio 那条并行，
+               最后同一文件下两份（实测 mechanical 5 条 → 10 次请求 / 2.08x）。
+               延后之后：Audio 那条能落的已经落上 → 跳过；只有「Audio 拿 206 落不了」的才补一份。
+               这样正常环境 1.00x，而部署后首轮那个真问题照样修好。 */
+            return new Promise(function(res){ setTimeout(res, 4000); }).then(function(){
+              /* 逐条查：任一份匹配缓存里已有就整条跳过。
+                 🔴 这一步是 B2 红项的修复 —— 不加的话每次进听写题都可能重下一整份音效：
+                    sw.js 无 query 分支是 stale-while-revalidate，caches 命中也会 fetch(req) 并重写，
+                    所以裸 fetch 全部是真下载。 */
+              return Promise.all(curKeys.map(function(k){
+                return caches.open(k).then(function(c){
+                  return Promise.all(urls.map(function(u){
+                    return c.match(u).then(function(h){ return !!h; }).catch(function(){ return false; });
+                  }));
+                }).catch(function(){ return []; });
+              })).then(function(perCache){
+                for(var m = 0; m < urls.length; m++){
+                  (function(u, idx){
+                    var hasAny = false;
+                    for(var q = 0; q < perCache.length; q++){ if(perCache[q] && perCache[q][idx]) { hasAny = true; break; } }
+                    if(hasAny) return;                        // 任一缓存已有：不重拉
+                    fetch(u).then(function(res){              // ① 不带 Range
+                      if(!res || res.status !== 200) return;  // ② 只收 200（206 会让 put 抛异常）
+                      /* 全都没有才拉这一次，然后 clone 写进所有匹配缓存：
+                         双缓存下必定写进当前版本（防旧版劫持），且只下载一次（不双下载）。 */
+                      for(var q2 = 0; q2 < curKeys.length; q2++){
+                        (function(kn, body){
+                          caches.open(kn).then(function(c2){ return c2.put(u, body); }).catch(function(){});
+                        })(curKeys[q2], res.clone());
+                      }
+                    }).catch(function(){});                   // ③ 单条失败不打断循环
+                  })(urls[m], m);
+                }
+              });
             });
           }).catch(function(){});
         }catch(_){}

@@ -18,7 +18,7 @@
 | 基建 | 服务器、夹具、模板、白名单本身；不是断言 |
 | 在途 | 当前这一轮改动带出来的验收探针，双闸结案后应搬进 `_archived/` |
 
-## 根目录清单（74 支）
+## 根目录清单（89 支）
 
 | 状态 | 文件 | 管什么 |
 |---|---|---|
@@ -93,12 +93,12 @@
 | 回归白名单 | `_with_server.cjs` | 起服务器 → 跑目标探针 → 收尾（所有探针都从它进） |
 | 在途 | `_probe_ablate_1017.cjs` | 脚本依赖实测：拦掉单个脚本看首屏是否照常（被 bank.html 注释点名，留根目录） |
 | 在途 | `_probe_examcompact_1102.cjs` | EXAM-SCORE-COMPACT-1 八条口径（在途） |
-| 在途 | `_probe_rvbottom_1102.cjs` | RV-BOTTOM-23 复盘底部布局三条口径（在途） |
-| 在途 | `_probe_rvtop_1102.cjs` | RV-TOP-24/25 复盘顶部布局+用时进顶栏（在途） |
-| 在途 | `_probe_rvcolor_1102.cjs` | RV-COLOR-LOGIC-1/RV-BLANK-CA-2 对错颜色+框内正答（在途） |
-| 在途 | `_probe_timerpop_1102.cjs` | EXAM-TIMER-POP 两笔 计时弹窗四条口径（在途） |
-| 在途 | `_probe_aiexplain_1102.cjs` | RV-AI-EXPLAIN-1 复盘态 AI 讲解（v737 分栏口径） |
-| 在途 | `_probe_rvfix5_1102.cjs` | RV-FIX5 v737 六笔（底栏/判色/填空/绿标/分栏/工具条） |
+| 在途 | `_probe_rvbottom_1102.cjs` | RV-BOTTOM-23 复盘底部布局三条口径（在途）**文件不在本工作区**（11-04 归档时未见，`tests/` 不入库故无 git 记录，可能在其他窗口 worktree；名录保留供追溯） |
+| 在途 | `_probe_rvtop_1102.cjs` | RV-TOP-24/25 复盘顶部布局+用时进顶栏（在途）**文件不在本工作区**（同上） |
+| 在途 | `_probe_rvcolor_1102.cjs` | RV-COLOR-LOGIC-1/RV-BLANK-CA-2 对错颜色+框内正答（在途）**文件不在本工作区**（同上） |
+| 在途 | `_probe_timerpop_1102.cjs` | EXAM-TIMER-POP 两笔 计时弹窗四条口径（在途）**文件不在本工作区**（同上） |
+| 在途 | `_probe_aiexplain_1102.cjs` | RV-AI-EXPLAIN-1 复盘态 AI 讲解（v737 分栏口径）**文件不在本工作区**（同上） |
+| 在途 | `_probe_rvfix5_1102.cjs` | RV-FIX5 v737 六笔（底栏/判色/填空/绿标/分栏/工具条）**文件不在本工作区**（同上） |
 | 在途 | `_probe_sharedmap_1103.cjs` | BANK-SHARED-MAP-1 地图/配对题不再走共享组判分（缺键不进分母 / 复盘正答按单题 key / 真共享组照旧计分；基线 5 红） |
 | 在途 | `_probe_headmap_1103.cjs` | HEADING-BLOCK-DEL + MAP-MATRIX（heading 题目行整块隐藏仍可作答 / 段落槽带题号 / 地图题答题卡矩阵；基线 07e25a53 上 11 红，改后 0 红） |
 | 在途 | `_probe_headmap_mobile_1103.cjs` | 同上手机档 390 复核（整页无左右滑 / 矩阵容器内滚 / 触屏点格 / heading 槽尺寸） |
@@ -112,7 +112,7 @@
 | 在途 | `_probe_perfnav_1104.cjs` | PERF-VERIFY-B1-1 全站启动基线（七页冷/热 responseEnd·FCP·load + 首页→今日单词路径 + 长任务/pageerror；v760 40821c23 首跑 17 过 0 红 4 WARN 即基线） |
 | 在途 | `smoke_sd_1415.cjs` | 14 砍换词 + 15 堵 AI 超时静默放行 回归 |
 
-## `_archived/`（393 个文件）
+## `_archived/`（448 个文件）
 
 历史一次性探针，对应改动早已上线且双闸结案。**不删除、不再跑、不被任何脚本引用**；
 留在这里只为将来有人问「当初那个问题是拿什么量的」时能翻回来。
@@ -121,27 +121,32 @@
 
 | `_probe_perfwrite_1104.cjs` | 在途 | PERF-WRITE-1（v761）：一次作答只落一次盘。八项判据 × 390/1280：①OB_KEY 每答写入 ≤2.3 次（基线 3.2）②HUB_KEY 写入≈题数 ③单题落盘阻塞 ≤45ms ④续背回归 ⑤答错降级 ⑥跨天补写 ⑦已掌握写盘 ⑧零 pageerror。用 `addInitScript` 包 `Storage.prototype.setItem` 按调用栈归类（answer/next/mastered/book/other），**不要替换 wbSave**（会打断作答链）。`_base.txt` 可切本地/线上。 |
 
-## 11-04 夜班（v761–v764）一次性探针
+## 11-04 夜班（v761–v765）探针
+
+**已归档（`_archived/`，一次性用完，见 `_archived/` 目录）**：`_probe_perfall/_probe_perfbw/_probe_perfclick/_probe_perfdisk/_probe_perfredeploy/_probe_perfslow/_probe_perfw0/_probe_perfw0verify/_probe_perfword/_probe_perfword2/_probe_sfxbaseline/_probe_sfxnow/_probe_slim1_weaknet/_probe_swthrottle/_probe_swtimeline/_probe_w1preload/_probe_w1preload2/_slowsrv_1104.cjs` + `swricprobe.js`（19 支），
+以及 32 支 `_probe_slim2_*.cjs` 探索版（`_1104.cjs/_min/_warm/_key/_race/_mech/_dictenter/_idlemech/_wavdiag/_range206/_pauseabort/_concur/_concurrency/_onlinewav/_onlinewarm/_ric/_206put/_206clean/_httpcache/_httpcache2/_autoplay/_judge8/_activate/_netinfo/_noplay/_noplay2/_order/_warmonly/_idle8s/_idlekick/_mediastatus`）+ `_probe_slimverify_1104.cjs`。
+
+**留活（根目录，仍有验收职责）**：
 
 | 文件 | 状态 | 说明 |
 |---|---|---|
+| `_probe_slim2deploy_1104.cjs` | 在途 | **T13-AUDIOPUT-1 验收工具**。三步构造：①SW 接管后首次 warmKeys（期望 5/5）②只删 SW cache 里的 mechanical（期望 0/5，确认删干净）③重载重跑（= 部署 bump 后首轮，修好后期望 5/5）。**判据只看缓存条数，不看 media 状态码**——修好后 media 仍会返 206（HTTP 缓存还在），但显式 `fetch` 拿 200、`put` 成功。 |
+| `_probe_slim2key6_1104.cjs` | 在途 | 判据 6 专项：mechanical 首键 `keydown→playing`，连跑 3 次取中位数。**取值只认 `keyToSound != null && vol > 0`**，排除 warmKeys 的静音预热 play（`volume=0` 被 headless 拒属正常）。 |
+| `_probe_slim2neg_1104.cjs` | 在途 | 判据 8：断网首键，**必须独立 context**（同一 context 先敲过键再断网，测到的是 HTTP 磁盘缓存命中，假绿 66ms）。 |
+| `_probe_slim2sfx_1104.cjs` | 在途 | 判据 6 主跑 + 7 不回归 + 9 假旧 cache + 10 实况条数 + 8 断网，多判据串跑版。 |
+| `_probe_perfnav_1104.cjs` | 在途 | PERF-VERIFY-B1-1 全站启动基线（七页冷/热 responseEnd·FCP·load + 首页→今日单词路径 + 长任务/pageerror；v760 40821c23 首跑 17 过 0 红 4 WARN 即基线）。 |
 | `_probe_perfwrite_1104.cjs` | 在途 | PERF-WRITE-1（v761）：一次作答只落一次盘，八项判据 × 390/1280。`FILL_PROG=1` 灌真实规模（2651 词），`HISTN` 控历史条数。 |
-| `_probe_slim2_1104.cjs` | 在途 | SLIM-2 idle 补装 + activate 时刻（本地 loopback 口径，见下方说明） |
-| `_probe_slim2_min_1104.cjs` | 在途 | SLIM-2 分阶段最小版，定位崩溃用 |
-| `_probe_slim2_warm_1104.cjs` | 在途 | warmKeys 缓存命中 + 首键，**口径已过时**（判据 7 已移出验收） |
-| `_probe_slim2_key_1104.cjs` | 在途 | 真实 keyClick 链路 play→playing，5/5 |
-| `_probe_slim2_race_1104.cjs` | 在途 | 竞态专项：60/120/200/300/450/600ms 六个时间点按键全部有声，7/7 |
-| `_probe_slim2_mech_1104.cjs` | 在途 | mechanical 音色 0/5→5/5 + 首键中位（直接调 warmKeys） |
-| `_probe_slim2_dictenter_1104.cjs` | 在途 | **真实进听写题链路**：必须 `wbSetActive('rdtext')` 再 `obBankReady`，否则 wbWords 为 0 出不了题 |
-| `_probe_slim2_idlemech_1104.cjs` | 在途 | idle 补装能否补到 mechanical（第 87~91 位）。**本地 loopback 能跑满 138，线上 90 秒只 42 条** |
-| `_probe_slim2_wavdiag_1104.cjs` | 在途 | wav 请求 status 与 SW cache 对照 |
-| `_probe_slim2_range206_1104.cjs` | 在途 | **206 定案**：CDP Network 域看真实 status + Node 直连对照，四种方式全 200，本站不返回 206 |
-| `_probe_slim2_pauseabort_1104.cjs` | 在途 | 40KB/s 下核对 pause() 是否掐断 media 下载：5 条全 finished、零失败 |
-| `_probe_slim2_concur_1104.cjs` | 在途 | 产品形态（7 并发）5 轮缓存写入稳定性 |
-| `_probe_slim2_onlinewav_1104.cjs` | 在途 | 线上直接 new Audio×5 落缓存（带 autoplay 豁免） |
-| `_probe_slim2_onlinewarm_1104.cjs` | 在途 | 线上点开始→进听写→mount 预热（**默认策略**，不加豁免） |
-| `_probe_slim2_ric_1104.cjs` | 在途 | 核实 SW 作用域无 requestIdleCallback（`sw.js:758` 死分支）；配套 `swricprobe.js` |
-| `_probe_slim1_weaknet_1104.cjs` | 在途 | 弱网 install 装成哪几条：底线 10 条 + 分类计数 |
-| `_slowsrv_1104.cjs` | **不可信** | 带限速的本地静态服（全局令牌桶）。**40KB/s 下 372KB 文件实测 26.1s，理论 9.1s，过慢，数据不可用**，泵逻辑要重写才准 |
+| `_probe_t13accept_1104.cjs` | 在途 | T13-AUDIOPUT-1 验收（A1 自测口径，与 B1 的 `_probe_slim2deploy` 互补）：①部署后首轮 5/5 ②首次 warmKeys 5/5 不回归 ③判据 6 ≤150ms ④零 pageerror。 |
+
+## 探针方法学铁律（11-04 夜班，六次假红换来的）
+
+1. **测 SW 相关行为，必须先等 `navigator.serviceWorker.controller` 就绪。** 否则 `fromSW:false`，测的是「没有 SW 的页面」。SW 首次安装要 8~9 秒。
+2. **验证 HTTP 缓存行为时，预填、测量、对照组必须用完全相同的 URL。** 任何 query 串差异（`?_probe=1`、`&t=`）、任何 `cache` 模式差异（`no-store`）都等于换了 key，测的是另一个东西。
+3. **对照组必须真的是对照组**：warmKeys 当第一请求者 vs 不是，是两种状态，不能拿「空缓存下全 200」去反驳「有缓存时 206」。
+4. **判据必须用真实锚点元素**，不能用「正文字数」（单词页空态只有 213 字，`>250字` 永远等不到）。
+5. **`Fetch.enable` 必须带 `requestStage:'Response'`**，否则 `Fetch.getResponseBody` 报 `Can only get response body on HeadersReceived pattern matched requests`。
+6. **听写模式必须走页面内 `pcSave({questionMode:'dictation'})`**，直接写 localStorage 会被 DATA 载入/云合并覆盖回 visual；且 `ielts_hub_obank_v1.active` 要是真实库。
 
 **本地 loopback 口径的坑（务必记住）**：`python -m http.server` 不实现 Range，恒返回 200 全量；线上 Cloudflare 实测也是 200。但本地 loopback 带宽接近无限，`_probe_slim2_idlemech` 在本地能跑满 138 条、20 秒补到 mechanical，**线上 90 秒只补到 42 条永远补不到 mechanical**。凡涉及"能不能补满"，只认线上数据。
+
+**206 机制（11-04 定案，T17）**：`cache.put(206)` 规范层直接抛 `TypeError: Partial response (status code 206) is unsupported`。触发条件是「发请求那一刻该文件在不在浏览器 HTTP 缓存里」——不在 → 200 → 能落；在 → 206 → 落不了。**部署 bump 后首轮 SW 缓存已清、HTTP 缓存还在 → 必然 206 → 落不了**（实测 `fromSW:true` + 5 条 206 + 缓存 0/5）。`_slowsrv_1104.cjs` 不可信（40KB/s 下 372KB 实测 26.1s，理论 9.1s，泵逻辑要重写）。
