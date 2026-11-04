@@ -307,3 +307,42 @@
    页内作用域钉回 14，不动站点 token。 */
 .mat-page .mat-card,.mat-page .mat-mat,.mat-page .mat-persona{border-radius:14px}
 .mat-page .mat-q{border-radius:11px}
+
+/* ══════════════════════════════════════════════════════════════════════
+   PAGEHEAD-SLIM-1 第 9 笔（11-04）素材页引导屏页头精简
+   ══════════════════════════════════════════════════════════════════════
+   她 11-04 点头定版第 5 节素材页那行「删标题、副标语与说明段；素材编辑、题卡列表等功能原位」。
+
+   🔴 这页与前面八笔的根本不同：页头不是静态 DOM，是 js/materials.js 里 MI_INTRO_HTML 这段
+   字符串模板（10-25 从设计稿 machine 导出，注释明写「27 元素基线、勿手改」）在运行时注入
+   #matRoot 的。所以 js 一个字都不能动 —— 一改就是 js 改动 + 机器导出基线失效。
+   收页头只能靠纯 CSS。
+
+   收到哪两处：
+     · .mi-head —— h1「万能素材 · 串题」+ .mi-sub「一次写好经历，考场接到几十道题上」
+     · .mi-hero —— 眉题「雅思口语 P2 · 当季题库」+ h2 那句 + p 说明段 + .mi-nums 三个数字
+
+   一个不少（它们是功能与有效信息，不是装饰，全部原位保留）：
+     · .mi-pain   老办法 vs 串题 两栏对比
+     · .mi-card   流程四步说明
+     · .mi-vip-bar 会员提示 + #goVip「看看会员」按钮
+     · 底部 .mi-card  #startGen「生成我的串题卡」主按钮 + #backRes「回到我的素材」
+
+   ⚠️ 特异度纪律（为什么用 #introView 而不是 .mi-page）：
+   .mi-* 的规则并不在本文件里，而在本页 <head> 的内联 <style>（materials.html:375 的
+   .mi-head 是 (0,1,0)、:449 的 .mi-page .mi-head 是 (0,2,0)）。本文件在 <head> 里
+   排在那个内联 <style> 之前，同特异度写 .mi-page .mi-head 会被内联反压、规则失效。
+   所以用引导屏自己的根 id 做作用域 —— #introView 是 MI_INTRO_HTML 的最外层 div，
+   只在引导屏存在，既压得住内联的 (0,2,0)，又不会外泄到问卷态/结果态或别的页面。
+   已核：.mi-head / .mi-hero 的全部规则全站无 !important（本页那批 !important 只钉
+   .mi-vip-bar / .mi-btn-p / .mi-btn-lg / .mi-note 的 border-radius），**但 .mi-hero 那条例外**：
+   已核：#introView 这套样式站点里只有 materials.html 与 speaking.html 两份拷贝，
+   本文件不被 speaking.html 引用 —— 本笔只动素材页，口语页字节级零变化。
+   ⚠️ border-radius 单挂 !important 的理由：本页内联 <style> 里 MAT-INTRO-1（10-25）的「圆角二次钉死」把 .mi-page .mi-hero 的圆角用 !important 钉在 14px（原话「设计稿原值是唯一正确值，用 !important 是合理的锁」）。实测确认：不带 !important 时本规则其余声明全部生效、只有 border-radius 读回 14px —— !important 在普通声明之上，id 特异度压不过它。所以这里照本页既定做法用「id 特异度 + !important」钉平，不去打散那条锁。
+
+   position:absolute 是必须的，不是保险：只给 1px 留在文档流里，这块会白占
+   59px（桌面与窄档都是 59px）的高度，收页头就白收了。
+   用 clip-path 不用 display:none / visibility:hidden —— h1「万能素材 · 串题」是本页
+   唯一一级标题，后两者会把它从无障碍树摘掉。 */
+#introView .mi-head,
+#introView .mi-hero{position:absolute;width:1px;height:1px;padding:0;margin:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;background:none;box-shadow:none;border-radius:0 !important}
