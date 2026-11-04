@@ -670,6 +670,11 @@ body.exam-fullscreen .hub-topbar{display:none !important}
 #writeTabs .pill-tab.active::after{content:"";position:absolute;left:9px;right:9px;bottom:3px;height:3px;border-radius:2px;background:var(--primary-900)}
 #writeTabs .pill-tab[data-tab="bank"].active::after{background:var(--corpus)}
 #writeTabs .pill-tab[data-tab="score"].active::after{background:var(--warn)}
+/* ③c 深色档底条另给一个跳得开的值（B1 实测：浅色档的 --primary-900 在深色档翻成浅青
+   rgb(197,230,225)，压在深色档实心青底 rgb(92,179,171) 上对比度只有 1.86，几乎看不见；
+   浅色档同一枚是 3.15，勉强够 3:1）。深色档改取 --bg（近黑），在实心青底上形成挖空感、跳得开。
+   只覆盖深色档的模板那一枚：语料靛 / 评分橙是色相差，深色下仍分得清。 */
+[data-theme="dark"] #writeTabs .pill-tab.active::after{background:var(--bg)}
 
 /* ② 模板卡统一主青左条（原来只有 1px 灰边）。
    卡的外壳来自全局 .card（common.css:466：1px 边框 + 圆角 + 外投影），
