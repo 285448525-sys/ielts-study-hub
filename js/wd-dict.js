@@ -137,7 +137,8 @@
       }
       /* ===== 11-04 T13-AUDIOPUT-1（她拍板「修」）：显式落缓存，不依赖 SW 顺带写 =====
          为什么必须有这一段：部署 bump 之后第一轮，SW 缓存刚被清空、浏览器 HTTP 缓存还在。
-         此时浏览器 HTTP 缓存层会对已在缓存里的条目合成 `Range: bytes=0-` 切片请求 → 拿到 206
+         media 元素发请求时本就带 `Range: bytes=0-`（元素初始化就带，与 HTTP 缓存无关）；
+         文件已在 HTTP 缓存里时，该 Range 请求由缓存层本地切片并返回 206
          → `cache.put` 在规范层直接抛
          TypeError（Partial response (status code 206) is unsupported）→ 落不了缓存 →
          她更新后第一次断网用听写，打字音就是哑的。实测证据：fromSW:true + 5 条 206 + 缓存 0/5。
