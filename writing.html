@@ -648,6 +648,37 @@ body.exam-fullscreen .hub-topbar{display:none !important}
 #bootLoader.hide{opacity:0;pointer-events:none}
 #bootLoader .ui-loader{margin-bottom:8px}
 @media (prefers-reduced-motion: reduce){#bootLoader .ui-loader-dot,#bootLoader .ui-loader-shadow{animation:none}#bootLoader .ui-loader-dot{top:20px;height:20px;border-radius:50%;transform:none}#bootLoader .ui-loader-shadow{opacity:.5;transform:scaleX(1)}}
+
+/* ══════════════════════════════════════════════════════════════════════
+   COLOR-LAYER-1 第 7 单 第二笔（11-05）作文页配色层次
+   ══════════════════════════════════════════════════════════════════════
+   定版《配色层次-示意图-1104.html》口径 + ssr 施工要点单第 5 条（领头牛审过转施工）。
+   只加颜色、零结构改动、零新增节点、js 一行未改。
+
+   ① 三枚分栏 tab（模板 / 语料 / 评分）各配一条既有令牌色的底条。
+   ⚠️ 落点事实：writing.html 主块末尾有 @media (min-width:861px){#writeTabs{display:none}} ——
+   桌面端这三枚 tab 本来就不显示（10-23 批 B「撤页内小 tab」：桌面走顶栏二级，页内 tab 只留手机），
+   所以本组规则只在窄档 ≤860 可见。这是既有结构决定的，不是本笔漏做，记档。
+   用 border-bottom 而非 box-shadow：.pill-tab 全局自带外投影 box-shadow（common.css:965），
+   写成 box-shadow 会把那条投影顶掉；border-bottom 不动阴影，且 box-sizing:border-box 下按钮外高也不变。 */
+#writeTabs .pill-tab[data-tab="tpl"].active{border-bottom:3px solid var(--primary)}
+#writeTabs .pill-tab[data-tab="bank"].active{border-bottom:3px solid var(--corpus)}
+#writeTabs .pill-tab[data-tab="score"].active{border-bottom:3px solid var(--warn)}
+
+/* ② 模板卡统一主青左条（原来只有 1px 灰边）。
+   卡的外壳来自全局 .card（common.css:466：1px 边框 + 圆角 + 外投影），
+   所以直接把左边框由 1px 灰加粗成 3px 主青 —— box-sizing:border-box 下卡片外宽不变、内容左移 2px，
+   不动 box-shadow，投影 / hover 过渡 / 圆角都不受影响。
+   注：这里用 border-left 而不是像机经页那样用 inset box-shadow —— 机经页的行本来没有边框、
+   加边框会挤内容，所以走 inset；卡片本来就有 1px 边框，直接加粗这条边框才是最小改动。 */
+.tpl-card{border-left:3px solid var(--primary)}
+
+/* ③ 筛选 chip 选中态改浅青底（原来是实心主青 + 白字，按定版口径收成浅底深字）。
+   chip 由 js/writing.js:452/455 渲染、只切 .on 类，这里纯 CSS 覆盖；font-weight:700 等其余声明保留。 */
+#wbFilters .fchip.on{background:var(--primary-50);border-color:var(--primary-200);color:var(--primary-700)}
+
+/* ④ 模板分档徽章 .tpl-lv 现状已是 --primary-50 浅底 + --primary-200 边 + --primary-text 字（writing.html:161），
+   与定版口径一致，本笔不动。 */
 </style>
 <meta name="description" content="写作练习：模板填空、骨架默写练习与 AI 评分。" />
 <link rel="canonical" href="https://yasihub.com/writing" />
