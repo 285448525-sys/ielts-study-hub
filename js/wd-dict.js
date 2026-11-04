@@ -135,6 +135,48 @@
           }catch(_){}
         })(all[i]);
       }
+      /* ===== 11-04 T13-AUDIOPUT-1（她拍板「修」）：显式落缓存，不依赖 SW 顺带写 =====
+         为什么必须有这一段：部署 bump 之后第一轮，SW 缓存刚被清空、浏览器 HTTP 缓存还在。
+         此时 Audio 元素的 media 请求带 `Range: bytes=0-` → 拿到 206 → `cache.put` 在规范层直接抛
+         TypeError（Partial response (status code 206) is unsupported）→ 落不了缓存 →
+         她更新后第一次断网用听写，打字音就是哑的。实测证据：fromSW:true + 5 条 206 + 缓存 0/5。
+         ⚠️ 三条硬约束，改这段的人一条都别动：
+           ① `fetch(u)` 不带任何 Range 头 —— 一加必回 206，前功尽弃（无 Range 永远是 200 全量）。
+           ② 只 `c.put` status===200 的响应 —— 206 会让 put 抛异常，必须挡在 put 之前。
+           ③ 每条单独 `.catch` —— 一条失败绝不能打断后面几条，否则建池也断了，首键跟着变慢（倒退）。
+         与上面的「建池 + 静音 play 逼解码」是**并行两条路**，不是替换：
+           那条路保「首键快」（判据 6 ≤150ms），这条路保「断网也有声」，互不依赖。 */
+      var _warmCacheTry = 0;
+      (function warmCache(){
+        try{
+          if(typeof caches === 'undefined' || !caches.open) return;
+          var urls = [];
+          var files = KEY_SOUNDS[t].files;
+          for(var n = 0; n < files.length; n++) urls.push('/' + files[n]);
+          urls.push('/sfx/correct.mp3', '/sfx/error.mp3');   // 判对/判错的反馈音同链路
+          caches.keys().then(function(keys){
+            var cur = null;
+            for(var k = 0; k < keys.length; k++){ if(/^ielts-hub-v\d+$/.test(keys[k])) cur = keys[k]; }
+            if(!cur){
+              /* SW 还没装好（首访实测要 8~9 秒才接管）。这时请求根本不经过 SW，谁也不会写缓存——
+                 但不是永久失败：她刚装站那一轮也必须能落上，所以退避重试，4 次 × 2 秒 ≈ 覆盖装配窗口。
+                 这是 B1 整晚那个假 0/5 的根因，别再把它当产品缺陷。 */
+              if(_warmCacheTry++ < 4) setTimeout(warmCache, 2000);
+              return;
+            }
+            return caches.open(cur).then(function(c){
+              for(var m = 0; m < urls.length; m++){
+                (function(u){
+                  fetch(u).then(function(res){                  // ① 不带 Range
+                    if(!res || res.status !== 200) return;      // ② 只收 200
+                    return c.put(u, res);
+                  }).catch(function(){});                       // ③ 单条失败不打断
+                })(urls[m]);
+              }
+            });
+          }).catch(function(){});
+        }catch(_){}
+      })();
     }catch(e){}
   }
 
