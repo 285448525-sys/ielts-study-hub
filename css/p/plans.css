@@ -246,13 +246,34 @@
    🔴 字号/间距按稿子取，手机档再收一档（见 @media 760 段），守「不滚不裁」红线。
    ══════════════════════════════════════════════════════════════════════ */
 
-/* ── 页头：eyebrow + 大标题 + 副行 / 右侧阶段胶囊 ── */
-#mkToday .m-pghead{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin:0 0 26px}
-#mkToday .m-pghead-l{min-width:0}
+/* ── 页头：PAGEHEAD-SLIM-1（11-04，她点头定版《页头精简》第 1 节）──────────────
+   她 11-04 原话「所有页面我说了不要加这个前面这个标题」「尽量所有页面 100 缩放下
+   把屏幕占满」。定版第 1 节给计划页的开法：进去第一屏就是能点的日期条。
 
-#mkToday .m-h1{margin:5px 0 6px;font-size:30px;line-height:1.3;letter-spacing:-.035em;color:var(--ink)}
-#mkToday .m-pgsub{margin:0;color:var(--muted);font-size:14px}
-#mkToday .m-pghead-r{display:flex;align-items:center;gap:10px;flex:none}
+   改前实测量到的正是这一块：.m-pghead 高 73px + margin-bottom 26px = 99px 纯空白，
+   日期条要等到 y=197 才出现（1440×900 视口，改前基线见群里那份几何表）。
+
+   🔴 为什么是「视觉隐藏」而不是删节点：
+      · <h1 class="m-h1">学习计划</h1> 是**本页唯一的 h1**（plans.html 里 grep 全文只有 1 处）。
+        删了整页没有一级标题，读屏器与站点 SEO 都受影响；藏起来即可，语义还在。
+      · 副标语 .m-pgsub 是纯装饰，跟着一起藏。
+      · 阶段胶囊 .m-phase **不能留在这里被连带藏掉** —— js/plans.js 的 syncSkeleton()
+        用 mk.querySelector('.m-phase') 取节点、再往里写 .m-chip / .m-phatime，
+        节点被 display:none 包住它照样取得到（querySelector 不看可见性），但用户就再也
+        看不见「距考试 N 天」了，等于把她要的功能藏没了。所以节点已在 plans.html 里
+        整块搬到下面日期条右侧，这里不再管它的外观。
+   🔴 隐藏手法取「1px + clip-path」而不是 display:none：display:none 会把 h1 从无障碍树
+      一起摘掉，读屏器就真没了；clip-path 那套是标准 visually-hidden，视觉上看不见、
+      机器读得到。宽高都 1px + overflow:hidden，不会撑出任何滚动区（站点 common.css:2079
+      记过 sr-only 包含块逃逸撑出 166px 幽灵滚动区的旧账，这里靠 1px 尺寸规避）。
+   ⚠️ 若将来要把页头加回来：删掉这一条即可，下面的 .m-h1 / .m-pgsub 字号规则已随之删除，
+      恢复时按站点其他页 h1 口径重新给。 */
+#mkToday .m-pghead{position:absolute;width:1px;height:1px;padding:0;margin:0;overflow:hidden;
+  clip-path:inset(50%);white-space:nowrap;border:0}
+
+/* 阶段胶囊从页头搬进日期条后（PAGEHEAD-SLIM-1）：基础规则给它挂的 margin-bottom:12px
+   在 grid 里会把整行顶偏，这里清零。胶囊本体外观一个字没动，仍走下面 .m-phase-chip 那套。 */
+#mkToday .m-datebar .m-phase{margin:0;min-width:0}
 /* .m-phase 在新骨架里是「阶段那一行」的容器（胶囊 + 今天/往日 tab），本身不画外观；
    胶囊外观交给 .m-phase-chip。这样 #planTabs 仍是 .m-phase 的后代，
    P-HEAD-1 定下的回归判据（tab 并进阶段条那一行）继续成立。 */
@@ -266,8 +287,10 @@
   font-size:12px;font-weight:700;color:var(--primary-900)}
 #mkToday .m-phase .m-chip::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--primary)}
 
-/* ── 日期条 ── */
-#mkToday .m-datebar{display:grid;grid-template-columns:44px minmax(0,1fr) 44px;align-items:center;gap:12px;
+/* ── 日期条 ──
+   PAGEHEAD-SLIM-1：第三列之后多出一列给阶段胶囊（auto，按内容撑开；窄屏在下面 media 里换行）。
+   前三条列宽与改前完全一致，‹ / 日期 / › 的位置与尺寸零变化。 */
+#mkToday .m-datebar{display:grid;grid-template-columns:44px minmax(0,1fr) 44px auto;align-items:center;gap:12px;
   margin:0 0 22px;padding:14px 16px;background:var(--surface);border:1px solid var(--line);
   border-radius:var(--radius);box-shadow:0 1px 2px rgba(16,24,40,.03)}
 #mkToday .m-daynav-lg{width:44px;height:44px;padding:0;border:1px solid var(--line);border-radius:12px;
@@ -378,14 +401,16 @@
   #mkToday .m-ws{grid-template-columns:minmax(0,1fr) 270px;gap:16px}
 }
 @media(max-width:760px){
-  #mkToday .m-pghead{align-items:flex-start;gap:10px;margin-bottom:18px;flex-wrap:wrap}
-  #mkToday .m-h1{font-size:25px;margin-top:3px}
-  #mkToday .m-pgsub{font-size:12px}
-  #mkToday .m-pghead-r{width:100%;justify-content:space-between}
+  /* 页头已视觉隐藏（PAGEHEAD-SLIM-1），原来那几条 margin/字号/换行规则全部失去对象，随删除：
+     .m-pghead / .m-h1 / .m-pgsub / .m-pghead-r 的窄屏补丁在这里不再需要。
+     阶段胶囊的窄屏收档照留 —— 它现在住在日期条里，手机上仍是可见的实功能。 */
   #mkToday .m-phase-chip{padding:7px 9px;gap:6px;font-size:10px}
   #mkToday .m-phase b{font-size:12px}
+  /* 手机档：胶囊在 390 宽放不进第三列旁边 → 整行换到日期条下半行（grid 第 1 行跨满三列）。
+     span 1/-1 让它独占一行，不挤压 ‹ / 日期 / ›。 */
   #mkToday .m-datebar{grid-template-columns:38px minmax(0,1fr) 38px;padding:10px;gap:8px;
     margin-bottom:14px;border-radius:15px}
+  #mkToday .m-datebar .m-phase{grid-column:1/-1;justify-content:center;margin-top:2px}
   #mkToday .m-daynav-lg{width:38px;height:38px;border-radius:11px;font-size:17px}
   #mkToday .m-datetitle{font-size:16px}
   #mkToday .m-datesub{font-size:11px}

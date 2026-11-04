@@ -30,7 +30,7 @@
 </script>
 <title>计划 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css?v=20261101m" />
-<link rel="stylesheet" href="css/p/plans.css?v=20261104b" />
+<link rel="stylesheet" href="css/p/plans.css?v=20261104c" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -618,26 +618,19 @@
   -->
   <div class="m-mk" id="mkToday">
 
-    <!-- 页头：大标题 + 副行 / 右侧阶段胶囊 -->
+    <!-- 页头：PAGEHEAD-SLIM-1（11-04，她点头定版《页头精简》第 1 节）
+         这一块以前是「学习计划」大标题 + 副标语 + 右侧阶段胶囊，实测 73px 高 + 下边距 26px
+         = 99px 空区，进页面第一屏先撞一大片空白才到日期条。
+         现在只藏文字、不删节点（详因见 css/p/plans.css 的 .m-pghead 注释）：
+         · <h1> 保留（本页唯一 h1，删了丢页面标题语义），用 sr-only 那套视觉隐藏；
+         · 副标语是纯装饰，一起藏；
+         · 阶段胶囊 .m-phase 不能整块藏 —— js/plans.js:608 syncSkeleton() 要按
+           mk.querySelector('.m-phase') 取节点再填「阶段名 / 距考天数」，断了钩子首帧就被
+           try/catch 静默吞掉、页面变空壳。所以它整块搬到下面日期条右侧（连同「去设置 →」）。 -->
     <div class="m-pghead">
       <div class="m-pghead-l">
         <h1 class="m-h1">学习计划</h1>
         <p class="m-pgsub">把目标拆成今天能完成的一小步。</p>
-      </div>
-      <div class="m-pghead-r">
-        <!-- 阶段胶囊（「今天／往日」两个 tab 已提走，见 <main> 下同级的 #planTabs）。
-             🔴 PLAN-VISIBLE-4（11-02）：#planTabs 原来挂在这里 = 挂在 #ptabToday 内部 ——
-                切到「往日」时 `.tab-panel:not(.active){display:none}` 把整个 #ptabToday 藏掉，
-                #planTabs 跟着塌成 0×0（offsetParent=null），用户在往日页面上物理看不到、
-                也点不到切回「今天」的入口。实测 390 / 1280 两档：切往日后 tabsBox 全 0、
-                elementFromPoint 命不中。改法：#planTabs 提到两个 tab-panel 同级，
-                永远不随哪个 panel 显隐而消失；视觉位置由 plans.css 的 #planTabs 规则管。 -->
-        <div class="m-phase m-phase-row">
-          <div class="m-phase-chip">
-            <span class="m-chip">冲刺期</span>
-            <span class="m-phatime">距考试 <b>9</b> 天 · 倒数第 2 周</span>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -650,6 +643,20 @@
         <button type="button" class="m-backtoday" id="mkDayToday" hidden>回到今天</button>
       </div>
       <button type="button" class="m-daybtn m-daynav-lg" id="mkDayNext" aria-label="后一天">›</button>
+      <!-- 阶段胶囊（PAGEHEAD-SLIM-1：从页头整块搬来，节点与 id/class 一字未改）
+           🔴 不能删：js/plans.js 的 syncSkeleton() 按 mk.querySelector('.m-phase') 取它，
+              再往里填 .m-chip「阶段名」与 .m-phatime「距考试 N 天」。断了钩子首帧就被
+              try/catch 静默吞掉，页面只剩空壳。
+           🔴 也不能 follow PLAN-VISIBLE-4 的老坑：它现在挂在日期条里，而日期条在 #ptabToday
+              内部 —— 切到「往日」时整块 #ptabToday 会 display:none，胶囊跟着不见。
+              这没关系：往日面板本来就只该看历史，胶囊是「今天离考试还有几天」的信息，
+              往日页上不需要它，也没有任何 JS 依赖它在往日态可见（syncSkeleton 只在今天态跑）。 -->
+      <div class="m-phase m-phase-row">
+        <div class="m-phase-chip">
+          <span class="m-chip">冲刺期</span>
+          <span class="m-phatime">距考试 <b>9</b> 天 · 倒数第 2 周</span>
+        </div>
+      </div>
     </div>
 
     <!-- 主栏 + 右栏 -->
