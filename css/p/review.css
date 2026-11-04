@@ -38,3 +38,55 @@
 /* TREND-AXIS-1 1:1：趋势卡 hint 色按稿子（#6b7f7a），不改全局 --muted */
 .rv2-card .rv2-hint{color:#6b7f7a}
 .rv2-card .rv2-chart-foot{color:#6b7f7a}
+
+/* ══════════════════════════════════════════════════════════════════════
+   COLOR-LAYER-1 第 6 单（11-05）回顾页配色层次
+   ══════════════════════════════════════════════════════════════════════
+   定版《配色层次-示意图-1104.html》口径：四科各有身份色，成绩一眼能分栏。
+   四科→令牌（定版写明可调的设计取舍，要换只改这一段的令牌、不动布局）：
+     听力 --mock 青 · 阅读 --corpus 靛 · 写作 --warn 橙 · 口语 --speak 粉
+   全部用 common.css 里已有的令牌（浅色 L61-86、深色覆盖 L270-287 都已存在），
+   一个新色值都没引入；深色档靠令牌自己的深色覆盖跟着变，不另写深色规则。
+
+   ⚠️ 特异度必须够（ssr 要点单第 2 条，实测确认）：本文件前面已有
+     .rv2-subject.rvx-ok{border-left-color:var(--primary)}  (0,2,0)
+     .rv2-subject.rvx-weak{border-left-color:var(--warn)}    (0,2,0)
+   只写 .rv2-subject#rvxCellL（0,1,1）会被它们盖掉、色块被状态色吃掉。
+   所以身份色一律走 .rv2-subjects>#rvxCellX（id 特异度 1,1,0），稳压状态色。
+   分工：左条与底色 = 科目身份（固定不变）；>small 那枚达标徽章 = 状态（ok/weak）。 */
+
+/* 四科卡片外形：4px 左条 + 浅底 + 圆角（原为 2px 灰线 + 透明底 + 直角） */
+.rv2-subjects>.rv2-subject{padding:9px 11px 9px 13px;border-left-width:4px;border-radius:9px;min-width:0}
+.rv2-subjects>#rvxCellL{background:var(--mock-soft);border-left-color:var(--mock)}
+.rv2-subjects>#rvxCellR{background:var(--corpus-soft);border-left-color:var(--corpus)}
+.rv2-subjects>#rvxCellW{background:var(--warn-soft);border-left-color:var(--warn)}
+.rv2-subjects>#rvxCellS{background:var(--speak-soft);border-left-color:var(--speak)}
+/* 科目名跟着身份色走（原为统一的 --muted 灰） */
+.rv2-subjects>#rvxCellL>span{color:var(--mock-text)}
+.rv2-subjects>#rvxCellR>span{color:var(--corpus-text)}
+.rv2-subjects>#rvxCellW>span{color:var(--warn-ink)}
+.rv2-subjects>#rvxCellS>span{color:var(--speak-text)}
+
+/* 达标小徽章：把原来那行纯文字（「目标 7 · 差 0.5」/「目标未设」）用 CSS 扮成小徽章。
+   零新增节点、零 js 改动 —— 只是给已有的 >small 加外形。
+   ok 用主青系、weak 用警示系，与左条的科目身份色分工不重叠。 */
+.rv2-subjects>.rv2-subject>small{display:inline-block;margin-top:3px;padding:1px 7px;border-radius:6px;
+ background:var(--rv2-line);line-height:1.7}
+.rv2-subjects>.rv2-subject.rvx-ok>small{background:var(--primary-50);color:var(--primary-700)}
+.rv2-subjects>.rv2-subject.rvx-weak>small{background:var(--warn-soft);color:var(--warn-ink)}
+
+/* 记录行按类型加左色条（领头牛裁定①：js 不动的降级做法 —— 记录行只有 data-cat 三类，
+   没有科目属性，所以按 整卷/分项/口语 三类着现有色，不按四科分色）。
+   用 inset box-shadow 不用 border-left：不动盒模型，手机窄档零横滑是硬红线。 */
+.rv2-rec-row[data-cat="whole"]{box-shadow:inset 3px 0 0 var(--primary)}
+.rv2-rec-row[data-cat="part"]{box-shadow:inset 3px 0 0 var(--corpus)}
+.rv2-rec-row[data-cat="speaking"]{box-shadow:inset 3px 0 0 var(--speak)}
+
+/* 趋势线加深：只加粗，**不覆写 stroke 颜色** —— js/rvx-data.js:128 的 color 是按五个科目标签
+   动态变的，覆写颜色会把「按科目变色」这条既有能力打坏。 */
+.rv2-chart svg polyline{stroke-width:3}
+
+@media(max-width:760px){
+  .rv2-subjects>.rv2-subject{padding:8px 8px 8px 10px;border-left-width:3px}
+  .rv2-subjects>.rv2-subject>small{padding:1px 6px}
+}
