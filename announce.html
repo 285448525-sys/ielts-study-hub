@@ -10,6 +10,24 @@
      🔴 写在页内、不写 css/common.css：common.css 是共享层（A1 领地），本单只动页面层。 -->
 <style>
   .adetail .site-back{margin-bottom:12px}
+  /* PAGEHEAD-SLIM-1 第 6 笔（11-04，她点头定版第 5 节公告页那行「删眉题、大标题、副标语；
+     公告条目顶头，读过的不再打扰逻辑保留」）：整块 .anc-hero 收掉，公告条目顶上第一屏。
+     🔴 只藏不删：h1「公告」是本页唯一一级标题，连眉题「更新日志」和副标语一起收进这个 1px 盒，
+        节点与文字仍在无障碍树（用 clip-path 不用 display:none，后者会把 h1 一并摘掉）；
+        走 position:absolute 是为了退出文档流、不留那 93px 占位。
+     🔴 样式写在页内 <style> 里、不改 css/common.css —— .anc-hero 原定义在 common.css:2989，
+        那是全站共享层；本页 <style> 排在 common.css 之后且同特异度，能直接覆盖。
+     🔴 为什么还要下面那条 :has() 还原：本页 DOM 被「消息中心」这个视图复用
+        （announce.html?tab=msg，见 js/announce.js:84-93）。那个视图会把这块文字整个改写成
+        「消息中心 / 全部消息 / 公告、会员到期、学习提醒，都在这。」—— 那是**那个视图自己的标题**，
+        普通公告页的装饰在这里是有用的功能内容（js 注释里写着首版没换、用户以为走错页）。
+        所以只收普通公告页那一次渲染：列表里出现「返回公告列表」返回条（js 只在该视图写入）
+        就把页头放回来，消息中心保持原样。
+     🔴 本块里没有任何功能节点：#ancList / #ancDetail 在下面，id 与 js 一行未改。 */
+  .anc-hero{position:absolute;width:1px;height:1px;padding:0;margin:0;overflow:hidden;
+    clip-path:inset(50%);white-space:nowrap;border:0}
+  .anc-page:has(#ancList .site-back) .anc-hero{position:static;width:auto;height:auto;
+    overflow:visible;clip-path:none;white-space:normal;margin:0 0 18px}
 </style>
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
