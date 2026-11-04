@@ -673,8 +673,12 @@ body.exam-fullscreen .hub-topbar{display:none !important}
 /* ③c 深色档底条另给一个跳得开的值（B1 实测：浅色档的 --primary-900 在深色档翻成浅青
    rgb(197,230,225)，压在深色档实心青底 rgb(92,179,171) 上对比度只有 1.86，几乎看不见；
    浅色档同一枚是 3.15，勉强够 3:1）。深色档改取 --bg（近黑），在实心青底上形成挖空感、跳得开。
-   只覆盖深色档的模板那一枚：语料靛 / 评分橙是色相差，深色下仍分得清。 */
-[data-theme="dark"] #writeTabs .pill-tab.active::after{background:var(--bg)}
+   🔴 11-05 更正（B2 抓）：第一版选择器写成 [data-theme="dark"] #writeTabs .pill-tab.active::after，
+   特异度 (1,3,0) 与语料/评分那两条 (1,3,0) 相等、又写在最后，于是把这两枚的底条也一起改成了近黑
+   —— 三枚全黑，「你在哪一栏」的提示就没了。收窄成 [data-tab="tpl"]（(1,4,0)）后只作用于模板那枚，
+   语料仍是靛 rgb(125,122,255)、评分仍是橙 rgb(255,149,0)。
+   教训：写深色/状态覆盖时必须把同族每一条都实测一遍，不能只看选择器「以为」只命中一个。 */
+[data-theme="dark"] #writeTabs .pill-tab[data-tab="tpl"].active::after{background:var(--bg)}
 
 /* ② 模板卡统一主青左条（原来只有 1px 灰边）。
    卡的外壳来自全局 .card（common.css:466：1px 边框 + 圆角 + 外投影），
