@@ -1475,7 +1475,16 @@ function bindSideSearch(){
     if(_ssDictIdx) return Promise.resolve(_ssDictIdx);
     if(_ssDictIdxFailed) return Promise.resolve(null);
     if(_ssDictIdxLoading) return _ssDictIdxLoading;
-    _ssDictIdxLoading = fetch('data/official-banks/_index.json')
+    /* 🔴 11-04 B2 红-2（v773 补）：这个 fetch 原来**没有超时**。请求挂住时
+       （连接卡死、弱网掉包但不 RST）_ssDictIdxLoading 永远非空、_ssDictIdxFailed 永远不置位，
+       下面「加载中不落 AI」那条守卫就一直成立 —— 词书内的词永远提示「稍等再回车」，
+       **词书外的词 AI 也永远不触发**，查词整块永久不可用。改前（v769）这个场景至少能落到 AI。
+       修法：AbortController + 20 秒硬超时。20 秒的取法：40KB/s 实测索引要 13 秒（限速下的最慢真实值），
+       30KB/s 极端按比例约 17 秒，取 20 秒覆盖。真挂死的连接不会自己恢复，等 20 秒判失败远好于永久卡死。
+       超时按**失败**处理（_ssDictIdxFailed = true），照原样落 AI —— 宁可走 AI，不能让她查不了词。 */
+    var dictIdxAbort = typeof AbortController === 'function' ? new AbortController() : null;
+    var dictIdxTimer = dictIdxAbort ? setTimeout(function(){ try{ dictIdxAbort.abort(); }catch(e){} }, 20000) : null;
+    _ssDictIdxLoading = fetch('data/official-banks/_index.json', dictIdxAbort ? { signal: dictIdxAbort.signal } : undefined)
       .then(function(r){ if(!r || !r.ok) throw new Error('HTTP ' + (r ? r.status : 'x')); return r.json(); })
       .then(function(j){
         var rows = (j && Array.isArray(j.w)) ? j.w : [];
@@ -1489,11 +1498,15 @@ function bindSideSearch(){
         _ssDictMap = map;
         _ssDictIdx = rows;
         _ssDictIdxLoading = null;
+        if(dictIdxTimer) clearTimeout(dictIdxTimer);   // 成功也要清，别让页面多挂一个 20 秒定时器
         return rows;
       })
       .catch(function(){
-        _ssDictIdxFailed = true;             // 一次失败就不再反复重试（下次开页会重置）
+        /* 包含两种：①真失败（HTTP 错/解析错）②20 秒超时被 abort（AbortError）。
+           两种都按失败处理 —— 下一次打开页面会重置 _ssDictIdxFailed 再试一次。 */
+        _ssDictIdxFailed = true;
         _ssDictIdxLoading = null;
+        if(dictIdxTimer) clearTimeout(dictIdxTimer);
         return null;
       });
     return _ssDictIdxLoading;
