@@ -141,7 +141,7 @@
 
 **A1 的 T13/T18 配套探针（同批施工时留在根目录，A1 名下）**：`_logserv_t13.cjs`（带请求计数的本地服，端口 8795）、`_probe_t13ab_1104.cjs`（A/B 对照）、`_probe_t13traffic_1104.cjs` / `_probe_t13traffic2_1104.cjs`（流量前后对比）。
 
-## 探针方法学铁律（11-04 夜班，八次假红换来的）
+## 探针方法学铁律（11-04 夜班，九次假红换来的）
 
 1. **测 SW 相关行为，必须先等 `navigator.serviceWorker.controller` 就绪。** 否则 `fromSW:false`，测的是「没有 SW 的页面」。SW 首次安装要 8~9 秒。
 2. **验证 HTTP 缓存行为时，预填、测量、对照组必须用完全相同的 URL。** 任何 query 串差异（`?_probe=1`、`&t=`）、任何 `cache` 模式差异（`no-store`）都等于换了 key，测的是另一个东西。
@@ -153,6 +153,9 @@
 8. **数「零流量」不能数请求条数，只能数字节。** `Audio` 元素必然发出一条 media 请求，命中 SW 缓存时那条记录依然出现，只是 `encodedDataLength = 0`。按条数判会得到永假红。
 9. **音效文件清单别凭直觉写**：`bubble` 是 `1~8.wav` + **`enter.mp3`（不是 9.wav）**，`mechanical` 是 `1~5.wav`（见 `js/wd-dict.js:19-20` `KEY_SOUNDS`）。写错路径时 SPA 会返回 `index.html`（200 + text/html），播放报 `error`，造出假红。
 10. **SW 内部的 `fetch(req)` 回源不在页面的 Network 域里**，页面侧 CDP 只看得到 `fromSW:true` + `bytes:0`。要观测 SWR 是否 revalidate，必须 attach 到 `service_worker` target（`Target.attachToTarget` + 扁平化会话），否则会误判成「没有网络活动」。
+
+11. **测她报的 bug，必须先复刻她的进入路径（软导航 vs 直开）。** 这一条是 11-04 计划页塌陷换来的最大教训：B1 连续三轮用 `page.goto` 直开测「复现不出」，A1 扫码线也复现不出，结论都写成「她那边的问题」。真实病根是 `js/common-shell.js` 的 `swapPageStyles()` 软导航时把 `css/p/xxx.css` **appendChild 到 head 末尾**，落到页面内联 `<style>` 之后 —— 同特异度 `(0,1,0)` 后出现者胜，直开正常、软导航必塌。**她从来都是点顶栏导航进来的。** 判据：任何「布局/样式」类报障，两路都要测 —— `page.goto(页)` 与「首页 → 点顶栏进该页」，两者结果不一致本身就是 bug 线。
+12. **量「按键→出卡」必须在页面内打点，不能用外部 `Date.now()` 包围 + 固定 `waitForTimeout`。** 外部计时会把探针自己的等待算进去（11-04 查词复测首版因此多报 300ms）。正确做法：`addInitScript` 里挂 `MutationObserver`／`setInterval` 记录 `performance.now()`，两个页面内时刻相减。
 
 **本地 loopback 口径的坑（务必记住）**：`python -m http.server` 不实现 Range，恒返回 200 全量；线上 Cloudflare 实测也是 200。但本地 loopback 带宽接近无限，`_probe_slim2_idlemech` 在本地能跑满 138 条、20 秒补到 mechanical，**线上 90 秒只补到 42 条永远补不到 mechanical**。凡涉及"能不能补满"，只认线上数据。
 
