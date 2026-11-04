@@ -7,7 +7,7 @@
 (function autoCleanOldBank(){try{var key='ielts_study_hub_v1',raw=localStorage.getItem(key);if(!raw)return;var parsed=JSON.parse(raw);if(!parsed||!Array.isArray(parsed.speaking))return;var dirtyIds=['sb_p2_travel','sb_p2_earlymorning'],before=parsed.speaking.length,kept=parsed.speaking.filter(function(s){return !(s&&dirtyIds.indexOf(s.id)>=0)});if(kept.length!==before){parsed.speaking=kept;localStorage.setItem(key,JSON.stringify(parsed))}}catch(e){}})();
 </script>
 <title>回顾 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261101m"><link rel="stylesheet" href="css/p/review.css?v=20261104a"><link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7"><link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7"><link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7"><link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png?v=7"><link rel="manifest" href="/manifest.json"><meta name="theme-color" content="#3a9a93">
+<link rel="stylesheet" href="css/common.css?v=20261101m"><link rel="stylesheet" href="css/p/review.css?v=20261104b"><link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7"><link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7"><link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7"><link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png?v=7"><link rel="manifest" href="/manifest.json"><meta name="theme-color" content="#3a9a93">
 <script defer src="js/data.js?v=20261030a"></script><script defer src="js/common.js?v=20261104h"></script><script defer src="js/common-ai.js?v=20261104n"></script><script defer src="js/common-sync.js?v=20261101m"></script><script defer src="js/common-merge.js?v=20261101m"></script><script defer src="js/common-cloud.js?v=20261101m"></script><script defer src="js/common-shell.js?v=20261104b"></script><script defer src="js/common-pwa.js?v=20261101m"></script>
 <script defer src="js/feedback.js?v=20261027a"></script><script defer src="js/scores.js?v=20261103a"></script><script defer src="js/history.js?v=20261024a"></script><script defer src="js/rv-record.js?v=20261028a"></script><script defer src="js/mock-report.js?v=20261006a"></script><script defer src="js/mock-history.js?v=20261006b"></script><script defer src="js/rec-all.js?v=20261101i"></script><script defer src="js/mock-summary.js?v=20261001f"></script><script defer src="js/speaking-practice.js?v=20261006a"></script><script defer src="js/progress.js?v=20261024a"></script><script defer src="js/rvx-data.js?v=20261101l"></script><script defer src="js/review.js?v=20261023a"></script><script defer src="js/sprint.js?v=20261002a"></script>
 <style id="bootLoaderStyle">#bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:var(--bg);transition:opacity .18s}#bootLoader.hide{opacity:0;pointer-events:none}</style>
@@ -22,6 +22,17 @@
  <div id="mkAddWrap" class="rv2-form" hidden><div class="rv2-form-grid"><label>粒度<select id="mkGran"><option value="part">单项</option><option value="whole">整卷</option></select></label><label>科目<select id="mkType"><option value="listening">听力</option><option value="reading">阅读</option><option value="speaking">口语</option><option value="writing">写作</option></select></label><label>日期<input type="date" id="mkDate"></label></div><div id="mkPartPick"><label>选择 Part<select id="mkPart"></select></label></div><div id="mkPartInputWrap"><label for="mkPartInput" id="mkPartInputLabel">答对题数</label><input type="number" id="mkPartInput" min="0" placeholder="0"></div><div id="mkParts" hidden></div><button type="button" class="rv2-primary" id="mkAdd">保存分项</button></div>
 </form></dialog>
 <dialog id="rv2DetailDialog" class="rv2-dialog"><div class="rv2-dialog-shell"><div class="rv2-dialog-head"><h2>记录详情</h2><button class="rv2-close" data-close-detail aria-label="关闭">×</button></div><div id="rv2DetailBody"></div></div></dialog>
+ <!-- 页头：PAGEHEAD-SLIM-1 第 2 笔（11-04，她点头定版《页头精简》第 5 节回顾页那行）
+      原来这一条是「回顾」大标题 + 副标语 + 右侧「录入成绩」，实测 60px 高 + 20px 下边距。
+      现在只藏文字、不删节点：
+      · <h1> 保留（本页唯一 h1，删了丢页面标题语义），用 1px + clip-path 视觉隐藏；
+      · 副标语是纯装饰，一起藏；
+      · 「录入成绩」是功能按钮（打开 #rv2AddDialog），绑定在 js/rvx-data.js:221 的
+        document 级事件委托里，靠 el.closest('[data-rv2-add]') 认，跟它在哪无关。
+        所以 DOM 原地不动、只在 CSS 里把它定位到概览卡右上角，data-rv2-add 一字不改。
+      · 空账号时 js/rvx-data.js:18 会把 #rv2Summary 整块重写成 .rv2-empty（自带一枚同样的
+        data-rv2-add 按钮）。那种情况下这枚定位到空的概览卡上会悬空 —— CSS 用
+        `.rv2-head:has(+ .rv2-summary > .rv2-empty)` 在空态把它收掉，功能由空态卡里那枚承担。 -->
  <div class="rv2-head"><div><h1>回顾</h1><p>看清进步，也知道下一步练什么。</p></div><button class="rv2-primary" data-rv2-add>录入成绩</button></div>
  <section class="rv2-summary" aria-label="最近一次成绩" id="rv2Summary">
   <div class="rv2-latest"><div><div class="rv2-muted" id="rvxLeadLab">最近一次</div><div class="rv2-score"><span id="rvxNumAll">—</span><small> / 9</small></div></div><div class="rv2-target" id="rvxSubAll">还没有成绩</div></div>
