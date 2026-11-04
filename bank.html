@@ -2577,6 +2577,38 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 .bank-info-body{padding:0 12px 10px;font-size:12.5px;color:var(--muted);line-height:1.7}
 .bank-info-body b{color:var(--ink)}
 
+
+/* ══════════════════════════════════════════════════════════════════════
+   COLOR-LAYER-1 第 7 单（11-05）机经页配色层次
+   ══════════════════════════════════════════════════════════════════════
+   定版《配色层次-示意图-1104.html》口径：列表行按科目有身份色，一眼分得清。
+
+   🔴 落点偏差（实测得出，非照稿硬搬）：ssr 要点单原写「按 :has(.bi-ch.t1/.t2/.t3) 分三色」，
+   但实测四个 tab 下 40 行里**含 .bi-ch 的是 0 行** —— 那批题目没有 u.types
+   （标签由 js/bank.js:166 的 (u.types||[]).forEach 生成），标签组是空的，
+   :has() 一条都命中不了，照原写法一根色条都出不来。
+   领头牛 11-05 裁定：改用行上稳定存在的 data-ch 上色（实测每行都有，reading/listening 两值），
+   与回顾页四科色系同源；:has(.bi-ch.tX) 三条照写保留，真有 types 时才细化生效。
+   「三色」降级为「data-ch 两色 + 类型标签细化」已记档，要恢复三色需 js/bank.js 给行加类型属性（js 红线不动）。
+
+   ⚠️ 一律用 inset box-shadow 不用 border-left（ssr 要点单第 4 条的口径，分组头同样照办）：
+   不动盒模型，手机窄档零横滑是硬红线。 */
+.bank-item[data-ch="reading"]{box-shadow:inset 3px 0 0 var(--corpus)}
+.bank-item[data-ch="listening"]{box-shadow:inset 3px 0 0 var(--mock)}
+/* 真有类型标签时的细化色：:has() 的特异度按参数取，.bank-item:has(.bi-ch.tX) = (0,3,0)，
+   高于上面两条 [data-ch] 的 (0,2,0)，所以真有 types 时自然压过、无需 !important。
+   ⚠️ 当前题目数据（bank/manifest.json 627 篇）u.types 恒为空（"types" 出现 0 次），
+   这三条是**待数据带 types 时才生效**的规则，不是死代码 —— ssr 复验确认、领头牛裁定保留。 */
+/* 当前题目数据无 types，此组规则待数据带上类型标签后自然生效 */
+.bank-item:has(.bi-ch.t1){box-shadow:inset 3px 0 0 var(--primary)}
+/* 当前题目数据无 types，此组规则待数据带上类型标签后自然生效 */
+.bank-item:has(.bi-ch.t2){box-shadow:inset 3px 0 0 var(--aux-slate-400)}
+/* 当前题目数据无 types，此组规则待数据带上类型标签后自然生效 */
+.bank-item:has(.bi-ch.t3){box-shadow:inset 3px 0 0 var(--aux-clay-400)}
+/* 分组头：浅青底 + 3px 左条 + 圆角（原为透明底、无左条、直角、padding 10px 2px 6px）。
+   左条同样走 inset 不动盒模型；左侧留白由 padding-left 11px 承担。 */
+.bk-grp-h{background:var(--primary-50);box-shadow:inset 3px 0 0 var(--primary);border-radius:8px;
+ padding:9px 10px 7px 11px;margin:10px 0 4px}
 </style>
 </head>
 <body data-shell="top">
