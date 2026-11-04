@@ -1256,7 +1256,16 @@ async function swapPageStyles(doc, pageId){
     const fin = () => { if(!done){ done = true; res(); } };
     l.onload = fin;
     l.onerror = fin;
-    document.head.appendChild(l);
+    /* 11-04 PLAN-SOFTNAV-COLLAPSE-1（她报「加任务那一块挤成一字一行的窄条」的根因）：
+       这里原来是 appendChild —— 新样式表被追加到 <head> 末尾，落到了本页内联 <style> 之后。
+       同特异度 (0,1,0) 下后出现者胜，于是 css/p/xxx.css 里的老规则压掉了页面内联补丁：
+       直开 /plans.html 正常（内联在后），点顶栏导航进来必塌（CSS 被挪到内联后面）。
+       跟网速无关、跟缓存无关，只要走软导航就必现 —— 她一直是点导航进来的，所以只有她看得见。
+       修法：插到第一条内联 <style> 之前，让「外链 CSS 在前、页面内联在后」这个顺序
+       与直开完全一致；无内联样式时才退回 appendChild。这是一处修所有同类页的结构层改动。 */
+    const firstInline = document.head.querySelector('style');
+    if(firstInline) document.head.insertBefore(l, firstInline);
+    else document.head.appendChild(l);
     setTimeout(fin, 4000);   // 兜底：慢网/加载失败也不让软导航卡住
   })));
   oldLinks.forEach(el => el.remove());
