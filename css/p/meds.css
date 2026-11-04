@@ -10,3 +10,31 @@
 /* meds */
 .meds-bar-wrap{margin-top:12px}
 .meds-bar::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(45deg,rgba(255,255,255,.18),rgba(255,255,255,.18) 8px,transparent 8px,transparent 16px)}
+
+/* ══════════════════════════════════════════════════════════════════════
+   PAGEHEAD-SLIM-1 第 10 笔（11-04）服药页页头精简
+   ══════════════════════════════════════════════════════════════════════
+   她 11-04 点头定版第 5 节那行「删装饰页头、进去直接用功能」的口径。
+
+   🔴 这页的页头只有一种来源，而且不是静态 DOM：meds.html 的 <main> 里本来就没有 h1，
+   那句 <h1 class="page-title">服药</h1> 是 js/meds.js:6-10 在「服药模块未开启」时
+   整段写进 main.innerHTML 的。模块开启时这页压根没有页头（静态 DOM 第一块直接是
+   「今日状态」卡）。所以 js 一行不能动，页头只能靠纯 CSS 收。
+   已实测确认：开启态 main 的子元素是 SECTION.card + SECTION.card，无 .page-title。
+
+   作用域：本文件只被 meds.html 引用（全仓 grep 确认），所以写在这里天然只影响本页
+   —— 不去碰 css/common.css 里的共通 .page-title（别页还在用）。加载顺序也安全：
+   meds.html 是「common.css → css/p/meds.css → 内联 style」的标准顺序（不是素材页那种异类），
+   本文件排在 common.css 之后，同特异度也赢；软导航 swapPageStyles 把新样式表插到
+   第一条内联 style 之前，对本页正好是维持原顺序。
+
+   ⚠️ 选择器用 main.container > .page-title 而不是光秃秃的 .page-title：既明确「内容区第一层
+   的那个页头」，又比 common.css:465 的 .page-title 高一档（0,1,1 vs 0,1,0），
+   顺带压住 common.css @media 里那条同特异度的 .page-title{font-size:22px;margin-bottom:6px}。
+   本页无 data-mod，故 common.css:1892 那条 [data-mod] .page-title（0,2,0）不适用；
+   本页也没有 .page-head-row / .page-head-l 祖先，另两条高特异度规则同样不适用（已逐条核过）。
+
+   position:absolute 必须：只给 1px 留流里会白占 41px（桌面）/36px（窄档）+ 上下外边距。
+   用 clip-path 不用 display:none / visibility:hidden —— 收起后 h1 仍要在无障碍树里
+   （本页开启态本来就没有 h1，未开启态这一个是唯一的一级标题）。 */
+main.container > .page-title{position:absolute;width:1px;height:1px;padding:0;margin:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;background:none;border-radius:0;box-shadow:none}
