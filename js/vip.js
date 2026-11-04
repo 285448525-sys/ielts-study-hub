@@ -189,18 +189,19 @@ function renderVipPlans(){
   if(window.Pricing) Pricing.renderPlanCards(box, { featured:'month', recId:recId, recDays:daysLeft });
 }
 
-/* KIMI-P5-5（10-26）· loadVipStatus 新版：只在外层按稿子包 .kv-kicker + .kv-status，
+/* KIMI-P5-5（10-26）· loadVipStatus 新版：只在外层按稿子包 .kv-status（11-04 起 .kv-kicker 已删），
    三态内容、口径、交互一行没改。写成本文件再拼装，避免脚本里嵌模板字符串的转义坑。 */
 
 /* ---------- 状态卡：未登录 / 会员生效中 / 免费版 ----------
-   KIMI-P5-5（10-26）：外层按稿子包 .kv-kicker + .kv-status（左侧 3px 品牌边 + 大标题位），
+   KIMI-P5-5（10-26）：外层按稿子包 .kv-status（左侧 3px 品牌边 + 大标题位）；
+   11-04 EYEBROW-VIP-REMOVE-1：上面的 .kv-kicker 英文眉题（MEMBERSHIP · 当前状态）已删 ——
+   她 11-04 令「所有页面不要前面那个废话标题」，全站英文装饰眉题只此一处 + plans/review 两处（v770 已删），
    三态内容、口径、交互一行没改 —— 只多了一层包裹，让稿子那两条基线能匹配。 */
 async function loadVipStatus(){
   const box = document.getElementById('vipHero');
   if(!box) return;
-  const KICK = '<span class="kv-kicker">MEMBERSHIP · 当前状态</span>';
   if(!authToken()){
-    box.innerHTML = KICK + `
+    box.innerHTML = `
       <div class="kv-status">
         <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
           ${VIP_ICON_GOLD}
@@ -213,7 +214,7 @@ async function loadVipStatus(){
       </div>`;
     return;
   }
-  box.innerHTML = KICK + '<div class="kv-status"><div class="muted" style="font-size:13px">正在查询会员状态…</div></div>';
+  box.innerHTML = '<div class="kv-status"><div class="muted" style="font-size:13px">正在查询会员状态…</div></div>';
   let vip = null, acct = '';
   try{
     const j = await authApiPost({ action:'vip_status', token: authToken() });
@@ -221,7 +222,7 @@ async function loadVipStatus(){
     acct = j.acct || '';
   }catch(e){
     if(e && e.code === 'unauthorized'){
-      box.innerHTML = KICK + `
+      box.innerHTML = `
         <div class="kv-status">
           <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
             ${VIP_ICON_GOLD}
@@ -234,7 +235,7 @@ async function loadVipStatus(){
         </div>`;
       return;
     }
-    box.innerHTML = KICK + '<div class="kv-status"><div class="muted" style="font-size:13px">会员状态查询失败，请稍后刷新重试。</div></div>';
+    box.innerHTML = '<div class="kv-status"><div class="muted" style="font-size:13px">会员状态查询失败，请稍后刷新重试。</div></div>';
     return;
   }
   if(vip && vip.expire){
@@ -250,7 +251,7 @@ async function loadVipStatus(){
       const left = Math.max(1, Math.ceil((d.getTime() - Date.now()) / 86400000));
       datePart = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') + ' 到期（还剩 ' + left + ' 天）';
     }
-    box.innerHTML = KICK + `
+    box.innerHTML = `
       <div class="kv-status">
         <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
           ${VIP_ICON_GOLD}
@@ -262,7 +263,7 @@ async function loadVipStatus(){
         </div>
       </div>`;
   } else {
-    box.innerHTML = KICK + `
+    box.innerHTML = `
       <div class="kv-status">
         <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
           ${VIP_ICON_GOLD}

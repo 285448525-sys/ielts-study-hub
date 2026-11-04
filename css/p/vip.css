@@ -49,7 +49,6 @@
 .kv-page button, .kv-page a, .kv-page summary{ touch-action: manipulation; }
 .kv-page button{ cursor: pointer; }
 .kv-page a{ color: var(--kv-teal-d); }
-.kv-eyebrow, .kv-kicker{ font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: var(--kv-teal-d); }
 .kv-page h1, .kv-page h2, .kv-page h3, .kv-page p{ margin-top: 0px; }
 .kv-page h2{ font-size: 19px; line-height: 1.4; color: var(--kv-title); margin-bottom: 14px; }
 .kv-page h3{ color: var(--kv-title); font-size: 17px; }
@@ -149,7 +148,6 @@ details.kv-faq p{ color: var(--kv-muted); font-size: 13px; margin: 0px 0px 16px;
    字号也会被压成 13px。这一段靠提高具体度 + 排在最后来压住。
    🔴 别删：删了输入框立刻变双层框。 */
 .kv-page [hidden]{ display: none !important; }
-.kv-page .kv-eyebrow, .kv-page .kv-kicker{ font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: var(--kv-teal-d); }
 .kv-page .kv-layout{ display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
 .kv-page .kv-card{ background: var(--surface); border: 1px solid var(--kv-line); border-radius: 14px; padding: 24px; box-shadow: var(--kv-shadow); margin-bottom: 20px; }
 .kv-page .kv-full{ grid-column: 1 / -1; }
