@@ -1958,12 +1958,28 @@ const GROUPED_DOCK = [
      少一次点击；plans-hub.html 变成孤儿页（文件先留着，随时可回滚）。 */
   { id:'plans',  label:'计划', icon:'<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4"/>',
     page:'plans', members:['plans'] },
+  /* 🔴 11-05 手机端补「回顾」入口（她报的「轨迹页进不去」真因）——
+     手机端整个顶栏 #mainNav 是 display:none，而「回顾 / 成绩 / 轨迹」三个链接只在顶栏二级菜单里，
+     首页那张「回顾」卡在手机上也是 w=0 不可见 → 手机用户**没有任何一步可达**的路径进回顾页，
+     更别说直接落「轨迹」。这里补一格直达入口，插在「计划」之后、「我的」之前。
+     - page:'review'：直达 review.html（本组只有 1 项，无需 members，与首页组同口径）。
+     - icon 取 ICON.review 里的 path 裸串：injectGlobalDock 会用 svgOf() 自己再包一层 <svg viewBox…>，
+       直接传 ICON.review（那本身就是完整 <svg>）会产生嵌套 svg 标签。
+     - ⚠️ 底栏 href 由 PAGES[g.page].file 拼出（见 injectGlobalDock），**链路不吃 query** ——
+       所以这里只能落裸 review.html（落点在概览卡顶部），做不到「一进去就落在记录/轨迹栏」；
+       要带 ?sub=record 需在 injectGlobalDock 的 href 拼接里加 (g.query||'')，属禁区外的一处改动，
+       已报领头牛待裁，本笔不擅自做。 */
+  { id:'review', label:'回顾', icon:'<path d="M5 4v16h15"/><path d="M9 14v4M13 10v8M17 6v12"/>', page:'review' },
   { id:'study',  label:'学习', icon:'<path d="M4 19.5V6a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-1.5z"/><path d="M4 19.5A2 2 0 0 1 6 18h13"/>',
     page:'study',     members:['practice','speaking','writing','bank','corpus'] },
   /* 10-23 她拍板删服药页入口 → members 去掉 'meds'（文件与 DATA.meds 保留）。
      timer 早在 10-21 就已从 members 撤掉（commit 47d39f9），这里不动。 */
+  /* 11-05：me.members 移除 'review' —— 防底栏高亮漂移（review.html 现由上面新增的 review 组接住，
+     若两个组都认它，dockGroupOfPage 取先命中的那个，高亮会不稳定）。
+     me 组页（me.html）自身的高亮不受影响：它靠 g.page==='me' 命中（靠 page 不靠 members）；
+     me 组页里那张「回顾」卡片**保留不动** —— 删卡等于砍掉一个她可能已在用的入口，属她没要求的变化。 */
   { id:'me',     label:'我的', icon:'<circle cx="12" cy="8" r="3.6"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/>',
-    page:'me',        members:['review','vip','settings'] }
+    page:'me',        members:['vip','settings'] }
 ];
 
 /* 当前页属于哪个 dock 组 —— injectGlobalDock（首屏高亮）与 updateActiveNav（软导航高亮）
