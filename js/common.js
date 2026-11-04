@@ -1516,7 +1516,6 @@ function bindSideSearch(){
       else if(/(ed)$/.test(base) && base.length > 4) nxt = base.slice(0, -2);
       else if(/(ing)$/.test(base) && base.length > 5) nxt = base.slice(0, -3);
       else if(/(est)$/.test(base) && base.length > 5) nxt = base.slice(0, -3);
-      else if(/(er)$/.test(base) && base.length > 4) nxt = base.slice(0, -2);
       if(!nxt) break;
       push(nxt);
       /* 双写辅音（stopped → stop / running → run）：去掉重复的那个字母再试一轮 */
@@ -1534,7 +1533,6 @@ function bindSideSearch(){
     /* ① 她的词库（DATA.words）—— 她自己有的记录优先 */
     var mine = DATA.words || [];
     if(mine.length){
-      var mineMap = null;
       for(var v = 0; v < variants.length; v++){
         var target = variants[v];
         for(var i = 0; i < mine.length; i++){
@@ -1574,7 +1572,29 @@ function bindSideSearch(){
         ]);
         local = ssDictLookup(wq);
       }
+      /* 🔴 11-04 B2 P2-1：索引**确实正在加载**、只是还没好（_ssDictIdxLoading 非空）时，
+         不能落到 AI 路径。原因：AI 路径会自动把词写进她的词库（她早先拍板的产品特性），
+         于是同一个词「索引就绪前查」和「索引就绪后查」行为不一致 —— 慢网首次查词会写进
+         一条 AI 生成的词条，之后本地命中又不写，词库被污染。B2 在 40KB/s 下实测：
+         索引要 13 秒，这段窗口里连查三个词书内的词，三次全部走了 AI。
+         这里改成给一行提示、不落 AI；索引加载完成后自动恢复本地命中。
+         **只有确实失败（_ssDictIdxFailed）时才按原样落到 AI** —— 那种情况不能让她查不了词。 */
+      if(!local && _ssDictIdxLoading && !_ssDictIdxFailed){
+        _ssAiBusy = false;
+        var loadingInner = '<div class="sc-head"><span class="sc-en">' + escapeHtml(wq) + '</span></div>'
+          + '<div class="sc-cn">词库正在加载，稍等再回车</div>';
+        var loadingCard = list.querySelector('.ss-card');
+        if(loadingCard) loadingCard.outerHTML = ssCardHtml(loadingInner, wq);
+        else list.insertAdjacentHTML('beforeend', ssCardHtml(loadingInner, wq));
+        show();
+        return;
+      }
       if(local){
+        /* 🔴 11-04 B2 红-1：本地命中是新增的提前 return，原来只清 _ssAiBusy、没递增 token。
+           于是还在飞的旧 AI 响应回来时 token 校验仍然通过，会照常渲染卡片**并走 hubSave 写词库**。
+           B2 实测（AI 延迟 3.5s）：查 gewu（AI 等返回）→ 立刻改查 potential（本地命中、卡片正确）
+           → 3.5 秒后卡片被覆盖回 gewu，词库里多出 gewu。递增 token 后过期响应一律丢弃。 */
+        _ssAiToken++;
         _ssAiBusy = false;
         const lInner = '<div class="sc-head"><span class="sc-en">' + escapeHtml(local.en) + '</span>'
           + '<button class="sc-speak" type="button" data-speak="' + escapeHtml(local.en) + '" aria-label="朗读">'
