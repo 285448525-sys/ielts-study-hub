@@ -73,37 +73,26 @@
   }
 
 
-  /* 🔴 10-23 2-1d 批 B 补：顶栏「回顾」二级落地（R-2 起：?sub=score|record，
-     三个老值 breakdown / overall / speaking 由 LOOKUP 映射到 score）。
-     桌面已撤掉 .review-pill-tabs，分栏入口改由顶栏二级接管。用**现成的全局 tab 处理器**
-     （common-pwa.js 的 .tab-btn 委托）——直接 .click() 药丸按钮，不重写切换逻辑。
-     🔴 10-23 23:2x 她：「可以点进去了，但是会闪一下模考再进入正确的页面」。
-     原因：原来只在 +300ms 切一次，首帧必然先画默认的「模考」。改成**切两次**：
-       ① ready() 里立刻切（软导航内容刚注入、首帧之前就切好 → 一帧不闪）
-       ② +300ms 再切一次（scores/history 的 ready 可能把 active 复位，这条兜底必须留）
-     ⚠️ sub 只能取一次：tbSubPending 是「取用即删」的暗号，第二次调已经空了 → 先存进闭包再应用两次。 */
-  function applySubTab(){
-    try{
-      let sub = (typeof tbSubPending === 'function') ? tbSubPending('review') : '';
-      if(!sub) return;
-      /* R-2：老深链值（breakdown / overall / speaking）都落到「成绩」栏，
-         与 review.html 内联脚本那张 MAP 表完全一致 —— 两处必须同源，
-         否则内联脚本先按老值切一次、本函数再切一次会互相打架。 */
-      const LOOKUP = { breakdown: 'score', overall: 'score', speaking: 'score' };
-      sub = LOOKUP[sub] || sub;
-      const apply = function(){
-        const btn = document.querySelector('.review-pill-tabs .tab-btn[data-tab="' + sub + '"]');
-        if(btn) btn.click();
-      };
-      apply();
-      setTimeout(apply, 300);
-    }catch(e){}
-  }
-
+  /* 🔴 11-05 死壳清理（REVIEW-DEADSHELL-1）：这里原本有一个 applySubTab()，作用是读 sessionStorage
+     交接暗号 hub_sub_review → 去 .click() 桌面已撤掉的那两个 .review-pill-tabs 药丸按钮。
+     实测（B2 核 + A1 复验）它**完全不产生任何效果**，纯空转，故整块删除：
+       ① 那两个按钮宽 0 高 0、文本为空，用户点不到；
+       ② 它触发的 common-pwa.js:70 那条 .tab-btn 全局委托，开头就是 b.closest('.tabs')，
+          而壳上是 class="review-pill-tabs"（没有 tabs 类）→ 直接 return，什么都不做；
+       ③ 真正让「顶栏二级 → 轨迹」落点的是 js/rvx-data.js:280 的 deepLink()（读 location.search 的 sub），
+          与这条死壳无关 —— 实测软导航点「轨迹」后 URL 是 /review.html?sub=record、筛选切到 all，
+          删前删后这一路径的读数逐值相同。
+     ⚠️ 交接暗号机制本身没废，别处还在用（bank / corpus / plans / practice / speaking / writing），
+     只是 review 这一路不再需要它了。 */
   ready(() => {
     ensureMockHistory();
     ensureSpeakingPractice();
     initRvFold();
-    applySubTab();
+    /* 死壳删掉后 hub_sub_review 这个交接暗号不再有人消费 —— 顶栏二级的落点现在由
+       js/rvx-data.js:280 的 deepLink() 读 URL query 完成（软导航下 URL 已带 ?sub=，实测过）。
+       这里只把可能残留的暗号取走丢掉：暗号机制的不变式是「取用即删」，留着它的话，
+       下一次「普通进入」回顾页（无 sub 意图）会被上一次的交接劫持 —— 正是 :614 注释要防的那种。
+       只为维持不变式，不做任何落点动作。 */
+    try { if (typeof tbSubPending === 'function') tbSubPending('review'); } catch (e) {}
   });
 })();
