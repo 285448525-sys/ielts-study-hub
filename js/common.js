@@ -1664,6 +1664,26 @@ function bindSideSearch(){
     }
   }
 
+  /* 11-04 SS-DICT-WARM-1（她 11-04 报「搜索个单词出来的太慢了」的收尾）：进站就把查词索引预取出来。
+     B1 实测：页面刚打开就立刻 Ctrl+K 查词要等 0.9~1.2 秒，本地查词本身只有 6~22ms，
+     那段时间全花在首次拉取并解析 data/official-banks/_index.json（六本官方词书去重合并 6462 条，
+     gzip 163KB）上。她正是「进首页马上查」的用法，所以不等她 focus 才开始拉。
+     时机：**等 load 之后**再在 idle 里拉 —— 绝不用预取跟首屏抢带宽
+     （W1 preload 那次就是抢带宽把 FCP 挤慢的教训）。无 requestIdleCallback 的浏览器退 1500ms。
+     失败静默：ssDictLoadIndex 自己 catch 并置 _ssDictIdxFailed，一次失败不反复重试。
+     下面 focus / input 那两处预热一行不动，作为兜底。只预取，不改命中逻辑、不动词库。 */
+  (function warmDictIndex(){
+    function start(){
+      if(typeof window.requestIdleCallback === 'function'){
+        window.requestIdleCallback(function(){ ssDictLoadIndex(); }, { timeout: 3000 });
+      }else{
+        setTimeout(ssDictLoadIndex, 1500);
+      }
+    }
+    if(document.readyState === 'complete') start();
+    else window.addEventListener('load', start, { once: true });
+  })();
+
   input.addEventListener('focus', function(){ renderMatch(); ssDictLoadIndex(); });
   input.addEventListener('input', function(){ renderMatch(); ssDictLoadIndex(); });
   /* design/83：type=search 原生 × 只触发 search 不触发 input，结果清空后面板要跟着回空态。
