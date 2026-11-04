@@ -17,7 +17,24 @@
 <style>
 /* 新手入门页（10/10 批⑥）—— 只用 common.css 的 token，不引入新色相 */
 .bn{max-width:760px;margin:0 auto;padding:8px 0 60px}
-.bn-hero{padding:26px 0 22px;border-bottom:1px solid var(--line);margin-bottom:8px}
+/* PAGEHEAD-SLIM-1 第 7 笔（11-04，她点头定版第 5 节新手页那行「删眉题、大标题、长介绍；正文顶头」）：
+   整块 .bn-hero（眉题「新手必读」+ h2「第一次考雅思？…」+ 后面那整段长介绍）收掉，第一节正文顶上第一屏。
+   🔴 只藏不删：h2 是本页唯一的标题级元素（本页没有 h1），节点与文字仍留在无障碍树 ——
+      用 clip-path 不用 display:none / visibility:hidden，后两者都会把它从无障碍树里摘掉。
+      走 position:absolute 是为了退出文档流，不留那 194px（桌面）/ 239~266px（窄档）的占位。
+   🔴 这一条不只是「藏」：原样式在两边各写了一次 —— 本页内 .bn-hero 给了 padding 26/0/22 +
+      下分隔线 + margin-bottom 8，css/p/beginner.css:59 又给了 padding 26/28 + 白底 + 边框 +
+      圆角 + 阴影（还有 @media 里一条 padding 22/20）。所以必须把这些视觉属性逐项显式归零，
+      否则 1px 盒里还留着一小块白底带边框的「幽灵卡片」。本页 <style> 在 beginner.css 之后、
+      同特异度，能盖住那两处。
+   🔴 本块里没有任何功能节点：本页没有业务 js，眉头里也没有按钮或 id，纯装饰。 */
+/* 🔴 选择器必须带 .bn-page：css/p/beginner.css:145 / :189 / :223 另有一套 `.bn-page .bn-hero`
+      （特异度 0,2,0 比单类高一级，里面同样给了 padding 26/28、白底、边框、圆角、阴影，
+      @media ≤640 里还有 padding 22/20）—— 只写 `.bn-hero` 会被它压住，盒子收不成 1px，
+      白底带边框的「幽灵卡片」还留在页面上（第一版就是这么错的，实测 58×54 白底可见）。
+      本页 <style> 排在 beginner.css 之后，同特异度下后来者胜，所以对齐到 .bn-page .bn-hero 即可。 */
+.bn-page .bn-hero{position:absolute;width:1px;height:1px;padding:0;margin:0;overflow:hidden;
+  clip-path:inset(50%);white-space:nowrap;border:0;background:none;border-radius:0;box-shadow:none}
 .bn-kicker{display:inline-block;font-size:12px;font-weight:800;letter-spacing:.12em;color:var(--primary-text);background:var(--primary-50);border-radius:999px;padding:5px 12px;margin-bottom:14px}
 .bn-hero h1{font-size:29px;line-height:1.35;margin:0 0 12px;color:var(--ink);letter-spacing:-.01em}
 .bn-hero p{margin:0;font-size:15px;line-height:1.8;color:var(--muted)}
