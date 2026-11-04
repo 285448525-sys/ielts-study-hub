@@ -316,6 +316,9 @@ export async function onRequest(context) {
   const model = (env && env.AI_MODEL) || DEFAULT_MODEL;
   let maxTokens = parseInt(body && body.max_tokens, 10);
   if (!maxTokens || isNaN(maxTokens) || maxTokens <= 0) maxTokens = 4096;
+  /* SS-DICT-LOCAL-1（11-04）：查词是微内容（一个词最多四个短字段），4096 的默认窗口纯浪费生成时间。
+     只对 service==='words' 且前端没显式传 max_tokens 时兜底 256；其它 service 一字不动。 */
+  if (service === 'words' && !(body && body.max_tokens)) maxTokens = 256;
   if (maxTokens > MAX_MAX_TOKENS) maxTokens = MAX_MAX_TOKENS;
   let temperature = Number(body && body.temperature);
   if (isNaN(temperature) || temperature < 0) temperature = 0.7;

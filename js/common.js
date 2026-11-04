@@ -1455,8 +1455,142 @@ function bindSideSearch(){
     return '<div class="ss-card"' + (word ? ' data-word="' + escapeHtml(word) + '"' : '') + '>' + inner + '</div>';
   }
 
+  /* ═══ SS-DICT-LOCAL-1（11-04，她报「Ctrl+K 查词太慢」）═══
+     查词提速的第一刀：**先查本地，命中就不发 AI 请求**。
+     为什么值得做：她查的词大部分在六本官方词书里（10154 条去重后 6462 个词），
+     这些词的释义/音标/词性本来就在本地，没必要为它等一次 AI 往返。
+     数据源两条：
+       ① DATA.words —— 她既往 AI 查过、已进词库的词（含她自己加的），最贴近她的记录
+       ② data/official-banks/_index.json —— 六本词书去重合并（418KB raw / 163KB gzip）
+          懒加载：第一次真要用才 fetch；之后常驻内存；失败静默（下次再试）
+     ⚠️ 只做「去掉词尾」方向的变形归一（objections → objection），不做反向派生。
+     命中后**不写词库**：查词卡是「查」不是「加」，她没点「加入词库」就不该动 DATA.words。
+     （原 AI 路径的行为不变：AI 查词仍然自动入词库，那是她早先拍板的产品特性。） */
+  var _ssDictIdx = null;          // null=未加载  [] = 加载完成（可能为空）
+  var _ssDictIdxLoading = null;
+  var _ssDictIdxFailed = false;
+  var _ssDictMap = null;          // Map(lower(en) -> [en,cn,pos,ipa])
+
+  function ssDictLoadIndex(){
+    if(_ssDictIdx) return Promise.resolve(_ssDictIdx);
+    if(_ssDictIdxFailed) return Promise.resolve(null);
+    if(_ssDictIdxLoading) return _ssDictIdxLoading;
+    _ssDictIdxLoading = fetch('data/official-banks/_index.json')
+      .then(function(r){ if(!r || !r.ok) throw new Error('HTTP ' + (r ? r.status : 'x')); return r.json(); })
+      .then(function(j){
+        var rows = (j && Array.isArray(j.w)) ? j.w : [];
+        var map = Object.create(null);
+        for(var i = 0; i < rows.length; i++){
+          var row = rows[i];
+          if(!row || !row[0]) continue;
+          var k = String(row[0]).trim().toLowerCase();
+          if(k && !map[k]) map[k] = row;      // 先出现者优先（六本之间重叠时保留首个）
+        }
+        _ssDictMap = map;
+        _ssDictIdx = rows;
+        _ssDictIdxLoading = null;
+        return rows;
+      })
+      .catch(function(){
+        _ssDictIdxFailed = true;             // 一次失败就不再反复重试（下次开页会重置）
+        _ssDictIdxLoading = null;
+        return null;
+      });
+    return _ssDictIdxLoading;
+  }
+
+  /* 常见变形归一：只往「去词尾」一个方向试，最多三轮（unhappiness 这类不追） */
+  function _ssDictVariants(w){
+    var out = [];
+    var seen = {};
+    function push(x){ if(x && x.length >= 2 && !seen[x]){ seen[x] = 1; out.push(x); } }
+    push(w);
+    var base = w;
+    for(var round = 0; round < 3; round++){
+      var nxt = null;
+      if(/(ies)$/.test(base) && base.length > 4) nxt = base.slice(0, -3) + 'y';
+      else if(/(ves)$/.test(base) && base.length > 4) nxt = base.slice(0, -3) + 'f';
+      else if(/(es)$/.test(base) && base.length > 3) nxt = base.slice(0, -2);
+      else if(/(s)$/.test(base) && base.length > 3 && !/(ss|us|is)$/.test(base)) nxt = base.slice(0, -1);
+      else if(/(ied)$/.test(base) && base.length > 4) nxt = base.slice(0, -3) + 'y';
+      else if(/(ed)$/.test(base) && base.length > 4) nxt = base.slice(0, -2);
+      else if(/(ing)$/.test(base) && base.length > 5) nxt = base.slice(0, -3);
+      else if(/(est)$/.test(base) && base.length > 5) nxt = base.slice(0, -3);
+      else if(/(er)$/.test(base) && base.length > 4) nxt = base.slice(0, -2);
+      if(!nxt) break;
+      push(nxt);
+      /* 双写辅音（stopped → stop / running → run）：去掉重复的那个字母再试一轮 */
+      if(/([b-df-hj-np-tv-z])\1$/.test(nxt)) push(nxt.slice(0, -1));
+      base = nxt;
+    }
+    return out;
+  }
+
+  /* 查本地：返回 {en,cn,pos,ipa,src} 或 null */
+  function ssDictLookup(q){
+    var key = ssNormQuery(q);
+    if(!key) return null;
+    var variants = _ssDictVariants(key);
+    /* ① 她的词库（DATA.words）—— 她自己有的记录优先 */
+    var mine = DATA.words || [];
+    if(mine.length){
+      var mineMap = null;
+      for(var v = 0; v < variants.length; v++){
+        var target = variants[v];
+        for(var i = 0; i < mine.length; i++){
+          var w = mine[i];
+          if(!w) continue;
+          if(String(w.en || '').trim().toLowerCase() === target && w.cn){
+            return { en: String(w.en || '').trim(), cn: String(w.cn || ''), pos: ssNormPos(w.pos || ''), ipa: String(w.ipa || ''), src: 'words' };
+          }
+        }
+      }
+    }
+    /* ② 官方词书索引（已加载才查；没加载就先返回 null，不阻塞本次查词） */
+    if(_ssDictMap){
+      for(var v2 = 0; v2 < variants.length; v2++){
+        var row = _ssDictMap[variants[v2]];
+        if(row && row[1]){
+          return { en: String(row[0]).trim(), cn: String(row[1] || ''), pos: ssNormPos(row[2] || ''), ipa: String(row[3] || ''), src: 'bank' };
+        }
+      }
+    }
+    return null;
+  }
+
   async function aiLookup(word){
     const wq = ssNormQuery(word);
+    /* SS-DICT-LOCAL-1：先查本地，命中直接出卡、不发请求、不动词库。
+       未命中（或索引还没加载完）就原样走下面的 AI 路径，行为与改动前完全一致。 */
+    if(!ssHasCn(wq)){
+      let local = ssDictLookup(wq);
+      /* 第一次查词时索引还没加载：等它一次（上限 1.5 秒），加载完再查一遍。
+         为什么不等到底：线上/弱网 418KB 可能要几秒，不能让她干等；1.5 秒拿不到就走 AI，
+         下次查词索引已经在了（或预热已拉完），照样能本地命中。 */
+      if(!local && !_ssDictIdx && !_ssDictIdxFailed){
+        await Promise.race([
+          ssDictLoadIndex().catch(function(){ return null; }),
+          new Promise(function(res){ setTimeout(res, 1500); })
+        ]);
+        local = ssDictLookup(wq);
+      }
+      if(local){
+        _ssAiBusy = false;
+        const lInner = '<div class="sc-head"><span class="sc-en">' + escapeHtml(local.en) + '</span>'
+          + '<button class="sc-speak" type="button" data-speak="' + escapeHtml(local.en) + '" aria-label="朗读">'
+          + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5L6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 6a9 9 0 0 1 0 12"/></svg></button>'
+          + (local.ipa ? '<span class="sc-ipa">' + escapeHtml(local.ipa) + '</span>' : '') + '</div>'
+          + '<div class="sc-cn">' + (local.pos ? '<b>' + escapeHtml(local.pos) + '</b> ' : '') + escapeHtml(local.cn) + '</div>'
+          + '<div class="sc-actions">'
+          + '<button class="ss-item sc-link" type="button" data-local-add="' + escapeHtml(local.en) + '" data-local-cn="' + escapeHtml(local.cn) + '" data-local-pos="' + escapeHtml(local.pos) + '" data-local-ipa="' + escapeHtml(local.ipa) + '">加入词库</button>'
+          + '<button class="ss-item sc-link" type="button" data-file="practice.html">去背词页背诵 →</button>'
+          + '</div>';
+        const lc = list.querySelector('.ss-card');
+        if(lc) lc.outerHTML = ssCardHtml(lInner, wq); else list.insertAdjacentHTML('beforeend', ssCardHtml(lInner, wq));
+        show();
+        return;
+      }
+    }
     // design/83：查词进行中再回车——同词忽略防重复；异词不拦截，新请求顶替旧请求
     // （旧响应返回时 `token !== _ssAiToken` 判定已会丢弃，finally 也按 token 复位 _ssAiBusy）
     if(_ssAiBusy && wq === _ssAiQuery){ return; }
@@ -1474,7 +1608,9 @@ function bindSideSearch(){
 + '{"en":"原词小写","ipa":"英式音标，如 /ɡɪv ʌp/，查不到留空字符串","pos":"词性缩写，多个用;分隔（如 n. 或 n.;v.），词组留空字符串","cn":"简明中文释义；多词性时按词性顺序用；分隔对应"}' },
         { role:'user', content: word }
       ];
-      const content = await callRelay('words', messages, 0.3);
+      /* SS-DICT-LOCAL-1：查词开 json_mode —— 让上游走 response_format=json_object，
+         少掉「先解释再输出」的试错，输出 token 少、往返略快。字段不变，aiJson 容错与错误卡路径照旧。 */
+      const content = await callRelay('words', messages, 0.3, { json_mode: true, max_tokens: 256 });
       if(token !== _ssAiToken) return;
       const r = aiJson(content);
       if(!r || !r.en || !r.cn) throw new Error('AI 返回格式异常，请稍后重试');
@@ -1528,8 +1664,8 @@ function bindSideSearch(){
     }
   }
 
-  input.addEventListener('focus', renderMatch);
-  input.addEventListener('input', renderMatch);
+  input.addEventListener('focus', function(){ renderMatch(); ssDictLoadIndex(); });
+  input.addEventListener('input', function(){ renderMatch(); ssDictLoadIndex(); });
   /* design/83：type=search 原生 × 只触发 search 不触发 input，结果清空后面板要跟着回空态。
      注意 Chrome 里 Escape 也会清值并触发 search——Escape 分支刚把面板关掉 + blur，
      此刻 input 已失焦，必须跳过重渲染，否则面板被 search 事件重新弹开。 */
@@ -1595,6 +1731,37 @@ function bindSideSearch(){
   });
   /* design/83：结果卡动作（喇叭朗读 / 撤销加入）——click 委托 + stopPropagation */
   panel.addEventListener('click', (e) => {
+    /* SS-DICT-LOCAL-1：本地查词卡的「加入词库」——她不点就不加（查词 != 加词）。
+       走的是全站同一套 ssNewWord + hubSave，字段口径与 AI 路径那条一致，只是不覆盖她已有的值。 */
+    const addBtn = e.target.closest('[data-local-add]');
+    if(addBtn){
+      e.stopPropagation();
+      const en = String(addBtn.dataset.localAdd || '').trim();
+      const cn = String(addBtn.dataset.localCn || '').trim();
+      const pos = String(addBtn.dataset.localPos || '').trim();
+      const ipa = String(addBtn.dataset.localIpa || '').trim();
+      if(!en) return;
+      const low = en.toLowerCase();
+      let dup = null;
+      (DATA.words || []).forEach(w => { if(String(w.en || '').trim().toLowerCase() === low) dup = w; });
+      try{
+        if(dup){
+          if(!dup.pos && pos) dup.pos = pos;
+          if(!dup.ipa && ipa) dup.ipa = ipa;
+          if(!dup.cn && cn) dup.cn = cn;
+          hubSave();
+          toast('「' + en + '」已在词库');
+        }else{
+          const w = ssNewWord(en, cn);
+          w.pos = pos; w.ipa = ipa;
+          DATA.words.push(w);
+          hubSave();
+          clearWordTombstone(en);
+          toast('「' + en + '」已加入词库');
+        }
+      }catch(_e){ toast('加入词库失败，请重试'); }
+      return;
+    }
     const sp = e.target.closest('.sc-speak');
     if(sp){
       e.stopPropagation();

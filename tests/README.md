@@ -18,7 +18,7 @@
 | 基建 | 服务器、夹具、模板、白名单本身；不是断言 |
 | 在途 | 当前这一轮改动带出来的验收探针，双闸结案后应搬进 `_archived/` |
 
-## 根目录清单（89 支）
+## 根目录清单（94 支）
 
 | 状态 | 文件 | 管什么 |
 |---|---|---|
@@ -137,8 +137,11 @@
 | `_probe_perfnav_1104.cjs` | 在途 | PERF-VERIFY-B1-1 全站启动基线（七页冷/热 responseEnd·FCP·load + 首页→今日单词路径 + 长任务/pageerror；v760 40821c23 首跑 17 过 0 红 4 WARN 即基线）。 |
 | `_probe_perfwrite_1104.cjs` | 在途 | PERF-WRITE-1（v761）：一次作答只落一次盘，八项判据 × 390/1280。`FILL_PROG=1` 灌真实规模（2651 词），`HISTN` 控历史条数。 |
 | `_probe_t13accept_1104.cjs` | 在途 | T13-AUDIOPUT-1 验收（A1 自测口径，与 B1 的 `_probe_slim2deploy` 互补）：①部署后首轮 5/5 ②首次 warmKeys 5/5 不回归 ③判据 6 ≤150ms ④零 pageerror。 |
+| `_probe_t18traffic_1104.cjs` | 在途 | T18-AUDIOCACHE-1（v768）：缓存已满时播放 Audio 是否还有网络流量。判据**只看字节数**（`Audio` 必发请求，命中时 `encodedDataLength=0`）。基线 505246B → 0B。 |
 
-## 探针方法学铁律（11-04 夜班，六次假红换来的）
+**A1 的 T13/T18 配套探针（同批施工时留在根目录，A1 名下）**：`_logserv_t13.cjs`（带请求计数的本地服，端口 8795）、`_probe_t13ab_1104.cjs`（A/B 对照）、`_probe_t13traffic_1104.cjs` / `_probe_t13traffic2_1104.cjs`（流量前后对比）。
+
+## 探针方法学铁律（11-04 夜班，八次假红换来的）
 
 1. **测 SW 相关行为，必须先等 `navigator.serviceWorker.controller` 就绪。** 否则 `fromSW:false`，测的是「没有 SW 的页面」。SW 首次安装要 8~9 秒。
 2. **验证 HTTP 缓存行为时，预填、测量、对照组必须用完全相同的 URL。** 任何 query 串差异（`?_probe=1`、`&t=`）、任何 `cache` 模式差异（`no-store`）都等于换了 key，测的是另一个东西。
@@ -146,6 +149,10 @@
 4. **判据必须用真实锚点元素**，不能用「正文字数」（单词页空态只有 213 字，`>250字` 永远等不到）。
 5. **`Fetch.enable` 必须带 `requestStage:'Response'`**，否则 `Fetch.getResponseBody` 报 `Can only get response body on HeadersReceived pattern matched requests`。
 6. **听写模式必须走页面内 `pcSave({questionMode:'dictation'})`**，直接写 localStorage 会被 DATA 载入/云合并覆盖回 visual；且 `ielts_hub_obank_v1.active` 要是真实库。
+7. **v767 起 `warmCache` 主动延后 4000ms**（`new Promise(res => setTimeout(res, 4000))`，为消 T18 的重复下载）。测 warmCache 的探针**必须等 >4 秒**，写死 2500ms 会在它还没开始跑时数缓存 → 永远 0/5 假红。断网类判据同理：要等 SW 接管 + warmCache 落地完成再断网。
+8. **数「零流量」不能数请求条数，只能数字节。** `Audio` 元素必然发出一条 media 请求，命中 SW 缓存时那条记录依然出现，只是 `encodedDataLength = 0`。按条数判会得到永假红。
+9. **音效文件清单别凭直觉写**：`bubble` 是 `1~8.wav` + **`enter.mp3`（不是 9.wav）**，`mechanical` 是 `1~5.wav`（见 `js/wd-dict.js:19-20` `KEY_SOUNDS`）。写错路径时 SPA 会返回 `index.html`（200 + text/html），播放报 `error`，造出假红。
+10. **SW 内部的 `fetch(req)` 回源不在页面的 Network 域里**，页面侧 CDP 只看得到 `fromSW:true` + `bytes:0`。要观测 SWR 是否 revalidate，必须 attach 到 `service_worker` target（`Target.attachToTarget` + 扁平化会话），否则会误判成「没有网络活动」。
 
 **本地 loopback 口径的坑（务必记住）**：`python -m http.server` 不实现 Range，恒返回 200 全量；线上 Cloudflare 实测也是 200。但本地 loopback 带宽接近无限，`_probe_slim2_idlemech` 在本地能跑满 138 条、20 秒补到 mechanical，**线上 90 秒只补到 42 条永远补不到 mechanical**。凡涉及"能不能补满"，只认线上数据。
 
