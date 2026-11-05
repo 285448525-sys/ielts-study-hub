@@ -29,7 +29,9 @@
     wrt_full:    { title: '这场写作要计时吗？', desc: '完整模考默认 60 分钟，可以自己改。',  def: 60, presets: [40, 50, 60, 75] }
   };
 
-  var MIN_MIN = 1, MAX_MIN = 180, STEP_MIN = 5;
+  /* 她 11-05：「这个地方加减只调一分钟不要五分钟」——± 步长由 5 改成 1。
+     上下限 1–180、各场景默认值（单篇阅读 20 / 整套 60 等）、presets 快捷档位、"不计时" 按钮，口径全不动。 */
+  var MIN_MIN = 1, MAX_MIN = 180, STEP_MIN = 1;
 
   function clampMin(n){
     return Math.min(MAX_MIN, Math.max(MIN_MIN, Math.round(Number(n) || 0)));
@@ -138,7 +140,7 @@
     wrap.className = 'tmr'; wrap.id = 'tmrBox';
     /* EXAM-TIMER-POP-FIX-1（11-02 她四条口径）：
        ① 档位排整删（presets 不再渲染，data-tmrp 分支退役）；
-       ② 时长只有一行：「− 输入框 ＋」左右箭头，一次 5 分钟，钳 1–180（旧「自定义」重复行已删，EXAM-TIMER-POP-DUP-1）；
+       ② 时长只有一行：「− 输入框 ＋」左右箭头，一次 1 分钟，钳 1–180（旧「自定义」重复行已删，EXAM-TIMER-POP-DUP-1）；
        ③ ✕/Esc = 放弃退出回列表（cb 传 'exit'，消费方识别后不开卷）；
        ④ 「不计时」「按这个时长开始」两按钮保留（❌ 与「不计时」语义分开：❌ 是不做这篇）。
        ❌ 退出协议：cb('exit') —— bank.js/writing.js 消费方判 'exit' 走退列表路径。 */
@@ -147,10 +149,10 @@
       + '<h4>' + cfg.title + '</h4>'
       + '<p class="tmr-d">' + desc + '</p>'
       + '<div class="tmr-row tmr-stepper">'
-      +   '<button type="button" class="tmr-arr" data-tmrdn aria-label="减少 5 分钟">−</button>'
+      +   '<button type="button" class="tmr-arr" data-tmrdn aria-label="减少 1 分钟">−</button>'
       +   '<input class="tmr-i" type="number" inputmode="numeric" min="' + MIN_MIN + '" max="' + MAX_MIN
       +     '" step="' + STEP_MIN + '" value="' + cur + '" data-tmrin aria-label="自定义分钟数">'
-      +   '<button type="button" class="tmr-arr" data-tmrup aria-label="增加 5 分钟">＋</button>'
+      +   '<button type="button" class="tmr-arr" data-tmrup aria-label="增加 1 分钟">＋</button>'
       +   '<span class="tmr-unit">分钟</span>'
       + '</div>'
       + '<div class="tmr-b">'
@@ -189,7 +191,7 @@
       if(!t || !t.closest) return;
       if(t === wrap || t.closest('[data-tmrclose]')){ ev.preventDefault(); finish('exit'); return; }
       if(t.closest('[data-tmrno]')){ ev.preventDefault(); finish(null); return; }
-      /* ± 箭头：一次 5 分钟，1–180 钳制（减到 0 以下绕回 180，与数字输入 min/max 同口径） */
+      /* ± 箭头：一次 1 分钟，1–180 钳制（减到 0 以下绕回 180，与数字输入 min/max 同口径） */
       var dn = t.closest('[data-tmrdn]');
       if(dn){
         ev.preventDefault();
