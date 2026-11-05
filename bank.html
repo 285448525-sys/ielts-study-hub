@@ -659,7 +659,15 @@
    （JS 已不挂，这里清掉死 CSS）。正确答案展示只剩：选项勾对绿标 + 填空框内绿字后缀 .ex-ca-in。 */
 /* RV-CA-IN-1（她 11-02 口径）：填空正答不再走框外「Correct: xx」行（.ex-ca--blank 退役），
    改框内绿字后缀 .ex-ca-in（JS 挂进 .ex-blankw，跟在她写的红字后面）；关闭态随 rv-noans 整藏。 */
-.ex-ca-in{display:inline-block;margin-left:6px;font-size:12px;font-weight:700;color:#1f7a5c;line-height:1.4;vertical-align:middle;flex:none;white-space:nowrap}
+/* 11-05 她口径（截图）：正确答案要用框里一样的字体，只不过是绿色的，跟错误答案隔两个空格的间距。
+   ① 字体与框内输入一致：原来写死 font-size:12px + font-weight:700（比框里的字小一号又加粗），
+      现改 font:inherit + 与 input 同一条算式 calc(var(--exfs) * .725)，不再单独覆盖字重；
+   ② 绿色不变；
+   ③ 与她的错答之间隔两个空格：原 margin-left:6px 改成 ::before 里两个真实空格字符（字面两个空格）。 */
+   ⚠️ 不自己写 font-size：框里的字（.ex-blankw input）也是 font:inherit，两条吃同一条继承链就够了 ——
+   实测 input 计算值 15px，若这里写 calc(var(--exfs) * .725) 会算成 14.5px，反而与框里的字差半号。
+.ex-ca-in{display:inline-block;font:inherit;color:#1f7a5c;line-height:1.4;vertical-align:middle;flex:none;white-space:pre;}
+.ex-ca-in::before{content:"  "}
 /* RV-FIX5-10（她 11-03 晚：「正答该在同一个框内的右边，不是跑到框外把题干盖了」）：
    打开答案态框宽自适应 —— rv-open 时放开 118/200px 与 td 的宽度截断，整框按
    「她的原词（input 按词长定宽）+ 正答绿字」自然撑开；绿字不再溢出框外、压住题干。 */
