@@ -33,21 +33,17 @@ body.hub-home{ background-image:none; }
 body.hub-home .hero::before{ display:none; }
 
 /* ===== hero 一行（稿 §二.1）：左 eyebrow + 问候大字 + 副行；右 距考大数字 =====
-   PAGEHEAD-SLIM-1 第 3 笔（11-04，她点头定版第 5 节首页那行）：「问候与『还没设考试日期』
-   压成一行小字；去设置、30 秒搞定、四张统计卡、去计划页全部保留」。
-   🔴 首页这一笔跟前两笔不同 —— **不是删页头，是压缩**：日期、问候都是她的功能信息，只降视觉
-      权重、不隐藏。所以 h1 标签不动（仍是本页 h1）、id 一个不改、只改字号与排布。
-   🔴 只做减法：h1 24px→14px 并入日期那一行；副行 chips 不再单独占一行高度；不加任何底色/边框/阴影。 */
+   🔴 11-05 她本人拍板恢复（选 A）：撤销 11-04 PAGEHEAD-SLIM-1 第 3 笔对**左上角问候块**的压缩 ——
+      日期回独立一行小字（11px uppercase）、问候回独立一行大字（24px）、chips 回第三行。
+      只撤她点名的这一处（用户名那块的大小字层级）；同笔的 .hero-setdate 收成纯文字、
+      .setup 收空间两处保留，不在本次范围。原版 CSS 见 git b9db88ae^；压缩说明见该提交 message。
+      ⚠️ 别再把这几行当「死规则 / 可优化项」压回一行 —— 她 11-05 明确要这个层级。 */
 .hero{display:flex;border-radius:0 !important;background:none !important;border:0 !important;box-shadow:none !important;
   padding:0 !important;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:0}
-/* 左块改横向排：日期（.eyebrow）与问候（h1）同一基线一行，副行 chips 强制换到下一行。
-   原来这三样是纵向三行（eyebrow 18 + h1 30 + hero-sub 20 + 间距 = 79px），现在压成一行 + 可选 chip 行。 */
-.hero>div:first-child{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:10px;row-gap:2px;min-width:0}
-.hero .eyebrow{font-size:12px;letter-spacing:.02em;color:var(--primary-700);
-  font-weight:700;margin-bottom:0;flex:none}
-.hero h1{font-size:14px;line-height:1.35;letter-spacing:0;color:var(--ink-2);margin:0;font-weight:650;
-  min-width:0;overflow-wrap:anywhere}
-.hero-sub{flex:1 0 100%;margin-top:0;display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-height:0}
+.hero .eyebrow{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--primary-700);
+  font-weight:750;margin-bottom:5px}
+.hero h1{font-size:24px;line-height:1.25;letter-spacing:-.02em;color:var(--ink);margin:0;font-weight:760}
+.hero-sub{margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-height:20px}
 /* 连续 chip 从旧绿条挪到副行：改成浅青底细 chip（稿内没有绿条） */
 .hero .streak-chip{background:var(--surface-2);color:var(--muted);border:1px solid var(--line);
   font-size:11.5px;padding:2px 9px;border-radius:999px;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
