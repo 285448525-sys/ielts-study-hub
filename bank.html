@@ -666,8 +666,6 @@
    ③ 与她的错答之间隔两个空格：原 margin-left:6px 改成 ::before 里两个真实空格字符（字面两个空格）。 */
    ⚠️ 不自己写 font-size：框里的字（.ex-blankw input）也是 font:inherit，两条吃同一条继承链就够了 ——
    实测 input 计算值 15px，若这里写 calc(var(--exfs) * .725) 会算成 14.5px，反而与框里的字差半号。
-.ex-ca-in{display:inline-block;font:inherit;color:#1f7a5c;line-height:1.4;vertical-align:middle;flex:none}
-.ex-ca-in::before{content:"\00a0\00a0"}
 /* RV-FIX5-10（她 11-03 晚：「正答该在同一个框内的右边，不是跑到框外把题干盖了」）：
    打开答案态框宽自适应 —— rv-open 时放开 118/200px 与 td 的宽度截断，整框按
    「她的原词（input 按词长定宽）+ 正答绿字」自然撑开；绿字不再溢出框外、压住题干。 */
@@ -2859,5 +2857,9 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
         单条 DOM 由 js/bank.js 的 listHtml() 生成（当参数传进来），结构零改动。
      ⚠️ 必须带 ?v= 声明 —— 否则 common.js 只能拿裸 URL，等于向浏览器缓存要任意年代的旧副本。 -->
 <script defer src="js/bank-groups.js?v=20261024a"></script>
+<style id="rvCaInFix">
+.ex-ca-in{display:inline-block;font:inherit;color:#1f7a5c;line-height:1.4;vertical-align:middle;flex:none}
+.ex-ca-in::before{content:"  "}
+</style>
 </body>
 </html>
