@@ -273,17 +273,63 @@ function bind(){
   }
  });
  document.addEventListener('change',function(ev){if(ev.target===$('recordFilter'))records();if(ev.target===$('rv2StatRange')){statRange=ev.target.value;performance()}});
- document.addEventListener('hub:data-merged',function(){setTimeout(paint,50)});
+ /* 云数据合并后会重绘整页（记录、图表都长出来），页面一长高，deepLink 之前滚好的位置
+    就被推回去了（实测软导航进来滚到 401，随后又被推回 371）。合并后补跑一次 paint + deepLink，
+    让落点重新对齐；deepLink 自己只在 url 带 sub 时动作，普通进入不会乱滚。 */
+ document.addEventListener('hub:data-merged',function(){setTimeout(function(){paint();deepLink()},50)});
 }
 function openDetail(id,kind){var body=$('rv2DetailBody'),src=kind==='whole'?$('scoreList'):kind==='part'?$('mkList'):$('mockHistoryList');body.innerHTML='';if(src)Array.prototype.forEach.call(src.children,function(node){if(kind==='whole'&&!node.querySelector('[data-del="'+cssq(id)+'"]'))return;if(kind==='part'&&!node.querySelector('[data-del="'+cssq(id)+'"]'))return;if(kind==='speaking'&&node.dataset.id!==String(id))return;body.appendChild(node.cloneNode(true))});if(kind==='whole'){var t=targets(),has=Number(t.overall)>0;body.querySelectorAll('.badge.up,.badge.down').forEach(function(b){if(!has){b.textContent='目标未设';b.classList.remove('up','down')}})}if(!body.children.length)body.innerHTML='<p>这条记录的原始明细暂未加载，请稍后再看。</p>';var d=$('rv2DetailDialog');if(!d.open)d.showModal()}
 function paint(){if(typeof DATA==='undefined'||!DATA)return;summary();trend();records();performance();focusRec()}
+/* RV-DEEPLINK-SCROLL-1（11-05，第 6 件第一笔）
+   原来 deepLink() 在 boot() 里紧跟 paint() 同步跑：records() 刚写完 innerHTML 就立刻
+   scrollIntoView，那一刻布局还没算完（软导航进来的尤其明显）—— 实测滚了个空。
+   前两版改成「等一帧 + 补几次」，仍差 ~370px：滚完当下它确实贴到了位置，但**页面随后还在长高**
+   （记录渲染、hub:data-merged 云数据合并后重绘），落点又被推下去，而那时重试已经收工。
+   本版改成「盯着高度变化补位」：短窗口内既定时补位、又用 ResizeObserver 盯 body/main 的高度变化，
+   只要 #recAll 又跑出视口顶就重新对齐；窗口一过就撒手，不打扰用户后续滚动。
+   注意：窄档（body.has-dock）滚动在内层 main.container，桌面滚 window —— 两条路各按容器偏移设一次。 */
+function deepLinkScroll(sel){
+  function align(){
+    var el = $(sel);
+    if(!el) return false;
+    var t = el.getBoundingClientRect().top;
+    if(t > -28 && t < 28) return true;            /* 已经在视口顶附近，不用动 */
+    try{ el.scrollIntoView({ block: 'start' }); }catch(e){}
+    try{
+      var main = document.querySelector('main.container');
+      var off = $(sel).getBoundingClientRect().top - 8;
+      if(main && main.scrollHeight > main.clientHeight + 4){
+        var want = main.scrollTop + off;
+        if(want > 0) main.scrollTop = want;
+      }else if(off > 0 || (window.scrollY || 0) > 0){
+        window.scrollTo(0, Math.max(0, (window.scrollY || 0) + off));
+      }
+    }catch(e2){}
+    return false;
+  }
+  align();
+  var ticks = 0, timer = setInterval(function(){
+    ticks++;
+    if(align() && ticks > 2) { /* 连续贴住就不再频繁补位，但仍由 observer 兜底 */
+      if(ticks >= 4) clearInterval(timer);
+    }
+    if(ticks >= 10) clearInterval(timer);
+  }, 150);
+  try{
+    var ob = new ResizeObserver(function(){ align(); });
+    ob.observe(document.body);
+    var main = document.querySelector('main.container');
+    if(main) ob.observe(main);
+    setTimeout(function(){ ob.disconnect(); }, 2500);
+  }catch(e3){}
+}
 function deepLink(){
  var sub=new URLSearchParams(location.search).get('sub');
  if(sub==='record'||sub==='trajectory'||sub==='history'){
   var f=$('recordFilter');if(f){f.value='all';records()}
-  var target=$('recAll');if(target)target.scrollIntoView({block:'start'});
+  deepLinkScroll('recAll');
  }else if(sub==='score'||sub==='breakdown'||sub==='overall'||sub==='speaking'){
-  var top=$('rv2Summary');if(top)top.scrollIntoView({block:'start'});
+  deepLinkScroll('rv2Summary');
  }
 }
 function boot(){bind();paint();deepLink();window.hubRepaintReviewE=paint}
