@@ -3828,15 +3828,30 @@ window.__reportExamState = reportExamState;
      正文在 #exArt（.ex-article）里 —— 完整模考走 renderPassage 写它、单篇练习也渲染同一容器，
      内容是一串 <h4>/<p>（bank/reading/*.json 的 article 字段，原文就是逐段 HTML），
      所以按它的块级子元素逐段取行。.ex-html 是题面容器不是文章，别拿它当行。 */
+  /* 逐句中文翻译要翻的「行」：
+     · 听力卷 → 逐句稿 .sc-line；
+     · 阅读卷 → 文章容器 #exArt / .ex-article 里的段落。两种文章格式都要认
+       （B2 实测：阅读库 280 篇里 179 篇 = 64% 是 Lark 导出格式）：
+         - Lark 导出：正文多包一层 <div data-lark-html-role="root">，每段是 <div class="ace-line">；
+         - 普通格式：正文就是裸 <p>/<h4> 平铺。
+       先前只看 box.children 的直接子元素，Lark 篇取行恒为 0 → 点翻译只弹「这篇没有可翻译的原文」。 */
   function rvCnRows(){
     var root = document.getElementById('examRoot'); if(!root) return [];
     var rows = root.querySelectorAll('.ex-script .sc-body .sc-line');
     if(rows && rows.length) return Array.prototype.slice.call(rows);
     var box = root.querySelector('#exArt, .ex-article'); if(!box) return [];
+    var liked = box.querySelectorAll('.ace-line');
+    if(liked && liked.length){
+      return Array.prototype.filter.call(liked, function(el){
+        /* 空段落（&nbsp; 那种分段空隙）不进翻译，否则白烧 token 还翻出一堆空行 */
+        return String(el.textContent || '').replace(/[\s\u00a0\u3000]/g, '').length > 0;
+      });
+    }
     return Array.prototype.filter.call(box.children, function(el){
       return /^(P|H[1-6]|LI|BLOCKQUOTE)$/.test(el.tagName);
     });
   }
+
   /* 取一行要翻的原文：阅读段落里混着填空框（.ex-blankw）、Mark 旗子、已插的译文，
      克隆一份摘干净再取文字，不动真 DOM。 */
   function rvCnTextOf(el){
@@ -3872,13 +3887,29 @@ window.__reportExamState = reportExamState;
       { role: 'system', content: '你是雅思听力/阅读原文的翻译。把用户给的编号句子逐句翻成简体中文。只输出与输入相同编号格式的译文列表，一行一条「编号. 译文」，不解释、不加原文。' },
       { role: 'user', content: joined }
     ], 0.2, { max_tokens: 2000 }).then(function(out){
-      var text = (out && (out.content || out.text || (out.choices && out.choices[0] && out.choices[0].message && out.choices[0].message.content))) || '';
+      /* 🔴 callRelay 返回的是**字符串**（全站其它 14 处调用都是 `const content = await callRelay(...)` 直接当字符串用，
+         见 js/bank.js:3712 的 AI 讲解那处）。原来这里按对象取 out.content / out.text / out.choices ——
+         字符串上这三个都取不到，译文恒为空串（听力卷那条路也一样，此前没人点过）。
+         现在先认字符串，再兜住对象形态，万一以后换通道返回结构体也不炸。 */
+      var text = (typeof out === 'string') ? out
+        : ((out && (out.content || out.text || (out.choices && out.choices[0] && out.choices[0].message && out.choices[0].message.content))) || '');
       var map = {};
       String(text).split(/\n+/).forEach(function(row){
         var m = row.match(/^\s*(\d+)[.、．]\s*(.+)$/);
         if(m) map[Number(m[1]) - 1] = m[2].trim();
       });
       var result = rows.map(function(el, i){ return map[i] || ''; });
+      /* 拿到空结果**不写缓存**（B1 报的：一次失败就把空数组写进 EX[RV_CN_CACHE_KEY]，
+         之后关掉再开命中缓存、不再重试，用户永远看着一个开着却空白的开关）。
+         只有真有译文才落缓存；全空就把开关复位、给一句人话，下次点开重试。 */
+      var got = result.filter(function(x){ return String(x || '').trim().length; }).length;
+      if(!got){
+        EX._rvShowCn = false;
+        root.classList.remove('rv-cn-on');
+        if(btn){ btn.disabled = false; btn.classList.remove('on'); }
+        if(typeof toast === 'function') toast('这次没翻出来，再点一次试试');
+        return;
+      }
       EX[RV_CN_CACHE_KEY][key] = result;
       rvCnPaint(result);
       if(btn){ btn.disabled = false; }
