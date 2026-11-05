@@ -3502,7 +3502,10 @@ window.__reportExamState = reportExamState;
     tg.innerHTML = '<button type="button" class="ex-tg' + (EX._rvShowAns ? ' on' : '') + '" data-rvtg="ans">Answers</button>'
       + '<button type="button" class="ex-tg' + (EX._rvShowHl ? ' on' : '') + '" data-rvtg="hl">Highlights</button>'
       + (isListenRv ? '<button type="button" class="ex-tg' + (EX._rvShowAnsQ ? ' on' : '') + '" data-rvtg="ansq">Answer sentences</button>' : '')
-      + (isListenRv ? '<button type="button" class="ex-tg' + (EX._rvShowCn ? ' on' : '') + '" data-rvtg="cn">中文翻译</button>' : '');
+      /* RV-SW-26 2 11-05：中文翻译钮改成听力/阅读都出（她今早点名「头顶的翻译键还没做」）。
+         原来跟「答案句」一样被 isListenRv 挡掉，阅读卷压根不渲染这个钮；
+         「答案句」仍只听力（它靠 timeline 答案句数据，阅读没有）。 */
+      + '<button type="button" class="ex-tg' + (EX._rvShowCn ? ' on' : '') + '" data-rvtg="cn">中文翻译</button>';
     var icons = top.querySelector('.ex-icons');
     var nameEl = top.querySelector('.ex-name');
     /* RV-TOP390-1（11-02）：多出两个开关后手机 390 一行放不下（实测 .ex-toggles x=476 出屏），
@@ -3821,23 +3824,42 @@ window.__reportExamState = reportExamState;
     var unit = EX && EX.unit;
     return unit ? String(unit.id || '') + ':' + ((EX.channel === 'listening') ? 'L' : 'R') : '';
   }
+  /* 逐句中文翻译要翻的「行」：听力卷是逐句稿 .sc-line；阅读卷没有句子级节点，
+     正文在 #exArt（.ex-article）里 —— 完整模考走 renderPassage 写它、单篇练习也渲染同一容器，
+     内容是一串 <h4>/<p>（bank/reading/*.json 的 article 字段，原文就是逐段 HTML），
+     所以按它的块级子元素逐段取行。.ex-html 是题面容器不是文章，别拿它当行。 */
+  function rvCnRows(){
+    var root = document.getElementById('examRoot'); if(!root) return [];
+    var rows = root.querySelectorAll('.ex-script .sc-body .sc-line');
+    if(rows && rows.length) return Array.prototype.slice.call(rows);
+    var box = root.querySelector('#exArt, .ex-article'); if(!box) return [];
+    return Array.prototype.filter.call(box.children, function(el){
+      return /^(P|H[1-6]|LI|BLOCKQUOTE)$/.test(el.tagName);
+    });
+  }
+  /* 取一行要翻的原文：阅读段落里混着填空框（.ex-blankw）、Mark 旗子、已插的译文，
+     克隆一份摘干净再取文字，不动真 DOM。 */
+  function rvCnTextOf(el){
+    if(el.classList && el.classList.contains('sc-line')) return (el.textContent || '').trim();
+    var c = el.cloneNode(true);
+    Array.prototype.forEach.call(c.querySelectorAll('.ex-blankw,.sc-cn,.ex-flagq'), function(n){ n.remove(); });
+    return (c.textContent || '').replace(/\s+/g, ' ').trim();
+  }
   function rvCnToggle(){
     var root = document.getElementById('examRoot'); if(!root) return;
-    var script = root.querySelector('.ex-script .sc-body');
-    if(!script){ toast && toast('这篇没有可翻译的原文'); return; }
     if(!EX._rvShowCn){
       root.classList.remove('rv-cn-on');
       return;
     }
+    var rows = rvCnRows();
+    if(!rows.length){ if(typeof toast === 'function') toast('这篇没有可翻译的原文'); return; }
     root.classList.add('rv-cn-on');
-    var lines = _stLines || [];
-    if(!lines.length){ return; }
     var key = rvCnLinesKey();
     EX[RV_CN_CACHE_KEY] = EX[RV_CN_CACHE_KEY] || {};
     var cached = EX[RV_CN_CACHE_KEY][key];
     if(cached){ rvCnPaint(cached); return; }
-    /* 合并请求：全部句子一次发 */
-    var joined = lines.map(function(l, i){ return (i + 1) + '. ' + (l.text || ''); }).join('\n');
+    /* 合并请求：全部句子/段落一次发（不一段一个请求烧额度） */
+    var joined = rows.map(function(el, i){ return (i + 1) + '. ' + rvCnTextOf(el); }).join('\n');
     var btn = document.querySelector('#examRoot .ex-tg[data-rvtg="cn"]');
     if(btn){ btn.disabled = true; }
     var relay = (typeof callRelay === 'function') ? callRelay : null;
@@ -3856,7 +3878,7 @@ window.__reportExamState = reportExamState;
         var m = row.match(/^\s*(\d+)[.、．]\s*(.+)$/);
         if(m) map[Number(m[1]) - 1] = m[2].trim();
       });
-      var result = lines.map(function(l, i){ return map[i] || ''; });
+      var result = rows.map(function(el, i){ return map[i] || ''; });
       EX[RV_CN_CACHE_KEY][key] = result;
       rvCnPaint(result);
       if(btn){ btn.disabled = false; }
@@ -3870,11 +3892,12 @@ window.__reportExamState = reportExamState;
       if(typeof toast === 'function') toast(msg);
     });
   }
+  /* 译文落在「那一行」里（听力 .sc-line 内、阅读 <p> 内）：.sc-cn 是 display:block
+     的小一号灰字子行，样式壳 bank.html 早就有；关闭态由 #examRoot:not(.rv-cn-on) 整藏。 */
   function rvCnPaint(cns){
-    var rows = document.querySelectorAll('#examRoot .ex-script .sc-body .sc-line');
-    rows.forEach(function(row, i){
+    rvCnRows().forEach(function(row, i){
       var old = row.querySelector('.sc-cn');
-      if(old) old.remove();
+      if(old) old.parentNode.removeChild(old);
       var cn = cns[i];
       if(!cn) return;
       var sub = document.createElement('span');
