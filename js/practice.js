@@ -214,10 +214,14 @@ function onDailyCapChanged(){
    桌面已撤掉页内 .word-tabs，分栏入口改由顶栏二级接管；手机端顶栏隐藏、药丸 tab 保留。
    只读参数 → 调已有的 switchWordTab，不另造切换逻辑。必须延到 ready 同步体跑完之后
    （后面 autoStartSeeWord 等初始化会把分栏覆盖回「学习」）。 */
+/* WORDBOOK-HOME-1（11-06）：顶栏「单词」的「学习/词库」二级已撤（她 11-06 要求），
+   点这个 tab 直接落新书架。只有明确 ?sub=study 或带 ?autostart=1 的入口才进背词态。 */
 setTimeout(function(){
   try{
     var _st = (typeof tbSubPending === 'function') ? tbSubPending('practice') : '';
-    if(_st === 'study' || _st === 'bank') switchWordTab(_st);
+    var _auto = /[?&]autostart=1/.test(location.search);
+    if(_st === 'study' || _auto) switchWordTab('study');
+    else switchWordTab('bank');
   }catch(e){}
 }, 300);
 

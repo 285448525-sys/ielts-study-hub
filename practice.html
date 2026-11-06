@@ -31,11 +31,11 @@
 })();
 </script>
 <title>单词 · 雅思备考 Hub</title>
-<link rel="preload" as="script" href="js/practice.js?v=20261104a" /> <!-- W1-PRELOAD-1 (168KB)：与下方 defer 同串防双下载 -->
+<link rel="preload" as="script" href="js/practice.js?v=20261106a" /> <!-- W1-PRELOAD-1 (168KB)：与下方 defer 同串防双下载 -->
 <link rel="preload" as="script" href="js/words.js?v=20261102c" /> <!-- W1-PRELOAD-1 (90KB)：与下方 defer 同串防双下载 -->
 <link rel="preload" as="script" href="js/common-shell.js?v=20261104b" /> <!-- W1-PRELOAD-1 (113KB)：与下方 defer 同串防双下载 -->
 <link rel="stylesheet" href="css/common.css?v=20261101m" />
-<link rel="stylesheet" href="css/p/practice.css?v=20261103a" />
+<link rel="stylesheet" href="css/p/practice.css?v=20261106a" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -46,7 +46,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
   <script defer src="js/data.js?v=20261030a"></script>
-  <script defer src="js/common.js?v=20261104h"></script>
+  <script defer src="js/common.js?v=20261106a"></script>
   <script defer src="js/common-ai.js?v=20261104n"></script>
   <script defer src="js/common-sync.js?v=20261101m"></script>
   <script defer src="js/common-merge.js?v=20261101m"></script>
@@ -58,7 +58,7 @@
   <script defer src="js/wordbank.js?v=20261102c"></script>
   <!-- design/77 DHP+SSP-MMC 策略表：必须在 practice.js 之前（defer 按文档序执行，表未加载时 practice.js 有回退兜底） -->
   <script defer src="js/dhp_policy.js?v=20260921a"></script>
-  <script src="js/practice.js?v=20261104a" defer></script>
+  <script src="js/practice.js?v=20261106a" defer></script>
   <script src="js/words.js?v=20261102c" defer></script>
   <script src="js/wd-dict.js?v=20261104d" defer></script>
 <style>
@@ -560,23 +560,76 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
          🔴 商城只是「选书的橱窗」：点卡片 = 切当前词书 + 进下面 #wmLegacy 看这本的词。
             词书详情态（施工书 §四）是第 3 批 W-WORD-3，本批不做。 -->
     <div class="wm-page" id="vMall">
-      <div class="wm-filters">
-        <div class="wm-frow" id="wmDirRow">
-          <button type="button" class="wm-f wm-on" data-dir="all">全部</button>
-          <button type="button" class="wm-f" data-dir="listening">听力</button>
-          <button type="button" class="wm-f" data-dir="reading">阅读</button>
-          <button type="button" class="wm-f" data-dir="writing">写作</button>
-          <button type="button" class="wm-f" data-dir="speaking">口语</button>
+      <div class="wm-shell">
+        <!-- 内侧栏：其余按钮功能按她话「以后一个一个加」，本轮只做首页 -->
+        <aside class="wm-side">
+          <div class="wm-side-t">学习中心</div>
+          <button type="button" class="wm-side-i wm-on" data-side="home">首页</button>
+          <button type="button" class="wm-side-i" data-side="wrong">错词本</button>
+          <button type="button" class="wm-side-i" data-side="stat">统计</button>
+          <button type="button" class="wm-side-i" data-side="me">我</button>
+          <div class="wm-side-foot">词库是工具，不是任务。每本背到会用的程度就够。</div>
+        </aside>
+
+        <!-- 中间：我的书架 -->
+        <div class="wm-main">
+          <div class="wm-topbar">
+            <div class="wm-head">
+              <h1 class="wm-title">我的书架</h1>
+              <span class="wm-sub" id="wmCount">6 本显示在首页</span>
+            </div>
+            <span class="wm-mall-search"><input id="wmSearch" type="search" placeholder="找一本书…" autocomplete="off" aria-label="搜索词书" /></span>
+            <button type="button" class="wm-edit" id="wmEditShelf">编辑书架</button>
+          </div>
+          <div class="wm-todaybar">
+            <div class="wm-today-tx">今天还有 <b id="wmDueN">0</b> 个词要过</div>
+            <button type="button" class="wm-start" id="wmStartBtn">开始学习</button>
+          </div>
+          <div class="wm-filters">
+            <div class="wm-frow" id="wmDirRow">
+              <button type="button" class="wm-f wm-on" data-dir="all">全部</button>
+              <button type="button" class="wm-f" data-dir="listening">听力</button>
+              <button type="button" class="wm-f" data-dir="reading">阅读</button>
+              <button type="button" class="wm-f" data-dir="writing">写作</button>
+              <button type="button" class="wm-f" data-dir="speaking">口语</button>
+            </div>
+            <span class="wm-fsep"></span>
+            <div class="wm-frow" id="wmOwnRow">
+              <button type="button" class="wm-f" data-own="official">官方</button>
+              <button type="button" class="wm-f" data-own="mine">我的</button>
+            </div>
+          </div>
+          <div class="wm-deals" id="wmDeals"></div>
         </div>
-        <span class="wm-fsep"></span>
-        <div class="wm-frow" id="wmOwnRow">
-          <button type="button" class="wm-f" data-own="official">官方</button>
-          <button type="button" class="wm-f" data-own="mine">我的</button>
-        </div>
-        <span class="wm-mall-search"><input id="wmSearch" type="search" placeholder="搜词书 / 来源 / 词数…" autocomplete="off" aria-label="搜索词书" /></span>
+
+        <!-- 右侧：今天 -->
+        <aside class="wm-right">
+          <div class="wm-week" id="wmWeek"></div>
+          <div class="wm-right-card">
+            <div class="wm-rc-t">今天的任务</div>
+            <div class="wm-rc-row"><span>待过</span><b id="wmRDue">0</b></div>
+            <div class="wm-rc-row"><span>今日已学</span><b id="wmRDone">0</b></div>
+            <div class="wm-rc-row"><span>每日上限</span><b id="wmRCap">—</b></div>
+            <div class="wm-rc-row"><span>当前词书</span><b id="wmRBook">—</b></div>
+          </div>
+          <div class="wm-right-foot">按自己的节奏来就好</div>
+        </aside>
       </div>
-      <div class="wm-deals" id="wmDeals"></div>
-      <div class="wm-note"><b>词库商城怎么用</b>：这里放「可以选的词本」。看中哪本 → 点进去看它是怎么来的、有哪些章节 → 点「设为当前词书」就切过去，原词书的进度留在原地，随时切回。词书是工具不是任务，每本背到会用的程度就够。</div>
+
+      <!-- 编辑书架：逐本挑哪几本放首页，关掉的不丢 -->
+      <div class="wm-drawer" id="wmDrawer" hidden>
+        <div class="wm-drawer-mask" data-wmclose="1"></div>
+        <div class="wm-drawer-panel">
+          <div class="wm-drawer-h">
+            <b>编辑书架</b>
+            <button type="button" class="wm-drawer-x" id="wmDrawerClose" aria-label="关闭">×</button>
+          </div>
+          <p class="wm-drawer-tip">勾选要放在首页的词书，没勾的收起来，随时能勾回来。词书是工具，不是任务。</p>
+          <div class="wm-dr-list" id="wmDrList"></div>
+          <div class="wm-drawer-count" id="wmDrCount">已挑 6 本</div>
+          <button type="button" class="wm-drawer-done" id="wmDrawerDone">完成</button>
+        </div>
+      </div>
     </div>
     <!-- ═══ W-WORD-3（10-26）· 词书详情态（#vBook）═══
          施工书 §四：三件套只导出了空壳（design/_W-word-book_结构原文.html 只有
@@ -1331,6 +1384,28 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
   var wmOwn = null;
   var wmKw  = '';
 
+  /* ── WORDBOOK-HOME-1（11-06）· 我的书架：自己挑哪几本放首页 ──
+     TODO: [待确认] pinned 书 id 列表目前只存本机（localStorage: wm_pinned_books_v1），
+           是否要跟云同步、字段名要不要并入 DATA，等她定。默认 6 本（lstans 收起）。 */
+  var WM_PIN_KEY = 'wm_pinned_books_v1';
+  var WM_PIN_DEFAULT = ['custom','rdtext','qstem','lstext','phr','awl'];
+  function wmPinned(){
+    try{
+      var raw = localStorage.getItem(WM_PIN_KEY);
+      if(raw){
+        var a = JSON.parse(raw);
+        if(Array.isArray(a)) return a.filter(function(id){
+          return WM_BOOKS.some(function(b){ return b.id === id; });
+        });
+      }
+    }catch(e){}
+    return WM_PIN_DEFAULT.slice();
+  }
+  function wmSetPinned(a){
+    try{ localStorage.setItem(WM_PIN_KEY, JSON.stringify(a)); }catch(e){}
+  }
+  function wmIsPinned(id){ return wmPinned().indexOf(id) >= 0; }
+
   function wmMeta(id){
     try{ if (id !== 'custom' && typeof wbBankMeta === 'function') return wbBankMeta(id); }catch(e){}
     return null;
@@ -1415,6 +1490,8 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
   }
 
   function wmMatch(b){
+    /* 首页只出现「钉在书架」上的书；关掉的书在抽屉里随时勾回 */
+    if (!wmIsPinned(b.id)) return false;
     if (wmOwn && b.own !== wmOwn) return false;
     if (wmDir !== 'all'){
       /* 「我的」这颗是 own 维度的，不在方向里；方向筛选对 custom 一律不命中 */
@@ -1441,6 +1518,65 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
       /* 零命中不能是一片空白（会让人以为坏了） */
       box.innerHTML = '<p class="wm-none">没有匹配的词书。换个方向或清掉搜索词看看。</p>' + box.innerHTML;
     }
+    wmSyncChrome();
+  }
+
+  /* 书架头计数 / 今日条 / 右侧今日面板 / 日历：全部走现成读接口，零造数据 */
+  function wmSyncChrome(){
+    var pinned = wmPinned();
+    setTxt('wmCount', pinned.length + ' 本显示在首页');
+    setTxt('wmDueN', dueOf());
+    setTxt('wmRDue', dueOf());
+    setTxt('wmRDone', doneOf());
+    var cap = capOf();
+    setTxt('wmRCap', cap > 0 ? cap : '不限');
+    setTxt('wmRBook', bookLabel());
+    wmRenderWeek();
+  }
+  function wmRenderWeek(){
+    var box = $('wmWeek');
+    if(!box) return;
+    var d = new Date(), names = ['日','一','二','三','四','五','六'], h = '';
+    for(var i=-1;i<=1;i++){
+      var t = new Date(d.getFullYear(), d.getMonth(), d.getDate()+i);
+      var md = (t.getMonth()+1) + '-' + String(t.getDate()).padStart(2,'0');
+      h += '<div class="wm-week-d' + (i===0?' wm-today':'') + '">' +
+           '<span>周' + names[t.getDay()] + (i===0?' · 今天':'') + '</span>' +
+           '<b>' + md + '</b></div>';
+    }
+    box.innerHTML = h;
+  }
+  function wmDrawerRender(){
+    var box = $('wmDrList');
+    if(!box) return;
+    var pinned = wmPinned();
+    box.innerHTML = WM_BOOKS.map(function(b){
+      return '<label class="wm-dr-row">' +
+        '<input type="checkbox" data-pin="' + b.id + '"' + (pinned.indexOf(b.id)>=0?' checked':'') + ' />' +
+        '<span class="wm-dr-nm">' + wmEsc(b.nm) + '</span>' +
+        '<span class="wm-dr-mt">' + wmEsc(WM_DIR_TXT[b.dir] || '我的') + ' · ' + wmFmt(wmCount(b)) + ' 词</span>' +
+      '</label>';
+    }).join('');
+    setTxt('wmDrCount', '已挑 ' + pinned.length + ' 本');
+  }
+  function wmDrawerOpen(){
+    wmDrawerRender();
+    var d = $('wmDrawer'); if(d) d.hidden = false;
+  }
+  function wmDrawerClose(){
+    var d = $('wmDrawer'); if(d) d.hidden = true;
+  }
+  /* 背词态补一个「回书架」入口（动态插入，不碰 #preStart 原有结构） */
+  function wmEnsureShelfBack(){
+    /* 🔴 11-06：挂到 #studyView 本身而不是 #preStart —— 进答题态后 #preStart 会被
+       CSS 整块隐藏，回书架按钮会跟着消失。相对定位钉在右上角，开始前/答题态都在。 */
+    var host = $('studyView');
+    if(!host || $('wdGoShelf')) return;
+    var b = document.createElement('button');
+    b.type = 'button'; b.id = 'wdGoShelf'; b.className = 'wm-shelf-back';
+    b.textContent = '‹ 回书架';
+    b.addEventListener('click', function(){ try{ switchWordTab('bank'); }catch(e){} });
+    host.appendChild(b);
   }
 
   /* 切书 → 进旧词库内容（第 3 批换成真正的词书详情态） */
@@ -1492,6 +1628,23 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
     document.addEventListener('click', function(ev){
       var t = ev.target;
       if (!t || !t.closest) return;
+
+      /* WORDBOOK-HOME-1：编辑书架 / 抽屉 / 开始学习 / 侧栏（先不做功能，留位） */
+      if (t.closest('#wmEditShelf')){ ev.preventDefault(); wmDrawerOpen(); return; }
+      if (t.closest('#wmDrawerClose') || t.closest('#wmDrawerDone') || t.closest('[data-wmclose]')){ ev.preventDefault(); wmDrawerClose(); return; }
+      if (t.closest('#wmStartBtn')){
+        ev.preventDefault();
+        try{ switchWordTab('study'); }catch(e){}
+        setTimeout(function(){ var sb = $('wdStartBtn'); if(sb) sb.click(); }, 60);
+        return;
+      }
+      /* 侧栏其余按钮按她话「以后一个一个加」，本轮只高亮不切页 */
+      var si = t.closest('.wm-side-i');
+      if (si){
+        ev.preventDefault();
+        document.querySelectorAll('.wm-side-i').forEach(function(x){ x.classList.toggle('wm-on', x === si); });
+        return;
+      }
 
       /* 筛选：方向 */
       var d = t.closest('#wmDirRow .wm-f');
@@ -1560,6 +1713,20 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
       var t = ev.target;
       if (!t || t.id !== 'wmSearch') return;
       wmKw = String(t.value || '').trim().toLowerCase();
+      wmRender();
+    });
+    /* 抽屉逐本开关：用 change 而不是 click，避免点 label 文字时转发两次 */
+    document.addEventListener('change', function(ev){
+      var dr = ev.target;
+      if(!dr || !dr.matches || !dr.matches('#wmDrList input[data-pin]')) return;
+      var id = dr.getAttribute('data-pin');
+      var pin = wmPinned(), at = pin.indexOf(id);
+      if(dr.checked && at < 0) pin.push(id);
+      if(!dr.checked && at >= 0) pin.splice(at, 1);
+      /* 按 WM_BOOKS 原序存，抽屉不因勾选顺序乱跳 */
+      pin = WM_BOOKS.map(function(b){ return b.id; }).filter(function(x){ return pin.indexOf(x) >= 0; });
+      wmSetPinned(pin);
+      wmDrawerRender();
       wmRender();
     });
   }
@@ -1635,6 +1802,7 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
      避免两处各写一份又走岔（这次的事故就是「首跑做了、重跑没做」）。 */
   window.__wwordB1Boot = function(){
     try{ wmShowMall(); }catch(e){}
+    try{ wmEnsureShelfBack(); }catch(e){}
     try{ wmRender(); }catch(e){}
   };
   /* 数据是异步到的 → 就绪后刷一次；合并后刷一次 */
@@ -1674,6 +1842,8 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
   function clickMeansStart(t){
     if (!t || !t.closest) return false;
     if (t.closest('#wdBackStudy')) return false;      // 手机：从词库回学习，就是要看今日卡
+    if (t.closest('#wdGoShelf')) return false;        // 背词态「‹ 回书架」：切回书架，不算开始背词
+    if (t.closest('#vMall')) return false;            // 书架页里的一切点击都不算开始背词
     if (t.closest('.top-nav')) return false;           // 顶栏导航（含「单词 → 学习」二级）
     if (t.closest('#hubDock')) return false;           // 手机底栏
     /* WORD-3B：原 #wdSwapBook 已移除 → 换成新的词书切换器（点它只是切书，不算「开始背词」） */

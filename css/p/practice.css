@@ -1410,3 +1410,258 @@ body:has(#practiceBody .practice-word-area.pw-dict) #wdFoot{
 #practiceBody:has(.practice-word-area.pw-dict) .wdd-hint{
   display: none !important;
 }
+
+/* ════════════════════════════════════════════════════════════════════
+   WORDBOOK-HOME-1（11-06）· 词库首页重设计（她 11-06 点头的样子稿）
+   稿 = design/WORDBOOK-HOME-1-词库首页重设计样子稿-2026-11-06.html
+   全部用 #vMall 前缀作用域，不碰 ① 段机器导出件（验收基线 24 元素）。
+   保留原有顶栏（外层 .hub-topbar），这里只加「内侧栏 + 中间书架 + 右侧今日」。
+   书卡只放词数/章数/方向/来源，不塞进度/覆盖率/待复习数/对比。
+   走站点 token，亮/深色自适应；主色 teal；44px 触控；无 emoji。
+   ════════════════════════════════════════════════════════════════════ */
+
+/* 整屏铺满：仅当书架态真的显示时才改 container（切到详情/旧词库自动还原）。
+   🔴 11-06 实测两条硬约束：① container 在普通流里实测 top=72（44px 顶栏 + 28px 额外偏移），
+      高度按 `calc(100vh - 72px - env(...))` 扣干净才正好一屏、下方零留白；
+      ② **不能用 position:fixed** —— 点「开始学习」切态时 :has() 选择器失效、fixed 回普通流，
+      Edge 无头渲染进程会直接崩（诊断探针可复现）。普通文档流 + 精确高度两全。 */
+main.container:has(> #bankView:not([hidden]) #vMall:not([hidden])){
+  max-width:none; margin:0; padding:0;
+  height:calc(100vh - 72px - env(safe-area-inset-top));
+  min-height:0; overflow:hidden; display:flex; flex-direction:column;
+}
+main.container:has(> #bankView:not([hidden]) #vMall:not([hidden])) > #bankView{
+  flex:1 1 auto; min-height:0; display:flex; flex-direction:column;
+}
+#vMall{
+  flex:1 1 auto; min-height:0; height:100%;
+  display:flex; flex-direction:column;
+  --wm-ink:var(--ink); --wm-muted:var(--muted); --wm-line:var(--line);
+}
+#vMall .wm-shell{
+  flex:1 1 auto; min-height:0;
+  display:grid; grid-template-columns:168px minmax(0,1fr) 246px;
+  border-top:1px solid var(--line);
+}
+
+/* 内侧栏 */
+#vMall .wm-side{
+  border-right:1px solid var(--line); padding:18px 12px;
+  display:flex; flex-direction:column; gap:4px;
+  background:var(--surface-2); overflow:hidden;
+}
+#vMall .wm-side-t{
+  font-size:11px; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--muted); font-weight:750; padding:0 10px 10px;
+}
+#vMall .wm-side-i{
+  appearance:none; border:0; background:transparent; text-align:left;
+  font-size:14px; color:var(--ink-2); min-height:44px; padding:0 12px;
+  border-radius:10px; display:flex; align-items:center; gap:10px;
+  cursor:pointer; font-family:inherit;
+}
+#vMall .wm-side-i:hover{ background:var(--primary-50); color:var(--primary-700); }
+#vMall .wm-side-i.wm-on{ background:var(--primary-50); color:var(--primary-700); font-weight:700; }
+#vMall .wm-side-i::before{
+  content:""; width:16px; height:16px; border-radius:5px;
+  border:2px solid currentColor; opacity:.5; flex:none;
+}
+#vMall .wm-side-i.wm-on::before{ opacity:1; background:currentColor; }
+#vMall .wm-side-foot{
+  margin-top:auto; font-size:12px; color:var(--muted);
+  line-height:1.6; padding:10px; border-top:1px solid var(--line);
+}
+
+/* 中间主区 */
+#vMall .wm-main{
+  min-width:0; min-height:0; display:flex; flex-direction:column;
+  padding:20px 22px 16px; overflow:hidden;
+}
+#vMall .wm-topbar{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:14px; }
+#vMall .wm-head{ display:flex; align-items:baseline; gap:10px; margin-right:auto; }
+#vMall .wm-title{ font-size:22px; font-weight:780; margin:0; color:var(--ink); letter-spacing:-.02em; }
+#vMall .wm-sub{ font-size:12.5px; color:var(--muted); }
+#vMall .wm-mall-search{ display:flex; align-items:center; min-height:44px; }
+#vMall .wm-mall-search input{
+  width:200px; height:44px; box-sizing:border-box;
+  border:1px solid var(--line); border-radius:10px;
+  background:var(--surface-2); color:var(--ink);
+  padding:0 12px; font-size:13.5px; font-family:inherit; outline:none;
+}
+#vMall .wm-mall-search input:focus{ border-color:var(--primary); }
+#vMall .wm-edit, #vMall .wm-start, #vMall .wm-drawer-done{
+  appearance:none; border:1px solid var(--line); background:var(--surface);
+  color:var(--ink); font-family:inherit; font-size:13.5px; font-weight:650;
+  min-height:44px; padding:0 16px; border-radius:10px; cursor:pointer;
+}
+#vMall .wm-edit:hover{ border-color:var(--primary); color:var(--primary-700); }
+#vMall .wm-start{ background:var(--primary); border-color:var(--primary); color:#fff; }
+#vMall .wm-start:hover{ filter:brightness(.95); }
+
+/* 今日任务条 */
+#vMall .wm-todaybar{
+  display:flex; align-items:center; gap:14px;
+  background:var(--primary-50); border:1px solid var(--line);
+  border-radius:12px; padding:12px 16px; margin-bottom:14px;
+}
+#vMall .wm-today-tx{ font-size:14px; color:var(--ink); margin-right:auto; }
+#vMall .wm-today-tx b{ font-size:19px; color:var(--primary-700); font-weight:780; }
+
+/* 筛选条（沿用原 id/class，只压成一行） */
+#vMall .wm-filters{
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  margin:0 0 14px; padding:0; border:0; background:none;
+}
+#vMall .wm-frow{ display:flex; gap:4px; }
+#vMall .wm-f{
+  appearance:none; border:1px solid transparent; background:transparent;
+  color:var(--ink-2); font-family:inherit; font-size:13px;
+  min-height:36px; padding:0 12px; border-radius:9px; cursor:pointer;
+}
+#vMall .wm-f:hover{ background:var(--surface-2); }
+#vMall .wm-f.wm-on{ background:var(--primary-50); color:var(--primary-700); font-weight:700; border-color:var(--line); }
+#vMall .wm-fsep{ width:1px; height:22px; background:var(--line); }
+
+/* 书卡网格：吃掉剩余高度，随视口拉伸，下面不留白 */
+#vMall .wm-deals{
+  flex:1 1 auto; min-height:0; display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(196px,1fr));
+  grid-auto-rows:1fr; gap:12px; overflow-y:auto; align-content:stretch;
+}
+#vMall .wm-deals .wm-deal,
+#vMall .wm-deals .wm-deal-add{
+  height:100%; min-height:150px; box-sizing:border-box;
+  display:flex; flex-direction:column; justify-content:space-between;
+}
+#vMall .wm-deals .wm-deal{
+  color:var(--ink); background:var(--surface);
+  border:1px solid var(--line); border-radius:14px; padding:16px;
+  text-align:left; cursor:pointer; font-family:inherit;
+  transition:border-color .15s, box-shadow .15s;
+}
+#vMall .wm-deals .wm-deal:hover{ border-color:var(--primary); box-shadow:0 6px 18px rgba(0,0,0,.06); }
+#vMall .wm-deals .wm-deal.wm-cur{ border-color:var(--primary); background:var(--primary-50); }
+#vMall .wm-deals .wm-deal-h{ display:flex; gap:10px; align-items:flex-start; }
+#vMall .wm-deals .wm-deal-ic{
+  width:34px; height:34px; border-radius:9px; flex:none;
+  background:var(--primary-50); color:var(--primary-700);
+  display:flex; align-items:center; justify-content:center;
+}
+#vMall .wm-deals .wm-deal-ic svg{ width:18px; height:18px; }
+#vMall .wm-deals .wm-deal-nm{ display:block; font-size:14.5px; font-weight:720; color:var(--ink); line-height:1.35; }
+#vMall .wm-deals .wm-deal-mt{ display:block; font-size:11.5px; color:var(--muted); margin-top:3px; line-height:1.4; }
+#vMall .wm-deals .wm-kind{ font-size:10.5px; color:var(--primary-700); font-weight:700; }
+#vMall .wm-deals .wm-deal-row{ display:flex; align-items:baseline; gap:10px; margin-top:12px; }
+#vMall .wm-deals .wm-v b{ font-size:24px; font-weight:780; color:var(--ink); letter-spacing:-.02em; }
+#vMall .wm-deals .wm-v span{ font-size:12px; color:var(--muted); margin-left:3px; }
+#vMall .wm-deals .wm-deal-row .wm-v[style]{ font-size:12.5px; color:var(--muted); }
+#vMall .wm-deals .wm-deal-cov{
+  display:flex; gap:8px; font-size:11.5px; color:var(--muted);
+  border-top:1px dashed var(--line); padding-top:10px; margin-top:10px;
+}
+#vMall .wm-deals .wm-deal-ft{
+  display:flex; align-items:center; justify-content:space-between;
+  font-size:11.5px; color:var(--muted); margin-top:10px;
+}
+#vMall .wm-deals .wm-go{ color:var(--primary-700); font-weight:700; }
+#vMall .wm-deals .wm-now{
+  align-self:flex-start; font-size:10.5px; font-weight:700;
+  color:var(--primary-700); background:var(--primary-50);
+  border-radius:6px; padding:2px 8px; margin-bottom:6px;
+}
+#vMall .wm-deals .wm-deal-add{
+  align-items:center; justify-content:center;
+  border:1.5px dashed var(--line); border-radius:14px;
+  background:transparent; color:var(--muted); font-family:inherit;
+  font-size:13.5px; cursor:pointer;
+}
+#vMall .wm-deals .wm-deal-add:hover{ border-color:var(--primary); color:var(--primary-700); }
+#vMall .wm-none{ grid-column:1/-1; color:var(--muted); font-size:13.5px; padding:20px 0; }
+
+/* 右侧今日 */
+#vMall .wm-right{
+  border-left:1px solid var(--line); padding:18px 16px;
+  display:flex; flex-direction:column; gap:14px;
+  background:var(--surface-2); overflow:hidden;
+}
+#vMall .wm-week{ display:flex; gap:6px; }
+#vMall .wm-week-d{
+  flex:1; text-align:center; border:1px solid var(--line);
+  border-radius:10px; padding:10px 4px; background:var(--surface);
+}
+#vMall .wm-week-d span{ display:block; font-size:11px; color:var(--muted); }
+#vMall .wm-week-d b{ display:block; font-size:13px; color:var(--ink); margin-top:4px; font-weight:700; }
+#vMall .wm-week-d.wm-today{ border-color:var(--primary); background:var(--primary-50); }
+#vMall .wm-week-d.wm-today b{ color:var(--primary-700); }
+#vMall .wm-right-card{ border:1px solid var(--line); border-radius:12px; background:var(--surface); padding:14px; }
+#vMall .wm-rc-t{ font-size:12px; color:var(--muted); font-weight:700; margin-bottom:8px; }
+#vMall .wm-rc-row{
+  display:flex; align-items:center; justify-content:space-between;
+  font-size:13px; color:var(--ink-2); padding:7px 0; border-top:1px solid var(--line);
+}
+#vMall .wm-rc-row:first-of-type{ border-top:0; }
+#vMall .wm-rc-row b{ font-size:15px; color:var(--ink); font-weight:720; }
+#vMall .wm-right-foot{ margin-top:auto; font-size:12px; color:var(--muted); line-height:1.6; text-align:center; }
+
+/* 编辑书架抽屉 */
+#vMall .wm-drawer{ position:fixed; inset:0; z-index:120; }
+#vMall .wm-drawer[hidden]{ display:none; }
+#vMall .wm-drawer-mask{ position:absolute; inset:0; background:rgba(0,0,0,.35); }
+#vMall .wm-drawer-panel{
+  position:absolute; top:0; right:0; bottom:0; width:min(360px,92vw);
+  background:var(--surface); border-left:1px solid var(--line);
+  display:flex; flex-direction:column; padding:20px;
+  box-shadow:-12px 0 32px rgba(0,0,0,.12);
+}
+#vMall .wm-drawer-h{ display:flex; align-items:center; justify-content:space-between; }
+#vMall .wm-drawer-h b{ font-size:18px; color:var(--ink); }
+#vMall .wm-drawer-x{
+  appearance:none; border:0; background:transparent; color:var(--muted);
+  font-size:24px; line-height:1; width:44px; height:44px; cursor:pointer;
+}
+#vMall .wm-drawer-tip{ font-size:12.5px; color:var(--muted); line-height:1.6; margin:8px 0 14px; }
+#vMall .wm-dr-list{ flex:1 1 auto; min-height:0; overflow-y:auto; display:flex; flex-direction:column; gap:6px; }
+#vMall .wm-dr-row{
+  display:flex; align-items:center; gap:10px; min-height:44px;
+  border:1px solid var(--line); border-radius:10px; padding:8px 12px; cursor:pointer;
+}
+#vMall .wm-dr-row input{ width:18px; height:18px; accent-color:var(--primary); flex:none; }
+#vMall .wm-dr-nm{ font-size:13.5px; color:var(--ink); font-weight:650; }
+#vMall .wm-dr-mt{ font-size:11.5px; color:var(--muted); margin-left:auto; }
+#vMall .wm-drawer-done{ margin-top:14px; width:100%; background:var(--primary); border-color:var(--primary); color:#fff; }
+#vMall .wm-drawer-count{ font-size:12px; color:var(--muted); text-align:right; margin-top:8px; }
+
+/* 背词态「‹ 回书架」入口：钉在 #studyView 右上角，开始前/答题态都可见 */
+#studyView{ position:relative; }
+#studyView .wm-shelf-back{
+  position:absolute; top:0; right:0; z-index:5;
+  appearance:none; border:1px solid var(--line); background:var(--surface);
+  color:var(--ink-2); font-family:inherit; font-size:12.5px;
+  min-height:36px; padding:0 12px; border-radius:9px; cursor:pointer;
+  white-space:nowrap;
+}
+#studyView .wm-shelf-back:hover{ border-color:var(--primary); color:var(--primary-700); }
+
+/* 自适应：≤1180 收右栏；≤860 手机走滚动（dock 净空由 common.css 接管） */
+@media(max-width:1180px){
+  #vMall .wm-shell{ grid-template-columns:64px minmax(0,1fr); }
+  #vMall .wm-right{ display:none; }
+  #vMall .wm-side-t, #vMall .wm-side-foot{ display:none; }
+  #vMall .wm-side-i{ font-size:0; justify-content:center; padding:0; }
+  #vMall .wm-side-i::before{ width:18px; height:18px; }
+}
+@media(max-width:860px){
+  /* 手机：撤掉桌面那套定高（顶栏本就隐藏），靠页面自己滚动，dock 净空由 common.css 接管 */
+  main.container:has(> #bankView:not([hidden]) #vMall:not([hidden])){
+    height:auto; max-height:none; min-height:0; overflow:visible; display:block;
+    padding:0 12px calc(var(--dock-h,56px) + 10px)!important;
+  }
+  main.container:has(> #bankView:not([hidden]) #vMall:not([hidden])) > #bankView{ display:block; }
+  #vMall{ height:auto; display:block; }
+  #vMall .wm-shell{ display:block; }
+  #vMall .wm-side, #vMall .wm-right{ display:none; }
+  #vMall .wm-main{ padding:14px 0; overflow:visible; }
+  #vMall .wm-deals{ grid-template-columns:repeat(2,minmax(0,1fr)); grid-auto-rows:minmax(150px,auto); overflow:visible; }
+}
+
+/* TODO: [待确认] >1920 超宽屏书卡被 1fr 拉太高要不要设 max-height，等她看实图再定。 */
