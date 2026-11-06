@@ -1,19 +1,13 @@
 /* ==========================================================================
-   HUB-SIDE-SHELL-1（11-06 她点头的单侧栏壳）
+   HUB-SIDE-SHELL-1 / 3（11-06 定版 · 11-07 推广到上栏除首页外全部页）
    --------------------------------------------------------------------------
-   给「大 tab 里有多个小 tab」的页加一个左栏：小 tab 竖排自由切换 + 今天的待办。
-   只加壳，不改原页面任何功能块：
-     · 壳的 DOM 与 CSS 都在页面 HTML 里（软导航 swapPageStyles 会随页换入/换出，
-       不往 document.head 注入样式 —— 那样会残留到别的页）。本文件只填内容、绑事件。
-     · 小 tab 点击转发给页面原有的分栏按钮（#mockTabs .pill-tab），
-       因此切科 / 按需加载脚本 / 计数刷新 / 做题 / 判分全部走原逻辑，一行没动。
-     · 今日待办读 DATA.plans 当天那条 items，勾选改 done + 戳 updatedAt + hubSave，
-       与计划页 toggleItem 同口径（合并按新者整项胜）。
-
-   ⚠️ 软导航每次进页都会 window.eval 本文件（common-shell.js 的 runPageScript），
-      所以监听必须每轮「先摘旧的、再绑新的」——有守卫不重绑会被账本摘掉（见
-      common-shell.js:165-168 的坑）。渲染全部幂等。
-   ⚠️ 没有可接分栏的页不会加载本文件 → 自动不套壳（首页等）。
+   左栏 = 小 tab 竖排自由切换 + 今天的待办。只加壳，不改原页面任何功能块：
+     · 壳 DOM/CSS 都在页面 HTML 里（软导航 swapPageStyles 随页换入换出，不注入 head）。
+     · 小 tab 点击转发给页面原有的分栏按钮 .click() → 切科/按需加载/计数/做题全走原逻辑。
+     · 今日待办读 DATA.plans 当天 items，勾选改 done + updatedAt + hubSave，与计划页同口径。
+     · review 无分栏条 → 两颗落到原 deepLink 的两个滚动目标；practice 无分栏 → 只留今日待办。
+   ⚠️ 软导航每轮 window.eval 本文件 → 监听必须先 remove 再 add；渲染全部幂等。
+   ⚠️ 没有可接分栏的页不加载本文件 → 自动不套壳（首页等）。
    ========================================================================== */
 (function(){
   'use strict';
@@ -41,24 +35,49 @@
   }
   function $(id){ return document.getElementById(id); }
 
-  /* 只接有机经页四科分栏的页；后续页在这里加分支即可（共用同一份壳）。 */
+  /* 按当前页 DOM 认身份（共用一份脚本，每次 eval 只在当前页跑）。
+     tabSel/tabAttr = 原分栏按钮选择器与取值属性；tabRoot = 观察用的容器 id；
+     stateAttr = 有些页把当前态写在根元素属性上（bank）；countSel = 篇数徽标；
+     review = 无分栏条走滚动；subs = 左栏小 tab 列表。 */
   function getConfig(){
     if($('mockTabs')) return {
-      tabSel:'#mockTabs .pill-tab',
-      tabAttr:'data-mtab',
-      rootId:'bankRoot',
-      subs:[{id:'reading',nm:'阅读',ic:'book'},
-            {id:'listening',nm:'听力',ic:'mic'},
-            {id:'writing',nm:'写作',ic:'pen'},
-            {id:'speaking',nm:'口语',ic:'chat'}]
+      tabSel:'#mockTabs .pill-tab', tabAttr:'data-mtab', tabRoot:'mockTabs',
+      rootId:'bankRoot', stateAttr:'data-mock-tab', countSel:'#mockTabs .mt-n',
+      subs:[{id:'reading',nm:'阅读',ic:'book'},{id:'listening',nm:'听力',ic:'mic'},
+            {id:'writing',nm:'写作',ic:'pen'},{id:'speaking',nm:'口语',ic:'chat'}]
     };
+    if($('tabs') && $('listView')) return {
+      tabSel:'#tabs .pill-tab[data-type]', tabAttr:'data-type', tabRoot:'tabs',
+      subs:[{id:'BANK',nm:'题库',ic:'book'},{id:'PRACTICE',nm:'陪练',ic:'chat'},
+            {id:'MAT',nm:'素材',ic:'pen'}]
+    };
+    if($('writeTabs')) return {
+      tabSel:'#writeTabs .pill-tab[data-tab]', tabAttr:'data-tab', tabRoot:'writeTabs',
+      subs:[{id:'tpl',nm:'模板',ic:'book'},{id:'bank',nm:'语料',ic:'pen'},
+            {id:'score',nm:'评分',ic:'chat'}]
+    };
+    if($('wordTabs')) return {
+      tabSel:'#wordTabs [data-sub]', tabAttr:'data-sub', tabRoot:'wordTabs',
+      subs:[{id:'ls',nm:'长难句',ic:'book'},{id:'eb',nm:'错题',ic:'pen'},
+            {id:'dict',nm:'听写',ic:'mic'}]
+    };
+    if($('planTabs')) return {
+      tabSel:'#planTabs .pill-tab[data-ptab]', tabAttr:'data-ptab', tabRoot:'planTabs',
+      subs:[{id:'today',nm:'今天',ic:'book'},{id:'past',nm:'往日',ic:'chat'}]
+    };
+    if($('reviewMain')) return {
+      review:true, tabSel:null, tabRoot:null,
+      subs:[{id:'score',nm:'成绩',ic:'book'},{id:'record',nm:'轨迹',ic:'chat'}]
+    };
+    if($('vMall')) return { tabSel:null, tabRoot:null, subs:[] };
     return null;
   }
   var CFG = null;
 
   function countOf(id){
+    if(!CFG || !CFG.countSel) return '';
     try{
-      var el = document.querySelector('#mockTabs .mt-n[data-mtn="' + id + '"]');
+      var el = document.querySelector(CFG.countSel + '[data-mtn="' + id + '"]');
       return el ? (el.textContent || '').trim() : '';
     }catch(e){ return ''; }
   }
@@ -88,9 +107,17 @@
   }
   function currentTab(){
     try{
-      var r = CFG && $(CFG.rootId);
-      var t = r ? (r.getAttribute('data-mock-tab') || '') : '';
-      if(t) return t;
+      if(!CFG) return '';
+      if(CFG.review){
+        var q = new URLSearchParams(location.search).get('sub') || '';
+        return (q === 'record' || q === 'trajectory' || q === 'history') ? 'record' : 'score';
+      }
+      if(!CFG.tabSel) return '';
+      if(CFG.stateAttr){
+        var r = CFG.rootId && $(CFG.rootId);
+        var t = r ? (r.getAttribute(CFG.stateAttr) || '') : '';
+        if(t) return t;
+      }
       var on = document.querySelector(CFG.tabSel + '.active');
       return on ? (on.getAttribute(CFG.tabAttr) || '') : '';
     }catch(e){ return ''; }
@@ -154,6 +181,15 @@
     try{ document.dispatchEvent(new CustomEvent('hub:plan-toggled', {detail:{id:id}})); }catch(e){}
   }
 
+  function reviewGo(id){
+    /* 回顾页没有分栏按钮：落到 js/rvx-data.js deepLink 的两个目标，走原筛选控件的 change 事件。 */
+    if(id === 'record'){
+      var f = $('recordFilter');
+      if(f){ f.value = 'all'; try{ f.dispatchEvent(new Event('change', {bubbles:true})); }catch(e){} }
+    }
+    var t = $(id === 'record' ? 'recAll' : 'rv2Summary');
+    if(t && t.scrollIntoView) t.scrollIntoView({behavior:'smooth', block:'start'});
+  }
   function onClick(e){
     var t = e.target;
     if(!t || !t.closest) return;
@@ -161,9 +197,11 @@
     if(sub && CFG){
       e.preventDefault();
       var id = sub.getAttribute('data-hub-sub');
-      var btn = document.querySelector(CFG.tabSel + '[' + CFG.tabAttr + '="' + id + '"]');
-      /* 转发给原分栏按钮：切科、写作脚本按需加载、篇数刷新全走原逻辑。 */
-      if(btn) btn.click();
+      if(CFG.review) reviewGo(id);
+      else if(CFG.tabSel){
+        var btn = document.querySelector(CFG.tabSel + '[' + CFG.tabAttr + '="' + id + '"]');
+        if(btn) btn.click();          // 转发原分栏按钮：切 tab/按需加载/计数全走原逻辑
+      }
       syncActive();
       return;
     }
@@ -171,8 +209,6 @@
     if(todo){ e.preventDefault(); toggleTodo(todo.getAttribute('data-hub-todo')); }
   }
 
-  /* 每轮 eval 都重绑：common-shell 的监听账本会在下一轮 eval 前摘掉上一轮的，
-     这里先 remove 再 add，保证任何时刻恰好有一组活的监听。 */
   function bind(){
     if(window.__hubSideClick){ try{ document.removeEventListener('click', window.__hubSideClick); }catch(e){} }
     window.__hubSideClick = onClick;
@@ -184,10 +220,10 @@
   function observe(){
     if(window.__hubSideObs){ try{ window.__hubSideObs.disconnect(); }catch(e){} }
     var targets = [];
-    var root = CFG && $(CFG.rootId);
-    var tabs = $('mockTabs');
-    if(root) targets.push([root, {attributes:true, attributeFilter:['data-mock-tab']}]);
-    if(tabs) targets.push([tabs, {childList:true, subtree:true, characterData:true}]);
+    var root = CFG && CFG.rootId && $(CFG.rootId);
+    var tabs = CFG && CFG.tabRoot && $(CFG.tabRoot);
+    if(root && CFG.stateAttr) targets.push([root, {attributes:true, attributeFilter:[CFG.stateAttr]}]);
+    if(tabs) targets.push([tabs, {childList:true, subtree:true, characterData:true, attributes:true, attributeFilter:['class','hidden']}]);
     if(!targets.length) return;
     window.__hubSideObs = new MutationObserver(function(){ syncActive(); syncCounts(); });
     targets.forEach(function(pair){
@@ -206,3 +242,4 @@
   }
   boot();
 })();
+

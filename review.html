@@ -17,6 +17,20 @@
 <div id="bootLoader" class="hub-loader show" aria-hidden="true"><div class="ui-loader" role="status" aria-label="Loading"><span class="ui-loader-dot"></span><span class="ui-loader-dot m2"></span><span class="ui-loader-dot m3"></span></div></div>
 <nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
 <main class="container rv2-wrap" id="reviewMain">
+  <div class="hub-shell">
+    <aside class="hub-side">
+      <div class="hub-side-scroll">
+        <div class="hub-subs" id="hubSubs"></div>
+        <div class="hub-side-div"></div>
+        <div class="hub-td-head"><b>今天</b></div>
+        <div class="hub-td-prog" id="hubTdProg"></div>
+        <div class="hub-td-group" id="hubTdPending"></div>
+        <div class="hub-td-group" id="hubTdDone"></div>
+        <div class="hub-td-empty" id="hubTdEmpty" hidden>今天还没有任务</div>
+        <div class="hub-side-foot"><a href="plans.html">去计划页查看全部 ›</a></div>
+      </div>
+    </aside>
+    <div class="hub-main">
 <dialog id="rv2AddDialog" class="rv2-dialog"><form method="dialog" class="rv2-dialog-shell" id="rv2DialogForm"><div class="rv2-dialog-head"><div><h2>录入成绩</h2><span class="rv2-hint">选择记录类型，保存后立刻回到页面显示</span></div><button value="cancel" class="rv2-close" aria-label="关闭">×</button></div><div class="rv2-segment rv2-kind"><button type="button" class="active" data-kind="whole">整套真题</button><button type="button" data-kind="part">单项练习</button></div>
  <div id="scAddWrap" class="rv2-form"><div class="rv2-form-grid"><label>模考日期<input type="date" id="scoreDate"></label><label>听力<input type="number" id="scL" step="0.5" min="0" max="9" placeholder="0–9"></label><label>阅读<input type="number" id="scR" step="0.5" min="0" max="9" placeholder="0–9"></label><label>写作<input type="number" id="scW" step="0.5" min="0" max="9" placeholder="0–9"></label><label>口语<input type="number" id="scS" step="0.5" min="0" max="9" placeholder="0–9"></label><label>备注（可选）<input id="scNote" placeholder="备注"></label></div><button type="button" class="rv2-primary" id="addScore">保存成绩</button></div>
  <div id="mkAddWrap" class="rv2-form" hidden><div class="rv2-form-grid"><label>粒度<select id="mkGran"><option value="part">单项</option><option value="whole">整卷</option></select></label><label>科目<select id="mkType"><option value="listening">听力</option><option value="reading">阅读</option><option value="speaking">口语</option><option value="writing">写作</option></select></label><label>日期<input type="date" id="mkDate"></label></div><div id="mkPartPick"><label>选择 Part<select id="mkPart"></select></label></div><div id="mkPartInputWrap"><label for="mkPartInput" id="mkPartInputLabel">答对题数</label><input type="number" id="mkPartInput" min="0" placeholder="0"></div><div id="mkParts" hidden></div><button type="button" class="rv2-primary" id="mkAdd">保存分项</button></div>
@@ -49,6 +63,8 @@
  </div>
  <section class="rv2-card rv2-records"><div class="rv2-card-head"><div><h2>成绩记录</h2><span class="rv2-hint">真题、分项与口语模考按日期排列</span></div><div class="rv2-head-tools"><div class="rv2-segment" id="recAllChips" role="group" aria-label="按类型筛选记录"><button type="button" class="active" data-k="all">全部</button><button type="button" data-k="whole">整卷</button><button type="button" data-k="part">分项</button><button type="button" data-k="speaking">口语模考</button></div><select id="recordFilter" aria-label="筛选成绩记录"><option value="recent">最近三次</option><option value="all">全部记录</option></select></div></div><div id="recAll"></div><span id="recAllCount" hidden></span></section>
  <section class="rv2-card rv2-performance"><div class="rv2-card-head"><div><h2>表现统计</h2><span class="rv2-hint">听力、阅读看正确率；写作、口语看练习量，不重复真题分数</span></div><select id="rv2StatRange" aria-label="表现统计范围"><option value="recent">近 30 天</option><option value="all">全部时间</option></select></div><div class="rv2-perf-grid" id="rv2PerfGrid"></div><details class="rv2-more"><summary>看题型与 Part 明细</summary><div id="mkTypeStats"></div><div id="mkPartStats"></div><div id="mkQtStats"></div></details><select id="mkFilter" hidden><option value="all">全部</option><option value="recent">近十天</option></select></section>
+    </div><!-- /.hub-main -->
+  </div><!-- /.hub-shell -->
 </main>
 <!-- 既有模块的数据落点：只在需要看原始详情时打开，不在主页面重复显示。 -->
 <div id="rvLegacy" hidden>
@@ -59,4 +75,7 @@
  <select id="mkListType"><option value="all"></option><option value="listening"></option><option value="reading"></option><option value="speaking"></option><option value="writing"></option></select><select id="mkListGran"><option value="all"></option><option value="whole"></option><option value="part"></option></select>
  </div>
 </div>
+<link rel="stylesheet" href="css/p/hub-shell.css?v=20261106b" />
+<script defer src="js/hub-side-shell.js?v=20261106b"></script>
 </body></html>
+

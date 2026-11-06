@@ -200,6 +200,20 @@
 <nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
 
 <main class="container">
+  <div class="hub-shell">
+    <aside class="hub-side">
+      <div class="hub-side-scroll">
+        <div class="hub-subs" id="hubSubs"></div>
+        <div class="hub-side-div"></div>
+        <div class="hub-td-head"><b>今天</b></div>
+        <div class="hub-td-prog" id="hubTdProg"></div>
+        <div class="hub-td-group" id="hubTdPending"></div>
+        <div class="hub-td-group" id="hubTdDone"></div>
+        <div class="hub-td-empty" id="hubTdEmpty" hidden>今天还没有任务</div>
+        <div class="hub-side-foot"><a href="plans.html">去计划页查看全部 ›</a></div>
+      </div>
+    </aside>
+    <div class="hub-main">
 <!-- ═══ KIMI-P2-2（10-26）· 句子页按 Kimi 样子稿 1:1 重排 ═══
 结构原文 design/kimi-visual-upgrade-2026-10-25/_KC-corpus_结构原文.html（前缀 kc-）
 精确样式 design/kimi-visual-upgrade-2026-10-25/_KC-corpus_精确样式.css（已追加到 css/p/corpus.css）
@@ -251,7 +265,12 @@ importCorpus · importHint · aiImportBox · aiImportBtn · aiImportHint · dict
 </section><div id="dictArea"></div>
 </div>
 </div>
+    </div><!-- /.hub-main -->
+  </div><!-- /.hub-shell -->
 </main>
 
+<link rel="stylesheet" href="css/p/hub-shell.css?v=20261106b" />
+<script defer src="js/hub-side-shell.js?v=20261106b"></script>
 </body>
 </html>
+

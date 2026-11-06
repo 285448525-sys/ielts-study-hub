@@ -564,6 +564,20 @@
 <nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
 
 <main class="container">
+  <div class="hub-shell">
+    <aside class="hub-side">
+      <div class="hub-side-scroll">
+        <div class="hub-subs" id="hubSubs"></div>
+        <div class="hub-side-div"></div>
+        <div class="hub-td-head"><b>今天</b></div>
+        <div class="hub-td-prog" id="hubTdProg"></div>
+        <div class="hub-td-group" id="hubTdPending"></div>
+        <div class="hub-td-group" id="hubTdDone"></div>
+        <div class="hub-td-empty" id="hubTdEmpty" hidden>今天还没有任务</div>
+        <div class="hub-side-foot"><a href="plans.html">去计划页查看全部 ›</a></div>
+      </div>
+    </aside>
+    <div class="hub-main">
 
   <!-- P-1（10-24）计划页重设计：三个分栏 → 两个。
        她 11:3x 点头「计划页和回顾页设计得还行先就这样改派下去吧」，设计稿
@@ -872,9 +886,15 @@
         放进 main 后每次软导航都会带一份新的过来，且随旧 main 一起被回收，天然幂等。
         ⚠️ 它是 position:fixed，放进来不影响定位 —— 已确认 main/.container/body
         都没有 transform/filter/will-change/perspective（否则 fixed 会改以祖先为参照）。 -->
+    </div><!-- /.hub-main -->
+  </div><!-- /.hub-shell -->
+
 <div id="diagOverlay" hidden></div>
 </main>
 
 
+<link rel="stylesheet" href="css/p/hub-shell.css?v=20261106b" />
+<script defer src="js/hub-side-shell.js?v=20261106b"></script>
 </body>
 </html>
+

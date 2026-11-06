@@ -2912,6 +2912,20 @@ html[data-theme="dark"] .sp-core-fail .sp-cf-d{color:#c8cbd0}
 <nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
 
 <main class="container">
+  <div class="hub-shell">
+    <aside class="hub-side">
+      <div class="hub-side-scroll">
+        <div class="hub-subs" id="hubSubs"></div>
+        <div class="hub-side-div"></div>
+        <div class="hub-td-head"><b>今天</b></div>
+        <div class="hub-td-prog" id="hubTdProg"></div>
+        <div class="hub-td-group" id="hubTdPending"></div>
+        <div class="hub-td-group" id="hubTdDone"></div>
+        <div class="hub-td-empty" id="hubTdEmpty" hidden>今天还没有任务</div>
+        <div class="hub-side-foot"><a href="plans.html">去计划页查看全部 ›</a></div>
+      </div>
+    </aside>
+    <div class="hub-main">
   <div class="page-head-row">
     <div class="sp-tabs pill-tabs" id="tabs">
       <!-- 10/1 晚（她拍板）：题库放练习前面 + 打开口语默认展示题库 -->
@@ -3479,7 +3493,11 @@ html[data-theme="dark"] .sp-core-fail .sp-cf-d{color:#c8cbd0}
   <!-- AI 口语陪练 coach（10/2 拍板接管陪练 tab）：骨架由 js/coach.js 首次切入时懒渲染；
        旧句型引擎容器全部保留，去掉 coach.js 的 script 引用即完整回滚 -->
   <div id="coachView" hidden></div>
+    </div><!-- /.hub-main -->
+  </div><!-- /.hub-shell -->
 </main>
 
+<link rel="stylesheet" href="css/p/hub-shell.css?v=20261106b" />
+<script defer src="js/hub-side-shell.js?v=20261106b"></script>
 </body>
 </html>

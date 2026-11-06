@@ -713,6 +713,20 @@ body.exam-fullscreen .hub-topbar{display:none !important}
 <nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
 
 <main class="container">
+  <div class="hub-shell">
+    <aside class="hub-side">
+      <div class="hub-side-scroll">
+        <div class="hub-subs" id="hubSubs"></div>
+        <div class="hub-side-div"></div>
+        <div class="hub-td-head"><b>今天</b></div>
+        <div class="hub-td-prog" id="hubTdProg"></div>
+        <div class="hub-td-group" id="hubTdPending"></div>
+        <div class="hub-td-group" id="hubTdDone"></div>
+        <div class="hub-td-empty" id="hubTdEmpty" hidden>今天还没有任务</div>
+        <div class="hub-side-foot"><a href="plans.html">去计划页查看全部 ›</a></div>
+      </div>
+    </aside>
+    <div class="hub-main">
   <div class="page-head-row">
     <div class="write-tabs pill-tabs" id="writeTabs">
       <button data-tab="tpl" class="pill-tab active">模板</button>
@@ -963,10 +977,6 @@ body.exam-fullscreen .hub-topbar{display:none !important}
        这里保留 #examPanel 空壳 —— 评分 tab 的「保存题目，开始练」(openExamCustom) 复用同一套机考界面，
        靠的就是 #examPanel / #examHome / #examPractice 这三个元素。机考界面的 DOM 由 js/writing.js 的
        ensureExamShell() 统一注入（两页共用一份源码，不各抄一份）。#examHome 在写作页永不出内容、只被置 hidden。 -->
-  <div id="examPanel" hidden>
-    <section id="examHome" hidden></section>
-    <section id="examPractice" hidden></section>
-  </div>
 
   <!-- 10/2（她拍板）：错句本面板已并入 tplPanel 底部折叠区，wrongPanel 整块删除 -->
 
@@ -1016,4 +1026,14 @@ body.exam-fullscreen .hub-topbar{display:none !important}
       <div id="wtDictResult" class="tpl-score" hidden style="margin-top:16px"></div>
     </section>
   </div>
+    </div><!-- /.hub-main -->
+  </div><!-- /.hub-shell -->
+
+  <div id="examPanel" hidden>
+    <section id="examHome" hidden></section>
+    <section id="examPractice" hidden></section>
+  </div>
 </main>
+<link rel="stylesheet" href="css/p/hub-shell.css?v=20261106b" />
+<script defer src="js/hub-side-shell.js?v=20261106b"></script>
+
