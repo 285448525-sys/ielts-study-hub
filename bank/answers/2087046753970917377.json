@@ -11,8 +11,8 @@
     "3": "FALSE",
     "4": "TRUE",
     "5": "TRUE",
-    "6": "planning",
-    "7": "dog sleds",
+    "6": "preparations",
+    "7": "sleds",
     "8": "supply depots",
     "9": "man-hauled",
     "10": "C",
@@ -26,13 +26,18 @@
     "3": "FALSE",
     "4": "TRUE",
     "5": "TRUE",
-    "6": "planning",
-    "7": "dog sleds",
+    "6": "preparations",
+    "7": "sleds",
     "8": "supply depots",
     "9": "man-hauled",
     "10": "C",
     "11": "C",
     "12": "A",
     "13": "C"
+  },
+  "alts": {
+    "7": [
+      "dog sleds"
+    ]
   }
 }

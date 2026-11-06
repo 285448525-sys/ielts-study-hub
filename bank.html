@@ -18,7 +18,7 @@
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
 <title>模考 · 雅思备考 Hub</title>
-<link rel="preload" as="script" href="js/bank.js?v=20261103i" /> <!-- W1-PRELOAD-1 (373KB)：与下方 defer 同串防双下载 -->
+<link rel="preload" as="script" href="js/bank.js?v=20261106a" /> <!-- W1-PRELOAD-1 (373KB)：与下方 defer 同串防双下载 -->
 <link rel="preload" as="script" href="js/common-shell.js?v=20261104b" /> <!-- W1-PRELOAD-1 (113KB)：与下方 defer 同串防双下载 -->
 <link rel="stylesheet" href="css/common.css?v=20261101m" />
 <link rel="stylesheet" href="css/p/bank.css?v=20261103g" />
@@ -700,6 +700,13 @@
 .sc-cn{display:block;font-size:.82em;color:#6b7280;line-height:1.45;margin-top:1px;font-weight:400}
 #examRoot:not(.rv-cn-on) .sc-cn{display:none}
 @media(max-width:640px){.sc-cn{font-size:.8em;line-height:1.4}}
+/* RV-CN-RIGHT-1（11-06 她 11-05 点名「右边的题干也要逐字翻译」）：右栏译文行。
+   .ex-opt 是横排选项，译文要另起一行才不挤在字母旁边；只在开关打开时放开换行，
+   做题态 / 关翻译态布局一律不变。表格格里的译文左对齐，中文不跟着流程图的居中跑。 */
+#examRoot.rv-cn-on .ex-opt{flex-wrap:wrap}
+.ex-opt > .sc-cn{flex:0 0 100%;min-width:0}
+.ex-qt > .sc-cn,.ex-grp-i > .sc-cn{white-space:normal;overflow-wrap:anywhere}
+.ex-html td > .sc-cn{text-align:left;white-space:normal;overflow-wrap:anywhere}
 
 /* 段落信息匹配（她 10/12 22:16 截图要求的真机考形态）：文章每段上方虚线槽 + 题号气泡。
    槽 = .ex-pslot（细虚线，放入题号后变实线）；气泡 = .ex-lohb（可拖可点选）。
@@ -2849,7 +2856,7 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 <script defer src="js/common-shell.js?v=20261104b"></script>
 <script defer src="js/common-pwa.js?v=20261101m"></script>
 <script defer src="js/exam-timer.js?v=20261102c"></script>
-<script defer src="js/bank.js?v=20261103i"></script>
+<script defer src="js/bank.js?v=20261106a"></script>
 <!-- RV-FIX5-10/11（11-03 合流修正）：bank.js 内容改了但引用串此前漏 bump（串还是 g，与上一版撞）——
      按 11-02 判据「bump 不覆盖页面 js 引用串」人工改 h；bank.css 保持 g（本笔未再动它）。 -->
 <!-- M-2（10-24）：模考页「没做过/做过」分组 + 展开更多。

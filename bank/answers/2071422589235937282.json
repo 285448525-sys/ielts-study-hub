@@ -35,5 +35,5 @@
     "12": "bricks",
     "13": "heating"
   },
-  "alts": {}
+  "alts": { "10": ["metal wedges"] }
 }

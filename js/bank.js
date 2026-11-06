@@ -3824,32 +3824,47 @@ window.__reportExamState = reportExamState;
     var unit = EX && EX.unit;
     return unit ? String(unit.id || '') + ':' + ((EX.channel === 'listening') ? 'L' : 'R') : '';
   }
-  /* 逐句中文翻译要翻的「行」：听力卷是逐句稿 .sc-line；阅读卷没有句子级节点，
-     正文在 #exArt（.ex-article）里 —— 完整模考走 renderPassage 写它、单篇练习也渲染同一容器，
-     内容是一串 <h4>/<p>（bank/reading/*.json 的 article 字段，原文就是逐段 HTML），
-     所以按它的块级子元素逐段取行。.ex-html 是题面容器不是文章，别拿它当行。 */
   /* 逐句中文翻译要翻的「行」：
      · 听力卷 → 逐句稿 .sc-line；
-     · 阅读卷 → 文章容器 #exArt / .ex-article 里的段落。两种文章格式都要认
-       （B2 实测：阅读库 280 篇里 179 篇 = 64% 是 Lark 导出格式）：
-         - Lark 导出：正文多包一层 <div data-lark-html-role="root">，每段是 <div class="ace-line">；
-         - 普通格式：正文就是裸 <p>/<h4> 平铺。
-       先前只看 box.children 的直接子元素，Lark 篇取行恒为 0 → 点翻译只弹「这篇没有可翻译的原文」。 */
+     · 阅读卷 → ① 左栏原文 #exArt 段落（两种文章格式都认）＋ ② 右栏 #exQCol 的
+       组指令 .ex-grp-i / 题干 .ex-qt / 流程图表格格 .ex-html td / 独立选项 .ex-opt。
+       她 11-05 点名「左边的原文还有右边的题干，可以进行逐字的中文翻译」—— 原来只翻左栏，
+       右栏题干点开翻译后一条都没有（真机实测 1440 档 left=10 / right=0）。
+     · 两种文章格式（阅读库 280 篇里 179 篇 = 64% 是 Lark 导出）：
+       - Lark：正文多包一层 div[data-lark-html-role=root]，每段是 div.ace-line；
+       - 普通：正文就是裸 p/h4 平铺。只看 box.children 会让 Lark 篇取行恒为 0。
+     · 右栏去重：选项/表格若已落在 .ex-qt（题干行）里，就由题干行整体带过去，不再单列一行，
+       否则同一句会翻两遍、还会互相覆盖译文；只有题干行之外的独立选项才单列。
+     · 空行 / 纯箭头 / 纯题号（如「27 28 29 30」）不进翻译，白烧额度还翻出空行。 */
   function rvCnRows(){
     var root = document.getElementById('examRoot'); if(!root) return [];
     var rows = root.querySelectorAll('.ex-script .sc-body .sc-line');
-    if(rows && rows.length) return Array.prototype.slice.call(rows);
-    var box = root.querySelector('#exArt, .ex-article'); if(!box) return [];
-    var liked = box.querySelectorAll('.ace-line');
-    if(liked && liked.length){
-      return Array.prototype.filter.call(liked, function(el){
-        /* 空段落（&nbsp; 那种分段空隙）不进翻译，否则白烧 token 还翻出一堆空行 */
-        return String(el.textContent || '').replace(/[\s\u00a0\u3000]/g, '').length > 0;
+    if(rows && rows.length) return Array.prototype.slice.call(rows);   /* 听力：逐句稿 */
+    var out = [];
+    var box = root.querySelector('#exArt, .ex-article');
+    if(box){
+      var liked = box.querySelectorAll('.ace-line');
+      var art = (liked && liked.length)
+        ? Array.prototype.filter.call(liked, function(el){ return rvCnHasEn(el); })
+        : Array.prototype.filter.call(box.children, function(el){
+            return /^(P|H[1-6]|LI|BLOCKQUOTE)$/.test(el.tagName) && rvCnHasEn(el);
+          });
+      out = out.concat(Array.prototype.slice.call(art));
+    }
+    var qcol = root.querySelector('#exQCol, .ex-qcol');
+    if(qcol){
+      Array.prototype.forEach.call(qcol.querySelectorAll('.ex-grp-i, .ex-qt, .ex-html td, .ex-opt'), function(el){
+        if(!rvCnHasEn(el)) return;
+        if(el.matches('.ex-opt') && el.closest('.ex-qt')) return;   /* 已含在题干行里 */
+        if(el.tagName === 'TD' && el.closest('.ex-qt')) return;     /* 同上 */
+        out.push(el);
       });
     }
-    return Array.prototype.filter.call(box.children, function(el){
-      return /^(P|H[1-6]|LI|BLOCKQUOTE)$/.test(el.tagName);
-    });
+    return out;
+  }
+  /* 这一行有没有值得翻的英文（≥2 个连续字母）：纯符号 / 纯数字 / 纯题号跳过。 */
+  function rvCnHasEn(el){
+    return /[A-Za-z]{2,}/.test(String(el.textContent || ''));
   }
 
   /* 取一行要翻的原文：阅读段落里混着填空框（.ex-blankw）、Mark 旗子、已插的译文，
@@ -3857,7 +3872,7 @@ window.__reportExamState = reportExamState;
   function rvCnTextOf(el){
     if(el.classList && el.classList.contains('sc-line')) return (el.textContent || '').trim();
     var c = el.cloneNode(true);
-    Array.prototype.forEach.call(c.querySelectorAll('.ex-blankw,.sc-cn,.ex-flagq'), function(n){ n.remove(); });
+    Array.prototype.forEach.call(c.querySelectorAll('.ex-blankw,.sc-cn,.ex-flagq,.ex-qn,.ex-ai-panel,.ex-score-mini'), function(n){ n.remove(); });
     return (c.textContent || '').replace(/\s+/g, ' ').trim();
   }
   function rvCnToggle(){
@@ -3872,7 +3887,8 @@ window.__reportExamState = reportExamState;
     var key = rvCnLinesKey();
     EX[RV_CN_CACHE_KEY] = EX[RV_CN_CACHE_KEY] || {};
     var cached = EX[RV_CN_CACHE_KEY][key];
-    if(cached){ rvCnPaint(cached); return; }
+    /* 行数变了（例如本次把右栏题干也纳入翻译）就别拿旧缓存对位，重新翻一遍 */
+    if(cached && cached.length === rows.length){ rvCnPaint(cached); return; }
     /* 合并请求：全部句子/段落一次发（不一段一个请求烧额度） */
     var joined = rows.map(function(el, i){ return (i + 1) + '. ' + rvCnTextOf(el); }).join('\n');
     var btn = document.querySelector('#examRoot .ex-tg[data-rvtg="cn"]');
@@ -3884,9 +3900,9 @@ window.__reportExamState = reportExamState;
       return;
     }
     relay('gpt', [
-      { role: 'system', content: '你是雅思听力/阅读原文的翻译。把用户给的编号句子逐句翻成简体中文。只输出与输入相同编号格式的译文列表，一行一条「编号. 译文」，不解释、不加原文。' },
+      { role: 'system', content: '你是雅思听力/阅读原文与题目的翻译。把用户给的编号文本逐条翻成简体中文（含文章段落、题目指令、题干、选项、表格文字）。只输出与输入相同编号格式的译文列表，一行一条「编号. 译文」，不解释、不加原文。' },
       { role: 'user', content: joined }
-    ], 0.2, { max_tokens: 2000 }).then(function(out){
+    ], 0.2, { max_tokens: 4000 }).then(function(out){
       /* 🔴 callRelay 返回的是**字符串**（全站其它 14 处调用都是 `const content = await callRelay(...)` 直接当字符串用，
          见 js/bank.js:3712 的 AI 讲解那处）。原来这里按对象取 out.content / out.text / out.choices ——
          字符串上这三个都取不到，译文恒为空串（听力卷那条路也一样，此前没人点过）。
@@ -3927,7 +3943,7 @@ window.__reportExamState = reportExamState;
      的小一号灰字子行，样式壳 bank.html 早就有；关闭态由 #examRoot:not(.rv-cn-on) 整藏。 */
   function rvCnPaint(cns){
     rvCnRows().forEach(function(row, i){
-      var old = row.querySelector('.sc-cn');
+      var old = row.querySelector(':scope > .sc-cn');
       if(old) old.parentNode.removeChild(old);
       var cn = cns[i];
       if(!cn) return;
