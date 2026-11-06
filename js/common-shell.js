@@ -1612,15 +1612,27 @@ function prefetchAll(curId){
   _lastNavAt = _lastNavAt || 0;
   const paused = () => (Date.now() - _lastNavAt) < PREFETCH_PAUSE_MS;
   const order = [];
-  const push = id => { if(id && order.indexOf(id) === -1 && PAGES.some(p => p.id === id)) order.push(id); };
+  /* 11-07 PREFETCH-HIDDEN-1：hidden 条目一律不预取，过滤收进 push 一处盖全三条来源。
+     原实现只在「全量遍历 PAGES」那条路判 isNavHidden，漏了「左右邻居」与「收藏」两条路 ——
+     bank 在 PAGES 里的右邻居正好是 10-23 已删除的 wrongbook.html（hidden 兼容条目），
+     于是每次进站邻居预取都会 fetch('wrongbook.html') 吃一个 404（CDP 实锤调用链：
+     navGetDoc ← prefetchPage ← prefetchAll.step）。计时/服药两个 hidden 页文件虽还在，
+     邻居/收藏路径同样会白下两个 HTML+JS，与 10-23「hidden 页不再预取」的注释口径相悖。
+     ⚠️ timer.html 的**停止结算**跳转走 location.href（common.js:336），不依赖预取，照常可用。 */
+  const push = id => {
+    if(!id || order.indexOf(id) !== -1) return;
+    const pg = PAGES.find(p => p.id === id);
+    if(!pg) return;
+    const hidden = (typeof isNavHidden === 'function') ? isNavHidden(pg) : !!pg.hidden;
+    if(hidden) return;
+    order.push(id);
+  };
   if(curId){                                   // 先照顾当前页左右邻居（最可能下一个点的）
     const idx = PAGES.findIndex(p => p.id === curId);
     if(idx > -1){ push(PAGES[idx - 1] && PAGES[idx - 1].id); push(PAGES[idx + 1] && PAGES[idx + 1].id); }
   }
   try{ (typeof favPageIds === 'function' ? favPageIds() : []).forEach(push); }catch(e){}
-  /* 10-23：hidden 页（计时/服药）不再预取 —— 入口都撤了，为它多下两个 HTML+JS 是白费流量。
-     ⚠️ timer.html 的**停止结算**跳转走 location.href（common.js:336），不依赖预取，照常可用。 */
-  PAGES.forEach(p => { if(!(typeof isNavHidden === 'function' && isNavHidden(p))) push(p.id); });
+  PAGES.forEach(p => push(p.id));
   /* 10-22：老师端页面只对管理员开放 —— 普通用户不必为它多下一次 HTML+JS（约 40KB）。
      判定用同步缓存（hubIsAdmin），角色还没拉回来时不预取；真管理员首次进页面照常加载，
      之后 prefetchAll 的下一轮会补上。 */
