@@ -20,7 +20,7 @@
 <title>模考 · 雅思备考 Hub</title>
 <link rel="preload" as="script" href="js/bank.js?v=20261106a" /> <!-- W1-PRELOAD-1 (373KB)：与下方 defer 同串防双下载 -->
 <link rel="preload" as="script" href="js/common-shell.js?v=20261104b" /> <!-- W1-PRELOAD-1 (113KB)：与下方 defer 同串防双下载 -->
-<link rel="stylesheet" href="css/common.css?v=20261101m" />
+<link rel="stylesheet" href="css/common.css?v=20261106a" />
 <link rel="stylesheet" href="css/p/bank.css?v=20261103g" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
@@ -2382,15 +2382,40 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
    ══════════════════════════════════════════════════════════════════════ */
 main.container:has(> .hub-shell){
   max-width:none;margin:0;padding:0;
-  height:calc(100vh - 72px - env(safe-area-inset-top));
+  flex:1 1 auto;height:auto;max-height:none;
   min-height:0;overflow:hidden;display:flex;flex-direction:column;
 }
+/* 11-06 返工：整屏铺满改由 body 的 flex 列吃掉剩余高度（公告条在/不在都铺到底），
+   不再写死 calc(100vh - 72px) —— 那条在公告条关掉后会把底部 28px 空出来露出背景色
+   （她截图里的「没有颜色的遮挡框」）。:not() 排除做题全屏/沉浸/背词全屏，避免与
+   common.css 的全屏规则打架；不能用 position:fixed（切态 :has() 失配会让无头 Edge 崩）。*/
+@media(min-width:861px){
+  body[data-shell="top"]:has(.hub-shell):not(.exam-fullscreen):not(.mock-immerse):not(.word-fullscreen){
+    display:flex;flex-direction:column;height:100dvh;min-height:0;overflow:hidden;box-sizing:border-box;
+  }
+  body[data-shell="top"]:has(.hub-shell):not(.exam-fullscreen):not(.mock-immerse):not(.word-fullscreen) main.container:has(> .hub-shell){
+    flex:1 1 auto;height:auto;max-height:none;min-height:0;overflow:hidden;display:flex;flex-direction:column;
+    max-width:none;margin:0;padding:0;
+  }
+}
 .hub-shell{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:264px minmax(0,1fr)}
+/* 右侧原四科胶囊收进左栏后隐藏（DOM 保留：壳脚本靠它 .click() 转发切科，
+   js/bank.js 的 showTab/paintTab/篇数也仍读它，绝不能真删元素）。*/
+#bankRoot > #mockTabs{display:none !important}
+/* 题库说明挪到深绿卡下面：pane 变 contents 把子元素提到 flex 层，再按 order 排。
+   [hidden] 仍由 common.css 的 [hidden]{display:none!important} 整块隐藏，四科切换不受影响。*/
+#bankRoot{display:flex;flex-direction:column}
+#bankRoot > .mock-pane:not([hidden]){display:contents}
+#bankRoot #fullEntry,#bankRoot #listenFullEntry{order:0}
+#bankRoot > .bank-info{order:1}
+#bankRoot .partbar{order:2}
+#bankRoot #bankList,#bankRoot #listenList{order:3}
+#bankRoot #examPanel,#bankRoot #spkEntryCard,#bankRoot .spk-cols{order:0}
 .hub-side{min-height:0;overflow-y:auto;overflow-x:hidden;background:var(--surface,#fff);
   border-right:1px solid var(--line,#e6e9ea)}
 .hub-side::-webkit-scrollbar,.hub-main::-webkit-scrollbar{width:7px}
 .hub-side::-webkit-scrollbar-thumb,.hub-main::-webkit-scrollbar-thumb{background:var(--line,#e6e9ea);border-radius:7px}
-.hub-main{min-width:0;overflow-y:auto;padding:14px 22px 40px}
+.hub-main{min-width:0;overflow-y:auto;padding:16px 22px 40px}
 .hub-side-scroll{min-height:100%;display:flex;flex-direction:column}
 
 /* 小 tab 竖排 */
@@ -2454,6 +2479,7 @@ main.container:has(> .hub-shell){
   .hub-main{overflow:visible;padding:10px 0}
 }
 @media(max-height:700px){
+  .hub-main{padding-top:12px}
   .hub-subs{padding:12px 8px 0}
   .hub-sub{min-height:44px;padding:6px 9px}
   .hub-sub-ic{width:30px;height:30px}

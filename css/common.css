@@ -316,9 +316,11 @@
 /* 全局强制 hidden 生效：防止 display:flex/grid/block 的类覆盖 UA 的 [hidden] 样式 */
 [hidden]{display:none !important}
 *{box-sizing:border-box}
-/* 滚动条槽常驻：切换 tab / 跳页面时内容高度变化不再触发垂直滚动条出现↔消失，避免整页宽度抖动（听写 tab 切换时页面变宽、右上角标签位移） */
-html{scrollbar-gutter:stable;}
-@supports not (scrollbar-gutter:stable){ html{overflow-y:scroll;} }
+/* 11-06 她报了很久的全站右边竖条：scrollbar-gutter:stable 给 html 常驻预留 15px 空槽，
+   不竖滚的页面（含整屏壳页）内容只到 1425/1440，右边露出一条背景色，像没占满屏幕。
+   改回 auto：不竖滚就不预留，整屏铺满；需要竖滚时滚动条自然占位（浏览器标准行为）。
+   原先为「听写 tab 切换宽度抖动」加的常驻槽一并撤掉，以她这次的诉求为准。 */
+html{scrollbar-gutter:auto;}
 /* ===== 10-23 T-002 步5①：正文字号三档（方案 §七）=====
    html[data-font] 由 js/settings.js 切换/启动时挂（缺省 = 无属性 = 标准 15px）。
    🔴 只影响「相对单位/继承链」的文字：body 字号变，用 em/rem/继承的跟随；
