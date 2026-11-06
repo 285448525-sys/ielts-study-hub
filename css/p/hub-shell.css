@@ -23,13 +23,33 @@ main.container:has(> .hub-shell){
   /* 单词页：收掉原内侧栏与右栏，书架本身不动（她 11-06 开场承诺） */
   #vMall .wm-side,#vMall .wm-right{display:none}
   #vMall .wm-shell{grid-template-columns:minmax(0,1fr);border-top:0}
-  /* practice.css 写死 calc(100vh - 72px) 的两条（v808 同款空带根因）用 !important 压掉 */
-  main.container:has(> .hub-shell) #vMall{height:auto!important;max-height:none!important;min-height:0!important}
-  main.container:has(> .hub-shell):has(#vMall){height:auto!important;max-height:none!important;min-height:0!important}
-  /* 背词全屏 / 做题全屏：铺满不套两列 */
-  body.word-fullscreen .hub-shell{display:block}
+  /* ── 单词页套壳兼容（11-07 修「单词页前端 bug」）──
+     根因：practice.css:1428/1433 的整屏铺满规则要求 #bankView 是 main 直接子级，
+     套壳后它变成 .hub-main 的子级 → 整组失配；早先那两条 height:auto!important
+     又把 #vMall 的 height:100% 压掉，书架塌成内容高、底部一大片空（v808 实测 828 高 / v809 只剩 694）。
+     这里重建：.hub-main 满高 flex 列、#bankView 恢复 flex 列撑满、#vMall 继续 height:100%。
+     用 :has(#vMall:not([hidden])) 限定书架/学习两态；词书详情态（vMall hidden）保持普通滚动。 */
+  main.container:has(> .hub-shell):has(#vMall:not([hidden])) .hub-main{
+    padding:0;min-height:0;display:flex;flex-direction:column;
+  }
+  main.container:has(> .hub-shell):has(#vMall:not([hidden])) #bankView{
+    flex:1 1 auto;min-height:0;display:flex;flex-direction:column;
+  }
+  main.container:has(> .hub-shell):has(#vMall:not([hidden])) #studyView{
+    flex:1 1 auto;min-height:0;
+  }
+  /* 全屏沉浸：别被共用壳的 height:auto + overflow:hidden 压成半屏灰带 */
+  body.word-fullscreen main.container:has(> .hub-shell){
+    height:100vh;min-height:100vh;overflow:visible!important;
+  }
+  body.word-fullscreen .hub-shell{
+    display:flex;flex-direction:column;height:100%;min-height:0;
+  }
   body.word-fullscreen .hub-side{display:none}
-  body.word-fullscreen .hub-main{overflow:visible!important;padding:0}
+  body.word-fullscreen .hub-main{
+    flex:1 1 auto;min-height:0;height:auto;display:flex;flex-direction:column;
+    overflow:visible!important;padding:0;
+  }
   body.exam-fullscreen .hub-side{display:none}
   body.exam-fullscreen .hub-shell{display:block}
 }
