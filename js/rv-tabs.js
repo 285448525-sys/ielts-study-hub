@@ -14,7 +14,10 @@
      // TODO: [待确认] 设计稿里的「导出」与「录入」：录入成绩复用站内既有 #rv2AddDialog 弹窗
        （rvx-data.js:221 的 data-rv2-add 委托，本笔没动）；导出 PDF/CSV 她没点头，本笔不做。
      // TODO: [待确认] 设计稿「分项 40 题答对数」是否真落库未核，本笔考试记录页直接复用
-       既有 #recAll（RecAll.collect()），不另造表、不编数字。 */
+       既有 #recAll（RecAll.collect()），不另造表、不编数字。
+     REVIEW-POLISH-1（11-08 v821）：她「还是觉得设计稿的比较好看，再扣扣细节」。
+     补齐设计稿标志性细节：结论条加 38px 图标 + 右侧按钮、总览两列（迷你走势 + 最近三次），
+     数字仍全部现场算真字段。旧 .rv2-* 卡片皮肤统一由 review.html 页内 CSS 重皮，本文件不动 DOM/ID。 */
   var SUBJ=[{k:'listening',n:'听力'},{k:'reading',n:'阅读'},{k:'writing',n:'写作'},{k:'speaking',n:'口语'}];
   var TABS=[
     {id:'home',nm:'总览',ic:'grid'},
@@ -60,7 +63,8 @@
   function renderHome(){
     var s=sc(),t=tg(),last=s[s.length-1];
     var st=$('rvHomeStats'),ru=$('rvRuler'),ca=$('rvCallout');
-    if(!last){ if(st)st.innerHTML=''; if(ru)ru.hidden=true; if(ca)ca.hidden=true; return }
+    if(!last){ if(st)st.innerHTML=''; if(ru)ru.hidden=true; if(ca)ca.hidden=true;
+      var sp0=$('rvHomeSpark'),rc0=$('rvHomeRecent');if(sp0)sp0.innerHTML='';if(rc0)rc0.innerHTML='';return }
     var all=ov(last),tv=num(t.overall)||0;
     var weak=SUBJ.filter(function(x){var g=num(t[x.k])||0;return g>0&&num(last[x.k])!=null&&num(last[x.k])<g});
     var c=cd();
@@ -80,10 +84,34 @@
         +'<div class="rv-ruler-ticks"><span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span></div></div>';
     }
     if(ca){ ca.hidden=false;
+      var ico='<span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg></span>';
       if(weak.length){ var mx=0;weak.forEach(function(x){var g=Math.round((((num(t[x.k])||0)-(num(last[x.k])||0)))*2)/2;if(g>mx)mx=g});
-        ca.innerHTML='<div class="rv-callout"><div><b>'+esc(weak.map(function(x){return x.n}).join('、'))+' 还差 '+one(mx)+' 分到目标</b><p>已到目标分的科目先稳住，再做整套练习。</p></div></div>';
-      }else{ ca.innerHTML='<div class="rv-callout"><div><b>'+(tv?'四科都到了目标分':'还没设目标分')+'</b><p>'+(tv?'按自己的节奏继续。':'去设置里填好四科目标，这里会告诉你先补哪一科。')+'</p></div></div>' }
+        ca.innerHTML='<div class="rv-callout">'+ico+'<span class="tx"><b>'+esc(weak.map(function(x){return x.n}).join('、'))+' 还差 '+one(mx)+' 分到目标</b><span>已到目标分的科目先稳住，再做整套练习。</span></span><button type="button" class="btn" data-rv-jump="'+esc(weak[0].k)+'">去练'+esc(weak[0].n)+'</button></div>';
+      }else{ ca.innerHTML='<div class="rv-callout">'+ico+'<span class="tx"><b>'+(tv?'四科都到了目标分':'还没设目标分')+'</b><span>'+(tv?'按自己的节奏继续。':'去设置里填好四科目标，这里会告诉你先补哪一科。')+'</span></span></div>' }
     }
+    renderHomeTwo(s,t);
+  }
+
+  /* 设计稿总览两列：迷你走势 + 最近三次，全部从 sc() 现场算（不编数字） */
+  function renderHomeTwo(s,t){
+    var sp=$('rvHomeSpark'),rc=$('rvHomeRecent');
+    if(!sp||!rc)return;
+    var pts=s.map(function(r){return ov(r)}).filter(function(v){return v!=null});
+    if(!s.length){ sp.innerHTML='';rc.innerHTML='';return }
+    var n=Math.min(pts.length,8),vals=pts.slice(-n),W=280,H=76;
+    var lo=Math.min.apply(null,vals),hi=Math.max.apply(null,vals);if(hi===lo){lo=lo-0.5;hi=hi+0.5}
+    var xy=vals.map(function(v,i){var x=8+(W-16)*(n===1?0:i/(n-1));var y=64-(H-20)*((v-lo)/(hi-lo));return [x,y]});
+    var poly=xy.map(function(p){return p[0].toFixed(1)+','+p[1].toFixed(1)}).join(' ');
+    var dots=xy.map(function(p){return '<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="3.4" class="rv-line-dot"/>'}).join('');
+    var first=s[s.length-n],lastR=s[s.length-1];
+    sp.innerHTML='<div class="rv-panel"><div class="rv-panel-h"><b>总分走势</b><span>近 '+n+' 次</span><span class="right"><a class="rv-link" data-rv-jump="trend">看全部 ›</a></span></div>'
+      +'<div class="rv-spark"><svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" aria-label="总分迷你走势"><line x1="0" y1="52" x2="'+W+'" y2="52" class="rv-line-grid"/>'
+      +'<polyline points="'+poly+'" fill="none" stroke="var(--teal)" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>'+dots+'</svg>'
+      +'<div class="rv-spark-foot"><span>'+esc(String(first&&first.date||'').slice(5))+' · '+one(ov(first))+'</span><span>'+esc(String(lastR&&lastR.date||'').slice(5))+' · '+one(ov(lastR))+'</span></div></div></div>';
+    var tv=num(t.overall)||0;
+    var rows=s.slice(-3).reverse().map(function(r){var v=ov(r);var pillCls=tv&&v!=null?(v>=tv?'key':'warn'):'';
+      return '<div class="rv-mini-row"><div class="grow"><div class="t">'+esc(String(r.date||'').slice(5))+' · 整套真题</div><div class="d">听 '+one(r.listening)+' · 读 '+one(r.reading)+' · 写 '+one(r.writing)+' · 口 '+one(r.speaking)+'</div></div><span class="rv-mini-pill '+pillCls+'">'+one(v)+'</span></div>'}).join('');
+    rc.innerHTML='<div class="rv-panel"><div class="rv-panel-h"><b>最近三次</b><span>整套与模考</span><span class="right"><a class="rv-link" data-rv-jump="records">全部记录 ›</a></span></div>'+rows+'</div>';
   }
 
   /* 成绩趋势页：既有真实折线（.rv2-content）保留，这里补 4 数卡 */
@@ -189,7 +217,13 @@
   }
   function hashId(){ var h=(location.hash||'').replace('#','');if(h.indexOf('rv=')===0)h=h.slice(3);return valid(h)?h:null }
   function subId(){ try{var p=new URLSearchParams(location.search),q=p.get('sub')||'';if(p.get('rec'))return 'records';if(q==='record'||q==='trajectory'||q==='history')return 'records';if(q)return 'home'}catch(e){} return null }
-  function onClick(e){ var t=e.target;if(!t||!t.closest)return;var b=t.closest('[data-rv-tab]');if(b){e.preventDefault();show(b.getAttribute('data-rv-tab'))} }
+  function onClick(e){ var t=e.target;if(!t||!t.closest)return;
+    var jp=t.closest('[data-rv-jump]');
+    if(jp){ var k=jp.getAttribute('data-rv-jump');
+      if(k==='trend'||k==='records'){ show(k);return }
+      var map={listening:'bank.html',reading:'bank.html',writing:'writing.html',speaking:'speaking.html'};
+      if(map[k]){ try{ location.href=map[k] }catch(e2){} } return }
+    var b=t.closest('[data-rv-tab]');if(b){e.preventDefault();show(b.getAttribute('data-rv-tab'))} }
   function bind(){
     if(window.__rvClick){try{document.removeEventListener('click',window.__rvClick)}catch(e){}}
     window.__rvClick=onClick;document.addEventListener('click',onClick);
