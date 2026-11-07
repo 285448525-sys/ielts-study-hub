@@ -5,8 +5,11 @@
    design/WORDBOOK-TABS-1-单词页侧栏各页UI样子稿-2026-11-07.html 她已点头（「单词功能我看了，
    那你可以开始做起来了」），并要求「拆分成多个任务一个一个做」。
    任务1（v814）：补回左栏 5 个 tab 与视图切换骨架，首页仍是现有书架 #vMall（一行不动）。
-   任务2（v815）：错词本接真数据（列表/chips/搜索/重练/发音），其余 3 页仍只读真值+诚实空态。
-   任务3~5（统计/词书/设置的完整交互）逐页补。
+   任务2（v815）：错词本接真数据（列表/chips/搜索/重练/发音）。
+   任务3（v816）：统计页接真数据（四卡 calcStreak/masteredOf/practicedCount/wrongCount +
+                  近 7/30 天背词量 dayWords + 掌握分布 distVals + 词书进度 masteredOf/bookTotal），
+                  设计稿的 42/1286/87% 样例数字一律不编，算不出留 0。
+   任务4~5（词书/设置的完整交互）逐页补。
 
    🔴 接线纪律（沿用 v807/v809 已验证的软导航契约）：
      · 左栏 tab DOM 由本脚本渲染进 practice.html 里静态写好的 #wbNav；不动共用
@@ -243,28 +246,158 @@
     }catch(e){}
   }
 
-  /* ── 各页只读渲染（任务3~5 再补完整交互） ── */
+  /* ── 任务3：统计页（全部真数据，算不出的一律不编） ──────────────────
+     设计稿 :409-457 的 42/1286/87% 都是样例数字，站内没有「正确率」这类存储字段，
+     按「真实、不造假」口径全改接真字段：四卡 + 近 7/30 天背词量 + 掌握分布 + 词书进度。
+     🔴 不编百分比、不编「比昨天高 4%」这类无依据比较；没有数据的日子留 0。 */
+  var _statRange = 7;
+  function _obProg(bid){
+    try{
+      var ob = window.__OB;
+      if(ob && ob.banks && ob.banks[bid] && ob.banks[bid].prog) return ob.banks[bid].prog;
+    }catch(e){}
+    try{
+      if(typeof DATA !== 'undefined' && DATA && DATA.obank && DATA.obank[bid] && DATA.obank[bid].prog)
+        return DATA.obank[bid].prog;
+    }catch(e){}
+    return null;
+  }
+  function masteredOf(bid){
+    var n = 0, i, w, p;
+    if(bid === 'custom'){
+      try{
+        var ws = (typeof DATA !== 'undefined' && Array.isArray(DATA.words)) ? DATA.words : [];
+        for(i = 0; i < ws.length; i++){ w = ws[i]; if(w && w.cleared === true && (Number(w.level) || 0) >= 5) n++; }
+      }catch(e){}
+      return n;
+    }
+    var prog = _obProg(bid);
+    if(prog) for(var k in prog){
+      if(!Object.prototype.hasOwnProperty.call(prog, k)) continue;
+      p = prog[k]; if(p && p.cleared === true && (Number(p.level) || 0) >= 5) n++;
+    }
+    return n;
+  }
+  function bookTotal(bid){
+    try{
+      if(typeof window.wmCount === 'function'){
+        var b = (window.__WM_BOOKS || []).filter(function(x){ return x.id === bid; })[0];
+        if(b) return num(window.wmCount(b));
+      }
+    }catch(e){}
+    try{
+      var reg = window.__OB && window.__OB.OB_BANKS;
+      if(reg) for(var i = 0; i < reg.length; i++) if(reg[i].id === bid) return num(reg[i].total);
+    }catch(e){}
+    return 0;
+  }
+  /* 某天背词量 = custom 的 DATA.wordDayStats[t].totalWords（今日 unique 已练词数，覆盖非累加）
+     + 官方各库 localStorage ielts_hub_obank_v1 的 banks[*].dayStats[t].totalWords。
+     两处各自独立、按库相加＝当天跨库一共练了多少词，真值，无数据为 0。 */
+  function dayWords(dateKey){
+    var n = 0;
+    try{ var st = (DATA.wordDayStats || {})[dateKey]; if(st) n += num(st.totalWords); }catch(e){}
+    try{
+      var ob = JSON.parse(localStorage.getItem('ielts_hub_obank_v1') || 'null');
+      if(ob && ob.banks) Object.keys(ob.banks).forEach(function(id){
+        var d = ((ob.banks[id] || {}).dayStats || {})[dateKey]; if(d) n += num(d.totalWords);
+      });
+    }catch(e){}
+    return n;
+  }
+  function distVals(){
+    var ws = [];
+    try{ if(typeof wbWords === 'function') ws = wbWords() || []; }catch(e){}
+    var d = { nw:0, fz:0, fx:0, zh:0 };
+    ws.forEach(function(w){
+      if(!w || typeof w.en !== 'string' || !w.en.trim()) return;
+      var lv = Number(w.level) || 0;
+      if(w.cleared === true && lv >= 5) d.zh++;
+      else if(lv === 0) d.nw++;
+      else if(lv <= 2) d.fz++;
+      else d.fx++;
+    });
+    return d;
+  }
   function statVals(){
-    var done = 0, cap = 0, wrong = 0, due = 0;
+    var done = 0, streak = 0, mastered = 0, wrong = 0;
     try{ if(typeof practicedCount === 'function') done = num(practicedCount()); }catch(e){}
-    try{ if(typeof pc === 'function') cap = num(pc().dailyCap); }catch(e){}
+    try{ if(typeof calcStreak === 'function') streak = num(calcStreak()); }catch(e){}
+    try{ (window.__WM_BOOKS || []).forEach(function(b){ mastered += masteredOf(b.id); }); }catch(e){}
     try{ wrong = wrongCount(); }catch(e){}
-    try{ if(typeof wbDueCount === 'function') due = num(wbDueCount()); }catch(e){}
-    return { done:done, cap:cap, wrong:wrong, due:due };
+    return { done:done, streak:streak, mastered:mastered, wrong:wrong };
+  }
+  function renderStatBars(){
+    var box = $('wbStatBars'); if(!box) return;
+    var today = '', days = [], max = 1, i;
+    try{ today = (typeof todayKey === 'function') ? todayKey() : ''; }catch(e){}
+    if(!today) return;
+    for(i = _statRange - 1; i >= 0; i--){
+      var key = '', n = 0;
+      try{ key = (typeof addDays === 'function') ? addDays(today, -i) : ''; }catch(e){}
+      if(key){ n = dayWords(key); if(n > max) max = n; }
+      days.push({ key:key, n:n });
+    }
+    var WD = ['日','一','二','三','四','五','六'];
+    box.innerHTML = days.map(function(d, idx){
+      var label = '';
+      if(_statRange === 7){
+        try{ var dt = new Date(d.key + 'T00:00:00'); label = (idx === days.length - 1) ? '今天' : ('周' + WD[dt.getDay()]); }catch(e){ label = d.key.slice(5); }
+      }else{
+        label = (idx === days.length - 1) ? '今天' : (idx % 5 === 0 ? d.key.slice(5) : '');
+      }
+      var h = d.n > 0 ? Math.max(8, Math.round(d.n / max * 100)) : 0;
+      return '<div class="wbs-bar' + (idx === days.length - 1 ? ' today' : '') + '">'
+        + '<em>' + (d.n > 0 ? d.n : '') + '</em>'
+        + '<i style="height:' + h + '%"></i>'
+        + '<span>' + esc(label) + '</span></div>';
+    }).join('');
+  }
+  function renderStatDist(){
+    var track = $('wbStatDistTrack'), leg = $('wbStatDistLegend'), sub = $('wbStatDistSub');
+    var d = distVals(), tot = d.nw + d.fz + d.fx + d.zh;
+    var segs = [
+      { nm:'新词', c:'#c9d9d6', n:d.nw },
+      { nm:'模糊', c:'#9ccfc8', n:d.fz },
+      { nm:'熟悉', c:'var(--primary,#5cb3ab)', n:d.fx },
+      { nm:'掌握', c:'#3a7d76', n:d.zh }
+    ];
+    if(track) track.innerHTML = segs.map(function(s){
+      return '<i style="width:' + (tot ? (s.n / tot * 100) : 0) + '%;background:' + s.c + '"></i>';
+    }).join('');
+    if(leg) leg.innerHTML = segs.map(function(s){
+      return '<span><b style="background:' + s.c + '"></b>' + s.nm + ' ' + (tot ? Math.round(s.n / tot * 100) : 0) + '%</span>';
+    }).join('');
+    if(sub) sub.textContent = tot ? ('当前词书共 ' + tot + ' 词') : '当前词书还没有词';
+  }
+  function renderStatProg(){
+    var box = $('wbStatProg'); if(!box) return;
+    var books = window.__WM_BOOKS || [];
+    box.innerHTML = books.map(function(b){
+      var tot = bookTotal(b.id), m = masteredOf(b.id);
+      var pct = tot ? Math.min(100, Math.round(m / tot * 100)) : 0;
+      return '<div class="wbs-prow"><span class="nm">' + esc(b.nm) + '</span>'
+        + '<span class="wbs-ptrack"><i style="width:' + pct + '%"></i></span>'
+        + '<span class="pct">' + m + ' / ' + tot + '</span></div>';
+    }).join('');
   }
   function renderStat(){
     var box = $('wbStatCards'); if(!box) return;
     var v = statVals();
     var cards = [
-      { l:'今日已背', v:String(v.done), s: v.cap > 0 ? '/ ' + v.cap : '' },
-      { l:'今日答错', v:String(v.wrong), s:'个' },
-      { l:'待复习',   v:String(v.due),   s:'个' },
-      { l:'每日上限', v: v.cap > 0 ? String(v.cap) : '不限', s:'' }
+      { l:'今日已背', v:String(v.done),   s:'词' },
+      { l:'连续学习', v:String(v.streak), s:'天' },
+      { l:'累计掌握', v:String(v.mastered), s:'词' },
+      { l:'今日答错', v:String(v.wrong),  s:'个' }
     ];
     box.innerHTML = cards.map(function(c){
       return '<div class="wb-stat"><span class="wb-stat-l">' + esc(c.l) + '</span>'
         + '<b class="wb-stat-v">' + esc(c.v) + (c.s ? '<em>' + esc(c.s) + '</em>' : '') + '</b></div>';
     }).join('');
+    renderStatBars();
+    renderStatDist();
+    renderStatProg();
+    var rg = $('wbStatRange'); if(rg) rg.textContent = (_statRange === 7 ? '最近 7 天' : '最近 30 天');
   }
   function renderBooks(){
     var box = $('wbBookList'); if(!box) return;
@@ -312,6 +445,9 @@
   function onClick(e){
     var t = e.target;
     if(!t || !t.closest) return;
+    /* 任务3：统计页 7/30 天切换 */
+    var rg = t.closest('#wbStatRange');
+    if(rg){ e.preventDefault(); _statRange = (_statRange === 7 ? 30 : 7); renderStat(); return; }
     /* 任务2：错词本 chips / 重练 / 发音 */
     var chip = t.closest('#wbWrongChips [data-wk]');
     if(chip){ e.preventDefault(); _wFilter = chip.getAttribute('data-wk') || 'all'; renderWrong(); return; }
@@ -360,6 +496,8 @@
 
   window.__wbTabs = { show: show, renderNav: renderNav, renderPane: renderPane,
                       renderWrong: renderWrong, wrongData: wrongData,
+                      renderStat: renderStat, statVals: statVals, distVals: distVals,
+                      masteredOf: masteredOf, bookTotal: bookTotal, dayWords: dayWords,
                       cur: function(){ return window.__wbCur || 'home'; } };
   boot();
 })();

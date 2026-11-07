@@ -350,6 +350,34 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
 .wb-setrow{display:flex;align-items:center;gap:10px;min-height:52px;padding:8px 2px;border-bottom:1px solid var(--line,#eef2f3);font-size:13.5px;color:var(--ink,#1f2328)}
 .wb-setrow b{margin-left:auto;font-weight:650;color:var(--primary-700,#2f7d76)}
 
+/* WORDBOOK-TABS-1 任务3 · 统计页（真数据图表；teal / 无 emoji / 无多余标注） */
+.wbs-panel{margin-top:16px;border:1px solid var(--line,#e6e9ea);border-radius:14px;background:var(--surface,#fff);padding:16px 18px}
+.wbs-head{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13.5px;color:var(--ink,#1f2328);margin-bottom:14px}
+.wbs-head b{font-weight:700}
+.wbs-head span{font-size:12px;color:var(--muted,#9aa1a8)}
+.wbs-bars{display:flex;align-items:flex-end;gap:8px;height:150px;padding-top:14px}
+.wbs-bar{flex:1;min-width:0;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;position:relative}
+.wbs-bar em{font-size:11px;font-style:normal;color:var(--muted,#71767e);margin-bottom:4px;min-height:14px}
+.wbs-bar i{display:block;width:70%;max-width:34px;min-height:0;background:var(--primary,#5cb3ab);border-radius:5px 5px 0 0;transition:height .2s}
+.wbs-bar.today i{background:#3a7d76}
+.wbs-bar span{font-size:10.5px;color:var(--muted,#9aa1a8);margin-top:6px;white-space:nowrap;min-height:14px}
+.wbs-dist-track{display:flex;height:12px;border-radius:8px;overflow:hidden;background:var(--surface-2,#fafcfc)}
+.wbs-dist-track i{display:block;height:100%}
+.wbs-dist-legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px}
+.wbs-dist-legend span{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted,#71767e)}
+.wbs-dist-legend b{width:9px;height:9px;border-radius:3px;display:inline-block}
+.wbs-prow{display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid var(--line,#eef2f3);font-size:13px}
+.wbs-prow .nm{flex:0 0 42%;min-width:0;color:var(--ink,#1f2328);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wbs-ptrack{flex:1;min-width:0;height:8px;border-radius:6px;background:var(--surface-2,#eef2f3);overflow:hidden}
+.wbs-ptrack i{display:block;height:100%;background:var(--primary,#5cb3ab);border-radius:6px}
+.wbs-prow .pct{flex:0 0 auto;font-size:12px;color:var(--muted,#71767e);min-width:70px;text-align:right}
+@media (max-width:860px){
+  .wbs-panel{padding:14px 12px}
+  .wbs-bars{gap:4px;height:130px}
+  .wbs-bar span{font-size:9px}
+  .wbs-prow .nm{flex-basis:52%}
+}
+
 /* WORDBOOK-TABS-1 任务2 · 错词本真列表（沿用设计稿 v-head + chips + 行；teal / 44px 触控） */
 .wb-whead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
 .wb-whead h2{margin:0;font-size:20px;font-weight:750;color:var(--ink,#1f2328)}
@@ -661,8 +689,27 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
     </section>
 
     <section class="wb-pane" data-wb-pane="stat" hidden>
-      <div class="wb-pane-head"><h2>统计</h2></div>
+      <div class="wb-whead">
+        <h2>统计</h2>
+        <div class="right"><button type="button" class="wb-btn" id="wbStatRange">最近 7 天</button></div>
+      </div>
       <div class="wb-stat-cards" id="wbStatCards"></div>
+
+      <div class="wbs-panel">
+        <div class="wbs-head"><b>每天背词量</b><span>单位：词</span></div>
+        <div class="wbs-bars" id="wbStatBars"></div>
+      </div>
+
+      <div class="wbs-panel">
+        <div class="wbs-head"><b>掌握程度</b><span id="wbStatDistSub"></span></div>
+        <div class="wbs-dist-track" id="wbStatDistTrack"></div>
+        <div class="wbs-dist-legend" id="wbStatDistLegend"></div>
+      </div>
+
+      <div class="wbs-panel">
+        <div class="wbs-head"><b>各词书进度</b><span>已掌握 / 总词数</span></div>
+        <div id="wbStatProg"></div>
+      </div>
     </section>
 
     <section class="wb-pane" data-wb-pane="books" hidden>
@@ -2189,7 +2236,7 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
 
 <link rel="stylesheet" href="css/p/hub-shell.css?v=20261107a" />
 <script defer src="js/hub-side-shell.js?v=20261106b"></script>
-<script defer src="js/wb-tabs.js?v=20261107f"></script>
+<script defer src="js/wb-tabs.js?v=20261107g"></script>
 </body>
 </html>
 
