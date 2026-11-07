@@ -642,6 +642,99 @@ body.exam-fullscreen .hub-topbar{display:none !important}
    依据：交接\方案\T-001c-下拉重做与撤小tab-2026-10-23.md §三。不删 DOM：JS 靠 data-* 认分栏，
    sub= 交接（tbSubPending）照常工作；页内二级筛选控件不受影响。 ===== */
 @media (min-width:861px){ #writeTabs{display:none} }
+/* ===== WRITING-TABS-1 任务1（11-08）：写作页 5 tab 壳 + 总览页精致皮肤 =====
+   她「开始做写作的设计稿页面，最好还原一些」。复用已点头设计稿 WRITING-TABS-1 那套皮肤，
+   用站点变量跟随深色主题；既有 .write-* / #tplPanel 等样式一字不动，新组件全用 .wr-* 独立类名。 */
+.wr-pane,.wr-mobile-tabs{--wt-teal:var(--primary,#5cb3ab);--wt-teal-700:var(--primary-700,#2f7d76);
+  --wt-teal-50:var(--primary-50,#e8f3f1);--wt-ink:var(--ink,#1f2328);
+  --wt-ink-2:var(--ink-2,#3f464d);--wt-muted:var(--muted,#71767e);
+  --wt-muted-2:var(--muted-2,#9aa0a6);--wt-line:var(--line,#e6e9ea);
+  --wt-surface:var(--surface,#fff);--wt-bg:var(--bg,#f6f9fb);
+  --wt-amber:var(--warn,#b3792c);--wt-amber-50:var(--warn-soft,#fbf1e3);
+  --wt-radius:14px;--wt-shadow:0 1px 2px rgba(24,40,48,.04),0 6px 18px -12px rgba(24,40,48,.18)}
+.wr-pane[hidden]{display:none!important}
+#hubSubs{display:none!important}
+.wr-vhead{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin:2px 0 18px;flex-wrap:wrap}
+.wr-vhead h1{margin:0;font-size:20px;font-weight:800;letter-spacing:-.02em;color:var(--wt-ink)}
+.wr-vhead span{display:block;margin-top:4px;font-size:12.5px;color:var(--wt-muted)}
+.wr-range{min-height:36px;padding:6px 10px;border:1px solid var(--wt-line);border-radius:10px;
+  background:var(--wt-surface);color:var(--wt-ink-2);font:inherit;font-size:12.5px;cursor:pointer}
+.wr-stat-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:14px}
+.wr-stat{padding:15px 16px;border:1px solid var(--wt-line);border-radius:var(--wt-radius);
+  background:var(--wt-surface);box-shadow:var(--wt-shadow)}
+.wr-stat.ok{background:linear-gradient(135deg,var(--wt-teal-50),var(--wt-surface) 72%);border-color:#d5ebe7}
+.wr-stat .k{font-size:11.5px;color:var(--wt-muted);font-weight:600}
+.wr-stat .v{margin:6px 0 2px;font-size:26px;font-weight:800;letter-spacing:-.03em;color:var(--wt-ink);line-height:1.1}
+.wr-stat .v.teal{color:var(--wt-teal-700)}
+.wr-stat .v.warn{color:var(--wt-amber)}
+.wr-stat .v small{font-size:12px;font-weight:600;color:var(--wt-muted);margin-left:3px}
+.wr-stat .d{font-size:11.5px;color:var(--wt-muted);line-height:1.45}
+.wr-panel{border:1px solid var(--wt-line);border-radius:var(--wt-radius);
+  background:var(--wt-surface);box-shadow:var(--wt-shadow);overflow:hidden;margin-bottom:14px}
+.wr-panel:last-child{margin-bottom:0}
+.wr-panel-h{padding:14px 16px 6px;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.wr-panel-h b{font-size:13.5px;font-weight:750;color:var(--wt-ink)}
+.wr-panel-h span{font-size:11.5px;color:var(--wt-muted)}
+.wr-ruler{padding:20px 18px 22px}
+.wr-ruler-track{position:relative;height:14px;border-radius:8px;
+  background:linear-gradient(90deg,var(--wt-line),var(--wt-teal-50) 78%,#cfe6e1)}
+.wr-ruler-track i{position:absolute;left:0;top:0;height:100%;border-radius:8px;
+  background:linear-gradient(90deg,var(--wt-teal-50),rgba(92,179,171,.32))}
+.wr-ruler-goal,.wr-ruler-cur{position:absolute;top:-4px;width:2px;height:22px;border-radius:2px}
+.wr-ruler-goal{background:var(--wt-teal-700)}
+.wr-ruler-goal:after{content:"目标";position:absolute;top:-15px;left:50%;transform:translateX(-50%);
+  font-size:10px;color:var(--wt-teal-700);white-space:nowrap}
+.wr-ruler-cur{width:4px;background:var(--wt-ink);z-index:1}
+.wr-ruler-cur:after{content:"当前";position:absolute;top:24px;left:50%;transform:translateX(-50%);
+  font-size:10px;color:var(--wt-ink);white-space:nowrap}
+.wr-ruler-ticks{display:flex;justify-content:space-between;margin-top:9px;font-size:10.5px;color:var(--wt-muted-2)}
+.wr-callout{display:flex;align-items:center;gap:12px;margin-bottom:14px;padding:12px 14px;
+  border:1px solid #dceeea;border-radius:var(--wt-radius);
+  background:linear-gradient(100deg,var(--wt-teal-50),var(--wt-surface) 75%)}
+.wr-callout .ic{width:38px;height:38px;flex:none;border-radius:11px;background:var(--wt-surface);
+  color:var(--wt-teal-700);display:grid;place-items:center}
+.wr-callout .ic svg{width:20px;height:20px}
+.wr-callout .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.wr-callout .tx b{font-size:13px;font-weight:750;color:var(--wt-ink)}
+.wr-callout .tx span{font-size:11.5px;color:var(--wt-muted)}
+.wr-btn{flex:none;min-height:38px;padding:8px 14px;border:1px solid var(--wt-line);
+  border-radius:10px;background:var(--wt-surface);color:var(--wt-ink-2);font:inherit;
+  font-size:12.5px;font-weight:650;cursor:pointer}
+.wr-btn:hover{border-color:var(--wt-teal);color:var(--wt-teal-700)}
+.wr-btn.primary{background:var(--wt-teal);border-color:var(--wt-teal);color:#fff;
+  box-shadow:0 4px 12px -4px rgba(92,179,171,.6)}
+.wr-two-col{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+.wr-spark{padding:8px 16px 14px}
+.wr-spark svg{width:100%;height:92px;display:block}
+.wr-line-goal{stroke:var(--wt-teal-700);stroke-width:1;stroke-dasharray:4 4;opacity:.7}
+.wr-line-dot{fill:var(--wt-surface);stroke:var(--wt-teal);stroke-width:2}
+.wr-spark-foot{display:flex;justify-content:space-between;font-size:10.5px;color:var(--wt-muted)}
+.wr-mini-row{display:flex;align-items:center;gap:10px;padding:9px 16px;border-top:1px solid var(--wt-line)}
+.wr-mini-row .grow{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.wr-mini-row .t{font-size:12.5px;font-weight:650;color:var(--wt-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wr-mini-row .d{font-size:11.5px;color:var(--wt-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wr-pill{flex:none;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:750;font-variant-numeric:tabular-nums}
+.wr-pill.key{background:var(--wt-teal-50);color:var(--wt-teal-700)}
+.wr-pill.warn{background:var(--wt-amber-50);color:var(--wt-amber)}
+.wr-rec-row{display:flex;align-items:center;gap:12px;padding:11px 16px;border-top:1px solid var(--wt-line);font-size:12.5px}
+.wr-rec-date{flex:none;width:88px;color:var(--wt-muted);font-variant-numeric:tabular-nums}
+.wr-rec-mode{flex:none;width:76px;color:var(--wt-ink-2);font-weight:600}
+.wr-rec-brief{flex:1;min-width:0;color:var(--wt-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wr-empty{padding:40px 20px;text-align:center;border:1px dashed var(--wt-line);
+  border-radius:var(--wt-radius);background:var(--wt-surface);font-size:12.5px;color:var(--wt-muted);line-height:1.6}
+.wr-empty b{display:block;font-size:14px;color:var(--wt-ink);margin-bottom:6px}
+.wr-mobile-tabs{display:none}
+body.exam-fullscreen .wr-pane{display:none!important}
+@media(max-width:860px){
+  .wr-mobile-tabs{display:flex;gap:4px;overflow-x:auto;padding:8px 0 12px;margin-bottom:4px}
+  .wr-mobile-tabs button{flex:none;min-height:38px;padding:8px 14px;border:1px solid var(--wt-line);
+    border-radius:10px;background:var(--wt-surface);color:var(--wt-ink-2);font:inherit;font-size:12.5px;white-space:nowrap;cursor:pointer}
+  .wr-mobile-tabs button.on{background:var(--wt-ink);color:#fff;border-color:var(--wt-ink)}
+  .wr-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .wr-two-col{grid-template-columns:minmax(0,1fr)}
+  .wr-vhead h1{font-size:18px}
+  .wr-rec-date{width:74px}.wr-rec-mode{width:64px}
+}
 </style>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
@@ -717,6 +810,7 @@ body.exam-fullscreen .hub-topbar{display:none !important}
     <aside class="hub-side">
       <div class="hub-side-scroll">
         <div class="hub-subs" id="hubSubs"></div>
+        <div class="hub-subs" id="wrNav"></div>
         <div class="hub-side-div"></div>
         <div class="hub-td-head"><b>今天</b></div>
         <div class="hub-td-prog" id="hubTdProg"></div>
@@ -727,6 +821,29 @@ body.exam-fullscreen .hub-topbar{display:none !important}
       </div>
     </aside>
     <div class="hub-main">
+      <div class="wr-mobile-tabs" id="wrMobileTabs"></div>
+      <div class="wr-pane" data-wr-pane="home" id="wrPaneHome" hidden>
+        <div class="wr-vhead">
+          <div><h1>写作</h1><span>看清四项标准的短板，也知道下一篇练什么</span></div>
+          <select class="wr-range" data-range aria-label="时间范围">
+            <option value="30">近 30 天</option>
+            <option value="90">近 90 天</option>
+            <option value="all">全部时间</option>
+          </select>
+        </div>
+        <div id="wrHomeBody"></div>
+      </div>
+      <div class="wr-pane" data-wr-pane="records" id="wrPaneRecords" hidden>
+        <div class="wr-vhead">
+          <div><h1>练习记录</h1><span>每篇的 AI 预估分与题目，按时间范围看</span></div>
+          <select class="wr-range" data-range aria-label="时间范围">
+            <option value="30">近 30 天</option>
+            <option value="90">近 90 天</option>
+            <option value="all">全部时间</option>
+          </select>
+        </div>
+        <div id="wrRecordsBody"></div>
+      </div>
   <div class="page-head-row">
     <div class="write-tabs pill-tabs" id="writeTabs">
       <button data-tab="tpl" class="pill-tab active">模板</button>
@@ -1036,4 +1153,5 @@ body.exam-fullscreen .hub-topbar{display:none !important}
 </main>
 <link rel="stylesheet" href="css/p/hub-shell.css?v=20261107a" />
 <script defer src="js/hub-side-shell.js?v=20261106b"></script>
+<script defer src="js/wr-tabs.js?v=20261108a"></script>
 
