@@ -443,6 +443,108 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
   .wb-mini-search{flex:1}
   .wb-mini-search input{width:100%}
 }
+
+/* ═══ WORDBOOK-POLISH-1（11-08）· 单词页 4 个功能 tab 往已点头设计稿
+   WORDBOOK-TABS-1 精致化。跟回顾页 v821 同一套做法：只重皮，
+   不动任何 DOM/ID/数据/事件（js/wb-tabs.js 的 renderXxx 输出结构一字不改，
+   仅给 renderSet 的 4 张模式卡补 svg 图标；数字口径全不变）。
+   设计稿：panel 阴影 / 26px 数卡 / 深色选中 chip / 统一面板行列表 /
+   图标模式卡 / 按钮 primary 阴影。首页书架 #vMall 是 11-06 定版、一行不动。 ═══ */
+.wb-pane{
+  --wp-radius:14px;
+  --wp-shadow:0 1px 2px rgba(24,40,48,.04), 0 6px 18px -12px rgba(24,40,48,.18);
+  --wp-line2:var(--line-2,#eef1f2);
+}
+/* 页头：设计稿 .v-head（20px/800 + hint + right） */
+.wb-pane .wb-whead,
+.wb-pane .wb-pane-head{ margin:2px 0 16px; }
+.wb-pane .wb-whead h2,
+.wb-pane .wb-pane-head h2{ font-size:20px; font-weight:800; letter-spacing:-.02em; }
+/* 按钮：设计稿 .btn（11px 圆角 / 700 / primary 带 teal 阴影） */
+.wb-pane .wb-btn,
+.wb-pane .wb-bopen{ border-radius:11px; font-weight:700; }
+.wb-pane .wb-btn.primary{
+  background:var(--primary,#5cb3ab); border-color:transparent; color:#fff;
+  box-shadow:0 6px 16px -8px rgba(58,143,135,.9);
+}
+.wb-pane .wb-btn.primary:hover{ background:#3a8f87; color:#fff; }
+.wb-pane .wb-btn:not(.primary):hover{ border-color:var(--primary,#5cb3ab); color:var(--primary-700,#2f7d76); }
+.wb-pane .wb-bimport{
+  border:1px dashed #cddedb; border-radius:14px; min-height:56px;
+  background:var(--primary-50,#e8f3f1); color:var(--primary-700,#2f7d76); font-weight:700;
+}
+/* chips：深色选中（设计稿 .chip.on = ink 底白字），保留 44px 触控 */
+.wb-pane .wb-chip{ font-size:12.5px; font-weight:600; }
+.wb-pane .wb-chip.on{
+  background:var(--ink,#1f2328); border-color:var(--ink,#1f2328);
+  color:#fff; font-weight:700;
+}
+.wb-pane .wb-mini-search{ border-radius:11px; }
+/* 数卡：设计稿 .stat（26px/800 + 阴影 + 14px 圆角） */
+.wb-pane .wb-stat-cards{ gap:12px; }
+.wb-pane .wb-stat{
+  border-radius:var(--wp-radius); padding:16px 18px;
+  box-shadow:var(--wp-shadow); gap:5px;
+}
+.wb-pane .wb-stat-l{ font-size:11.5px; font-weight:600; }
+.wb-pane .wb-stat-v{ font-size:26px; font-weight:800; letter-spacing:-.03em; }
+.wb-pane .wb-stat-v em{ font-size:12px; font-weight:600; }
+/* 通用面板：设计稿 .panel（14px 圆角 + 阴影） */
+.wb-pane .wbs-panel{ border-radius:var(--wp-radius); box-shadow:var(--wp-shadow); margin-top:14px; }
+/* 错词本 / 词书：收成一块 panel + 分隔线行（设计稿 .panel > .row） */
+.wb-pane #wbWrongList,
+.wb-pane #wbBookList{
+  border:1px solid var(--line,#e6e9ea); border-radius:var(--wp-radius);
+  background:var(--surface,#fff); box-shadow:var(--wp-shadow);
+  overflow:hidden;
+}
+.wb-pane .wb-wrow,
+.wb-pane .wb-brow{
+  margin:0; border:0; border-bottom:1px solid var(--wp-line2);
+  border-radius:0; background:transparent;
+  min-height:64px; padding:13px 18px;
+}
+.wb-pane .wb-wrow:last-child,
+.wb-pane .wb-brow:last-child{ border-bottom:0; }
+.wb-pane .wb-wrow:hover,
+.wb-pane .wb-brow:hover{ background:#fbfdfc; }
+.wb-pane .wb-wrow .t,
+.wb-pane .wb-bnm{ font-weight:700; }
+.wb-pane .wb-icobtn{ border:0; background:transparent; }
+.wb-pane .wb-icobtn:hover{ background:var(--primary-50,#e8f3f1); }
+/* 空态：虚线卡 */
+.wb-pane .wb-empty{
+  border:1px dashed var(--line,#e6e9ea); border-radius:var(--wp-radius);
+  background:var(--surface,#fff); padding:44px 18px;
+}
+/* 模式卡：设计稿 .mode（图标在上 + 高一点 + teal 浅底选中） */
+.wb-pane .wb-modes{ gap:10px; }
+.wb-pane .wb-mode{
+  min-height:104px; border-radius:12px; padding:14px; gap:3px;
+  justify-content:center;
+}
+.wb-pane .wb-mode.on{
+  border-color:var(--primary,#5cb3ab); background:var(--primary-50,#e8f3f1);
+  box-shadow:none;
+}
+.wb-pane .wb-mode b{ font-size:13px; font-weight:750; }
+.wb-pane .wb-mode span{ font-size:11px; }
+.wb-pane .wb-mode .wb-mode-ic{
+  width:20px; height:20px; color:var(--primary-700,#2f7d76); margin-bottom:9px;
+}
+.wb-pane .wb-mode.off .wb-mode-ic{ color:var(--muted,#9aa1a8); }
+/* 设置行 / 词书 pill */
+.wb-pane .wb-setrow{ gap:14px; padding:14px 18px; min-height:64px; }
+.wb-pane .wb-bpill.on{ background:var(--primary,#5cb3ab); color:#fff; }
+.wb-pane .wb-bpill.off{ color:var(--muted,#9aa1a8); background:var(--surface-2,#fafcfc); }
+.wb-pane .wb-wtag{ border-radius:999px; }
+/* 手机档 */
+@media (max-width:860px){
+  .wb-pane .wb-wrow,
+  .wb-pane .wb-brow{ padding:12px 14px; }
+  .wb-pane .wb-stat-cards{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .wb-pane .wb-modes{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
 </style>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
@@ -2325,7 +2427,7 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
 
 <link rel="stylesheet" href="css/p/hub-shell.css?v=20261107a" />
 <script defer src="js/hub-side-shell.js?v=20261106b"></script>
-<script defer src="js/wb-tabs.js?v=20261107j"></script>
+<script defer src="js/wb-tabs.js?v=20261107n"></script>
 </body>
 </html>
 

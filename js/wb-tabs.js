@@ -507,6 +507,18 @@
 
     var box = $('wbModeCards');
     if(box){
+      /* WORDBOOK-POLISH-1：4 张模式卡补图标，跟已点头设计稿 .mode 对齐。
+         只多一个 svg，div/class/data-wb-mode/<b>/<span> 结构与文案一字不改。 */
+      var MODE_IC = {
+        visual: '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+        audio: '<path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/>',
+        dictation: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+        smart: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/>'
+      };
+      function modeIc(k){
+        return '<svg class="wb-mode-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" '
+             + 'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (MODE_IC[k] || MODE_IC.smart) + '</svg>';
+      }
       var modes = [
         { id:'visual',    nm:'看词选义', ds:'看英文，选中文' },
         { id:'audio',     nm:'听音选义', ds:'听发音，选中文' },
@@ -515,9 +527,9 @@
       ];
       box.innerHTML = modes.map(function(m){
         return m.off
-          ? '<div class="wb-mode off" aria-disabled="true"><b>' + esc(m.nm) + '</b><span>' + esc(m.ds) + '</span></div>'
+          ? '<div class="wb-mode off" aria-disabled="true">' + modeIc(m.id) + '<b>' + esc(m.nm) + '</b><span>' + esc(m.ds) + '</span></div>'
           : '<div class="wb-mode' + (m.id === c.questionMode ? ' on' : '') + '" data-wb-mode="' + m.id + '">'
-            + '<b>' + esc(m.nm) + '</b><span>' + esc(m.ds) + '</span></div>';
+            + modeIc(m.id) + '<b>' + esc(m.nm) + '</b><span>' + esc(m.ds) + '</span></div>';
       }).join('');
     }
     var cap = num(c.dailyCap);
