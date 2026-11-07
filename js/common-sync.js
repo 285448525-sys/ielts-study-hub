@@ -655,6 +655,25 @@ function _stampSyncItemKey(f, it, fp){
   return f + '|' + (it && it.id != null ? ('id:' + it.id) : (it && it.ts != null ? ('ts:' + it.ts) : ('h:' + fp)));
 }
 /* 上传前调用：给本机改过的条目打 updatedAt。返回打戳条数。 */
+/* 11-07 SYNC-LINK-1：无稳定身份的同步条目，在上传出口补一个恒定 id。
+   根因（跨两层联动，实测复现）：_mergeArray 对「无 id 无 ts」的条目用
+   'h:'+JSON.stringify(it) 当配对 key；而本函数打戳会往同一条目里写 updatedAt —— 
+   key 当场就变了。于是同一条记录的本机旧版与云端新版在另一端永远配不上对，
+   每次改动都复制出一份（dictationLogs 1 条变 2 条，且只增不减）。
+   corpus.js:634 的默写日志正是这种「无 id 无 ts」写法，sessions 等老数据同理。
+   补一次稳定 id 后：本函数用 'id:' 识别改动、合并层用 'id:' 配对 + updatedAt 较新者胜，
+   两层口径打通；id 只按「首见内容指纹」生成一次，之后恒定不随内容/时间戳变化（幂等）。
+   内容相同的重复记录（同一次默写）自然归一，与 data.js trimDictationDupes 同口径。
+   ⚠️ 指纹 _stampSyncItemFp 已剔除 updatedAt/ts，故「一端已打戳、另一端没打」也算出同一 id，收敛。
+   ⚠️ 老数据过渡：补 id 的那次上传后另一端仍是旧无 id 条，最多一次重复；该端下次上传会补出
+   同一个 id（内容指纹相同），随即两端一致、较新者胜收敛为 1 条，不需数据迁移。 */
+function _ensureSyncItemId(f, it, fp){
+  if(it.id != null || it.ts != null) return false;   // 已有稳定身份（id 或 ts 作 key），不动
+  let h = 5381; const s = f + '|' + fp;
+  for(let i = 0; i < s.length; i++) h = ((h << 5) + h) + s.charCodeAt(i);
+  it.id = 'sg' + (h >>> 0).toString(36);
+  return true;
+}
 function stampSyncItemsForUpload(){
   const now = Date.now();
   let touched = 0;
@@ -665,6 +684,12 @@ function stampSyncItemsForUpload(){
       if(!it || typeof it !== 'object') continue;
       const fp = _stampSyncItemFp(it);
       if(fp == null) continue;
+      if(_ensureSyncItemId(f, it, fp)){
+        // 刚补上 id：用含 id 的新指纹重建快照（不打戳），否则下次会把「多了 id」误判成改动
+        const fp1 = _stampSyncItemFp(it);
+        _syncStampSnap.set(_stampSyncItemKey(f, it, fp1), fp1);
+        continue;
+      }
       const key = _stampSyncItemKey(f, it, fp);
       const prev = _syncStampSnap.get(key);
       if(prev === undefined){ _syncStampSnap.set(key, fp); }        // 首次见到：只记快照
