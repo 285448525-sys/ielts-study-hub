@@ -1,11 +1,12 @@
 /* ==========================================================================
-   WORDBOOK-TABS-1（11-07 任务1）· 单词页左栏功能 tab + 右侧多视图骨架
+   WORDBOOK-TABS-1（11-07）· 单词页左栏功能 tab + 右侧多视图
    --------------------------------------------------------------------------
    她 11-07「这个单词页不应该是有多个侧栏tab的吗…先做一版设计稿我看看」→ 样子稿
    design/WORDBOOK-TABS-1-单词页侧栏各页UI样子稿-2026-11-07.html 她已点头（「单词功能我看了，
    那你可以开始做起来了」），并要求「拆分成多个任务一个一个做」。
-   本文件 = 任务1：只补回左栏 5 个 tab 与视图切换骨架，首页仍是现有书架 #vMall（一行不动），
-   其余 4 页先给「只读真数据 + 诚实空态」，交互与联动留给任务 2~5 逐页补。
+   任务1（v814）：补回左栏 5 个 tab 与视图切换骨架，首页仍是现有书架 #vMall（一行不动）。
+   任务2（v815）：错词本接真数据（列表/chips/搜索/重练/发音），其余 3 页仍只读真值+诚实空态。
+   任务3~5（统计/词书/设置的完整交互）逐页补。
 
    🔴 接线纪律（沿用 v807/v809 已验证的软导航契约）：
      · 左栏 tab DOM 由本脚本渲染进 practice.html 里静态写好的 #wbNav；不动共用
@@ -34,6 +35,9 @@
     books: '<path d="M4 5h7v15H4zM13 8h7v12h-7zM6 9h3M15 12h3"/>',
     set:   '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/>'
   };
+  var SOUND = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" '+
+              'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+
+              '<path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg>';
   function esc(s){
     return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
       return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
@@ -46,10 +50,51 @@
   function $(id){ return document.getElementById(id); }
   function num(v){ var n = Number(v); return (isNaN(n) || n < 0) ? 0 : n; }
 
-  /* 只读真数据，取不到就留空（绝不造数） */
-  function wrongCount(){
-    try{ return typeof hubWrongCount === 'function' ? num(hubWrongCount()) : 0; }catch(e){ return 0; }
+  /* ── 任务2：错词本真数据 ──────────────────────────────────────────────
+     来源 = 今日错词（与设计稿「错词本」同义、与 hubWrongCount()/todayWrongEns() 同口径）：
+       · 自定义词库：DATA.dailyWrong[今天] 的 en 数组
+       · 官方词库：localStorage ielts_hub_obank_v1 的 banks[*].wrong[今天] 的 en 数组
+     每个 en 用 findWordByEn() 拿真词对象补 cn/ipa/errTotal/hardWord/keyWord（查不到就留空，
+     绝不造词）。来源词书名从 window.__WM_BOOKS 取，custom 显示「我的词库」。
+     🔴 不做「逐行移除」：common-merge.js:399-411 的 dailyWrong 合并是跨端「并集」且无 en 级
+        墓碑，本机删掉的元素会被另一端并回来（v812 同款联动坑）。要做移除得先给合并层加
+        墓碑（动 22 页串号的共用文件），留待单独一笔，不在本任务埋隐性 bug。
+        // TODO: [待确认] 错词本移除 + 跨端墓碑（涉及 common-merge.js / 22 页串号） */
+  function wrongData(){
+    var t = '';
+    try{ t = (typeof todayKey === 'function') ? todayKey() : ''; }catch(e){}
+    var out = [], seen = {};
+    function add(en, bankId){
+      var k = String(en || '').trim().toLowerCase();
+      if(!k || seen[k]) return;
+      seen[k] = 1;
+      var w = null;
+      try{ w = (typeof findWordByEn === 'function') ? findWordByEn(k) : null; }catch(e){}
+      var nm = '我的词库';
+      if(bankId && bankId !== 'custom'){
+        try{ (window.__WM_BOOKS || []).forEach(function(b){ if(b.id === bankId) nm = b.nm; }); }catch(e){}
+      }
+      out.push({
+        en: k, w: w, bank: nm,
+        cn:  w ? (w.cn  || '') : '',
+        ipa: w ? (w.ipa || '') : '',
+        err: w ? num(w.errTotal) : 0,
+        hard: !!(w && w.hardWord),
+        key:  !!(w && w.keyWord)
+      });
+    }
+    try{ (((typeof DATA !== 'undefined' ? DATA : {}) || {}).dailyWrong || {})[t] &&
+         DATA.dailyWrong[t].forEach(function(en){ add(en, 'custom'); }); }catch(e){}
+    try{
+      var ob = JSON.parse(localStorage.getItem('ielts_hub_obank_v1') || 'null');
+      if(ob && ob.banks) Object.keys(ob.banks).forEach(function(id){
+        var list = ((ob.banks[id] || {}).wrong || {})[t] || [];
+        list.forEach(function(en){ add(en, id); });
+      });
+    }catch(e){}
+    return out;
   }
+  function wrongCount(){ return wrongData().length; }
   function bookCount(){
     try{ return (window.__WM_BOOKS && window.__WM_BOOKS.length) || 0; }catch(e){ return 0; }
   }
@@ -128,7 +173,77 @@
     try{ document.dispatchEvent(new CustomEvent('wb:tab', {detail:{id:id}})); }catch(e){}
   }
 
-  /* ── 各页只读渲染（任务1 只给首屏真值与诚实空态；交互/联动见任务2~5） ── */
+  /* ── 任务2：错词本渲染 ────────────────────────────────────────────────── */
+  var _wFilter = 'all', _wKw = '';
+  function wHit(all){
+    return all.filter(function(x){
+      if(_wFilter === 'wrong' && !(x.err > 0)) return false;
+      if(_wFilter === 'hard'  && !x.hard) return false;
+      if(_wFilter === 'key'   && !x.key)  return false;
+      if(_wKw && x.en.indexOf(_wKw) < 0 && (x.cn || '').indexOf(_wKw) < 0) return false;
+      return true;
+    });
+  }
+  function renderWrong(){
+    var box = $('wbWrongList'), emp = $('wbWrongEmpty');
+    if(!box) return;
+    var all = wrongData();
+    var hit = wHit(all);
+    var cnt = $('wbWrongCount');
+    if(cnt) cnt.textContent = all.length ? ('共 ' + all.length + ' 个词') : '';
+    document.querySelectorAll('#wbWrongChips [data-wk]').forEach(function(b){
+      b.classList.toggle('on', b.getAttribute('data-wk') === _wFilter);
+    });
+    var rb = $('wbWrongReview');
+    if(rb) rb.disabled = !hit.some(function(x){ return !!x.w; });
+
+    if(!all.length){
+      box.hidden = true; box.innerHTML = '';
+      if(emp){ emp.hidden = false; emp.textContent = '还没有错词'; }
+      return;
+    }
+    if(!hit.length){
+      box.hidden = true; box.innerHTML = '';
+      if(emp){ emp.hidden = false; emp.textContent = '没有符合条件的词'; }
+      return;
+    }
+    if(emp) emp.hidden = true;
+    box.hidden = false;
+    box.innerHTML = hit.map(function(x){
+      var tags = [];
+      if(x.err > 0) tags.push('答错 ' + x.err + ' 次');
+      if(x.hard) tags.push('标难');
+      if(x.key)  tags.push('重点');
+      var sub = [x.cn, x.bank].filter(Boolean).join(' · ');
+      return '<div class="wb-wrow">'
+        + '<button type="button" class="wb-icobtn" data-wb-say="' + esc(x.en) + '" title="播放发音">' + SOUND + '</button>'
+        + '<div class="grow"><div class="t">' + esc(x.en)
+        + (x.ipa ? ' <span class="ipa">' + esc(x.ipa) + '</span>' : '') + '</div>'
+        + (sub ? '<div class="d">' + esc(sub) + '</div>' : '') + '</div>'
+        + (tags.length ? '<span class="wb-wtag">' + esc(tags.join(' · ')) + '</span>' : '')
+        + '</div>';
+    }).join('');
+  }
+  function reviewWrong(){
+    var words = wHit(wrongData()).filter(function(x){ return !!x.w; }).map(function(x){ return { en:x.en }; });
+    if(!words.length) return;
+    try{
+      /* 先起错词重练会话（设 pq + 渲染题目到 #studyView 内的 #practiceBody），
+         再切到背词态显示它。顺序不能反：先切态会因 pq 为空触发 autoStartSeeWord 覆盖。 */
+      if(typeof startWrongReview === 'function') startWrongReview(words);
+      else return;
+      if(typeof switchWordTab === 'function') switchWordTab('study');
+    }catch(e){}
+  }
+  function sayWord(en){
+    if(!en) return;
+    try{
+      if(typeof speakN === 'function') speakN(en);
+      else if(typeof speak === 'function') speak(en, 'en-US');
+    }catch(e){}
+  }
+
+  /* ── 各页只读渲染（任务3~5 再补完整交互） ── */
   function statVals(){
     var done = 0, cap = 0, wrong = 0, due = 0;
     try{ if(typeof practicedCount === 'function') done = num(practicedCount()); }catch(e){}
@@ -188,21 +303,35 @@
     var auEl = $('wbAutoN'); if(auEl) auEl.textContent = auto ? '开' : '关';
   }
   function renderPane(id){
-    if(id === 'stat') renderStat();
+    if(id === 'wrong') renderWrong();
+    else if(id === 'stat') renderStat();
     else if(id === 'books') renderBooks();
     else if(id === 'set') renderSet();
-    /* 错词本任务1 只给诚实空态，真实列表/筛选/重练/移除见任务2 */
   }
 
   function onClick(e){
     var t = e.target;
     if(!t || !t.closest) return;
+    /* 任务2：错词本 chips / 重练 / 发音 */
+    var chip = t.closest('#wbWrongChips [data-wk]');
+    if(chip){ e.preventDefault(); _wFilter = chip.getAttribute('data-wk') || 'all'; renderWrong(); return; }
+    var rv = t.closest('#wbWrongReview');
+    if(rv){ e.preventDefault(); reviewWrong(); return; }
+    var say = t.closest('[data-wb-say]');
+    if(say){ e.preventDefault(); sayWord(say.getAttribute('data-wb-say')); return; }
+    /* 任务1：左栏 / 手机 tab */
     var b = t.closest('[data-wb-tab]');
     if(!b) return;
     e.preventDefault();
     show(b.getAttribute('data-wb-tab'));
   }
-
+  function onInput(e){
+    var t = e.target;
+    if(t && t.id === 'wbWrongSearch'){
+      _wKw = String(t.value || '').trim().toLowerCase();
+      renderWrong();
+    }
+  }
   function onMerged(){
     renderNav();
     if(window.__wbCur && window.__wbCur !== 'home') renderPane(window.__wbCur);
@@ -212,6 +341,9 @@
     if(window.__wbTabsClick){ try{ document.removeEventListener('click', window.__wbTabsClick); }catch(e){} }
     window.__wbTabsClick = onClick;
     document.addEventListener('click', onClick);
+    if(window.__wbTabsInput){ try{ document.removeEventListener('input', window.__wbTabsInput); }catch(e){} }
+    window.__wbTabsInput = onInput;
+    document.addEventListener('input', onInput);
     if(window.__wbTabsMerge){ try{ document.removeEventListener('hub:data-merged', window.__wbTabsMerge); }catch(e){} }
     window.__wbTabsMerge = onMerged;
     document.addEventListener('hub:data-merged', onMerged);
@@ -227,6 +359,7 @@
   }
 
   window.__wbTabs = { show: show, renderNav: renderNav, renderPane: renderPane,
+                      renderWrong: renderWrong, wrongData: wrongData,
                       cur: function(){ return window.__wbCur || 'home'; } };
   boot();
 })();

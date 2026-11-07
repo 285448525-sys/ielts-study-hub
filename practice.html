@@ -349,6 +349,34 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
 .wb-mode span{font-size:12px;color:var(--muted,#71767e)}
 .wb-setrow{display:flex;align-items:center;gap:10px;min-height:52px;padding:8px 2px;border-bottom:1px solid var(--line,#eef2f3);font-size:13.5px;color:var(--ink,#1f2328)}
 .wb-setrow b{margin-left:auto;font-weight:650;color:var(--primary-700,#2f7d76)}
+
+/* WORDBOOK-TABS-1 任务2 · 错词本真列表（沿用设计稿 v-head + chips + 行；teal / 44px 触控） */
+.wb-whead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.wb-whead h2{margin:0;font-size:20px;font-weight:750;color:var(--ink,#1f2328)}
+.wb-whead .hint{font-size:12.5px;color:var(--muted,#9aa1a8)}
+.wb-whead .right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.wb-mini-search{display:flex;align-items:center;gap:6px;height:44px;padding:0 12px;border:1px solid var(--line,#e6e9ea);border-radius:20px;background:var(--surface,#fff);color:var(--muted,#71767e)}
+.wb-mini-search svg{width:15px;height:15px;flex:0 0 auto}
+.wb-mini-search input{border:0;outline:0;background:transparent;font:inherit;font-size:13px;color:var(--ink,#1f2328);width:130px;min-width:0}
+.wb-btn{min-height:44px;padding:8px 15px;border-radius:20px;border:1px solid var(--line,#e6e9ea);background:var(--surface,#fff);color:var(--ink,#1f2328);font:inherit;font-size:13px;cursor:pointer;white-space:nowrap}
+.wb-btn.primary{background:var(--primary,#5cb3ab);border-color:var(--primary,#5cb3ab);color:#fff;font-weight:650}
+.wb-btn:disabled{opacity:.45;cursor:default}
+.wb-wchips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.wb-chip{min-height:44px;padding:8px 15px;border-radius:20px;border:1px solid var(--line,#e6e9ea);background:var(--surface,#fff);color:var(--ink,#1f2328);font:inherit;font-size:13px;cursor:pointer}
+.wb-chip.on{background:var(--primary-50,#e8f3f1);border-color:var(--primary,#5cb3ab);color:var(--primary-700,#2f7d76);font-weight:650}
+.wb-wrow{display:flex;align-items:center;gap:10px;min-height:60px;padding:10px 14px;border:1px solid var(--line,#e6e9ea);border-radius:12px;background:var(--surface,#fff);margin-bottom:8px}
+.wb-wrow .grow{min-width:0;flex:1}
+.wb-wrow .t{font-size:13.5px;font-weight:650;color:var(--ink,#1f2328)}
+.wb-wrow .t .ipa{font-size:12px;font-weight:400;color:var(--muted,#9aa1a8);margin-left:4px}
+.wb-wrow .d{font-size:12px;color:var(--muted,#71767e);margin-top:2px}
+.wb-icobtn{width:44px;height:44px;flex:0 0 auto;border:1px solid var(--line,#e6e9ea);border-radius:10px;background:var(--surface,#fff);color:var(--primary-700,#2f7d76);display:grid;place-items:center;cursor:pointer}
+.wb-icobtn svg{width:17px;height:17px}
+.wb-wtag{margin-left:auto;flex:0 0 auto;font-size:11.5px;font-weight:600;color:var(--primary-700,#2f7d76);background:var(--primary-50,#e8f3f1);border-radius:20px;padding:3px 10px;white-space:nowrap}
+@media (max-width:860px){
+  .wb-whead .right{width:100%;margin-left:0}
+  .wb-mini-search{flex:1}
+  .wb-mini-search input{width:100%}
+}
 </style>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
@@ -615,7 +643,19 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
     <!-- 4 个功能视图：与 #vMall 并列，全部 hidden 起步，由 js/wb-tabs.js 的 show() 切 hidden。
          任务1 只给骨架 + 只读真值 + 诚实空态；交互与联动见任务 2~5 逐页补。 -->
     <section class="wb-pane" data-wb-pane="wrong" hidden>
-      <div class="wb-pane-head"><h2>错词本</h2></div>
+      <div class="wb-whead">
+        <h2>错词本</h2><span class="hint" id="wbWrongCount"></span>
+        <div class="right">
+          <label class="wb-mini-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="wbWrongSearch" placeholder="查一个词" aria-label="搜索错词" /></label>
+          <button type="button" class="wb-btn primary" id="wbWrongReview">重练这些词</button>
+        </div>
+      </div>
+      <div class="wb-wchips" id="wbWrongChips">
+        <button type="button" class="wb-chip on" data-wk="all">全部</button>
+        <button type="button" class="wb-chip" data-wk="wrong">答错</button>
+        <button type="button" class="wb-chip" data-wk="hard">标难</button>
+        <button type="button" class="wb-chip" data-wk="key">重点</button>
+      </div>
       <div class="wb-empty" id="wbWrongEmpty">还没有错词</div>
       <div id="wbWrongList" hidden></div>
     </section>
@@ -2149,7 +2189,7 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
 
 <link rel="stylesheet" href="css/p/hub-shell.css?v=20261107a" />
 <script defer src="js/hub-side-shell.js?v=20261106b"></script>
-<script defer src="js/wb-tabs.js?v=20261107e"></script>
+<script defer src="js/wb-tabs.js?v=20261107f"></script>
 </body>
 </html>
 
