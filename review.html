@@ -12,6 +12,74 @@
 <script defer src="js/feedback.js?v=20261027a"></script><script defer src="js/scores.js?v=20261103a"></script><script defer src="js/history.js?v=20261024a"></script><script defer src="js/rv-record.js?v=20261028a"></script><script defer src="js/mock-report.js?v=20261006a"></script><script defer src="js/mock-history.js?v=20261006b"></script><script defer src="js/rec-all.js?v=20261101i"></script><script defer src="js/mock-summary.js?v=20261001f"></script><script defer src="js/speaking-practice.js?v=20261006a"></script><script defer src="js/progress.js?v=20261024a"></script><script defer src="js/rvx-data.js?v=20261101l"></script><script defer src="js/review.js?v=20261023a"></script><script defer src="js/sprint.js?v=20261002a"></script>
 <style id="bootLoaderStyle">#bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:var(--bg);transition:opacity .18s}#bootLoader.hide{opacity:0;pointer-events:none}</style>
 <meta name="description" content="回顾：成绩趋势、学习记录与分项练习表现。"><link rel="canonical" href="https://yasihub.com/review"><meta property="og:type" content="website"><meta property="og:title" content="回顾 · 雅思备考 Hub"><meta property="og:description" content="回顾：成绩趋势、学习记录与分项练习表现。"><meta property="og:url" content="https://yasihub.com/review"><meta name="twitter:card" content="summary">
+<style>
+/* REVIEW-TABS-1 (v820) 仅本页：回顾页 5 个侧栏 tab 的组件样式 */
+#hubSubs{display:none!important}
+.rv-pane-block{margin:16px 0 0}
+.rv-pane-block[hidden]{display:none}
+.rv-stat-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.rv-two-col{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;margin-top:14px}
+.rv-stat{background:var(--surface,#fff);border:1px solid var(--line,#e6e9ea);border-radius:14px;padding:14px 16px;min-height:92px}
+.rv-stat.ok{border-color:#cde5e1;background:var(--primary-50,#e8f3f1)}
+.rv-stat .k{font-size:12px;color:var(--muted,#9aa1a8);font-weight:600}
+.rv-stat .v{font-size:26px;font-weight:750;color:var(--ink,#1f2328);line-height:1.25;margin-top:4px}
+.rv-stat .v small{font-size:13px;font-weight:600;color:var(--muted,#9aa1a8);margin-left:4px}
+.rv-stat .v.teal{color:var(--primary,#5cb3ab)}
+.rv-stat .v.warn{color:#c98a2b}
+.rv-stat .d{font-size:11.5px;color:var(--muted,#9aa1a8);margin-top:4px}
+.rv-panel{background:var(--surface,#fff);border:1px solid var(--line,#e6e9ea);border-radius:14px;padding:16px 18px}
+.rv-panel-h{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:12px}
+.rv-panel-h b{font-size:14px;font-weight:700}
+.rv-panel-h span{font-size:11.5px;color:var(--muted,#9aa1a8)}
+.rv-ruler-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:16px}
+.rv-ruler-head b{font-size:14px;font-weight:700}
+.rv-ruler-head span{font-size:11.5px;color:var(--muted,#9aa1a8)}
+.rv-ruler-track{position:relative;height:10px;border-radius:6px;background:#eef2f2;margin:0 2px}
+.rv-ruler-track i{position:absolute;left:0;top:0;height:100%;border-radius:6px;background:var(--primary,#5cb3ab)}
+.rv-ruler-goal,.rv-ruler-cur{position:absolute;top:-6px;width:2px;height:22px}
+.rv-ruler-goal{background:#c98a2b}
+.rv-ruler-cur{background:var(--primary,#5cb3ab);width:3px}
+.rv-ruler-ticks{display:flex;justify-content:space-between;margin:8px 2px 0;font-size:10px;color:var(--muted,#9aa1a8)}
+.rv-callout{margin-top:14px;background:var(--primary-50,#e8f3f1);border:1px solid #cde5e1;border-radius:12px;padding:12px 16px}
+.rv-callout b{font-size:13.5px;font-weight:700}
+.rv-callout p{font-size:12px;color:#7a8580;margin:4px 0 0}
+.rv-subj-row{display:flex;align-items:center;gap:12px;padding:8px 0}
+.rv-subj-n{width:36px;flex:none;font-size:13px;font-weight:600}
+.rv-subj-track{position:relative;flex:1;height:10px;border-radius:6px;background:#eef2f2}
+.rv-fill{position:absolute;left:0;top:0;height:100%;border-radius:6px;background:var(--primary,#5cb3ab)}
+.rv-fill.weak{background:#e0b25a}
+.rv-goal{position:absolute;top:-4px;width:2px;height:18px;background:#c98a2b}
+.rv-subj-v{width:96px;flex:none;text-align:right;font-size:14px;font-weight:700}
+.rv-subj-v small{display:block;font-size:10.5px;font-weight:500;color:var(--muted,#9aa1a8)}
+.rv-radar-box svg{width:100%;max-width:320px;display:block;margin:0 auto}
+.rv-radar-lab{font-size:12px;fill:#7a8580}
+.rv-radar-legend{display:flex;gap:16px;justify-content:center;margin-top:6px;font-size:11.5px;color:var(--muted,#9aa1a8)}
+.rv-radar-legend i{display:inline-block;width:14px;height:3px;background:var(--primary,#5cb3ab);vertical-align:middle;margin-right:5px}
+.rv-radar-legend i.first{background:#7a8580}
+.rv-heat{display:grid;grid-template-rows:repeat(7,14px);grid-auto-flow:column;grid-auto-columns:1fr;gap:3px}
+.rv-heat i{height:14px;border-radius:3px;background:#eef2f2}
+.rv-heat i.l1{background:#dcefeb}.rv-heat i.l2{background:#b8ded7}.rv-heat i.l3{background:#86c7bd}.rv-heat i.l4{background:var(--primary,#5cb3ab)}
+.rv-heat-legend{display:flex;align-items:center;gap:4px;justify-content:flex-end;margin-top:8px;font-size:10.5px;color:var(--muted,#9aa1a8)}
+.rv-heat-legend i{width:11px;height:11px;border-radius:3px}
+.rv-chart{margin-top:6px}
+.rv-bars{display:flex;align-items:flex-end;gap:4px;height:120px}
+.rv-bar{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center}
+.rv-bar i{width:100%;max-width:22px;border-radius:4px 4px 0 0;background:#b8ded7}
+.rv-bar.today i{background:var(--primary,#5cb3ab)}
+.rv-bar em{font-size:9px;font-style:normal;color:var(--muted,#9aa1a8);margin-bottom:2px}
+.rv-bar-labels{display:flex;gap:4px;margin-top:4px}
+.rv-bar-labels span{flex:1;text-align:center;font-size:9px;color:var(--muted,#9aa1a8)}
+.rv-empty{padding:20px;font-size:12.5px;color:var(--muted,#9aa1a8);text-align:center}
+.rv-mobile-tabs{display:none}
+.rv2-content.rv-one-col{grid-template-columns:minmax(0,1fr)}
+@media(max-width:860px){
+  .rv-mobile-tabs{display:flex;gap:6px;overflow-x:auto;padding:8px 0;margin-bottom:4px;-webkit-overflow-scrolling:touch}
+  .rv-mobile-tabs button{flex:none;min-height:44px;padding:0 14px;border:1px solid var(--line,#e6e9ea);border-radius:22px;background:var(--surface,#fff);font-size:13px;font-weight:600;color:var(--ink,#1f2328)}
+  .rv-mobile-tabs button.on{background:var(--primary-50,#e8f3f1);border-color:#cde5e1;color:#2f7d76}
+  .rv-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .rv-two-col{grid-template-columns:minmax(0,1fr)}
+}
+</style>
 </head>
 <body data-shell="top">
 <div id="bootLoader" class="hub-loader show" aria-hidden="true"><div class="ui-loader" role="status" aria-label="Loading"><span class="ui-loader-dot"></span><span class="ui-loader-dot m2"></span><span class="ui-loader-dot m3"></span></div></div>
@@ -21,6 +89,7 @@
     <aside class="hub-side">
       <div class="hub-side-scroll">
         <div class="hub-subs" id="hubSubs"></div>
+        <div class="hub-subs" id="rvNav"></div>
         <div class="hub-side-div"></div>
         <div class="hub-td-head"><b>今天</b></div>
         <div class="hub-td-prog" id="hubTdProg"></div>
@@ -31,6 +100,7 @@
       </div>
     </aside>
     <div class="hub-main">
+<div class="rv-mobile-tabs" id="rvMobileTabs"></div>
 <dialog id="rv2AddDialog" class="rv2-dialog"><form method="dialog" class="rv2-dialog-shell" id="rv2DialogForm"><div class="rv2-dialog-head"><div><h2>录入成绩</h2><span class="rv2-hint">选择记录类型，保存后立刻回到页面显示</span></div><button value="cancel" class="rv2-close" aria-label="关闭">×</button></div><div class="rv2-segment rv2-kind"><button type="button" class="active" data-kind="whole">整套真题</button><button type="button" data-kind="part">单项练习</button></div>
  <div id="scAddWrap" class="rv2-form"><div class="rv2-form-grid"><label>模考日期<input type="date" id="scoreDate"></label><label>听力<input type="number" id="scL" step="0.5" min="0" max="9" placeholder="0–9"></label><label>阅读<input type="number" id="scR" step="0.5" min="0" max="9" placeholder="0–9"></label><label>写作<input type="number" id="scW" step="0.5" min="0" max="9" placeholder="0–9"></label><label>口语<input type="number" id="scS" step="0.5" min="0" max="9" placeholder="0–9"></label><label>备注（可选）<input id="scNote" placeholder="备注"></label></div><button type="button" class="rv2-primary" id="addScore">保存成绩</button></div>
  <div id="mkAddWrap" class="rv2-form" hidden><div class="rv2-form-grid"><label>粒度<select id="mkGran"><option value="part">单项</option><option value="whole">整卷</option></select></label><label>科目<select id="mkType"><option value="listening">听力</option><option value="reading">阅读</option><option value="speaking">口语</option><option value="writing">写作</option></select></label><label>日期<input type="date" id="mkDate"></label></div><div id="mkPartPick"><label>选择 Part<select id="mkPart"></select></label></div><div id="mkPartInputWrap"><label for="mkPartInput" id="mkPartInputLabel">答对题数</label><input type="number" id="mkPartInput" min="0" placeholder="0"></div><div id="mkParts" hidden></div><button type="button" class="rv2-primary" id="mkAdd">保存分项</button></div>
@@ -47,8 +117,8 @@
       · 空账号时 js/rvx-data.js:18 会把 #rv2Summary 整块重写成 .rv2-empty（自带一枚同样的
         data-rv2-add 按钮）。那种情况下这枚定位到空的概览卡上会悬空 —— CSS 用
         `.rv2-head:has(+ .rv2-summary > .rv2-empty)` 在空态把它收掉，功能由空态卡里那枚承担。 -->
- <div class="rv2-head"><div><h1>回顾</h1><p>看清进步，也知道下一步练什么。</p></div><button class="rv2-primary" data-rv2-add>录入成绩</button></div>
- <section class="rv2-summary" aria-label="最近一次成绩" id="rv2Summary">
+ <div class="rv2-head" data-rv-pane="home"><div><h1>回顾</h1><p>看清进步，也知道下一步练什么。</p></div><button class="rv2-primary" data-rv2-add>录入成绩</button></div>
+ <section class="rv2-summary" aria-label="最近一次成绩" id="rv2Summary" data-rv-pane="home">
   <div class="rv2-latest"><div><div class="rv2-muted" id="rvxLeadLab">最近一次</div><div class="rv2-score"><span id="rvxNumAll">—</span><small> / 9</small></div></div><div class="rv2-target" id="rvxSubAll">还没有成绩</div></div>
   <div class="rv2-subjects">
    <div class="rv2-subject" id="rvxCellL"><span>听力</span><b id="rvxNumL">—</b><small id="rvxSubL">—</small></div>
@@ -57,12 +127,16 @@
    <div class="rv2-subject" id="rvxCellS"><span>口语</span><b id="rvxNumS">—</b><small id="rvxSubS">—</small></div>
   </div>
  </section>
+ <div class="rv-pane-block" data-rv-pane="home"><div class="rv-stat-grid" id="rvHomeStats"></div><div id="rvRuler"></div><div id="rvCallout"></div></div>
+ <div class="rv-pane-block" data-rv-pane="trend"><div class="rv-stat-grid" id="rvTrendStats"></div></div>
+ <div class="rv-pane-block" data-rv-pane="subjects"><div class="rv-two-col"><div id="rvSubjBars"></div><div id="rvRadar"></div></div></div>
+ <div class="rv-pane-block" data-rv-pane="effort"><div class="rv-stat-grid" id="rvEffortStats"></div><div class="rv-two-col"><div id="rvHeat"></div><div id="rvBars"></div></div></div>
  <div class="rv2-content">
-  <section class="rv2-card"><div class="rv2-card-head"><div><h2>成绩趋势</h2><span class="rv2-hint" id="rvxTrendLab">按日期看变化</span></div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><div class="rv2-segment" id="rvxTrendView"><button class="active" data-view="score">按分数</button><button data-view="count">按对题个数</button></div><div class="rv2-segment" id="rvxTrendChips"><button class="active" data-k="overall">总分</button><button data-k="listening">听力</button><button data-k="reading">阅读</button><button data-k="writing">写作</button><button data-k="speaking">口语</button></div></div></div><div id="rv2TrendCanvas" class="rv2-chart"></div><div class="rv2-chart-foot"><span id="rv2RangeText">真题与平时模考都会计入</span><span id="rv2GoalText"></span></div></section>
-  <aside class="rv2-card rv2-insight" id="rv2Insight"><div class="rv2-weak"><span>当前最值得补</span><h2 id="rvxWeak">还没有成绩</h2><p id="rv2WeakText">先录入一次成绩，再决定下一步重点。</p><button class="rv2-primary" id="rvxWeakGo">去练习</button></div><div class="rv2-facts"><div><b id="rvxRecN">0</b><span>已记录真题</span></div><div><b id="rvxCdVal">未设置</b><span id="rvxCdLab">考试日期</span></div></div><p class="rv2-note" id="rv2ProgressNote">真实数据只来自你的学习记录。</p><span id="rvxCdUnit" hidden></span><span id="rvxWeakWrap" hidden></span><span id="rvxStreakN" hidden>0</span><span id="rvxActN" hidden>0</span><span id="rvxFocusN" hidden>0</span><span id="rvxTodayTag" hidden></span></aside>
+  <section class="rv2-card" data-rv-pane="trend"><div class="rv2-card-head"><div><h2>成绩趋势</h2><span class="rv2-hint" id="rvxTrendLab">按日期看变化</span></div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><div class="rv2-segment" id="rvxTrendView"><button class="active" data-view="score">按分数</button><button data-view="count">按对题个数</button></div><div class="rv2-segment" id="rvxTrendChips"><button class="active" data-k="overall">总分</button><button data-k="listening">听力</button><button data-k="reading">阅读</button><button data-k="writing">写作</button><button data-k="speaking">口语</button></div></div></div><div id="rv2TrendCanvas" class="rv2-chart"></div><div class="rv2-chart-foot"><span id="rv2RangeText">真题与平时模考都会计入</span><span id="rv2GoalText"></span></div></section>
+  <aside class="rv2-card rv2-insight" id="rv2Insight" data-rv-pane="subjects"><div class="rv2-weak"><span>当前最值得补</span><h2 id="rvxWeak">还没有成绩</h2><p id="rv2WeakText">先录入一次成绩，再决定下一步重点。</p><button class="rv2-primary" id="rvxWeakGo">去练习</button></div><div class="rv2-facts"><div><b id="rvxRecN">0</b><span>已记录真题</span></div><div><b id="rvxCdVal">未设置</b><span id="rvxCdLab">考试日期</span></div></div><p class="rv2-note" id="rv2ProgressNote">真实数据只来自你的学习记录。</p><span id="rvxCdUnit" hidden></span><span id="rvxWeakWrap" hidden></span><span id="rvxStreakN" hidden>0</span><span id="rvxActN" hidden>0</span><span id="rvxFocusN" hidden>0</span><span id="rvxTodayTag" hidden></span></aside>
  </div>
- <section class="rv2-card rv2-records"><div class="rv2-card-head"><div><h2>成绩记录</h2><span class="rv2-hint">真题、分项与口语模考按日期排列</span></div><div class="rv2-head-tools"><div class="rv2-segment" id="recAllChips" role="group" aria-label="按类型筛选记录"><button type="button" class="active" data-k="all">全部</button><button type="button" data-k="whole">整卷</button><button type="button" data-k="part">分项</button><button type="button" data-k="speaking">口语模考</button></div><select id="recordFilter" aria-label="筛选成绩记录"><option value="recent">最近三次</option><option value="all">全部记录</option></select></div></div><div id="recAll"></div><span id="recAllCount" hidden></span></section>
- <section class="rv2-card rv2-performance"><div class="rv2-card-head"><div><h2>表现统计</h2><span class="rv2-hint">听力、阅读看正确率；写作、口语看练习量，不重复真题分数</span></div><select id="rv2StatRange" aria-label="表现统计范围"><option value="recent">近 30 天</option><option value="all">全部时间</option></select></div><div class="rv2-perf-grid" id="rv2PerfGrid"></div><details class="rv2-more"><summary>看题型与 Part 明细</summary><div id="mkTypeStats"></div><div id="mkPartStats"></div><div id="mkQtStats"></div></details><select id="mkFilter" hidden><option value="all">全部</option><option value="recent">近十天</option></select></section>
+ <section class="rv2-card rv2-records" data-rv-pane="records"><div class="rv2-card-head"><div><h2>成绩记录</h2><span class="rv2-hint">真题、分项与口语模考按日期排列</span></div><div class="rv2-head-tools"><div class="rv2-segment" id="recAllChips" role="group" aria-label="按类型筛选记录"><button type="button" class="active" data-k="all">全部</button><button type="button" data-k="whole">整卷</button><button type="button" data-k="part">分项</button><button type="button" data-k="speaking">口语模考</button></div><select id="recordFilter" aria-label="筛选成绩记录"><option value="recent">最近三次</option><option value="all">全部记录</option></select></div></div><div id="recAll"></div><span id="recAllCount" hidden></span></section>
+ <section class="rv2-card rv2-performance" data-rv-pane="effort"><div class="rv2-card-head"><div><h2>表现统计</h2><span class="rv2-hint">听力、阅读看正确率；写作、口语看练习量，不重复真题分数</span></div><select id="rv2StatRange" aria-label="表现统计范围"><option value="recent">近 30 天</option><option value="all">全部时间</option></select></div><div class="rv2-perf-grid" id="rv2PerfGrid"></div><details class="rv2-more"><summary>看题型与 Part 明细</summary><div id="mkTypeStats"></div><div id="mkPartStats"></div><div id="mkQtStats"></div></details><select id="mkFilter" hidden><option value="all">全部</option><option value="recent">近十天</option></select></section>
     </div><!-- /.hub-main -->
   </div><!-- /.hub-shell -->
 </main>
@@ -77,5 +151,6 @@
 </div>
 <link rel="stylesheet" href="css/p/hub-shell.css?v=20261107a" />
 <script defer src="js/hub-side-shell.js?v=20261106b"></script>
+<script defer src="js/rv-tabs.js?v=20261107k"></script>
 </body></html>
 
