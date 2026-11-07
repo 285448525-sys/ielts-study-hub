@@ -314,6 +314,41 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
   .wd-mode-pop{min-width:118px;right:0}
   .wd-mode-opt{padding:9px 10px;font-size:13px}
 }
+
+/* ============================================================
+   WORDBOOK-TABS-1（11-07 任务1）· 单词页左栏 5 tab + 右侧多视图
+   #hubSubs 在单词页是空的（共用脚本 practice 分支 subs:[]），收起避免多一段空白。
+   ============================================================ */
+.wb-mobile-tabs{display:none}
+@media (max-width:860px){
+  .wb-mobile-tabs{display:flex;gap:6px;overflow-x:auto;padding:10px 12px 0;-webkit-overflow-scrolling:touch}
+  .wb-mobile-tabs button{
+    flex:0 0 auto;min-height:44px;padding:8px 14px;border:1px solid var(--line,#e6e9ea);
+    border-radius:20px;background:var(--surface,#fff);color:var(--ink,#1f2328);
+    font:inherit;font-size:13px;cursor:pointer;white-space:nowrap;
+  }
+  .wb-mobile-tabs button.on{background:var(--primary,#5cb3ab);border-color:var(--primary,#5cb3ab);color:#fff;font-weight:650}
+}
+.wb-pane{padding:0;max-width:980px}
+.wb-pane-head{margin-bottom:18px}
+.wb-pane-head h2{margin:0;font-size:20px;font-weight:750;color:var(--ink,#1f2328)}
+.wb-empty{padding:40px 18px;text-align:center;color:var(--muted,#9aa1a8);font-size:13.5px}
+.wb-stat-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+.wb-stat{border:1px solid var(--line,#e6e9ea);border-radius:14px;padding:16px;background:var(--surface,#fff);display:flex;flex-direction:column;gap:8px}
+.wb-stat-l{font-size:12.5px;color:var(--muted,#71767e)}
+.wb-stat-v{font-size:24px;font-weight:750;color:var(--ink,#1f2328);line-height:1.1}
+.wb-stat-v em{font-size:13px;font-weight:550;font-style:normal;color:var(--muted,#9aa1a8);margin-left:4px}
+.wb-brow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-height:56px;padding:10px 14px;border:1px solid var(--line,#e6e9ea);border-radius:12px;background:var(--surface,#fff);margin-bottom:8px}
+.wb-bnm{font-size:13.5px;font-weight:650;color:var(--ink,#1f2328)}
+.wb-bmt{font-size:12px;color:var(--muted,#71767e)}
+.wb-btag{margin-left:auto;font-size:11.5px;font-weight:600;color:var(--primary-700,#2f7d76);background:var(--primary-50,#e8f3f1);border-radius:20px;padding:3px 10px}
+.wb-modes{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+.wb-mode{border:1px solid var(--line,#e6e9ea);border-radius:12px;padding:14px;background:var(--surface,#fff);display:flex;flex-direction:column;gap:4px}
+.wb-mode.on{border-color:var(--primary,#5cb3ab);box-shadow:0 0 0 1px var(--primary,#5cb3ab)}
+.wb-mode b{font-size:13.5px;font-weight:650;color:var(--ink,#1f2328)}
+.wb-mode span{font-size:12px;color:var(--muted,#71767e)}
+.wb-setrow{display:flex;align-items:center;gap:10px;min-height:52px;padding:8px 2px;border-bottom:1px solid var(--line,#eef2f3);font-size:13.5px;color:var(--ink,#1f2328)}
+.wb-setrow b{margin-left:auto;font-weight:650;color:var(--primary-700,#2f7d76)}
 </style>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
@@ -365,6 +400,7 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
     <aside class="hub-side">
       <div class="hub-side-scroll">
         <div class="hub-subs" id="hubSubs"></div>
+        <div class="hub-subs" id="wbNav"></div>
         <div class="hub-side-div"></div>
         <div class="hub-td-head"><b>今天</b></div>
         <div class="hub-td-prog" id="hubTdProg"></div>
@@ -573,6 +609,34 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
             （.wm-pane{display:none} 是稿子三态切换用的，本站三态由 switchWordTab 管 hidden）。
          🔴 商城只是「选书的橱窗」：点卡片 = 切当前词书 + 进下面 #wmLegacy 看这本的词。
             词书详情态（施工书 §四）是第 3 批 W-WORD-3，本批不做。 -->
+    <!-- WORDBOOK-TABS-1（11-07 任务1）· 手机横向 tab 条（≤860 共用壳收左栏时接住 5 个入口） -->
+    <div class="wb-mobile-tabs" id="wbMobileTabs"></div>
+
+    <!-- 4 个功能视图：与 #vMall 并列，全部 hidden 起步，由 js/wb-tabs.js 的 show() 切 hidden。
+         任务1 只给骨架 + 只读真值 + 诚实空态；交互与联动见任务 2~5 逐页补。 -->
+    <section class="wb-pane" data-wb-pane="wrong" hidden>
+      <div class="wb-pane-head"><h2>错词本</h2></div>
+      <div class="wb-empty" id="wbWrongEmpty">还没有错词</div>
+      <div id="wbWrongList" hidden></div>
+    </section>
+
+    <section class="wb-pane" data-wb-pane="stat" hidden>
+      <div class="wb-pane-head"><h2>统计</h2></div>
+      <div class="wb-stat-cards" id="wbStatCards"></div>
+    </section>
+
+    <section class="wb-pane" data-wb-pane="books" hidden>
+      <div class="wb-pane-head"><h2>词书</h2></div>
+      <div id="wbBookList"></div>
+    </section>
+
+    <section class="wb-pane" data-wb-pane="set" hidden>
+      <div class="wb-pane-head"><h2>设置</h2></div>
+      <div class="wb-modes" id="wbModeCards"></div>
+      <div class="wb-setrow" style="margin-top:14px">每天背多少词 <b id="wbCapN">不限</b></div>
+      <div class="wb-setrow">自动发音 <b id="wbAutoN">开</b></div>
+    </section>
+
     <div class="wm-page" id="vMall">
       <div class="wm-shell">
         <!-- 内侧栏：其余按钮功能按她话「以后一个一个加」，本轮只做首页 -->
@@ -2085,6 +2149,7 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
 
 <link rel="stylesheet" href="css/p/hub-shell.css?v=20261107a" />
 <script defer src="js/hub-side-shell.js?v=20261106b"></script>
+<script defer src="js/wb-tabs.js?v=20261107e"></script>
 </body>
 </html>
 
