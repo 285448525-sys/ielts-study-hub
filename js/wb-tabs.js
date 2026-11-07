@@ -11,7 +11,10 @@
                   设计稿的 42/1286/87% 样例数字一律不编，算不出留 0。
    任务4（v817）：词书页接真数据（7 行真词数 + 当前/在首页/已收起 + 打开/编辑书架/导入
                   全复用站内已点头子态 __wb2ShowBook / #wmEditShelf / #wmDealAdd）。
-   任务5（设置页完整交互）逐页补。
+   任务5（v818）：设置页接真配置（三模式/每日上限/自动发音/练习乱序/连击显示/当前词书，
+                  全走 pcSave + wbSetActive）；智能模式仅占位禁用（她「先不用做，晚点给逻辑
+                  或逆向爱听写」），不写任何配置、不伪造逻辑；「显示例句」站内无此字段、
+                  换成真生效的 shuffle / fxFeedback。5 个任务收尾。
 
    🔴 接线纪律（沿用 v807/v809 已验证的软导航契约）：
      · 左栏 tab DOM 由本脚本渲染进 practice.html 里静态写好的 #wbNav；不动共用
@@ -457,23 +460,81 @@
         + '</div>';
     }).join('');
   }
+  /* ── 任务5：设置页（全部接真配置，pcSave 落盘 + _fieldTs 跨端同步） ──────
+     真字段来自 js/practice.js:67-136 PC_DEFAULTS / pc() / pcSave()：
+       questionMode(visual|audio|dictation) / dailyCap(0=不限,0~999) /
+       autoPlay / shuffle / fxFeedback，以及当前词书 wbActive()/wbSetActive()。
+     🔴 设计稿 :470-509 里两样东西不照抄：
+       · 「混合模式」——11-01 她本人下令删，pc() 白名单只剩三模式，旧值/脏值自动回退看词。
+         她 11-07 又明确「智能模式就是替换原来的混合模式，先不用做，晚点给你说逻辑，
+         或逆向爱听写背词逻辑做一样的」→ 本笔只把第 4 张卡换成「智能模式」并置禁用占位，
+         **不写任何配置、不伪造逻辑**，等她给逻辑或逆向结果再单独一笔实现。
+         // TODO: [待确认] 智能模式出题逻辑（等她给，或逆向爱听写背词逻辑）——本笔只占位。
+       · 「显示例句」——站内没有这个配置字段（真题例句按词库 eg 字段自动显隐、
+         听写态强制关，practice.js:1596/1619），摆个开关会是假的 → 换成真字段
+         「练习乱序」(shuffle, practice.js:1072) 与「连击显示」(fxFeedback, :1957/:2291)。
+     「词库管理与导入」复用任务4 的 importBook()（show home + #wmDealAdd.click 走站内委托）。 */
+  function setMode(id){
+    if(id === 'smart') return;                 // 智能模式：占位，不写配置
+    try{ if(typeof pcSave === 'function') pcSave({ questionMode:id }); }catch(e){}
+    renderSet();
+  }
+  function setCap(delta){
+    var cap = 0;
+    try{ if(typeof pc === 'function') cap = num(pc().dailyCap); }catch(e){}
+    var v = cap + delta;
+    if(v < 0) v = 0;
+    if(v > 999) v = 999;
+    try{ if(typeof pcSave === 'function') pcSave({ dailyCap:v }); }catch(e){}
+    renderSet();
+  }
+  function setToggle(key){
+    var c = {};
+    try{ c = (typeof pc === 'function') ? pc() : {}; }catch(e){}
+    var obj = {}; obj[key] = !c[key];
+    try{ if(typeof pcSave === 'function') pcSave(obj); }catch(e){}
+    renderSet();
+  }
+  function setBook(id){
+    try{ if(typeof wbSetActive === 'function') wbSetActive(id); }catch(e){}
+    renderSet();
+  }
   function renderSet(){
-    var box = $('wbModeCards'); if(!box) return;
-    var modes = [
-      { id:'visual',    nm:'看词选义', ds:'看英文选中文' },
-      { id:'audio',     nm:'听音选义', ds:'听发音选释义' },
-      { id:'dictation', nm:'听写模式', ds:'听音打出单词' }
-    ];
-    var cur = 'visual';
-    try{ if(typeof pc === 'function') cur = pc().questionMode || 'visual'; }catch(e){}
-    box.innerHTML = modes.map(function(m){
-      return '<div class="wb-mode' + (m.id === cur ? ' on' : '') + '" data-wb-mode="' + m.id + '">'
-        + '<b>' + esc(m.nm) + '</b><span>' + esc(m.ds) + '</span></div>';
-    }).join('');
-    var cap = 0, auto = false;
-    try{ if(typeof pc === 'function'){ cap = num(pc().dailyCap); auto = !!pc().autoPlay; } }catch(e){}
-    var capEl = $('wbCapN'); if(capEl) capEl.textContent = cap > 0 ? String(cap) : '不限';
-    var auEl = $('wbAutoN'); if(auEl) auEl.textContent = auto ? '开' : '关';
+    var c = { questionMode:'visual', dailyCap:0, autoPlay:true, shuffle:true, fxFeedback:true };
+    try{ if(typeof pc === 'function') c = pc(); }catch(e){}
+    var curBook = 'custom';
+    try{ if(typeof wbActive === 'function') curBook = wbActive(); }catch(e){}
+
+    var box = $('wbModeCards');
+    if(box){
+      var modes = [
+        { id:'visual',    nm:'看词选义', ds:'看英文，选中文' },
+        { id:'audio',     nm:'听音选义', ds:'听发音，选中文' },
+        { id:'dictation', nm:'听写模式', ds:'听发音，拼单词' },
+        { id:'smart',     nm:'智能模式', ds:'待开放', off:true }
+      ];
+      box.innerHTML = modes.map(function(m){
+        return m.off
+          ? '<div class="wb-mode off" aria-disabled="true"><b>' + esc(m.nm) + '</b><span>' + esc(m.ds) + '</span></div>'
+          : '<div class="wb-mode' + (m.id === c.questionMode ? ' on' : '') + '" data-wb-mode="' + m.id + '">'
+            + '<b>' + esc(m.nm) + '</b><span>' + esc(m.ds) + '</span></div>';
+      }).join('');
+    }
+    var cap = num(c.dailyCap);
+    var capN = $('wbCapN'); if(capN) capN.textContent = cap > 0 ? String(cap) : '不限';
+    var capMinus = $('wbCapMinus'); if(capMinus) capMinus.disabled = (cap <= 0);
+    var capPlus = $('wbCapPlus'); if(capPlus) capPlus.disabled = (cap >= 999);
+    function sw(id, on){ var el = $(id); if(el){ el.classList.toggle('on', !!on); el.setAttribute('aria-checked', on ? 'true' : 'false'); } }
+    sw('wbSwAuto', c.autoPlay);
+    sw('wbSwShuffle', c.shuffle);
+    sw('wbSwFx', c.fxFeedback);
+    var sel = $('wbSetBook');
+    if(sel){
+      var books = window.__WM_BOOKS || [];
+      sel.innerHTML = books.map(function(b){
+        return '<option value="' + esc(b.id) + '"' + (b.id === curBook ? ' selected' : '') + '>' + esc(b.nm) + '</option>';
+      }).join('');
+    }
   }
   function renderPane(id){
     if(id === 'wrong') renderWrong();
@@ -488,6 +549,17 @@
     /* 任务3：统计页 7/30 天切换 */
     var rg = t.closest('#wbStatRange');
     if(rg){ e.preventDefault(); _statRange = (_statRange === 7 ? 30 : 7); renderStat(); return; }
+    /* 任务5：设置页 模式 / 每日上限 / 开关 / 词库管理与导入 */
+    var mode = t.closest('[data-wb-mode]');
+    if(mode){ e.preventDefault(); setMode(mode.getAttribute('data-wb-mode')); return; }
+    var cm = t.closest('#wbCapMinus');
+    if(cm){ e.preventDefault(); setCap(-5); return; }
+    var cp = t.closest('#wbCapPlus');
+    if(cp){ e.preventDefault(); setCap(5); return; }
+    var swa = t.closest('[data-wb-sw]');
+    if(swa){ e.preventDefault(); setToggle(swa.getAttribute('data-wb-sw')); return; }
+    var mgr = t.closest('#wbSetManage');
+    if(mgr){ e.preventDefault(); importBook(); return; }
     /* 任务4：词书页 打开 / 编辑书架 / 导入 */
     var op = t.closest('[data-wb-open]');
     if(op){ e.preventDefault(); openBook(op.getAttribute('data-wb-open')); return; }
@@ -517,6 +589,10 @@
       renderWrong();
     }
   }
+  function onChange(e){
+    var t = e.target;
+    if(t && t.id === 'wbSetBook'){ setBook(t.value); }
+  }
   function onMerged(){
     renderNav();
     if(window.__wbCur && window.__wbCur !== 'home') renderPane(window.__wbCur);
@@ -529,6 +605,9 @@
     if(window.__wbTabsInput){ try{ document.removeEventListener('input', window.__wbTabsInput); }catch(e){} }
     window.__wbTabsInput = onInput;
     document.addEventListener('input', onInput);
+    if(window.__wbTabsChange){ try{ document.removeEventListener('change', window.__wbTabsChange); }catch(e){} }
+    window.__wbTabsChange = onChange;
+    document.addEventListener('change', onChange);
     if(window.__wbTabsMerge){ try{ document.removeEventListener('hub:data-merged', window.__wbTabsMerge); }catch(e){} }
     window.__wbTabsMerge = onMerged;
     document.addEventListener('hub:data-merged', onMerged);
@@ -548,6 +627,7 @@
                       renderStat: renderStat, statVals: statVals, distVals: distVals,
                       masteredOf: masteredOf, bookTotal: bookTotal, dayWords: dayWords,
                       renderBooks: renderBooks, pinnedBooks: pinnedBooks, openBook: openBook,
+                      renderSet: renderSet, setMode: setMode, setCap: setCap, setToggle: setToggle,
                       cur: function(){ return window.__wbCur || 'home'; } };
   boot();
 })();
