@@ -9,7 +9,9 @@
    任务3（v816）：统计页接真数据（四卡 calcStreak/masteredOf/practicedCount/wrongCount +
                   近 7/30 天背词量 dayWords + 掌握分布 distVals + 词书进度 masteredOf/bookTotal），
                   设计稿的 42/1286/87% 样例数字一律不编，算不出留 0。
-   任务4~5（词书/设置的完整交互）逐页补。
+   任务4（v817）：词书页接真数据（7 行真词数 + 当前/在首页/已收起 + 打开/编辑书架/导入
+                  全复用站内已点头子态 __wb2ShowBook / #wmEditShelf / #wmDealAdd）。
+   任务5（设置页完整交互）逐页补。
 
    🔴 接线纪律（沿用 v807/v809 已验证的软导航契约）：
      · 左栏 tab DOM 由本脚本渲染进 practice.html 里静态写好的 #wbNav；不动共用
@@ -399,21 +401,59 @@
     renderStatProg();
     var rg = $('wbStatRange'); if(rg) rg.textContent = (_statRange === 7 ? '最近 7 天' : '最近 30 天');
   }
+  /* ── 任务4：词书页 ─────────────────────────────────────────────────
+     设计稿 :459-468 的 7 行列表（当前/在首页/已收起 pill + 打开）+ 编辑书架 + 导入。
+     全部真数据：__WM_BOOKS（7 本）/ window.wmCount（词数）/ wbActive（当前）/
+     wm_pinned_books_v1（与站内 wmPinned() 同口径）/ b.mt（来源说明）。
+     🔴 三个动作都复用站内已点头、已验证的子态，不新建第二套三态状态机：
+        · 打开 → show('home') 归位后调 window.__wb2ShowBook(id)（W-WORD-3 词书详情，
+          文案她点过头、一字未改）；详情的「返回词库商城」→ wmShowMall() 正好回书架，
+          与 tab 系统零串台。show('home') 会先收掉所有 panes/#vBook，再显示 #vMall，
+          天然收敛，切其它 tab 也不会残留。
+        · 编辑书架 → show('home') 让 #vMall 可见（抽屉 #wmDrawer 在它内部，父隐藏则看不见），
+          再触发 #wmEditShelf.click() 走站内 document 委托 → wmDrawerOpen()。
+        · 导入 → show('home') 后触发 #wmDealAdd.click() 走站内委托 → wmShowLegacy() 展开导入卡。
+     pinned 是 11-06 稿已有的 TODO（是否云同步），本任务不扩大，仍只读写 localStorage。 */
+  function pinnedBooks(){
+    try{
+      var raw = localStorage.getItem('wm_pinned_books_v1');
+      if(raw){ var a = JSON.parse(raw); if(Array.isArray(a)) return a; }
+    }catch(e){}
+    return ['custom','rdtext','qstem','lstext','phr','awl'];   // 与站内 WM_PIN_DEFAULT 同口径
+  }
+  function openBook(id){
+    show('home');
+    try{ if(window.__wb2ShowBook) window.__wb2ShowBook(id); }catch(e){}
+  }
+  function editShelf(){
+    show('home');
+    var b = $('wmEditShelf'); if(b) b.click();
+  }
+  function importBook(){
+    show('home');
+    var b = $('wmDealAdd'); if(b) b.click();
+  }
   function renderBooks(){
     var box = $('wbBookList'); if(!box) return;
     var books = window.__WM_BOOKS || [];
-    var pinned = [];
-    try{ pinned = (JSON.parse(localStorage.getItem('wm_pinned_books_v1') || 'null')) || []; }catch(e){}
+    var pinned = pinnedBooks();
     var cur = 'custom';
     try{ if(typeof wbActive === 'function') cur = wbActive(); }catch(e){}
+    var cnt = $('wbBooksCount'); if(cnt) cnt.textContent = '全部 ' + books.length + ' 本';
     box.innerHTML = books.map(function(b){
-      var tags = [];
-      if(b.id === cur) tags.push('当前');
-      if(pinned.indexOf(b.id) >= 0) tags.push('在首页');
+      var pills = [];
+      if(b.id === cur) pills.push('<span class="wb-bpill on">当前</span>');
+      pills.push(pinned.indexOf(b.id) >= 0
+        ? '<span class="wb-bpill">在首页</span>'
+        : '<span class="wb-bpill off">已收起</span>');
+      var total = 0;
+      try{ if(window.wmCount) total = num(window.wmCount(b)); }catch(e){}
+      var mt = (total ? (total.toLocaleString('en-US') + ' 词 · ') : '') + (b.mt || '');
       return '<div class="wb-brow" data-wb-book="' + esc(b.id) + '">'
         + '<span class="wb-bnm">' + esc(b.nm) + '</span>'
-        + '<span class="wb-bmt">' + esc(b.mt || '') + '</span>'
-        + (tags.length ? '<span class="wb-btag">' + esc(tags.join(' · ')) + '</span>' : '')
+        + '<span class="wb-bmt">' + esc(mt) + '</span>'
+        + '<span class="wb-btags">' + pills.join('') + '</span>'
+        + '<button type="button" class="wb-bopen" data-wb-open="' + esc(b.id) + '">打开</button>'
         + '</div>';
     }).join('');
   }
@@ -448,6 +488,13 @@
     /* 任务3：统计页 7/30 天切换 */
     var rg = t.closest('#wbStatRange');
     if(rg){ e.preventDefault(); _statRange = (_statRange === 7 ? 30 : 7); renderStat(); return; }
+    /* 任务4：词书页 打开 / 编辑书架 / 导入 */
+    var op = t.closest('[data-wb-open]');
+    if(op){ e.preventDefault(); openBook(op.getAttribute('data-wb-open')); return; }
+    var es = t.closest('#wbBooksEdit');
+    if(es){ e.preventDefault(); editShelf(); return; }
+    var im = t.closest('#wbBooksImport');
+    if(im){ e.preventDefault(); importBook(); return; }
     /* 任务2：错词本 chips / 重练 / 发音 */
     var chip = t.closest('#wbWrongChips [data-wk]');
     if(chip){ e.preventDefault(); _wFilter = chip.getAttribute('data-wk') || 'all'; renderWrong(); return; }
@@ -455,7 +502,9 @@
     if(rv){ e.preventDefault(); reviewWrong(); return; }
     var say = t.closest('[data-wb-say]');
     if(say){ e.preventDefault(); sayWord(say.getAttribute('data-wb-say')); return; }
-    /* 任务1：左栏 / 手机 tab */
+    /* 任务1：左栏 / 手机 tab。
+       从词书详情（__wb2ShowBook 显示的 #vBook / wmShowLegacy 显示的 #wmLegacy）回来时，
+       show() 的 panes() 会先收掉这两个子态再归位到目标视图，天然不串台。 */
     var b = t.closest('[data-wb-tab]');
     if(!b) return;
     e.preventDefault();
@@ -498,6 +547,7 @@
                       renderWrong: renderWrong, wrongData: wrongData,
                       renderStat: renderStat, statVals: statVals, distVals: distVals,
                       masteredOf: masteredOf, bookTotal: bookTotal, dayWords: dayWords,
+                      renderBooks: renderBooks, pinnedBooks: pinnedBooks, openBook: openBook,
                       cur: function(){ return window.__wbCur || 'home'; } };
   boot();
 })();

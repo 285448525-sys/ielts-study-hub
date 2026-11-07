@@ -350,6 +350,22 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
 .wb-setrow{display:flex;align-items:center;gap:10px;min-height:52px;padding:8px 2px;border-bottom:1px solid var(--line,#eef2f3);font-size:13.5px;color:var(--ink,#1f2328)}
 .wb-setrow b{margin-left:auto;font-weight:650;color:var(--primary-700,#2f7d76)}
 
+/* WORDBOOK-TABS-1 任务4 · 词书页（真数据列表 + 复用站内子态；teal / 44px 触控） */
+.wb-btags{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto;flex:0 0 auto}
+.wb-bpill{font-size:11.5px;font-weight:600;color:var(--primary-700,#2f7d76);background:var(--primary-50,#e8f3f1);border-radius:20px;padding:3px 10px;white-space:nowrap}
+.wb-bpill.on{background:var(--primary,#5cb3ab);color:#fff}
+.wb-bpill.off{color:var(--muted,#9aa1a8);background:var(--surface-2,#fafcfc)}
+.wb-bopen{min-height:44px;padding:8px 16px;border-radius:20px;border:1px solid var(--line,#e6e9ea);background:var(--surface,#fff);color:var(--ink,#1f2328);font:inherit;font-size:13px;cursor:pointer;flex:0 0 auto}
+.wb-bopen:hover{border-color:var(--primary,#5cb3ab);color:var(--primary-700,#2f7d76)}
+.wb-bimport{width:100%;margin-top:14px;min-height:52px;border-style:dashed;border-color:#cddedb;color:var(--primary-700,#2f7d76);background:var(--primary-50,#e8f3f1);font-weight:650}
+.wb-bimport:hover{background:#d5ebe7}
+@media (max-width:860px){
+  .wb-brow{gap:8px}
+  .wb-bmt{flex-basis:100%;order:3}
+  .wb-btags{order:2}
+  .wb-bopen{order:4}
+}
+
 /* WORDBOOK-TABS-1 任务3 · 统计页（真数据图表；teal / 无 emoji / 无多余标注） */
 .wbs-panel{margin-top:16px;border:1px solid var(--line,#e6e9ea);border-radius:14px;background:var(--surface,#fff);padding:16px 18px}
 .wbs-head{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13.5px;color:var(--ink,#1f2328);margin-bottom:14px}
@@ -713,8 +729,12 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
     </section>
 
     <section class="wb-pane" data-wb-pane="books" hidden>
-      <div class="wb-pane-head"><h2>词书</h2></div>
+      <div class="wb-whead">
+        <h2>词书</h2><span class="hint" id="wbBooksCount"></span>
+        <div class="right"><button type="button" class="wb-btn" id="wbBooksEdit">编辑书架</button></div>
+      </div>
       <div id="wbBookList"></div>
+      <button type="button" class="wb-btn wb-bimport" id="wbBooksImport">导入我的词书</button>
     </section>
 
     <section class="wb-pane" data-wb-pane="set" hidden>
@@ -2236,7 +2256,7 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
 
 <link rel="stylesheet" href="css/p/hub-shell.css?v=20261107a" />
 <script defer src="js/hub-side-shell.js?v=20261106b"></script>
-<script defer src="js/wb-tabs.js?v=20261107g"></script>
+<script defer src="js/wb-tabs.js?v=20261107h"></script>
 </body>
 </html>
 
