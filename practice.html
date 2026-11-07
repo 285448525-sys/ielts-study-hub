@@ -1989,13 +1989,16 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
   var _egCache = {};     // { bankId: { en_lower: eg } }
   var _egPending = {};   // { bankId: Promise }
   function wdEgLoad(bankId){
-    if (!bankId || bankId === 'custom') return Promise.resolve(null);
+    /* WORDBOOK-AUDIT-1：任何「拿不到例句表」的返回都必须给 _egCache[bankId] 留一个空表，
+       否则 wdGetExample 的 !map 恒真 → .then(refreshExampleFor) → 又调 wdGetExample 无限递归。
+       custom / 官方没登记 / fetch 失败三条路径一并兜住（正常成功加载仍写完整 map 覆盖）。 */
+    if (!bankId || bankId === 'custom'){ _egCache.custom = _egCache.custom || {}; return Promise.resolve(_egCache.custom); }
     if (_egCache[bankId]) return Promise.resolve(_egCache[bankId]);
     if (_egPending[bankId]) return _egPending[bankId];
     var banks = (typeof window.OB_BANKS !== 'undefined' && window.OB_BANKS) ? window.OB_BANKS : [];
     var ent = null;
     for (var i = 0; i < banks.length; i++){ if (banks[i] && banks[i].id === bankId){ ent = banks[i]; break; } }
-    if (!ent || !ent.file) return Promise.resolve(null);
+    if (!ent || !ent.file){ _egCache[bankId] = {}; return Promise.resolve(_egCache[bankId]); }
     _egPending[bankId] = fetch(ent.file + '?v=' + (ent.v || '1'))
       .then(function(r){ return r && r.ok ? r.json() : null; })
       .then(function(json){
@@ -2009,7 +2012,7 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
         _egCache[bankId] = map;
         return map;
       })
-      .catch(function(){ _egPending[bankId] = null; return null; });
+      .catch(function(){ _egPending[bankId] = null; _egCache[bankId] = _egCache[bankId] || {}; return _egCache[bankId]; });
     return _egPending[bankId];
   }
   /* practice.js 的 renderQuestion 调它取例句；同步返回当前缓存里的值，未就绪时返回空
@@ -2019,7 +2022,15 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
     var bankId = (typeof wbActive === 'function') ? wbActive() : 'custom';
     var key = String(w.en).trim().toLowerCase();
     var map = _egCache[bankId];
-    if (!map){ wdEgLoad(bankId).then(function(){ try{ refreshExampleFor(w); }catch(e){} }); return ''; }
+    /* 11-07 WORDBOOK-AUDIT-1：custom 词库本就没有例句表（wdEgLoad('custom') 直接
+       Promise.resolve(null)，永不写 _egCache.custom），旧码这里每次 !map 都 .then(refreshExampleFor)，
+       refreshExampleFor 又调 wdGetExample → 无限微任务递归把主线程占死、零报错。表现：custom 词库
+       下「正常背词」与「错词本·重练这些词」一点就整页卡死（B2 挂账的词库死循环，11-05 已用
+       _probe_wb_fix_1105.cjs 验过候选修法但一直没落盘）。custom 直接给空表短路，官方库照旧懒拉。 */
+    if (!map){
+      if (bankId === 'custom'){ _egCache.custom = {}; return ''; }
+      wdEgLoad(bankId).then(function(){ try{ refreshExampleFor(w); }catch(e){} }); return '';
+    }
     return map[key] || '';
   };
   /* 例句异步到位后，若当前还在同一词上、且例句位置是空的，补进去（不重渲染整题） */
