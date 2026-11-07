@@ -15,20 +15,31 @@
    —— 两个字段都已登记 SYNC_SETTINGS_FIELDS（common-sync.js），保存自打 _fieldTs
    —— 暴露 window.avUser()/avUserSrc()、window.avCoach()/avCoachSrc()
        （window.avExam()/avExamSrc() 仍导出但已无产品调用方，随 EXAM_AVATARS 一并下批清理）
+   🔴🔴 11-07 AV-BLANK-FIX-1（她「我想换头像另外几个都显示不出来」）：弹层 8 个形象
+      只有当前选中那张显示、其余 7 个是空圆角框。根因 = USER_AVATARS 8 张 svg 一直用裸路径
+      （renderGrid 的 a.src 缺省走 DIR+f+'.svg'），而 COACH_AVATARS 自 10/20 起就带 ?v= 缓存串。
+      10/20 那次事故原文见下方 COACH_AVATARS 注释：Pages 对一度缺失的 .svg 返回「200 + 落地页
+      HTML」且 max-age=86400，缓存里躺着内容是 HTML 的 .svg → 解码失败 naturalWidth=0 →
+      onerror 的 visibility:hidden = 空框。当前选中那张因账户卡/侧栏已提前用同 URL 加载过、
+      内存是干净副本，故只有它显示。另：弹层 img 带 loading="lazy"，网格在弹层 hidden 时
+      就由 boot() 填好，部分浏览器对「初始不可见容器里的 lazy img」显示后不触发加载。
+      修法（两层都盖住、同 10/20 已验证口径）：① USER_AVATARS 每项补 src 全路径带
+      '?v=20261107a' 干净缓存键（renderGrid 已支持 a.src）；② 去掉 loading="lazy"。
+      不动 userSrc()/账户卡/侧栏、save 存文件名口径、云同步字段、CSS。
    ============================================================ */
 (function(){
   'use strict';
 
   /* 用户可选 8 个（open-peeps）：女 4 + 男 4 */
   var USER_AVATARS = [
-    { f: 'user-f1', label: '女生 1' },
-    { f: 'user-f2', label: '女生 2' },
-    { f: 'user-f3', label: '女生 3' },
-    { f: 'user-f4', label: '女生 4' },
-    { f: 'user-m1', label: '男生 1' },
-    { f: 'user-m2', label: '男生 2' },
-    { f: 'user-m3', label: '男生 3' },
-    { f: 'user-m4', label: '男生 4' }
+    { f: 'user-f1', label: '女生 1', src: 'img/avatars/user-f1.svg?v=20261107a' },
+    { f: 'user-f2', label: '女生 2', src: 'img/avatars/user-f2.svg?v=20261107a' },
+    { f: 'user-f3', label: '女生 3', src: 'img/avatars/user-f3.svg?v=20261107a' },
+    { f: 'user-f4', label: '女生 4', src: 'img/avatars/user-f4.svg?v=20261107a' },
+    { f: 'user-m1', label: '男生 1', src: 'img/avatars/user-m1.svg?v=20261107a' },
+    { f: 'user-m2', label: '男生 2', src: 'img/avatars/user-m2.svg?v=20261107a' },
+    { f: 'user-m3', label: '男生 3', src: 'img/avatars/user-m3.svg?v=20261107a' },
+    { f: 'user-m4', label: '男生 4', src: 'img/avatars/user-m4.svg?v=20261107a' }
   ];
   /* 🔴 10/20 她报：「口语模考用的图不是考官的头像…考官的图片精度高一些要真实生动」
      → 考官从 2 个 avataaars（Q 版卡通）+ 2 个 SVG 插画，全部换成 **4 张 AI 实拍级照片**。
@@ -131,7 +142,7 @@
       var src = a.src || (DIR + a.f + '.svg');
       return '<button type="button" class="av-opt' + on + '" data-av="' + a.f + '" role="radio"'
         + ' aria-checked="' + (curFn() === a.f ? 'true' : 'false') + '" title="选择这个头像">'
-        + '<span class="av-box"><img src="' + src + '" alt="头像" loading="lazy"'
+        + '<span class="av-box"><img src="' + src + '" alt="头像"'
         + ' onerror="this.style.visibility=\'hidden\'"></span></button>';
     }).join('');
     box.onclick = function(e){
