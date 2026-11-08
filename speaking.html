@@ -2899,6 +2899,103 @@ html[data-theme="dark"] .sp-core-fail .sp-cf-d{color:#c8cbd0}
 #bootLoader .ui-loader{margin-bottom:8px}
 @media (prefers-reduced-motion: reduce){#bootLoader .ui-loader-dot,#bootLoader .ui-loader-shadow{animation:none}#bootLoader .ui-loader-dot{top:20px;height:20px;border-radius:50%;transform:none}#bootLoader .ui-loader-shadow{opacity:.5;transform:scaleX(1)}}
 </style>
+<style>
+/* ===== SPEAKING-TABS-1 任务1（11-08）：口语页 5 tab 壳 + 总览/模考记录两页精致皮肤 =====
+   她「口语也跟写作一样做了吧」。复用已点头设计稿 SPEAKING-TABS-1 那套皮肤（与写作页 v823 同一套 CSS，
+   只换类名前缀 .wr- → .spt- / --wt- → --st-），用站点变量跟随深色主题；
+   既有 .sp-* / #tabs / 6 个 view 样式一字不动，新组件全用 .spt-* 独立类名避免与 .sp-* 撞车。
+   ⚠️ 本段必须放在 <head> 内：软导航 swapPageStyles() 只克隆目标页 head style，放 body 会串页残留。 */
+.spt-pane,.spt-mobile-tabs{--st-teal:var(--primary,#5cb3ab);--st-teal-700:var(--primary-700,#2f7d76);
+  --st-teal-50:var(--primary-50,#e8f3f1);--st-ink:var(--ink,#1f2328);
+  --st-ink-2:var(--ink-2,#3f464d);--st-muted:var(--muted,#71767e);
+  --st-muted-2:var(--muted-2,#9aa0a6);--st-line:var(--line,#e6e9ea);
+  --st-surface:var(--surface,#fff);--st-bg:var(--bg,#f6f9fb);
+  --st-amber:var(--warn,#b3792c);--st-amber-50:var(--warn-soft,#fbf1e3);
+  --st-radius:14px;--st-shadow:0 1px 2px rgba(24,40,48,.04),0 6px 18px -12px rgba(24,40,48,.18)}
+.spt-pane[hidden]{display:none!important}
+#hubSubs{display:none!important}
+.spt-vhead{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin:2px 0 18px;flex-wrap:wrap}
+.spt-vhead h1{margin:0;font-size:20px;font-weight:800;letter-spacing:-.02em;color:var(--st-ink)}
+.spt-vhead span{display:block;margin-top:4px;font-size:12.5px;color:var(--st-muted)}
+.spt-range{min-height:36px;padding:6px 10px;border:1px solid var(--st-line);border-radius:10px;
+  background:var(--st-surface);color:var(--st-ink-2);font:inherit;font-size:12.5px;cursor:pointer}
+.spt-stat-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:14px}
+.spt-stat{padding:15px 16px;border:1px solid var(--st-line);border-radius:var(--st-radius);
+  background:var(--st-surface);box-shadow:var(--st-shadow)}
+.spt-stat.ok{background:linear-gradient(135deg,var(--st-teal-50),var(--st-surface) 72%);border-color:#d5ebe7}
+.spt-stat .k{font-size:11.5px;color:var(--st-muted);font-weight:600}
+.spt-stat .v{margin:6px 0 2px;font-size:26px;font-weight:800;letter-spacing:-.03em;color:var(--st-ink);line-height:1.1}
+.spt-stat .v.teal{color:var(--st-teal-700)}
+.spt-stat .v.warn{color:var(--st-amber)}
+.spt-stat .v small{font-size:12px;font-weight:600;color:var(--st-muted);margin-left:3px}
+.spt-stat .d{font-size:11.5px;color:var(--st-muted);line-height:1.45}
+.spt-panel{border:1px solid var(--st-line);border-radius:var(--st-radius);
+  background:var(--st-surface);box-shadow:var(--st-shadow);overflow:hidden;margin-bottom:14px}
+.spt-panel:last-child{margin-bottom:0}
+.spt-panel-h{padding:14px 16px 6px;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.spt-panel-h b{font-size:13.5px;font-weight:750;color:var(--st-ink)}
+.spt-panel-h span{font-size:11.5px;color:var(--st-muted)}
+.spt-ruler{padding:20px 18px 22px}
+.spt-ruler-track{position:relative;height:14px;border-radius:8px;
+  background:linear-gradient(90deg,var(--st-line),var(--st-teal-50) 78%,#cfe6e1)}
+.spt-ruler-track i{position:absolute;left:0;top:0;height:100%;border-radius:8px;
+  background:linear-gradient(90deg,var(--st-teal-50),rgba(92,179,171,.32))}
+.spt-ruler-goal,.spt-ruler-cur{position:absolute;top:-4px;width:2px;height:22px;border-radius:2px}
+.spt-ruler-goal{background:var(--st-teal-700)}
+.spt-ruler-goal:after{content:"目标";position:absolute;top:-15px;left:50%;transform:translateX(-50%);
+  font-size:10px;color:var(--st-teal-700);white-space:nowrap}
+.spt-ruler-cur{width:4px;background:var(--st-ink);z-index:1}
+.spt-ruler-cur:after{content:"当前";position:absolute;top:24px;left:50%;transform:translateX(-50%);
+  font-size:10px;color:var(--st-ink);white-space:nowrap}
+.spt-ruler-ticks{display:flex;justify-content:space-between;margin-top:9px;font-size:10.5px;color:var(--st-muted-2)}
+.spt-callout{display:flex;align-items:center;gap:12px;margin-bottom:14px;padding:12px 14px;
+  border:1px solid #dceeea;border-radius:var(--st-radius);
+  background:linear-gradient(100deg,var(--st-teal-50),var(--st-surface) 75%)}
+.spt-callout .ic{width:38px;height:38px;flex:none;border-radius:11px;background:var(--st-surface);
+  color:var(--st-teal-700);display:grid;place-items:center}
+.spt-callout .ic svg{width:20px;height:20px}
+.spt-callout .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.spt-callout .tx b{font-size:13px;font-weight:750;color:var(--st-ink)}
+.spt-callout .tx span{font-size:11.5px;color:var(--st-muted)}
+.spt-btn{flex:none;min-height:38px;padding:8px 14px;border:1px solid var(--st-line);
+  border-radius:10px;background:var(--st-surface);color:var(--st-ink-2);font:inherit;
+  font-size:12.5px;font-weight:650;cursor:pointer}
+.spt-btn:hover{border-color:var(--st-teal);color:var(--st-teal-700)}
+.spt-btn.primary{background:var(--st-teal);border-color:var(--st-teal);color:#fff;
+  box-shadow:0 4px 12px -4px rgba(92,179,171,.6)}
+.spt-two-col{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+.spt-spark{padding:8px 16px 14px}
+.spt-spark svg{width:100%;height:92px;display:block}
+.spt-line-goal{stroke:var(--st-teal-700);stroke-width:1;stroke-dasharray:4 4;opacity:.7}
+.spt-line-dot{fill:var(--st-surface);stroke:var(--st-teal);stroke-width:2}
+.spt-spark-foot{display:flex;justify-content:space-between;font-size:10.5px;color:var(--st-muted)}
+.spt-mini-row{display:flex;align-items:center;gap:10px;padding:9px 16px;border-top:1px solid var(--st-line)}
+.spt-mini-row .grow{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.spt-mini-row .t{font-size:12.5px;font-weight:650;color:var(--st-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.spt-mini-row .d{font-size:11.5px;color:var(--st-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.spt-pill{flex:none;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:750;font-variant-numeric:tabular-nums}
+.spt-pill.key{background:var(--st-teal-50);color:var(--st-teal-700)}
+.spt-pill.warn{background:var(--st-amber-50);color:var(--st-amber)}
+.spt-rec-row{display:flex;align-items:center;gap:12px;padding:11px 16px;border-top:1px solid var(--st-line);font-size:12.5px}
+.spt-rec-date{flex:none;width:88px;color:var(--st-muted);font-variant-numeric:tabular-nums}
+.spt-rec-mode{flex:none;width:76px;color:var(--st-ink-2);font-weight:600}
+.spt-rec-brief{flex:1;min-width:0;color:var(--st-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.spt-empty{padding:40px 20px;text-align:center;border:1px dashed var(--st-line);
+  border-radius:var(--st-radius);background:var(--st-surface);font-size:12.5px;color:var(--st-muted);line-height:1.6}
+.spt-empty b{display:block;font-size:14px;color:var(--st-ink);margin-bottom:6px}
+.spt-mobile-tabs{display:none}
+body.mock-immerse .spt-pane,body.exam-fullscreen .spt-pane{display:none!important}
+@media(max-width:860px){
+  .spt-mobile-tabs{display:flex;gap:4px;overflow-x:auto;padding:8px 0 12px;margin-bottom:4px}
+  .spt-mobile-tabs button{flex:none;min-height:38px;padding:8px 14px;border:1px solid var(--st-line);
+    border-radius:10px;background:var(--st-surface);color:var(--st-ink-2);font:inherit;font-size:12.5px;white-space:nowrap;cursor:pointer}
+  .spt-mobile-tabs button.on{background:var(--st-ink);color:#fff;border-color:var(--st-ink)}
+  .spt-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .spt-two-col{grid-template-columns:minmax(0,1fr)}
+  .spt-vhead h1{font-size:18px}
+  .spt-rec-date{width:74px}.spt-rec-mode{width:64px}
+}
+</style>
 <meta name="description" content="口语练习：P1/P2/P3 题库与答题框架、串题素材沉淀、AI 口语模考（考官画面 + 四维报告）。" />
 <link rel="canonical" href="https://yasihub.com/speaking" />
 <meta property="og:type" content="website" />
@@ -2916,6 +3013,7 @@ html[data-theme="dark"] .sp-core-fail .sp-cf-d{color:#c8cbd0}
     <aside class="hub-side">
       <div class="hub-side-scroll">
         <div class="hub-subs" id="hubSubs"></div>
+        <div class="hub-subs" id="sptNav"></div>
         <div class="hub-side-div"></div>
         <div class="hub-td-head"><b>今天</b></div>
         <div class="hub-td-prog" id="hubTdProg"></div>
@@ -2926,6 +3024,29 @@ html[data-theme="dark"] .sp-core-fail .sp-cf-d{color:#c8cbd0}
       </div>
     </aside>
     <div class="hub-main">
+      <div class="spt-mobile-tabs" id="sptMobileTabs"></div>
+      <div class="spt-pane" data-spt-pane="home" id="sptPaneHome" hidden>
+        <div class="spt-vhead">
+          <div><h1>口语</h1><span>看清四项标准的短板，也知道下一场练什么</span></div>
+          <select class="spt-range" data-range aria-label="时间范围">
+            <option value="30">近 30 天</option>
+            <option value="90">近 90 天</option>
+            <option value="all">全部时间</option>
+          </select>
+        </div>
+        <div id="sptHomeBody"></div>
+      </div>
+      <div class="spt-pane" data-spt-pane="records" id="sptPaneRecords" hidden>
+        <div class="spt-vhead">
+          <div><h1>模考记录</h1><span>整套模考（P1 / P2 / P3）按官方四维估分</span></div>
+          <select class="spt-range" data-range aria-label="时间范围">
+            <option value="30">近 30 天</option>
+            <option value="90">近 90 天</option>
+            <option value="all">全部时间</option>
+          </select>
+        </div>
+        <div id="sptRecordsBody"></div>
+      </div>
   <div class="page-head-row">
     <div class="sp-tabs pill-tabs" id="tabs">
       <!-- 10/1 晚（她拍板）：题库放练习前面 + 打开口语默认展示题库 -->
@@ -3499,5 +3620,6 @@ html[data-theme="dark"] .sp-core-fail .sp-cf-d{color:#c8cbd0}
 
 <link rel="stylesheet" href="css/p/hub-shell.css?v=20261107a" />
 <script defer src="js/hub-side-shell.js?v=20261106b"></script>
+<script defer src="js/spt-tabs.js?v=20261108b"></script>
 </body>
 </html>
