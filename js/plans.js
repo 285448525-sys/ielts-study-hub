@@ -1864,7 +1864,21 @@ function renderDiagEntry(){
        她的原意：有清晰目标的人**不需要**诊断，按自己节奏走就行；实在没方向的小白才用这个，
        而 AI 出的是**参考**计划，不是标准答案 —— 每个人不一样，自己知道的才适合自己。
        旧文案「3 分钟看清你离目标多远 / 目标不切实际会直接告诉你，不哄人」是卖点式写法，
-       她说「不要过度宣传、不装牛」，所以整段换掉；结构（hero / 步骤列表 / 两个按钮）一个字没动。 */
+       她说「不要过度宣传、不装牛」，所以整段换掉；结构（hero / 步骤列表 / 两个按钮）一个字没动。
+       11-09 修：点过「不用，按我自己的来」后，本次会话里这卡收成一句可逆的收起态，
+       不再反复问要不要做诊断；想做时点收起态里那颗按钮即可。原引导卡一字未改。 */
+    if(diagDeclined()){
+      root.innerHTML =
+        '<div class="card dg-hero dg-self">'
+        + '<p class="dg-hero-p">按自己的走法来就行。</p>'
+        + '<button type="button" id="dgStart" class="dg-text-btn">需要的话，做一次诊断</button>'
+        + '</div>';
+      document.getElementById('dgStart').addEventListener('click', function(){
+        try{ sessionStorage.removeItem('hub_diag_declined'); }catch(e){}
+        openDiagForm();
+      });
+      return;
+    }
     root.innerHTML =
       '<div class="card dg-hero">'
       + '<div class="dg-hero-ic">🎯</div>'
@@ -1880,7 +1894,7 @@ function renderDiagEntry(){
       + '<button type="button" id="dgSkip" class="dg-text-btn">不用，按我自己的来</button>'
       + '</div>';
     document.getElementById('dgStart').addEventListener('click', openDiagForm);
-    document.getElementById('dgSkip').addEventListener('click', diagQuickDefault);
+    document.getElementById('dgSkip').addEventListener('click', diagGoSelf);
     return;
   }
   const r = diagBuildReport(d);
@@ -1912,12 +1926,27 @@ function renderDiagEntry(){
   if(_go) _go.addEventListener('click', diagGoToday);
 }
 
-/* 「跳过，直接用默认」：提取成绩 + other 模板 + 默认时长，直接出报告（什么都没有也能出） */
-function diagQuickDefault(){
-  diagFormState = diagDefaultForm();
-  const d = diagPersist(diagFormState);
+/* 「不用，按我自己的来」（11-09 修 BTN-LOGIC-1）：她点这颗按钮是明确选了自己规划，
+   不该再生成 AI 参考计划、更不该弹诊断报告全屏页。旧实现用默认表单 diagPersist +
+   openDiagReport，结果仍进「制定方案」的报告，与按钮文案相反。
+   现在只做三件事：本次会话记一个轻标记（sessionStorage，不进 DATA、不参与云同步、
+   不新增同步字段）、把右栏引导卡收成可逆的收起态、落回「今天」Tab 聚焦添加任务输入框。
+   不写 DATA.settings.diagnosis、不调 diagPersist / openDiagReport、不弹覆盖层。 */
+/* 🔴 TDZ 铁律（见本文件头部与 :994）：ready() 回调在脚本求值期同步执行，
+   那时下面的顶层 const 还没初始化会落进暂时性死区。所以这里一律用字面量，
+   不声明任何顶层 const / var，保证首刷同步渲染时 diagDeclined() 就能读到会话标记。 */
+function diagDeclined(){
+  try{ return sessionStorage.getItem('hub_diag_declined') === '1'; }catch(e){ return false; }
+}
+function diagGoSelf(){
+  try{ sessionStorage.setItem('hub_diag_declined', '1'); }catch(e){}
   renderDiagEntry();
-  openDiagReport(d, 'loading');
+  setPlanTab('today');
+  /* 聚焦「今天」页真正可见的添加任务输入框：#mkAddText 是改版后的输入框；
+     #planText 在 P-1R 隐藏的旧 .card 里（focus 无效），仅作兜底。 */
+  let box = document.getElementById('mkAddText');
+  if(!box || !box.offsetParent) box = document.getElementById('planText');
+  if(box && box.offsetParent){ box.focus(); box.scrollIntoView({ block:'center' }); }
 }
 
 /* ---------- 全屏覆盖层（问卷 / 报告两屏） ---------- */
