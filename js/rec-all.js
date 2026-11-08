@@ -147,11 +147,11 @@
     } catch (e) {}
 
     if (!all.length) {
-      box.innerHTML = '<p class="muted" style="font-size:13.5px;margin:0">还没有任何记录。整卷、分项、口语模考都会汇总到这里，按日期排。</p>';
+      box.innerHTML = window.RVE ? window.RVE.inline({ic:'table',title:'还没有记录',desc:'整卷、分项、口语模考都会汇总到这里，按日期排。',roomy:true}) : '<p class="muted" style="font-size:13.5px;margin:0">还没有任何记录。</p>';
       return;
     }
     if (!list.length) {
-      box.innerHTML = '<p class="muted" style="font-size:13.5px;margin:0">当前筛选下没有记录，点上面的标签把它勾回来。</p>';
+      box.innerHTML = window.RVE ? window.RVE.inline({ic:'table',title:'这一栏还没有记录',desc:'点上面的标签把它勾回来。',roomy:true}) : '<p class="muted" style="font-size:13.5px;margin:0">当前筛选下没有记录。</p>';
       return;
     }
 

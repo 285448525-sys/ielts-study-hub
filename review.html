@@ -9,7 +9,7 @@
 <title>回顾 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css?v=20261106a"><link rel="stylesheet" href="css/p/review.css?v=20261104d"><link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7"><link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7"><link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7"><link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png?v=7"><link rel="manifest" href="/manifest.json"><meta name="theme-color" content="#3a9a93">
 <script defer src="js/data.js?v=20261030a"></script><script defer src="js/common.js?v=20261108a"></script><script defer src="js/common-ai.js?v=20261104n"></script><script defer src="js/common-sync.js?v=20261107c"></script><script defer src="js/common-merge.js?v=20261101m"></script><script defer src="js/common-cloud.js?v=20261101m"></script><script defer src="js/common-shell.js?v=20261107b"></script><script defer src="js/common-pwa.js?v=20261101m"></script>
-<script defer src="js/feedback.js?v=20261027a"></script><script defer src="js/scores.js?v=20261103a"></script><script defer src="js/history.js?v=20261024a"></script><script defer src="js/rv-record.js?v=20261028a"></script><script defer src="js/mock-report.js?v=20261006a"></script><script defer src="js/mock-history.js?v=20261006b"></script><script defer src="js/rec-all.js?v=20261101i"></script><script defer src="js/mock-summary.js?v=20261001f"></script><script defer src="js/speaking-practice.js?v=20261006a"></script><script defer src="js/progress.js?v=20261024a"></script><script defer src="js/rvx-data.js?v=20261101l"></script><script defer src="js/review.js?v=20261023a"></script><script defer src="js/sprint.js?v=20261002a"></script>
+<script defer src="js/feedback.js?v=20261027a"></script><script defer src="js/scores.js?v=20261103a"></script><script defer src="js/history.js?v=20261024a"></script><script defer src="js/rv-record.js?v=20261028a"></script><script defer src="js/mock-report.js?v=20261006a"></script><script defer src="js/mock-history.js?v=20261006b"></script><script defer src="js/rec-all.js?v=20261109a"></script><script defer src="js/mock-summary.js?v=20261001f"></script><script defer src="js/speaking-practice.js?v=20261006a"></script><script defer src="js/progress.js?v=20261024a"></script><script defer src="js/rvx-data.js?v=20261109a"></script><script defer src="js/review.js?v=20261023a"></script><script defer src="js/sprint.js?v=20261002a"></script>
 <style id="bootLoaderStyle">#bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:var(--bg);transition:opacity .18s}#bootLoader.hide{opacity:0;pointer-events:none}</style>
 <meta name="description" content="回顾：成绩趋势、学习记录与分项练习表现。"><link rel="canonical" href="https://yasihub.com/review"><meta property="og:type" content="website"><meta property="og:title" content="回顾 · 雅思备考 Hub"><meta property="og:description" content="回顾：成绩趋势、学习记录与分项练习表现。"><meta property="og:url" content="https://yasihub.com/review"><meta name="twitter:card" content="summary">
 <style>
@@ -185,7 +185,105 @@
   .hub-main .rv2-summary{grid-template-columns:1fr}
   .hub-main .rv2-subjects{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+
+/* REVIEW-EMPTY-1（11-09 她「回顾页面的空态不是很好看，重新设计一下没有数据的时候的 UI」→
+   按已点头样子稿 design/REVIEW-EMPTY-1-... 1:1 落地）。一套空态两种尺寸：首屏一张大卡
+   （成长曲线插画 + 唯一主按钮「录入成绩」复用既有 data-rv2-add 委托），其余每块一张小卡
+   （青色圆角图标 + 一句话说明）。配色只用本页已有 teal 与灰，不引入新颜色。组件名统一
+   rve- 前缀，避开既有的 rv2-empty、rv2-chart-empty、rv2-rec-empty、rv-empty 各类名。 */
+.rve{text-align:center}
+.rve--hero{position:relative;padding:30px 24px 24px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;animation:rve-in .45s ease-out both}
+.rve--hero::before{content:"";position:absolute;left:50%;top:-120px;width:460px;height:260px;transform:translateX(-50%);background:radial-gradient(ellipse at center,rgba(92,179,171,.13),rgba(92,179,171,0) 70%);pointer-events:none}
+.rve-art{position:relative;width:240px;max-width:100%;margin:2px auto 4px}
+.rve-art svg{width:100%;height:auto;display:block}
+.rve-title{margin:0;font-size:17px;font-weight:800;letter-spacing:-.01em;color:var(--ink)}
+.rve-desc{max-width:440px;margin:8px auto 0;font-size:12.5px;line-height:1.75;color:var(--muted)}
+.rve-btn{margin-top:18px;min-height:38px;padding:0 18px;border:0;border-radius:10px;background:var(--teal);color:#fff;font-size:12.5px;font-weight:700;font-family:inherit;cursor:pointer;box-shadow:0 6px 16px -8px rgba(58,143,135,.9)}
+.rve-btn:hover{background:var(--teal-d)}
+.rve-after{display:flex;align-items:center;justify-content:center;gap:9px;flex-wrap:wrap;margin-top:20px;padding-top:16px;border-top:1px solid var(--line-2)}
+.rve-after>span{font-size:11px;color:var(--muted-2)}
+.rve-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:var(--teal-50);color:var(--teal-700);font-size:10.5px;font-weight:700}
+.rve-pill i{width:5px;height:5px;border-radius:50%;background:var(--teal);display:inline-block}
+.rve--inline{padding:34px 18px}
+.rve-ic{width:44px;height:44px;border-radius:13px;background:var(--teal-50);color:var(--teal-700);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;box-shadow:inset 0 0 0 1px rgba(92,179,171,.14)}
+.rve-ic svg{width:21px;height:21px}
+.rve--inline .rve-title{font-size:13.5px;font-weight:750}
+.rve--inline .rve-desc{margin-top:6px;font-size:12px;line-height:1.65;max-width:330px}
+.rve--roomy{padding:54px 18px}
+.rve--roomy .rve-ic{width:52px;height:52px;border-radius:15px}
+.rve--roomy .rve-ic svg{width:24px;height:24px}
+.rve--roomy .rve-title{font-size:14.5px}
+.rve-foot{margin-top:12px;font-size:11px;color:var(--muted-2)}
+.rve-stat .v{color:var(--line)}
+/* 趋势图容器在旧样式里有固定高度 230px，空态卡比它高；有空态时改成自动撑开 */
+.hub-main .rv2-chart:has(> .rve){height:auto;min-height:230px}
+@keyframes rve-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes rve-breathe{0%,100%{opacity:.12;transform:scale(1)}50%{opacity:.22;transform:scale(1.07)}}
+.rve-halo{transform-box:fill-box;transform-origin:center;animation:rve-breathe 3.6s ease-in-out infinite}
+@media(prefers-reduced-motion:reduce){.rve--hero,.rve-halo{animation:none}}
+/* 空账号时 #rv2Summary 外壳让位给 hero：去掉卡中卡的双边框和 grid 压缩。
+   页头那枚「录入成绩」由既有 :has 规则认 rv2-empty 类收掉，功能由 hero 里那枚承担。 */
+.hub-main .rv2-summary:has(> .rv2-empty.rve--hero){display:block;background:transparent;border:0;box-shadow:none;padding:0;margin:0}
+.hub-main #rv2Summary > .rv2-empty.rve--hero{grid-column:1/-1;padding:30px 24px 24px;color:var(--ink);font-size:inherit}
+.hub-main #rv2Summary .rv2-empty.rve--hero h2{margin:0;font-size:17px;font-weight:800;letter-spacing:-.01em;color:var(--ink)}
+.hub-main #rv2Summary .rv2-empty.rve--hero p{max-width:440px;margin:8px auto 0;font-size:12.5px;line-height:1.75;color:var(--muted)}
+@media(max-width:860px){
+  .rve--hero{padding:24px 16px 20px}
+  .rve--inline{padding:28px 14px}
+  .rve--roomy{padding:40px 14px}
+  .hub-main #rv2Summary > .rv2-empty.rve--hero{padding:24px 16px 20px}
+  .rve-title{font-size:16px}
+}
 </style>
+
+<script>
+/* REVIEW-EMPTY-1 空态工厂：三个脚本共用，避免在 rv-tabs.js / rvx-data.js / rec-all.js 里各写一份 SVG。
+   hero 的按钮必须带 data-rv2-add（rvx-data.js 的 document 级委托靠它打开 #rv2AddDialog）。 */
+window.RVE=(function(){
+'use strict';
+var ICON={
+ grid:'<rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>',
+ line:'<path d="M3 3v18h18"/><path d="m6 15 4-5 3 3 5-7"/>',
+ target:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.4"/>',
+ table:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 9v11M15 9v11"/>',
+ cal:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+ bars:'<path d="M3 21h18M5 21v-8M10 21V7M15 21v-6M20 21V4"/>'
+};
+var ART='<svg viewBox="0 0 240 132" role="img" aria-label="一条还没开始画的成长曲线">'+
+ '<defs><linearGradient id="rveArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5cb3ab" stop-opacity=".16"/><stop offset="1" stop-color="#5cb3ab" stop-opacity="0"/></linearGradient></defs>'+
+ '<g stroke="#eef1f2" stroke-width="1"><path d="M18 30H222M18 66H222M18 102H222"/><path d="M70 16V112M122 16V112M174 16V112"/></g>'+
+ '<path d="M216 16V112" stroke="#cfe6e1" stroke-width="1.4" stroke-dasharray="3 4"/>'+
+ '<path d="M18 104 C 70 100 96 84 128 74 S 186 44 216 26 L216 112 L18 112 Z" fill="url(#rveArea)"/>'+
+ '<path d="M18 104 C 70 100 96 84 128 74 S 186 44 216 26" fill="none" stroke="#3a8f87" stroke-opacity=".55" stroke-width="2.2" stroke-linecap="round" stroke-dasharray="5 6"/>'+
+ '<g fill="#fff" stroke="#5cb3ab" stroke-opacity=".45" stroke-width="1.6"><circle cx="100" cy="88" r="3.2"/><circle cx="168" cy="56" r="3.2"/></g>'+
+ '<circle class="rve-halo" cx="18" cy="104" r="17" fill="#5cb3ab" opacity=".12"/>'+
+ '<circle cx="18" cy="104" r="9" fill="#5cb3ab" opacity=".16"/>'+
+ '<circle cx="18" cy="104" r="4.6" fill="#3a8f87"/>'+
+ '<circle cx="216" cy="26" r="5.4" fill="#fff" stroke="#2f7d76" stroke-width="2"/>'+
+ '<circle cx="216" cy="26" r="1.8" fill="#2f7d76"/></svg>';
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function ic(k){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(ICON[k]||ICON.grid)+'</svg>'}
+function inline(o){
+ o=o||{};
+ return '<div class="rve rve--inline'+(o.roomy?' rve--roomy':'')+'"'+(o.style?' style="'+o.style+'"':'')+'>'+
+  '<div class="rve-ic">'+ic(o.ic)+'</div>'+
+  '<div class="rve-title">'+esc(o.title)+'</div>'+
+  (o.desc?'<p class="rve-desc">'+esc(o.desc)+'</p>':'')+
+  (o.foot?'<div class="rve-foot">'+esc(o.foot)+'</div>':'')+'</div>';
+}
+function hero(o){
+ o=o||{};
+ var pills=(o.pills||[]).map(function(p){return '<span class="rve-pill"><i></i>'+esc(p)+'</span>'}).join('');
+ return '<div class="rv2-empty rve rve--hero">'+
+  '<div class="rve-art">'+ART+'</div>'+
+  '<h2 class="rve-title">'+esc(o.title)+'</h2>'+
+  '<p class="rve-desc">'+esc(o.desc)+'</p>'+
+  (o.btn?'<button class="rve-btn" type="button" data-rv2-add>'+esc(o.btn)+'</button>':'')+
+  '<div class="rve-after"><span>之后这里会出现</span>'+pills+'</div></div>';
+}
+return {hero:hero,inline:inline,ic:ic};
+})();
+</script>
 </head>
 <body data-shell="top">
 <div id="bootLoader" class="hub-loader show" aria-hidden="true"><div class="ui-loader" role="status" aria-label="Loading"><span class="ui-loader-dot"></span><span class="ui-loader-dot m2"></span><span class="ui-loader-dot m3"></span></div></div>
@@ -257,6 +355,6 @@
 </div>
 <link rel="stylesheet" href="css/p/hub-shell.css?v=20261107a" />
 <script defer src="js/hub-side-shell.js?v=20261106b"></script>
-<script defer src="js/rv-tabs.js?v=20261107m"></script>
+<script defer src="js/rv-tabs.js?v=20261109a"></script>
 </body></html>
 

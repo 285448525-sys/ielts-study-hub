@@ -64,7 +64,10 @@
     var s=sc(),t=tg(),last=s[s.length-1];
     var st=$('rvHomeStats'),ru=$('rvRuler'),ca=$('rvCallout');
     if(!last){ if(st)st.innerHTML=''; if(ru)ru.hidden=true; if(ca)ca.hidden=true;
-      var sp0=$('rvHomeSpark'),rc0=$('rvHomeRecent');if(sp0)sp0.innerHTML='';if(rc0)rc0.innerHTML='';return }
+      var sp0=$('rvHomeSpark'),rc0=$('rvHomeRecent');
+      if(sp0)sp0.innerHTML='<div class="rv-panel">'+panelHead('总分走势','近几次')+window.RVE.inline({ic:'line',title:'两次成绩后就有趋势线',desc:'真题、模考和手动录入都会计入。'})+'</div>';
+      if(rc0)rc0.innerHTML='<div class="rv-panel">'+panelHead('最近三次','整套与模考')+window.RVE.inline({ic:'table',title:'还没有记录',desc:'整套真题与模考会按日期排在这里。'})+'</div>';
+      return }
     var all=ov(last),tv=num(t.overall)||0;
     var weak=SUBJ.filter(function(x){var g=num(t[x.k])||0;return g>0&&num(last[x.k])!=null&&num(last[x.k])<g});
     var c=cd();
@@ -118,7 +121,7 @@
   function renderTrend(){
     var el=$('rvTrendStats');if(!el)return;
     var vals=sc().map(ov).filter(function(v){return v!=null});
-    if(!vals.length){el.innerHTML='';return}
+    if(!vals.length){el.innerHTML=[['最高一次','整套真题'],['近 3 次均值','±0.5 参考带'],['连续达标','未设目标分'],['已记录','整套真题']].map(function(x,i){return '<div class="rv-stat rve-stat'+(i===1?' ok':'')+'"><div class="k">'+x[0]+'</div><div class="v">—</div><div class="d">'+x[1]+'</div></div>'}).join('');return}
     var tv=num(tg().overall)||0;
     var max=Math.max.apply(null,vals),l3=vals.slice(-3),avg=l3.reduce(function(a,b){return a+b},0)/l3.length;
     var cons=0;if(tv){for(var i=vals.length-1;i>=0;i--){if(vals[i]>=tv)cons++;else break}}
@@ -134,7 +137,10 @@
   function renderSubjects(){
     var s=sc(),t=tg(),last=s[s.length-1],first=s[0];
     var bars=$('rvSubjBars'),radar=$('rvRadar');
-    if(!last){ if(bars)bars.innerHTML='<div class="rv-panel"><div class="rv-empty">录入一次成绩后，这里会显示四科与目标分的距离。</div></div>'; if(radar)radar.innerHTML=''; return }
+    if(!last){
+      if(bars)bars.innerHTML='<div class="rv-panel">'+panelHead('四科与目标','竖线 = 目标分')+window.RVE.inline({ic:'grid',title:'四科轮廓还没画出来',desc:'录入一次成绩，这里会显示每科离目标分还差多少。',roomy:true})+'</div>';
+      if(radar)radar.innerHTML='<div class="rv-panel">'+panelHead('当前最值得补','按目标分算')+window.RVE.inline({ic:'target',title:'先设一个目标分',desc:'填好四科目标后，这里会告诉你最值得先补哪一科。',roomy:true})+'</div>';
+      return }
     if(bars){
       var rows=SUBJ.map(function(x){var v=num(last[x.k]),tv=num(t[x.k])||0;var wp=v!=null?Math.min(100,Math.round(v/9*100)):0;var gp=tv>0?Math.min(100,Math.round(tv/9*100)):null;var weak=tv>0&&v!=null&&v<tv;
         return '<div class="rv-subj-row"><span class="rv-subj-n">'+esc(x.n)+'</span>'
@@ -159,7 +165,11 @@
   function renderEffort(){
     var m=byDay(),dates=Object.keys(m).sort();
     var st=$('rvEffortStats'),heat=$('rvHeat'),bars=$('rvBars');
-    if(!dates.length){ if(st)st.innerHTML=''; if(heat)heat.innerHTML='<div class="rv-panel"><div class="rv-empty">还没有学习记录。开始一次学习并结算后，这里会累计天数与时长。</div></div>'; if(bars)bars.innerHTML=''; return }
+    if(!dates.length){
+      if(st)st.innerHTML='';
+      if(heat)heat.innerHTML='<div class="rv-panel">'+panelHead('学习日历','近 12 周')+window.RVE.inline({ic:'cal',title:'还没有学习记录',desc:'开始一次学习并结算后，这里会累计天数与时长。',roomy:true})+'</div>';
+      if(bars)bars.innerHTML='<div class="rv-panel">'+panelHead('近 14 天学习时长','按天')+window.RVE.inline({ic:'bars',title:'还没有可画的记录',desc:'有学习记录后，这里按天显示时长。',roomy:true})+'</div>';
+      return }
     var total=dates.reduce(function(a,d){return a+m[d]},0);
     var maxRun=1,run=1;for(var i=1;i<dates.length;i++){if(dates[i]===dayAdd(dates[i-1],1)){run++;if(run>maxRun)maxRun=run}else run=1}
     var tk=today(),cut=dayAdd(tk,-29),recent=dates.filter(function(d){return d>=cut});

@@ -15,12 +15,12 @@ function duration(sec){sec=Math.max(0,Number(sec)||0);if(sec>=3600)return (Math.
 function durationShort(sec){sec=Math.max(0,Number(sec)||0);if(sec>=3600)return (Math.round(sec/360)/10).toFixed(1)+'h';return Math.round(sec/60)+'m'}
 function summary(){
  var list=scores(),last=list[list.length-1],t=targets();
- if(!list.length){$('rv2Summary').innerHTML='<div class="rv2-empty"><h2>还没有真题成绩</h2><p>先录入一次，开始看见自己的进步。不用补齐历史，从最近一次开始就可以。</p><button class="rv2-primary" data-rv2-add>录入成绩</button></div>'}else if(!$('rvxNumAll')){$('rv2Summary').innerHTML='<div class="rv2-latest"><div><div class="rv2-muted" id="rvxLeadLab"></div><div class="rv2-score"><span id="rvxNumAll">—</span><small> / 9</small></div></div><div class="rv2-target" id="rvxSubAll"></div></div><div class="rv2-subjects">'+SUBS.map(function(s){var k=s.k.charAt(0).toUpperCase();return '<div class="rv2-subject" id="rvxCell'+k+'"><span>'+s.n+'</span><b id="rvxNum'+k+'">—</b><small id="rvxSub'+k+'">—</small></div>'}).join('')+'</div>'}
+ if(!list.length){$('rv2Summary').innerHTML=window.RVE.hero({title:'还没有成绩记录',desc:'录入一次真题或模考分数，这里就会慢慢长出成绩趋势、四科强弱和学习天数。不用补齐历史，从最近一次开始就行。',btn:'录入成绩',pills:['成绩趋势','四科表现','学习投入']})}else if(!$('rvxNumAll')){$('rv2Summary').innerHTML='<div class="rv2-latest"><div><div class="rv2-muted" id="rvxLeadLab"></div><div class="rv2-score"><span id="rvxNumAll">—</span><small> / 9</small></div></div><div class="rv2-target" id="rvxSubAll"></div></div><div class="rv2-subjects">'+SUBS.map(function(s){var k=s.k.charAt(0).toUpperCase();return '<div class="rv2-subject" id="rvxCell'+k+'"><span>'+s.n+'</span><b id="rvxNum'+k+'">—</b><small id="rvxSub'+k+'">—</small></div>'}).join('')+'</div>'}
  if(last)$('rvxLeadLab').textContent='最近一次 · '+Number(String(last.date).slice(5,7))+'月'+Number(String(last.date).slice(8,10))+'日';
  var all=last?overall(last.listening,last.reading,last.writing,last.speaking):null;if(last){$('rvxNumAll').textContent=one(all);$('rvxSubAll').textContent=gap(all,t.overall)}
  if(!last)return;
  SUBS.forEach(function(s){var cell=$({listening:'rvxCellL',reading:'rvxCellR',writing:'rvxCellW',speaking:'rvxCellS'}[s.k]);var v=last&&last[s.k]!=null?Number(last[s.k]):null;$(s.nid).textContent=v==null?'—':one(v);$(s.sid).textContent=v==null?'—':gap(v,t[s.k]);cell.classList.remove('rvx-weak','rvx-ok');if(v!=null&&Number(t[s.k]))cell.classList.add(Number(v)>=Number(t[s.k])?'rvx-ok':'rvx-weak')});
- if(!list.length){$('rv2Summary').innerHTML='<div class="rv2-empty"><h2>还没有真题成绩</h2><p>先录入一次，开始看见自己的进步。不用补齐历史，从最近一次开始就可以。</p><button class="rv2-primary" data-rv2-add>录入成绩</button></div>';return}
+ if(!list.length){$('rv2Summary').innerHTML=window.RVE.hero({title:'还没有成绩记录',desc:'录入一次真题或模考分数，这里就会慢慢长出成绩趋势、四科强弱和学习天数。不用补齐历史，从最近一次开始就行。',btn:'录入成绩',pills:['成绩趋势','四科表现','学习投入']});return}
  $('rvxRecN').textContent=list.length;
  var cd=typeof examCountdown==='function'?examCountdown():null;
  if(cd&&cd.hasExam&&cd.daysLeft>0){$('rvxCdVal').textContent=cd.daysLeft+' 天';$('rvxCdLab').textContent='距 '+cd.md}else if(cd&&cd.hasExam){$('rvxCdVal').textContent='已到考试日';$('rvxCdLab').textContent=cd.md+' · 不再显示倒计时'}else{$('rvxCdVal').textContent='未设置';$('rvxCdLab').textContent='考试日期'}
@@ -79,7 +79,7 @@ function trend(){
  var color='var(--primary)',name='总分';SUBS.forEach(function(s){if(s.k===pick)name=s.n});
  /* 个数视角不适用（写作/口语/总分）→ 出解释文案，不出假图 */
  if(!applicable){
-  $('rv2TrendCanvas').innerHTML='<div class="rv2-chart-empty">对题个数只对听力和阅读才有意义。<br>写作、口语、总分没有「对几题」的概念，请切回「按分数」。</div>';
+  $('rv2TrendCanvas').innerHTML=window.RVE.inline({ic:'line',title:'这个视角不适用',desc:'对题个数只对听力和阅读才有意义。写作、口语、总分没有「对几题」的概念，请切回「按分数」。',roomy:true});
   $('rvxTrendLab').textContent='按对题个数 · 此视角不适用';$('rv2RangeText').textContent='';$('rv2GoalText').textContent='';return;
  }
  var dates,cells;
@@ -92,12 +92,12 @@ function trend(){
   if(pick==='overall'){dates.forEach(function(d){var vals=SUBS.map(function(s){return per[s.k][d]}).filter(Boolean);if(vals.length>=2)cells[d]={v:vals.reduce(function(a,x){return a+x.v},0)/vals.length,real:vals.some(function(x){return x.real})}})}else{cells=per[pick]}
  }
  if(!dates.length){
-  $('rv2TrendCanvas').innerHTML='<div class="rv2-chart-empty">有两次以上成绩后，这里会出现趋势。<br>真题、模考和手动录入都会计入。</div>';
+  $('rv2TrendCanvas').innerHTML=window.RVE.inline({ic:'line',title:'两次成绩后就会出现趋势',desc:'真题、模考和手动录入都会计入，按日期连成一条线。',foot:'已记录 0 次',roomy:true});
   $('rvxTrendLab').textContent='录入成绩后开始记录变化';$('rv2RangeText').textContent='暂无成绩记录';$('rv2GoalText').textContent='';return;
  }
  var idx=dates.map(function(d,i){return cells[d]?i:-1}).filter(function(i){return i>=0});
  if(!idx.length){
-  $('rv2TrendCanvas').innerHTML='<div class="rv2-chart-empty">'+(isCount?'这一科还没有可画的对题数记录。':'这一科还没有可画的成绩记录。')+'</div>';
+  $('rv2TrendCanvas').innerHTML=window.RVE.inline({ic:'line',title:'这一科还没有可画的记录',desc:isCount?'这一科还没有可画的对题数记录。':'这一科还没有可画的成绩记录。',roomy:true});
   $('rvxTrendLab').textContent=name+' · 暂无记录';return;
  }
  /* 纵轴自适应（替换原固定 4-9 档）：数据 min-max + 目标值纳入 + 上下留白。
@@ -189,8 +189,8 @@ function records(){
  var pool=k==='all'?all:all.filter(function(r){return recCat(r)===k});
  var limit=$('recordFilter').value==='recent'?3:pool.length;var list=pool.slice(0,limit);
  window.__rv2RecList=all;   /* 供「重新做一遍」按 id 取回 ids/type，不二次读 DATA（同 id 可能被筛选/覆盖） */
- if(!all.length){$('recAll').innerHTML='<div class="rv2-rec-empty">保存后会在这里看到每次成绩、分项练习与口语模考。</div>';return}
- if(!pool.length){$('recAll').innerHTML='<div class="rv2-rec-empty">这一栏还没有记录，换个类型或选「全部」看看。</div>';return}
+ if(!all.length){$('recAll').innerHTML=window.RVE.inline({ic:'table',title:'还没有记录',desc:'整卷、分项、口语模考都会汇总到这里，按日期排。',foot:'录入一次成绩后，这里就会开始记录',roomy:true});return}
+ if(!pool.length){$('recAll').innerHTML=window.RVE.inline({ic:'table',title:'这一栏还没有记录',desc:'换个类型或选「全部」看看。',roomy:true});return}
  $('recAll').innerHTML=list.map(function(r){var cat=recCat(r);return '<div class="rv2-rec-row" data-id="'+esc(r.id)+'" data-rec-id="'+esc(r.id)+'" data-kind="'+esc(r.kind)+'" data-cat="'+esc(cat)+'"'+(r.gran?' data-gran="'+esc(r.gran)+'"':'')+'><span class="rv2-rec-date">'+esc(r.date)+'</span><div class="rv2-rec-main"><b>'+esc(r.title)+'</b><span>'+({whole:'整套真题',part:'分项练习',speaking:'口语模考'}[cat]||'学习记录')+'</span></div><span class="rv2-rec-score">'+esc(r.main)+'<small>'+esc(r.mainLabel)+'</small></span>'+recActs(r)+'<button class="rv2-detail" data-rv2-detail="'+esc(r.id)+'" data-kind="'+esc(r.kind)+'">详情</button></div>'}).join('')+(pool.length>list.length?'<div class="rv2-rec-empty">当前显示最近三次，右上角可切换全部记录。</div>':'')
 }
 /* ?rec=<id> 定位：渲染后按 data-rec-id 找到行、滚到中间、轻高亮 2 秒。
@@ -213,7 +213,7 @@ function performance(){
  var cutoff=new Date();cutoff.setDate(cutoff.getDate()-29);var cut=statRange==='recent'?todayKey(cutoff):'';var recs=(Array.isArray(DATA.mockRecords)?DATA.mockRecords:[]).filter(function(r){return !cut||String(r.date||'')>=cut});
  var out=SUBS.map(function(s){var rows=recs.filter(function(r){return r&&(r.type===s.k||s.k==='speaking'&&(r.kind==='speaking'||(!Array.isArray(r.parts)&&r.p1)))});if(s.k==='listening'||s.k==='reading'){var c=0,t=0;rows.forEach(function(r){(r.parts||[]).forEach(function(p){c+=Number(p.correct)||0;t+=Number(p.total)||0})});var pct=t?Math.round(c/t*100):null;return '<div class="rv2-perf-item"><h3>'+s.n+'</h3><b>'+(pct==null?'暂无':pct+'%')+'</b>'+(pct==null?'':'<div class="rv2-bar"><i style="width:'+pct+'%"></i></div>')+'<p>'+rows.length+' 次练习 · '+(t?c+' / '+t+' 题':'完成练习后显示正确率')+'</p></div>'}
  var secs=rows.reduce(function(a,r){return a+(Number(r.usedSec)||Number(r.durationSec)||Number(r.duration)||0)},0);var label=s.k==='writing'?'写作练习':'口语模考';return '<div class="rv2-perf-item"><h3>'+s.n+'</h3><b>'+rows.length+' 次</b><p>'+label+' · '+(secs?'累计 '+duration(secs):'练习记录不重复显示分数')+'</p></div>'});
- if(!recs.length)$('rv2PerfGrid').innerHTML='<div class="rv2-rec-empty" style="grid-column:1/-1">这一时间段还没有分项练习。完成一次练习后，这里会显示正确率或练习量。</div>';else $('rv2PerfGrid').innerHTML=out.join('')
+ if(!recs.length)$('rv2PerfGrid').innerHTML=window.RVE.inline({ic:'bars',title:'这一时间段还没有分项练习',desc:'完成一次练习后，这里会显示正确率或练习量。',roomy:true,style:'grid-column:1/-1'});else $('rv2PerfGrid').innerHTML=out.join('')
 }
 function bind(){
  if(document.documentElement.__rv2Bound)return;document.documentElement.__rv2Bound=true;
