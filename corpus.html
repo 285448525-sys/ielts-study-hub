@@ -194,6 +194,90 @@
 <meta property="og:description" content="句子练习：粘贴长难句做拆解与默写。" />
 <meta property="og:url" content="https://yasihub.com/corpus" />
 <meta name="twitter:card" content="summary" />
+<style>
+/* ===== CORPUS-TABS-1（11-08）：句子页 5 tab 壳 + 总览页精致皮肤 =====
+   她「之前不是有一个句子的设计方案吗，直接落地吧」。把已点头
+   design/CORPUS-TABS-1-句子页侧栏各页UI样子稿-2026-11-08.html 的左栏 5 tab 与总览页
+   按回顾/单词/写作/口语那 4 页同一套已验收做法落真页面：数字全现场算真字段。
+   皮肤逐值照设计稿（.stat 26px/800、.callout 38px 图标结论条、.two-col 两列、
+   近 7 天按天计数柱），颜色一律引站点 token 跟随深色主题（HANDOFF 铁律）。
+   ⚠️ 本段必须放在 <head> 内：软导航 swapPageStyles() 只克隆目标页 head style。
+   新组件统一 .cp2- 前缀，避开既有的 cp-search 与 kc、lsr、cc、eb 各类名。 */
+.cp2-pane,.cp2-mobile-tabs{--ct-teal:var(--primary,#5cb3ab);--ct-teal-d:var(--primary-700,#3a8f87);
+  --ct-teal-700:var(--primary-700,#2f7d76);--ct-teal-50:var(--primary-50,#e8f3f1);
+  --ct-ink:var(--ink,#1f2328);--ct-ink-2:var(--ink-2,#3f464d);--ct-muted:var(--muted,#71767e);
+  --ct-muted-2:var(--muted-2,#9aa0a6);--ct-line:var(--line,#e6e9ea);--ct-line-2:#eef1f2;
+  --ct-surface:var(--surface,#fff);--ct-bg:var(--bg,#f6f9fb);
+  --ct-amber:var(--warn,#b3792c);--ct-amber-50:var(--warn-soft,#fbf1e3);
+  --ct-radius:14px;--ct-shadow:0 1px 2px rgba(24,40,48,.04),0 6px 18px -12px rgba(24,40,48,.18)}
+.cp2-pane[hidden]{display:none!important}
+#hubSubs{display:none!important}
+.cp2-vhead{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:2px 0 16px}
+.cp2-vhead h1{margin:0;font-size:20px;font-weight:800;letter-spacing:-.02em;color:var(--ct-ink)}
+.cp2-vhead .hint{font-size:12.5px;color:var(--ct-muted)}
+.cp2-vhead .right{margin-left:auto;display:flex;align-items:center;gap:9px}
+.cp2-range{height:36px;padding:0 12px;border:1px solid var(--ct-line);border-radius:10px;
+  background:var(--ct-surface);color:var(--ct-ink-2);font:inherit;font-size:12.5px;font-weight:650;cursor:pointer}
+.cp2-btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:44px;padding:0 18px;
+  border:1px solid var(--ct-line);border-radius:11px;background:var(--ct-surface);color:var(--ct-ink-2);
+  font:inherit;font-size:13px;font-weight:700;white-space:nowrap;cursor:pointer}
+.cp2-btn.sm{min-height:36px;padding:0 13px;font-size:12.5px;border-radius:10px}
+.cp2-btn:hover{border-color:var(--ct-teal);color:var(--ct-teal-700)}
+.cp2-btn.primary{border:0;background:var(--ct-teal);color:#fff;box-shadow:0 6px 16px -8px rgba(58,143,135,.9)}
+.cp2-btn.primary:hover{background:var(--ct-teal-d);color:#fff}
+.cp2-stat-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}
+.cp2-stat{padding:16px 18px;border:1px solid var(--ct-line);border-radius:var(--ct-radius);background:var(--ct-surface);box-shadow:var(--ct-shadow)}
+.cp2-stat .k{font-size:11.5px;color:var(--ct-muted);font-weight:600}
+.cp2-stat .v{font-size:26px;font-weight:800;letter-spacing:-.03em;margin-top:5px;color:var(--ct-ink)}
+.cp2-stat .v small{font-size:12px;font-weight:600;color:var(--ct-muted);margin-left:3px}
+.cp2-stat .v.teal{color:var(--ct-teal-700)}
+.cp2-stat .v.warn{color:var(--ct-amber)}
+.cp2-stat .d{font-size:11px;color:var(--ct-muted-2);margin-top:2px}
+.cp2-stat.ok{border-color:#cde5e1;background:linear-gradient(180deg,var(--ct-teal-50),var(--ct-surface))}
+.cp2-callout{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:14px 18px;border-radius:var(--ct-radius);
+  background:linear-gradient(100deg,var(--ct-teal-50),var(--ct-surface) 70%);border:1px solid #dceeea;margin-bottom:16px}
+.cp2-callout .ic{width:38px;height:38px;border-radius:11px;background:var(--ct-surface);color:var(--ct-teal-700);
+  display:flex;align-items:center;justify-content:center;flex:0 0 auto;box-shadow:var(--ct-shadow)}
+.cp2-callout .ic svg{width:20px;height:20px}
+.cp2-callout .tx b{display:block;font-size:14px;font-weight:750;color:var(--ct-ink)}
+.cp2-callout .tx > span{display:block;font-size:12px;color:var(--ct-muted);margin-top:3px}
+.cp2-callout .cp2-btn{margin-left:auto}
+.cp2-two-col{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:14px;margin-bottom:14px}
+.cp2-panel{border:1px solid var(--ct-line);border-radius:var(--ct-radius);background:var(--ct-surface);box-shadow:var(--ct-shadow);overflow:hidden}
+.cp2-panel-h{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;padding:15px 18px 4px}
+.cp2-panel-h b{font-size:13.5px;font-weight:750;color:var(--ct-ink)}
+.cp2-panel-h span{font-size:11.5px;color:var(--ct-muted)}
+.cp2-bars{height:120px;display:flex;align-items:flex-end;gap:8px;padding:14px 18px 0;border-bottom:1px solid var(--ct-line)}
+.cp2-bar{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:5px}
+.cp2-bar i{display:block;width:100%;max-width:26px;border-radius:5px 5px 0 0;background:var(--ct-teal);opacity:.85}
+.cp2-bar.zero i{background:var(--ct-line-2);opacity:1}
+.cp2-bar.today i{background:var(--ct-teal-d);opacity:1}
+.cp2-bar-labels{display:flex;gap:8px;padding:7px 18px 14px}
+.cp2-bar-labels span{flex:1;text-align:center;font-size:10px;color:var(--ct-muted-2)}
+.cp2-mini-row{display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--ct-line-2);min-height:60px}
+.cp2-mini-row:last-child{border-bottom:0}
+.cp2-mini-row .grow{min-width:0;flex:1;display:flex;flex-direction:column;gap:2px}
+.cp2-mini-row .t{display:block;font-size:12.5px;font-weight:650;color:var(--ct-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cp2-mini-row .d{display:block;font-size:11px;color:var(--ct-muted-2)}
+.cp2-pill{font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:999px;background:var(--ct-bg);color:var(--ct-muted);white-space:nowrap;flex:none}
+.cp2-pill.warn{background:var(--ct-amber-50);color:var(--ct-amber)}
+.cp2-pill.key{background:var(--ct-teal-50);color:var(--ct-teal-700)}
+.cp2-pill.cur{background:var(--ct-teal);color:#fff}
+.cp2-empty{padding:34px 20px;text-align:center;border:1px dashed var(--ct-line);
+  border-radius:var(--ct-radius);background:var(--ct-surface);font-size:12.5px;color:var(--ct-muted);line-height:1.6}
+.cp2-empty b{display:block;font-size:14px;color:var(--ct-ink);margin-bottom:6px}
+.cp2-mobile-tabs{display:none}
+body.exam-fullscreen .cp2-pane{display:none!important}
+@media(max-width:980px){.cp2-two-col{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:860px){
+  .cp2-mobile-tabs{display:flex;gap:4px;overflow-x:auto;padding:8px 0 12px;margin-bottom:4px;-webkit-overflow-scrolling:touch}
+  .cp2-mobile-tabs button{flex:none;min-height:38px;padding:8px 14px;border:1px solid var(--ct-line);
+    border-radius:10px;background:var(--ct-surface);color:var(--ct-ink-2);font:inherit;font-size:12.5px;white-space:nowrap;cursor:pointer}
+  .cp2-mobile-tabs button.on{background:var(--ct-ink);color:#fff;border-color:var(--ct-ink)}
+  .cp2-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .cp2-vhead h1{font-size:18px}
+}
+</style>
 </head>
 <body data-shell="top">
 <div id="bootLoader" class="hub-loader show" aria-hidden="true"><div class="ui-loader" role="status" aria-label="Loading"><span class="ui-loader-dot"></span><span class="ui-loader-dot m2"></span><span class="ui-loader-dot m3"></span><span class="ui-loader-shadow"></span><span class="ui-loader-shadow m2"></span><span class="ui-loader-shadow m3"></span></div></div>
@@ -204,6 +288,7 @@
     <aside class="hub-side">
       <div class="hub-side-scroll">
         <div class="hub-subs" id="hubSubs"></div>
+        <div class="hub-subs" id="cpNav"></div>
         <div class="hub-side-div"></div>
         <div class="hub-td-head"><b>今天</b></div>
         <div class="hub-td-prog" id="hubTdProg"></div>
@@ -214,6 +299,21 @@
       </div>
     </aside>
     <div class="hub-main">
+      <div class="cp2-mobile-tabs" id="cpMobileTabs"></div>
+      <div class="cp2-pane" data-cp-pane="home" id="cpPaneHome" hidden>
+        <div class="cp2-vhead">
+          <div><h1>总览</h1><span class="hint">拆得懂、默得出，错过的能找回来</span></div>
+          <div class="right">
+            <select class="cp2-range" data-range aria-label="时间范围">
+              <option value="30">近 30 天</option>
+              <option value="90">近 90 天</option>
+              <option value="all">全部时间</option>
+            </select>
+            <button type="button" class="cp2-btn sm primary" data-cp-go="long">拆解长难句</button>
+          </div>
+        </div>
+        <div id="cpHomeBody"></div>
+      </div>
 <!-- ═══ KIMI-P2-2（10-26）· 句子页按 Kimi 样子稿 1:1 重排 ═══
 结构原文 design/kimi-visual-upgrade-2026-10-25/_KC-corpus_结构原文.html（前缀 kc-）
 精确样式 design/kimi-visual-upgrade-2026-10-25/_KC-corpus_精确样式.css（已追加到 css/p/corpus.css）
@@ -255,14 +355,23 @@ importCorpus · importHint · aiImportBox · aiImportBtn · aiImportHint · dict
 <section class="kc-card"><h2 class="kc-count-title">未掌握 <span id="count">0</span> 条 · 已掌握 <span id="knownCount">0</span> 条</h2><div id="list"></div><details id="knownWrap" hidden><summary>已掌握（0）</summary><div id="knownList"></div></details><div id="empty" class="kc-cc-empty">还没有记录。把错题整段贴到上面那个框，点「AI 收录错题」。</div></section>
 </div>
 <div id="dictView" class="kc-view-section" hidden>
+<!-- CORPUS-TABS-1（11-08）：设计稿「句子库从原听写页里独立成页 / 材料归句子库」。
+     这里只把原有两块包成 #cpDictExercise（练法两卡 + #dictArea）与 #cpBankSection（句子库），
+     由 js/corpus-tabs.js 的 splitDictView() 按 tab 显隐；DOM 与全部 id 一个没删、没改，
+     js/corpus.js 的 renderList/openAddPanel/startWrite/startDict 全部照常按 id 取值。 -->
+<div id="cpDictExercise">
 <div class="kc-dict-modes"><section class="kc-card kc-dm-card"><div class="kc-dm-body"><b>逐句默写</b><span>看中文提示，把英文默出来，AI 逐句判分挑错</span></div><button class="kc-btn kc-btn-primary" id="startWrite" type="button">开始默写</button></section><section class="kc-card kc-dm-card"><div class="kc-dm-body"><b>听写</b><span>播放英文整句，写下听到的，再逐词核对（语速可调）</span></div><button class="kc-btn" id="startDict" type="button">开始听写</button></section></div>
+<div id="dictArea"></div>
+</div>
+<div id="cpBankSection" hidden>
 <section class="kc-card"><div class="kc-card-head"><h2>我的句子库</h2><span class="kc-muted" style="font-size:13px">共 <b id="corpusCount">0</b> 条</span><button class="kc-btn" id="addToggle" type="button" aria-expanded="false">＋ 添加句子</button></div><div class="kc-cp-search"><label class="ui-field-search" for="corpusSearch"><svg class="ui-field-search-ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><input class="ui-field-search-in" type="search" id="corpusSearch" placeholder="搜英文或中文…" aria-label="搜索语料" autocomplete="off"><button type="button" class="ui-field-clear" hidden aria-label="清空搜索">✕</button></label></div><div id="corpusList"></div>
 <div id="addPanel" class="kc-add-panel" hidden><div class="kc-add-tabs"><button type="button" data-amt="single" class="kc-active">单条添加</button><button type="button" data-amt="bulk">批量粘贴</button><button type="button" data-amt="ai">AI 识别导入</button></div>
 <div id="amt-single"><div class="kc-cor-fields"><label>英文<input aria-label="英文句子或词组" id="corEn" placeholder="英文句子 / 词组…"></label><label>中文<input aria-label="对应中文" id="corCn" placeholder="对应中文…"></label><button class="kc-btn kc-btn-primary" id="addCorpus" type="button">添加</button></div></div>
 <div id="amt-bulk" hidden><textarea id="bulkCorpus" aria-label="批量粘贴句子" placeholder="每行一句：英文 | 中文，如 The government should invest in public transport. | 政府应投资公交"></textarea><div class="kc-form-row"><button class="kc-btn kc-btn-primary" id="importCorpus" type="button">导入</button><span id="importHint" class="kc-muted"></span></div></div>
 <div id="amt-ai" hidden><p class="kc-muted" style="font-size:13px;margin-bottom:8px">粘贴短语 / 词 / 句子（可纯英文），AI 自动切分并补中文释义</p><textarea id="aiImportBox" aria-label="AI 识别导入内容" placeholder="粘贴要记的内容，例如：The government should invest in public transport."></textarea><div class="kc-form-row"><button class="kc-btn kc-btn-primary" id="aiImportBtn" type="button">AI 识别并导入</button><span id="aiImportHint" class="kc-muted"></span></div></div>
 </div>
-</section><div id="dictArea"></div>
+</section>
+</div>
 </div>
 </div>
     </div><!-- /.hub-main -->
@@ -271,6 +380,7 @@ importCorpus · importHint · aiImportBox · aiImportBtn · aiImportHint · dict
 
 <link rel="stylesheet" href="css/p/hub-shell.css?v=20261107a" />
 <script defer src="js/hub-side-shell.js?v=20261106b"></script>
+<script defer src="js/corpus-tabs.js?v=20261108a"></script>
 </body>
 </html>
 
