@@ -61,7 +61,7 @@ const PAGES = [
      ⚠️ 只改 `name`（顶栏 tab / 侧栏 / 二级菜单 / 搜索结果的显示名）：
         `id:'bank'`、`file:'bank.html'`、PRIMARY_NAV 里那个 'bank' 一律不动 —— 路由与高亮全靠它们。
         改 id 或 file 会让 bank.html 变成孤儿页（软导航找不到对应条目）。 */
-  { id:'bank',      file:'bank.html',      icon:ICON.mock,      name:'机经',       desc:'阅读 · 听力 · 写作 · 口语' },
+  { id:'bank',      file:'bank.html',      icon:ICON.mock,      name:'机经',       desc:'阅读 · 听力' },
   /* 🔴 10-23 T-015 她拍板「错句本不配单独一个 Tab，整个板块前后端删干净」→
      wrongbook.html 文件已从仓库删除；这里保留条目并标 hidden:true，只为两件事：
      ① 老链接 / 书签直访 wrongbook.html 时软导航白名单仍认得它（真删条目会 404 白屏）；
@@ -580,7 +580,7 @@ function isNavHidden(p){ return !!(p && p.hidden); }
       corpus.html 的 #wordTabs 仍是三项（长难句 ls / 错题 eb / 听写 dict），
       错句本删的是 writing 页底部那个 wbArea，不是 corpus 这个「错题」tab。故保留三项。 */
 const TB_SUB = {
-  bank:     [['阅读','reading'], ['听力','listening'], ['写作','writing'], ['口语','speaking']],
+  bank:     [['阅读','reading'], ['听力','listening']],
   speaking: [['题库','BANK'], ['陪练','PRACTICE'], ['素材','MAT']],
   writing:  [['模板','tpl'], ['语料','bank'], ['评分','score']],
   corpus:   [['长难句','ls'], ['错题','eb'], ['听写','dict']],

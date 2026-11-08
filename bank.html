@@ -18,7 +18,7 @@
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
 <title>模考 · 雅思备考 Hub</title>
-<link rel="preload" as="script" href="js/bank.js?v=20261106a" /> <!-- W1-PRELOAD-1 (373KB)：与下方 defer 同串防双下载 -->
+<link rel="preload" as="script" href="js/bank.js?v=20261108a" /> <!-- W1-PRELOAD-1 (373KB)：与下方 defer 同串防双下载 -->
 <link rel="preload" as="script" href="js/common-shell.js?v=20261107b" /> <!-- W1-PRELOAD-1 (113KB)：与下方 defer 同串防双下载 -->
 <link rel="stylesheet" href="css/common.css?v=20261106a" />
 <link rel="stylesheet" href="css/p/bank.css?v=20261103g" />
@@ -2745,6 +2745,8 @@ main.container:has(> .hub-shell){
    左条同样走 inset 不动盒模型；左侧留白由 padding-left 11px 承担。 */
 .bk-grp-h{background:var(--primary-50);box-shadow:inset 3px 0 0 var(--primary);border-radius:8px;
  padding:9px 10px 7px 11px;margin:10px 0 4px}
+/* MODULE-MOVE-1：机经左栏共用脚本仍渲染 4 颗 sub，这里藏掉已搬走的写作/口语两颗。 */
+#hubSubs .hub-sub[data-hub-sub="writing"],#hubSubs .hub-sub[data-hub-sub="speaking"]{display:none!important}
 </style>
 </head>
 <body data-shell="top">
@@ -2775,8 +2777,8 @@ main.container:has(> .hub-shell){
     <div class="mock-tabs pill-tabs" id="mockTabs" role="tablist">
       <button class="pill-tab active" type="button" data-mtab="reading" role="tab">阅读<span class="mt-n" data-mtn="reading"></span></button>
       <button class="pill-tab" type="button" data-mtab="listening" role="tab">听力<span class="mt-n" data-mtn="listening"></span></button>
-      <button class="pill-tab" type="button" data-mtab="writing" role="tab">写作<span class="mt-n" data-mtn="writing"></span></button>
-      <button class="pill-tab" type="button" data-mtab="speaking" role="tab">口语<span class="mt-n" data-mtn="speaking"></span></button>
+      <!-- MODULE-MOVE-1（11-08 她「直接把写作口语搬走」）：写作 / 口语两科已搬到 writing.html / speaking.html
+           各自大页，机经这里只留阅读、听力两个 tab。对应的两个 pane 也一并删除（见下方）。 -->
     </div>
 
     <!-- BANK-INFO-1（10-27 她：「题库我希望有一个地方可以显示一个小标，折叠起来的，展开里面写
@@ -2884,91 +2886,12 @@ main.container:has(> .hub-shell){
       <div id="listenList"><div class="bank-loading">目录加载中…</div></div>
     </section>
 
-    <section class="mock-pane" id="pane-writing" hidden
-             data-late-src="js/writing_prompts.js?v=20260903ab,js/exam-timer.js?v=20261102c,js/writing.js?v=20261101k">
-      <!-- 10/11 第 7 项（她拍板「整块删掉」写作页真题 tab）：写作真题整体搬到这里。
-           题目数据 = js/writing_prompts.js（大作文 70 + 小作文 25），渲染/机考/评分逻辑在 js/writing.js
-           （writeExam 那一段，同一份代码两页共用；本页无 #writeTabs → writing.js 只跑真题初始化）。
-           #examHome = 真题列表；#examPractice = 全屏机考（进入考试时 #examPanel 变固定覆盖层）。
-           元素 id 与写法与 writing.html 原版一字不差（JS 契约）。 -->
-      <div id="examPanel">
-        <section id="examHome">
-          <!-- 10/14 她要求：写作也要能组卷做完整模考（Task 1 小作文 + Task 2 大作文两篇连考，
-               共 60 分钟），与阅读/听力的 Start Test 对齐。卡片由 writing.js 填充并绑事件。 -->
-          <div id="writingFullEntry" class="full-entry"></div>
-          <!-- M-3（10-24）：两个原生 select 换成文字筛选项，**选项直接摊开**。
-               她嫌原生 select 是「灰底 + 系统样式，和页面其他控件两种语言，还要先点开才知道有什么」。
+    <!-- MODULE-MOVE-1（11-08 她「直接把写作口语搬走」）：写作真题、口语完整模考两块
+         已分别搬到 writing.html「真题模考」tab 与 speaking.html「完整模考」tab，
+         机经这里删掉这两个 pane，只剩阅读、听力。js/bank.js 的 loadWritingScripts
+         因找不到 #pane-writing 会空操作（保留不删，避免动判分域）；老深链
+         ?sub=writing / ?sub=speaking 已由 tbApplySub 白名单收窄挡掉，落默认阅读页，不白屏。 -->
 
-               🔴 筛选逻辑一行不动：原 `<select>` **保留在 DOM 里**（只是 hidden），
-                  chip 点击 = 把值写进对应 select 的 .value + 派一个 change 事件 ——
-                  js/writing.js 的 renderExamList() / updateSubOptions() 原样跑，
-                  它们的 `$('#examFilter').value` 读数完全不受影响。
-
-               ⚠️ 细分题型那排**由 JS 动态填**（updateSubOptions 按大/小作文换选项），
-                  所以这里只留空容器，chip 由 writing.js 侧渲染（见 syncFilterChips）。 -->
-          <select id="examFilter" aria-label="按题型筛选" hidden>
-            <option value="all">全部作文</option>
-            <option value="big">大作文 Task 2</option>
-            <option value="small">小作文 Task 1</option>
-          </select>
-          <select id="examSubFilter" aria-label="按细分题型筛选" hidden>
-            <option value="all">所有题型</option>
-          </select>
-          <div class="exam-filter-bar">
-            <div class="wrt-chips" id="examFilterChips" role="group" aria-label="按题型筛选">
-              <button type="button" class="wrt-chip active" data-v="all">全部作文</button>
-              <button type="button" class="wrt-chip" data-v="big">大作文 Task 2</button>
-              <button type="button" class="wrt-chip" data-v="small">小作文 Task 1</button>
-            </div>
-            <div class="wrt-chips" id="examSubFilterChips" role="group" aria-label="按细分题型筛选">
-              <button type="button" class="wrt-chip active" data-v="all">所有题型</button>
-            </div>
-          </div>
-          <div id="examList" class="exam-list"></div>
-        </section>
-
-        <!-- 机考界面（全屏沉浸式）的 DOM 由 js/writing.js 的 ensureExamShell() 统一注入 ——
-             与 writing.html 的评分 tab「开始练」共用同一份源码，改一处两页同步。
-             这里只留空壳，元素 id 契约（#examPractice / #examEssay / #examExit …）由 shell 提供。 -->
-        <section id="examPractice" hidden></section>
-      </div>
-    </section>
-
-    <section class="mock-pane" id="pane-speaking" hidden>
-      <!-- 10/11 第 8 项：口语模考入口页 = 注意事项 + 开始模考。
-           点「开始模考」→ 软导航到 speaking.html 并自动进入其现有模考流程（口语页零改动，
-           见 js/bank.js 的 spkStartMock）。元素 id `data-spkstart` 是点击契约定点。 -->
-      <div class="full-card" id="spkEntryCard">
-        <div class="fc-num">18</div>
-        <div class="fc-body"><b>Full Speaking Test · 完整口语模考</b>
-          <span>3 parts · 18 questions · 约 12–15 minutes · 考中和真机考一致</span>
-        </div>
-        <button class="btn-primary" type="button" data-spkstart>Start Test</button>
-      </div>
-      <!-- M-4（10-24）：两栏化 —— 原来「怎么考」三个步骤卡横排、下面「考试说明」四张说明卡
-           再横排，两段各占满 1080px，右边的空白越往下越多、整页被拉得很高。
-           现在左边一栏放「怎么考」，右边一栏放「考试说明」，**高度砍一半**。
-           🔴 只改布局：文案一字不动（那是 10/11 她确认过的说明文字）。 -->
-      <div class="spk-cols">
-        <div class="spk-col">
-          <div class="spk-notes-h"><b>怎么考</b><span>三个部分连着进行，和真机考同一顺序</span></div>
-          <div class="spk-flow">
-            <div class="spk-step"><span class="no">PART 1</span><b>开场自我介绍</b><span>12 小题 · 约 4–5 分钟，聊聊日常话题</span></div>
-            <div class="spk-step"><span class="no">PART 2</span><b>个人陈述</b><span>准备 1 分钟 + 陈述 2 分钟，话题卡全程留在屏幕上</span></div>
-            <div class="spk-step"><span class="no">PART 3</span><b>双向讨论</b><span>5 题追问 · 约 4–5 分钟，就 Part 2 话题往深里聊</span></div>
-          </div>
-        </div>
-        <div class="spk-col">
-          <div class="spk-notes-h"><b>考试说明</b><span>开始前看一眼</span></div>
-          <div class="spk-tips">
-            <div class="spk-tip"><b>作答方式是语音输入</b>用输入法的语音键把你想说的英文说出来，识别的文字直接进答题框——推荐用<strong>豆包输入法</strong>，识别得最准。考的是内容和表达，不是口音。</div>
-            <div class="spk-tip"><b>Part 2 有 1 分钟准备</b>可以先写几个关键词当笔记，陈述的时候别照着念，说人话就行。</div>
-            <div class="spk-tip"><b>中途退出或刷新不丢</b>这场的进度会存下来，下次进来自动接着考。</div>
-            <div class="spk-tip"><b>时间到不强制收卷</b>按自己的节奏答完，交卷后出评估报告（总分 + 各 Part 建议）。</div>
-          </div>
-        </div>
-      </div>
-    </section>
   </div>
     </div><!-- /.hub-main -->
   </div><!-- /.hub-shell -->
@@ -2978,17 +2901,12 @@ main.container:has(> .hub-shell){
 </main>
 
 <!-- 🔴 加载顺序契约（10/5 铁律）：defer 顺序不可改 —— bank.js 依赖 common.js 的 PAGES。
-     10/11 第 7 项：写作 pane 复用 js/writing.js（写作真题渲染 + 机考 + AI 评分）+ js/writing_prompts.js（题库数据）。
-     writing.js 靠「有没有 #writeTabs」自判页面：本页没有 → 只跑真题初始化，不碰写作页 DOM。
+     MODULE-MOVE-1（11-08）：写作 / 口语 pane 已搬去各自大页，本页不再按需加载
+     js/writing.js 与 js/writing_prompts.js；js/bank.js 里那套 loadWritingScripts 保留但
+     因 #pane-writing 不存在而空操作（不删，避免动判分域）。 -->
 
-     🔴 10/17 性能批（第二批 · 传输层）：这两个脚本**不再进 defer 队列**，改为按需加载 ——
-     版本串搬到了上面 #pane-writing 的 data-late-src 属性里（仍只此一处，勿在别处再写）。
-     依据 = tests/_probe_ablate_1017.cjs 线上实测：单独拦掉它们，首屏照常渲染、零报错
-     （首屏不依赖），但它们合计 75KB 压缩体，和 common.css / common.js 抢同一条带宽
-     （手机慢网 ~50KB/s → 约 1.5 秒）。加载时机：点开「写作」tab 时按序插入；
-     首次 load 之后空闲再预热一次。承接代码在 js/bank.js 的 loadWritingScripts()。 -->
 <script defer src="js/data.js?v=20261030a"></script>
-<script defer src="js/common.js?v=20261106a"></script>
+<script defer src="js/common.js?v=20261108a"></script>
 <script defer src="js/common-ai.js?v=20261104n"></script>
 <script defer src="js/common-sync.js?v=20261107c"></script>
 <script defer src="js/common-merge.js?v=20261101m"></script>
@@ -2996,7 +2914,7 @@ main.container:has(> .hub-shell){
 <script defer src="js/common-shell.js?v=20261107b"></script>
 <script defer src="js/common-pwa.js?v=20261101m"></script>
 <script defer src="js/exam-timer.js?v=20261102c"></script>
-<script defer src="js/bank.js?v=20261106a"></script>
+<script defer src="js/bank.js?v=20261108a"></script>
 <!-- RV-FIX5-10/11（11-03 合流修正）：bank.js 内容改了但引用串此前漏 bump（串还是 g，与上一版撞）——
      按 11-02 判据「bump 不覆盖页面 js 引用串」人工改 h；bank.css 保持 g（本笔未再动它）。 -->
 <!-- M-2（10-24）：模考页「没做过/做过」分组 + 展开更多。

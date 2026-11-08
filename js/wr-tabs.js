@@ -35,14 +35,16 @@
     {id:'tpl',nm:'模板库',ic:'book'},
     {id:'bank',nm:'语料库',ic:'pen'},
     {id:'score',nm:'AI 评分',ic:'chat'},
-    {id:'records',nm:'练习记录',ic:'table'}
+    {id:'records',nm:'练习记录',ic:'table'},
+    {id:'exam',nm:'真题模考',ic:'exam'}
   ];
   var ICON={
     grid:'<rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>',
     book:'<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
     pen:'<path d="M4 20l4-1 10-10-3-3L5 16z"/><path d="M14 6l3 3"/>',
     chat:'<path d="M4 5h16v11H9l-5 4z"/>',
-    table:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 9v11"/>'
+    table:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 9v11"/>',
+    exam:'<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 3v4h6V3M9 12h6M9 16h4"/>'
   };
   var DIM=[['TR','任务回应'],['TA','任务完成'],['CC','连贯与衔接'],['LR','词汇丰富程度'],['GRA','语法多样性及准确性']];
   var LEGACY=['tplPanel','bankPanel','scorePanel','dictationPanel'];
@@ -197,15 +199,15 @@
     });
   }
   function valid(id){return TABS.some(function(t){return t.id===id})}
-  function renderPane(id){if(id==='home')renderHome();else if(id==='records')renderRecords()}
-  function hideNew(){var h=$('wrPaneHome'),r=$('wrPaneRecords');if(h)h.hidden=true;if(r)r.hidden=true}
+  function renderPane(id){if(id==='home')renderHome();else if(id==='records')renderRecords();else if(id==='exam'){if(typeof window.renderExamList==='function')window.renderExamList();if(typeof window.renderWritingFullEntry==='function')window.renderWritingFullEntry()}}
+  function hideNew(){var h=$('wrPaneHome'),r=$('wrPaneRecords'),e=$('wrPaneExam');if(h)h.hidden=true;if(r)r.hidden=true;if(e)e.hidden=true}
   function show(id,opts){
     if(!valid(id))return;
     window.__wrCur=id;
-    if(id==='home'||id==='records'){
+    if(id==='home'||id==='records'||id==='exam'){
       LEGACY.forEach(function(pid){var p=$(pid);if(p)p.hidden=true});
-      var h=$('wrPaneHome'),r=$('wrPaneRecords');
-      if(h)h.hidden=(id!=='home');if(r)r.hidden=(id!=='records');
+      var h=$('wrPaneHome'),r=$('wrPaneRecords'),e=$('wrPaneExam');
+      if(h)h.hidden=(id!=='home');if(r)r.hidden=(id!=='records');if(e)e.hidden=(id!=='exam');
     }else{
       var want=PANEL_OF[id];
       var btn=document.querySelector('#writeTabs [data-tab="'+id+'"]');

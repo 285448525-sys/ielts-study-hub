@@ -41,7 +41,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <script defer src="js/data.js?v=20261030a"></script>
-  <script defer src="js/common.js?v=20261106a"></script>
+  <script defer src="js/common.js?v=20261108a"></script>
   <script defer src="js/common-ai.js?v=20261104n"></script>
   <script defer src="js/common-sync.js?v=20261107c"></script>
   <script defer src="js/common-merge.js?v=20261101m"></script>
@@ -735,6 +735,32 @@ body.exam-fullscreen .wr-pane{display:none!important}
   .wr-vhead h1{font-size:18px}
   .wr-rec-date{width:74px}.wr-rec-mode{width:64px}
 }
+
+/* MODULE-MOVE-1（11-08）：从机经搬来的「完整模考 / 完整写作」入口卡皮肤，类名原样。 */
+.full-card{background:var(--primary-900);color:#fff;border-radius:14px;padding:16px 20px;display:flex;align-items:center;gap:18px;margin:0 0 16px}
+.full-card .fc-num{font-size:30px;font-weight:800;line-height:1;opacity:.92;flex:none;font-variant-numeric:tabular-nums}
+.full-card .fc-body{flex:1;min-width:0}
+.full-card .fc-body b{display:block;font-size:16px;font-weight:700;margin-bottom:4px}
+.full-card .fc-body>span{font-size:12.5px;opacity:.85}
+.full-card .fc-pills{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.full-card .fc-pill{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.26);border-radius:999px;padding:3px 12px;font-size:12px;white-space:nowrap}
+.full-card .btn-primary{background:#fff;color:var(--primary-900);flex:none}
+.full-card .btn-primary:hover{background:#eef7f6}
+.full-card{background:linear-gradient(158deg,var(--primary-600) 0%,var(--primary-800) 100%);box-shadow:0 14px 34px rgba(0,0,0,.18)}
+.full-card .fc-num{opacity:.30;font-size:54px}
+.full-card .fc-pill{background:rgba(255,255,255,.18);border:1px solid transparent;color:#fff}
+.full-card .btn-primary{background:#fff;color:var(--primary-800);box-shadow:0 4px 14px rgba(0,0,0,.18)}
+.full-card .btn-primary:hover{background:#f0faf9}
+@media(max-width:860px){.full-card{flex-direction:column;align-items:stretch;gap:12px}.full-card .btn-primary{width:100%}}
+
+.exam-filter-bar{flex-wrap:wrap;overflow:visible;gap:6px 14px}
+.wrt-chips{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.wrt-chip{font:inherit;font-size:13px;font-weight:600;line-height:1;padding:6px 11px;border:0;border-radius:8px;cursor:pointer;background:none;color:var(--muted);transition:color .15s,background .15s;white-space:nowrap}
+.wrt-chip:hover{color:var(--ink);background:var(--n-50)}
+.wrt-chip.active{color:var(--primary-700);background:var(--primary-50);font-weight:700}
+.wrt-chip:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(58,154,147,.25)}
+@media (max-width:560px){.wrt-chip{font-size:12.5px;padding:6px 9px}}
+
 </style>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
@@ -843,6 +869,31 @@ body.exam-fullscreen .wr-pane{display:none!important}
           </select>
         </div>
         <div id="wrRecordsBody"></div>
+      </div>
+      <div class="wr-pane" data-wr-pane="exam" id="wrPaneExam" hidden>
+        <div class="wr-vhead">
+          <div><h1>真题模考</h1><span>大作文 70 篇 · 小作文 25 篇，按题型挑一篇限时写，或两篇连考</span></div>
+        </div>
+        <div id="writingFullEntry" class="full-entry"></div>
+        <select id="examFilter" aria-label="按题型筛选" hidden>
+          <option value="all">全部作文</option>
+          <option value="big">大作文 Task 2</option>
+          <option value="small">小作文 Task 1</option>
+        </select>
+        <select id="examSubFilter" aria-label="按细分题型筛选" hidden>
+          <option value="all">所有题型</option>
+        </select>
+        <div class="exam-filter-bar">
+          <div class="wrt-chips" id="examFilterChips" role="group" aria-label="按题型筛选">
+            <button type="button" class="wrt-chip active" data-v="all">全部作文</button>
+            <button type="button" class="wrt-chip" data-v="big">大作文 Task 2</button>
+            <button type="button" class="wrt-chip" data-v="small">小作文 Task 1</button>
+          </div>
+          <div class="wrt-chips" id="examSubFilterChips" role="group" aria-label="按细分题型筛选">
+            <button type="button" class="wrt-chip active" data-v="all">所有题型</button>
+          </div>
+        </div>
+        <div id="examList" class="exam-list"></div>
       </div>
   <div class="page-head-row">
     <div class="write-tabs pill-tabs" id="writeTabs">
@@ -1153,5 +1204,5 @@ body.exam-fullscreen .wr-pane{display:none!important}
 </main>
 <link rel="stylesheet" href="css/p/hub-shell.css?v=20261107a" />
 <script defer src="js/hub-side-shell.js?v=20261106b"></script>
-<script defer src="js/wr-tabs.js?v=20261108a"></script>
+<script defer src="js/wr-tabs.js?v=20261108b"></script>
 

@@ -48,7 +48,8 @@
     {id:'bank',nm:'题库',ic:'book'},
     {id:'practice',nm:'陪练',ic:'chat'},
     {id:'materials',nm:'素材',ic:'pen'},
-    {id:'records',nm:'模考记录',ic:'table'}
+    {id:'records',nm:'模考记录',ic:'table'},
+    {id:'mock',nm:'完整模考',ic:'mock'}
   ];
   var ICON={
     grid:'<rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>',
@@ -56,7 +57,8 @@
     chat:'<path d="M4 5h16v11H9l-5 4z"/>',
     pen:'<path d="M4 20l4-1 10-10-3-3L5 16z"/><path d="M14 6l3 3"/>',
     table:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 9v11"/>',
-    sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>'
+    sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+    mock:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M8 9l4 3-4 3z"/>'
   };
   var VIEWS=['listView','detailView','mockView','matView','sentView','coachView'];
   var PANEL_OF={bank:'BANK',practice:'PRACTICE',materials:'MAT',records:'MOCK'};
@@ -249,17 +251,17 @@
   }
   function valid(id){return TABS.some(function(t){return t.id===id})}
   function renderPane(id){if(id==='home')renderHome();else if(id==='records')renderRecords()}
-  function hideNew(){var h=$('sptPaneHome'),r=$('sptPaneRecords');if(h)h.hidden=true;if(r)r.hidden=true}
+  function hideNew(){var h=$('sptPaneHome'),r=$('sptPaneRecords'),m=$('sptPaneMock');if(h)h.hidden=true;if(r)r.hidden=true;if(m)m.hidden=true}
   function show(id,opts){
     if(!valid(id))return;
     window.__sptCur=id;
-    if(id==='home'||id==='records'){
+    if(id==='home'||id==='records'||id==='mock'){
       /* 与 speaking.js:88 切 tab 同款：离开模考视图时移除沉浸态，否则新 pane 会被
          body.mock-immerse .spt-pane{display:none!important} 压住变空白。 */
       try{document.body.classList.remove('mock-immerse')}catch(e){}
       VIEWS.forEach(function(vid){var e=$(vid);if(e)e.hidden=true});
-      var h=$('sptPaneHome'),r=$('sptPaneRecords');
-      if(h)h.hidden=(id!=='home');if(r)r.hidden=(id!=='records');
+      var h=$('sptPaneHome'),r=$('sptPaneRecords'),m=$('sptPaneMock');
+      if(h)h.hidden=(id!=='home');if(r)r.hidden=(id!=='records');if(m)m.hidden=(id!=='mock');
     }else{
       var dt=PANEL_OF[id];
       var btn=document.querySelector('#tabs [data-type="'+dt+'"]');
@@ -324,8 +326,9 @@
       /* 6 个 view 全被收起（例如退出模考）→ 把当前 pane 归位，绝不空白 */
       var anyVisible=VIEWS.some(function(id){var e=$(id);return e&&!e.hidden});
       var cur=window.__sptCur||'home';
-      if(!anyVisible&&(cur==='home'||cur==='records')){
-        var p=$(cur==='home'?'sptPaneHome':'sptPaneRecords');
+      if(!anyVisible&&(cur==='home'||cur==='records'||cur==='mock')){
+        var pid=cur==='home'?'sptPaneHome':(cur==='records'?'sptPaneRecords':'sptPaneMock');
+        var p=$(pid);
         if(p&&p.hidden){p.hidden=false;renderPane(cur)}
       }
     });

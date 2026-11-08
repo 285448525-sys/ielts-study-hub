@@ -5951,7 +5951,7 @@ window.__reportExamState = reportExamState;
     var want = '';
     try{ want = (typeof tbSubPending === 'function') ? tbSubPending('bank') : ''; }catch(e){}
     if(!want) return;
-    if(['reading','listening','writing','speaking'].indexOf(want) < 0) return;
+    if(['reading','listening'].indexOf(want) < 0) return;
     var root = document.getElementById('bankRoot'); if(!root) return;
     root.setAttribute('data-mock-tab', want);
     /* 等 manifest：boot 是异步的，_manifest 到位后再画一次。最多等 8 秒（慢网），

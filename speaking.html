@@ -50,7 +50,7 @@
        其余页面由 js/common-pwa.js 在「页面可用之后」按需拉（首屏关键路径少 ~21KB brotli）。 -->
   <script defer src="js/data-static.js?v=20261027a"></script>
   <script defer src="js/pricing.js?v=20261025f"></script>
-  <script defer src="js/common.js?v=20261106a"></script>
+  <script defer src="js/common.js?v=20261108a"></script>
   <script defer src="js/common-ai.js?v=20261104n"></script>
   <script defer src="js/common-sync.js?v=20261107c"></script>
   <script defer src="js/common-merge.js?v=20261101m"></script>
@@ -2995,6 +2995,43 @@ body.mock-immerse .spt-pane,body.exam-fullscreen .spt-pane{display:none!importan
   .spt-vhead h1{font-size:18px}
   .spt-rec-date{width:74px}.spt-rec-mode{width:64px}
 }
+
+/* MODULE-MOVE-1（11-08）：从机经搬来的「完整模考 / 完整写作」入口卡皮肤，类名原样。 */
+.full-card{background:var(--primary-900);color:#fff;border-radius:14px;padding:16px 20px;display:flex;align-items:center;gap:18px;margin:0 0 16px}
+.full-card .fc-num{font-size:30px;font-weight:800;line-height:1;opacity:.92;flex:none;font-variant-numeric:tabular-nums}
+.full-card .fc-body{flex:1;min-width:0}
+.full-card .fc-body b{display:block;font-size:16px;font-weight:700;margin-bottom:4px}
+.full-card .fc-body>span{font-size:12.5px;opacity:.85}
+.full-card .fc-pills{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.full-card .fc-pill{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.26);border-radius:999px;padding:3px 12px;font-size:12px;white-space:nowrap}
+.full-card .btn-primary{background:#fff;color:var(--primary-900);flex:none}
+.full-card .btn-primary:hover{background:#eef7f6}
+.full-card{background:linear-gradient(158deg,var(--primary-600) 0%,var(--primary-800) 100%);box-shadow:0 14px 34px rgba(0,0,0,.18)}
+.full-card .fc-num{opacity:.30;font-size:54px}
+.full-card .fc-pill{background:rgba(255,255,255,.18);border:1px solid transparent;color:#fff}
+.full-card .btn-primary{background:#fff;color:var(--primary-800);box-shadow:0 4px 14px rgba(0,0,0,.18)}
+.full-card .btn-primary:hover{background:#f0faf9}
+@media(max-width:860px){.full-card{flex-direction:column;align-items:stretch;gap:12px}.full-card .btn-primary{width:100%}}
+
+.spk-flow{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:0 0 16px}
+.spk-flow .spk-step{border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:12px 14px}
+.spk-flow .spk-step .no{display:block;font-size:11px;font-weight:800;letter-spacing:.1em;color:var(--primary)}
+.spk-flow .spk-step b{display:block;font-size:14px;font-weight:700;color:var(--ink);margin:3px 0 4px}
+.spk-flow .spk-step span{display:block;font-size:12.5px;line-height:1.6;color:var(--muted)}
+.spk-tips{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.spk-tips .spk-tip{border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:12px 14px;font-size:13.5px;line-height:1.68;color:var(--muted)}
+.spk-tips .spk-tip b{display:block;font-size:13.5px;font-weight:700;color:var(--ink);margin-bottom:3px}
+.spk-tips .spk-tip strong{font-weight:700;color:var(--ink)}
+.spk-notes-h{display:flex;align-items:baseline;gap:8px;margin:0 0 10px}
+.spk-notes-h b{font-size:14px;font-weight:700;color:var(--ink)}
+.spk-notes-h span{font-size:12.5px;color:var(--muted)}
+.spk-cols{display:grid;grid-template-columns:minmax(0,.86fr) minmax(0,1fr);gap:22px;align-items:start}
+.spk-col{min-width:0}
+.spk-cols .spk-flow{grid-template-columns:1fr;gap:9px;margin:0}
+.spk-cols .spk-tips{grid-template-columns:1fr 1fr;gap:9px}
+@media(max-width:860px){.spk-cols{grid-template-columns:1fr;gap:18px}.spk-cols .spk-flow{grid-template-columns:1fr}.spk-cols .spk-tips{grid-template-columns:1fr}}
+@media(max-width:860px){.spk-flow{grid-template-columns:1fr}.spk-tips{grid-template-columns:1fr}.spk-tips .spk-tip{font-size:13px}}
+
 </style>
 <meta name="description" content="口语练习：P1/P2/P3 题库与答题框架、串题素材沉淀、AI 口语模考（考官画面 + 四维报告）。" />
 <link rel="canonical" href="https://yasihub.com/speaking" />
@@ -3046,6 +3083,37 @@ body.mock-immerse .spt-pane,body.exam-fullscreen .spt-pane{display:none!importan
           </select>
         </div>
         <div id="sptRecordsBody"></div>
+      </div>
+      <div class="spt-pane" data-spt-pane="mock" id="sptPaneMock" hidden>
+        <div class="spt-vhead">
+          <div><h1>完整模考</h1><span>和真机考一样，P1 → P2 → P3 连着来一遍</span></div>
+        </div>
+        <div class="full-card">
+          <div class="fc-num">18</div>
+          <div class="fc-body"><b>Full Speaking Test · 完整口语模考</b>
+            <span>3 parts · 18 questions · 约 12–15 minutes · 考中和真机考一致</span>
+          </div>
+          <button type="button" class="spt-btn primary" data-spt-mock>Start Test</button>
+        </div>
+        <div class="spk-cols">
+          <div class="spk-col">
+            <div class="spk-notes-h"><b>怎么考</b><span>三个部分连着进行，和真机考同一顺序</span></div>
+            <div class="spk-flow">
+              <div class="spk-step"><span class="no">PART 1</span><b>开场自我介绍</b><span>12 小题 · 约 4–5 分钟，聊聊日常话题</span></div>
+              <div class="spk-step"><span class="no">PART 2</span><b>个人陈述</b><span>准备 1 分钟 + 陈述 2 分钟，话题卡全程留在屏幕上</span></div>
+              <div class="spk-step"><span class="no">PART 3</span><b>双向讨论</b><span>5 题追问 · 约 4–5 分钟，就 Part 2 话题往深里聊</span></div>
+            </div>
+          </div>
+          <div class="spk-col">
+            <div class="spk-notes-h"><b>考试说明</b><span>开始前看一眼</span></div>
+            <div class="spk-tips">
+              <div class="spk-tip"><b>作答方式是语音输入</b>用输入法的语音键把你想说的英文说出来，识别的文字直接进答题框——推荐用<strong>豆包输入法</strong>，识别得最准。考的是内容和表达，不是口音。</div>
+              <div class="spk-tip"><b>Part 2 有 1 分钟准备</b>可以先写几个关键词当笔记，陈述的时候别照着念，说人话就行。</div>
+              <div class="spk-tip"><b>中途退出或刷新不丢</b>这场的进度会存下来，下次进来自动接着考。</div>
+              <div class="spk-tip"><b>时间到不强制收卷</b>按自己的节奏答完，交卷后出评估报告（总分 + 各 Part 建议）。</div>
+            </div>
+          </div>
+        </div>
       </div>
   <div class="page-head-row">
     <div class="sp-tabs pill-tabs" id="tabs">
@@ -3620,6 +3688,6 @@ body.mock-immerse .spt-pane,body.exam-fullscreen .spt-pane{display:none!importan
 
 <link rel="stylesheet" href="css/p/hub-shell.css?v=20261107a" />
 <script defer src="js/hub-side-shell.js?v=20261106b"></script>
-<script defer src="js/spt-tabs.js?v=20261108b"></script>
+<script defer src="js/spt-tabs.js?v=20261108c"></script>
 </body>
 </html>
