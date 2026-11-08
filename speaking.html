@@ -200,7 +200,7 @@
   .sent-note{font-size:13px;color:var(--muted);line-height:1.7;margin:4px 0 0}
   .sent-fix{font-size:13.5px;color:var(--ink);line-height:1.7;margin-bottom:8px}
   .sent-misread{font-size:13.5px;line-height:1.7;color:var(--warn-ink);background:var(--warn-soft);border:1px solid rgba(255,149,0,.3);border-radius:8px;padding:8px 12px;margin-bottom:8px}
-  /* 「我的语法错题」整模块 10/1 下线（她拍板）：.sent-del/.sent-fixtask*/.diag-collect* 死样式已随功能删除 */
+  /* 「我的语法错题」整模块 10/1 下线（她拍板）：sent-del、sent-fixtask、diag-collect 等死样式已随功能删除。注释内不写类名通配符，避免提前闭合吞掉后面的规则 */
   /* === design/17 P1：薄弱条 / 全部重练 / 拼接验证弹窗 / 查句型面板 / 备注框 === */
   .sent-weak{display:flex;align-items:center;gap:6px;padding:10px 14px;margin-bottom:12px;background:var(--primary-soft,#eef6f5);border:1px solid var(--line);border-radius:var(--radius);font-size:13.5px;font-weight:600;color:var(--primary,#3a9a93);cursor:pointer;transition:all .15s}
   .sent-weak:hover{border-color:var(--primary,#3a9a93)}

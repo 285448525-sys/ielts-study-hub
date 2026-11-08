@@ -1426,7 +1426,7 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 .exam-tu-actions{display:flex;gap:10px;justify-content:center}
 .exam-textarea:read-only{background:var(--danger-soft);border-color:var(--danger)}
 /* ===== 评分结果面板（10/11 第 7 项：与 writing.html 内联同源复制）=====
-   bank 页写作交卷后 #examResult 渲染 srPanelHtml 的 .sr-*/.sc-dim*/.fx*/.ts-loc 等，
+   bank 页写作交卷后 #examResult 渲染 srPanelHtml 的 sr、sc-dim、fx、ts-loc 等类，
    + 评分记录 .hist-*，此前这些类只在 writing.html 内联 → bank 页缺失致排版堆积。
    源区间 = writing.html 第 133-255 行（逐行同步）。改这里必须同步改 writing.html，反之亦然。 */
   .score-section{margin-bottom:14px}
