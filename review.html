@@ -241,6 +241,16 @@
    一有成绩 summary() 还原数据版，判据失效，控件原样长回来。
    只改可见性，DOM、ID、数据落点、事件绑定一个不删；注释内不出现类名通配符字面量。 */
 .hub-main:has(#rv2Summary > .rv2-empty.rve--hero) :is(#rvxTrendView,#rvxTrendChips,.rv2-chart-foot,#rv2Insight,.rv2-performance,#recordFilter){display:none!important}
+/* REVIEW-VIEWS-CLEAN-1（v835）：按 REVIEW-TABS-1 带数据稿把有成绩时回潮的旧控件统一成
+   设计稿组件（teal 圆角胶囊 .chip.on / 圆角时间选择 .range-sel / 一致 14px 卡片）。
+   v831 只在空账号用 :has 藏旧块、一有数据全回潮且还是旧形态；本笔只改可见样式，
+   DOM、ID、数据落点、事件绑定一个不删不改；空账号的 :has 隐藏规则在前、display 优先。 */
+.hub-main .rv2-segment{display:inline-flex;gap:5px;flex-wrap:wrap;padding:0;border:0;background:transparent;border-radius:0}
+.hub-main .rv2-segment button{min-height:32px;padding:0 13px;border:1px solid var(--line);border-radius:16px;background:var(--surface);color:var(--ink-2);font-size:12.5px;font-weight:600}
+.hub-main .rv2-segment button.active{background:var(--ink,#1f2328);border-color:var(--ink,#1f2328);color:#fff;font-weight:700;box-shadow:none}
+.hub-main .rv2-card-head select,.hub-main .rv2-head-tools select,.hub-main #recordFilter,.hub-main #rv2StatRange{height:36px;padding:0 30px 0 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink-2);font:inherit;font-size:12.5px;font-weight:650;appearance:none;-webkit-appearance:none;cursor:pointer;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2371767e' stroke-width='2.4' stroke-linecap='round'><path d='M6 9l6 6 6-6'/></svg>");background-repeat:no-repeat;background-position:right 10px center}
+.hub-main .rv2-card,.hub-main .rv2-insight,.hub-main .rv2-performance,.hub-main .rv2-records{border-radius:14px}
+@media(max-width:860px){.hub-main .rv2-card-head{gap:8px}.hub-main .rv2-head-tools{width:100%;margin-left:0}.hub-main .rv2-segment button{padding:0 10px;font-size:12px}}
 </style>
 
 <script>
