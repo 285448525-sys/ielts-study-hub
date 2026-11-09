@@ -761,6 +761,72 @@ body.exam-fullscreen .wr-pane{display:none!important}
 .wrt-chip:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(58,154,147,.25)}
 @media (max-width:560px){.wrt-chip{font-size:12.5px;padding:6px 9px}}
 
+
+/* WRITING-VIEWS-2（11-09 她「其他页面只改了骨架，把里面的内容也改成设计稿的样式」）：
+   把 WRITING-TABS-1 稿子的组件样式就地套到三个既有功能面板上，只改外观，
+   DOM / ID / 数据落点 / 事件绑定一个不删不改；练习记录栏另在 wr-tabs.js 按稿补足内容。 */
+.wrv-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin:2px 0 16px}
+.wrv-head h1{margin:0;font-size:20px;font-weight:800;letter-spacing:-.02em;color:var(--ink,#1f2328)}
+.wrv-hint{font-size:12.5px;color:var(--muted,#71767e)}
+.wrv-stat{margin-left:auto;font-size:11.5px;font-weight:700;color:var(--primary-700,#2f7d76);
+  background:var(--primary-50,#e8f3f1);padding:4px 11px;border-radius:999px;white-space:nowrap}
+#tplPanel:has(#detailCard:not([hidden])) > .wrv-head{display:none}
+#tplPanel .card,#bankPanel .card,#scorePanel .card{border-radius:14px;
+  box-shadow:0 1px 2px rgba(24,40,48,.04),0 6px 18px -12px rgba(24,40,48,.18)}
+#tplPanel .lst-hd h3,#bankPanel .card > h2,#scorePanel .card > h2{font-size:14px;font-weight:750}
+#bankPanel .card > p.muted,#scorePanel .card > p.muted{font-size:12px}
+#tplPanel .wb-filters .fchip{height:30px;padding:0 12px;border:1px solid var(--line,#e6e9ea);
+  border-radius:16px;background:var(--surface,#fff);color:var(--ink-2,#3f464d);font-size:12.5px;font-weight:600}
+#tplPanel .wb-filters .fchip:hover{border-color:var(--primary,#5cb3ab);color:var(--primary-700,#2f7d76)}
+#tplPanel .wb-filters .fchip.on{background:var(--ink,#1f2328);border-color:var(--ink,#1f2328);color:#fff;font-weight:700}
+#tplPanel #tplList.grid .tpl-card{display:flex;flex-direction:column;gap:7px;min-height:128px;
+  padding:14px 15px;border-radius:12px;transition:border-color .15s,box-shadow .15s}
+#tplPanel #tplList.grid .tpl-card:hover{border-color:var(--primary,#5cb3ab);
+  box-shadow:0 1px 2px rgba(24,40,48,.04),0 6px 18px -12px rgba(24,40,48,.18)}
+#tplPanel #tplList.grid .tpl-card > b{font-size:14px;font-weight:750;line-height:1.35}
+#tplPanel #tplList.grid .tpl-card .tpl-meta{order:-1;display:flex;gap:6px}
+#tplPanel #tplList.grid .tpl-card .tpl-lv,#tplPanel #tplList.grid .tpl-card .tpl-cat{
+  font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:999px;
+  background:var(--primary-50,#e8f3f1);color:var(--primary-700,#2f7d76)}
+#tplPanel #tplList.grid .tpl-card .tpl-cat{background:var(--bg,#f6f9fb);color:var(--muted,#71767e)}
+#tplPanel #tplList.grid .tpl-card .tpl-sk{font-size:11.5px;color:var(--muted,#71767e);line-height:1.55;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+#tplPanel #tplList.grid .tpl-card .tpl-foot{margin-top:auto}
+#tplPanel #tplList.grid .tpl-card .tpl-go{color:var(--primary-700,#2f7d76);font-weight:700}
+#bankPanel .bank-table{border-collapse:collapse;width:100%}
+#bankPanel .bank-table th{text-align:left;font-size:11px;color:var(--muted,#71767e);font-weight:650;
+  padding:10px 14px;border-bottom:1px solid var(--line,#e6e9ea);background:#fbfdfc}
+#bankPanel .bank-table td{padding:12px 14px;border-bottom:1px solid var(--line-2,#eef1f2);vertical-align:top}
+#bankPanel .bank-table tr:last-child td{border-bottom:0}
+#bankPanel .bank-table tbody tr:hover{background:#fbfdfc}
+#bankPanel .bank-td-en{font-size:14px;font-weight:700}
+#bankPanel .bank-tag{font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:999px;
+  background:var(--primary-50,#e8f3f1);color:var(--primary-700,#2f7d76);white-space:nowrap}
+#bankPanel .bank-detail{font-size:12.5px;color:var(--muted,#71767e);margin-top:3px}
+#bankPanel .bank-ex{font-size:11.5px;color:var(--muted-2,#9aa0a6);margin-top:4px;font-style:italic}
+#bankPanel .bank-del{border:1px solid var(--line,#e6e9ea);border-radius:8px;background:var(--surface,#fff);
+  color:var(--muted,#71767e);font:inherit;font-size:11.5px;padding:4px 10px;cursor:pointer}
+#bankPanel .bank-del:hover{border-color:var(--primary,#5cb3ab);color:var(--primary-700,#2f7d76)}
+#scorePanel .sr-scorehead .sr-overall{font-size:32px;font-weight:800;color:var(--primary-700,#2f7d76);letter-spacing:-.03em}
+#scorePanel .score-result{border-radius:14px}
+.wr-tbl-scroll{overflow-x:auto}
+.wr-rec-table{width:100%;min-width:660px;border-collapse:collapse;font-size:12.5px}
+.wr-rec-table th{text-align:left;font-size:11px;color:var(--wt-muted);font-weight:650;
+  padding:10px 14px;border-bottom:1px solid var(--wt-line);white-space:nowrap;background:#fbfdfc}
+.wr-rec-table td{padding:11px 14px;border-bottom:1px solid var(--wt-line);white-space:nowrap}
+.wr-rec-table tr:last-child td{border-bottom:0}
+.wr-rec-table tbody tr:hover{background:#fbfdfc}
+.wr-rec-table .wr-rt-sc{font-variant-numeric:tabular-nums;font-weight:700}
+.wr-rec-table .wr-rt-low{color:var(--wt-amber)}
+.wr-rec-table .wr-rt-overall{font-size:15px;font-weight:800;color:var(--wt-teal-700)}
+.wr-rec-table .wr-rt-date{color:var(--wt-muted);font-size:12px}
+.wr-rec-table .wr-rt-brief{max-width:220px;overflow:hidden;text-overflow:ellipsis}
+.wr-gram-row{display:flex;align-items:center;gap:10px;padding:9px 16px;border-top:1px solid var(--wt-line)}
+.wr-gram-row .grow{flex:1;min-width:0}
+.wr-gram-row .t{font-size:12.5px;font-weight:650}
+.wr-gram-row .d{font-size:11.5px;color:var(--wt-muted)}
+@media(max-width:860px){.wrv-stat{margin-left:0}.wrv-head h1{font-size:18px}}
+
 </style>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
@@ -908,6 +974,7 @@ body.exam-fullscreen .wr-pane{display:none!important}
 
   <!-- 模板库面板 -->
   <div id="tplPanel">
+    <div class="wrv-head" data-wrv-head="tpl"><h1>模板库</h1><span class="wrv-hint">按题型和目标分挑一套，先背骨架再默写</span><span class="wrv-stat" data-wrv-stat="tpl"></span></div>
     <div class="write-layout">
       <div class="write-main">
         <section class="card" id="listCard">
@@ -1041,6 +1108,7 @@ body.exam-fullscreen .wr-pane{display:none!important}
 
   <!-- 语料库面板 -->
   <div id="bankPanel" hidden>
+    <div class="wrv-head" data-wrv-head="bank"><h1>语料库</h1><span class="wrv-hint">万能词组与句式，点中文可自测背诵</span><span class="wrv-stat" data-wrv-stat="bank"></span></div>
     <section class="card">
       <h2>写作万能语料</h2>
       <p class="muted" style="font-size:13px">把模板 + 这套万能词组/句式背完，基本能套市面上所有雅思题。点「看释义」自测背诵，可自己增删。</p>
@@ -1098,6 +1166,7 @@ body.exam-fullscreen .wr-pane{display:none!important}
 
   <!-- AI 评分面板 -->
   <div id="scorePanel" hidden>
+    <div class="wrv-head" data-wrv-head="score"><h1>AI 评分</h1><span class="wrv-hint">按官方四项标准估分，是预估分不是官方成绩</span><span class="wrv-stat" data-wrv-stat="score"></span></div>
     <section class="card">
       <h2>AI 作文评分</h2>
       <p class="muted" style="font-size:13px;margin-bottom:12px">粘贴完整 Task 2 作文，AI 按 TR / CC / LR / GRA 给出预估分并标出长/复杂句。</p>
@@ -1204,5 +1273,5 @@ body.exam-fullscreen .wr-pane{display:none!important}
 </main>
 <link rel="stylesheet" href="css/p/hub-shell.css?v=20261107a" />
 <script defer src="js/hub-side-shell.js?v=20261106b"></script>
-<script defer src="js/wr-tabs.js?v=20261108b"></script>
+<script defer src="js/wr-tabs.js?v=20261109b"></script>
 

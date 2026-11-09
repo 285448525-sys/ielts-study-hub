@@ -14,7 +14,11 @@
        tpl  模板库   → 转发 #writeTabs [data-tab=tpl]（switchWriteTab 显示 #tplPanel，任务2 重皮）；
        bank 语料库   → 转发 [data-tab=bank]（#bankPanel，任务3 重皮）；
        score AI 评分 → 转发 [data-tab=score]（#scorePanel，任务4 重皮）；
-       records 练习记录 = 新 pane #wrPaneRecords（本笔先给真记录表，任务5 补 chips/走势/语法点/错句本）。
+       records 练习记录 = 新 pane #wrPaneRecords（WRITING-VIEWS-2 已按稿补 4 数卡/记录表/走势/语法点）。
+     WRITING-VIEWS-2（11-09 她「其他页面只改了骨架，把里面的内容也改成设计稿的样式」）：
+       三个转发旧面板各补一段按稿栏头（真数据，见 renderViewHeads），并在 writing.html 页内 style
+       按 WRITING-TABS-1 稿子就地重皮（选择器限定三个面板内，不串号全站）；练习记录栏按稿补足内容。
+       既有 DOM/ID/数据落点/事件绑定一个不删不改，判分域不动。
      ⚠️ 与 js/writing.js 的 switchWriteTab 共存：它会在 ?sub= 深链、模板默写返回（:282/:1636）、
        机考记录退出（:3507/:3514）时自行显示/隐藏旧面板。本文件用 MutationObserver 盯旧面板的
        hidden：任何旧面板被显示，就把两个新 pane 收起并同步左栏高亮，保证任何时刻只有一套视图、
@@ -164,22 +168,60 @@
     box.innerHTML='<div class="wr-stat-grid">'+statHtml(cards)+'</div>'
       +rulerHtml(ov,t)+calloutHtml(weak)+twoCol;
   }
+  function renderViewHeads(){
+    var d=data(), ph=Array.isArray(d.writingPhrases)?d.writingPhrases.length:0;
+    var tpl=Array.isArray(d.writing)?d.writing.length:0, sc=scores().length;
+    var vals={tpl:tpl+' 套 · '+ph+' 条语料',bank:ph+' 条 · 点中文自测',score:sc+' 次评分 · 预估分不是官方成绩'};
+    document.querySelectorAll('[data-wrv-stat]').forEach(function(e){
+      var k=e.getAttribute('data-wrv-stat'); if(vals[k]!=null) e.textContent=vals[k];
+    });
+  }
   function renderRecords(){
+    /* WRITING-VIEWS-2：按 WRITING-TABS-1 稿子把练习记录栏从一张列表补成
+       4 数卡 + 记录表 + 评分走势 + 常犯语法点，全部现场算真数据，不编数字。 */
     var box=$('wrRecordsBody');if(!box)return;
     var recs=scores().slice().reverse(),t=target();
-    if(!recs.length){box.innerHTML='<div class="wr-empty"><b>还没有评分记录</b>去 AI 评分页写一篇，结果会自动存到这里。<div style="margin-top:14px"><button type="button" class="wr-btn primary" data-wr-go="score">去写一篇</button></div></div>';return}
+    if(!recs.length){box.innerHTML='<div class="wr-empty"><b>还没有练习记录</b>写一篇让 AI 评分，或默写一套模板，记录会自动收在这里。<div style="margin-top:14px"><button type="button" class="wr-btn primary" data-wr-go="score">去写一篇</button></div></div>';return}
+    var vals=recs.map(function(r){return Number(r.result.overall)||0});
+    var last=vals[0], n3=Math.min(3,vals.length), avg=vals.slice(0,n3).reduce(function(a,b){return a+b},0)/n3;
+    var wrong=0;try{if(typeof window.collectWrongSentences==='function'){var w=window.collectWrongSentences();wrong=Array.isArray(w)?w.length:0}}catch(e){}
+    var cards=[
+      {k:'近一次预估',v:one(last),unit:'/ 9',d:(recs[0].date||'')+' · AI 预估，不是官方成绩',ok:true,tone:'teal'},
+      {k:'近 3 次均值',v:one(avg),d:'AI 预估分'},
+      {k:'累计评分',v:String(recs.length),unit:'次',d:'按日期倒序'},
+      {k:'待重默错句',v:String(wrong),unit:'条',d:wrong?('错句本里还没清'):'错句本是空的',tone:wrong?'warn':'teal'}
+    ];
+    var bdKeys=['TR','CC','LR','GRA'];
+    function bd(r,k){var b=r.result&&r.result.breakdown;if(!b)return '—';var v=num(b[k]);return v==null?'—':one(v)}
     var rows=recs.slice(0,20).map(function(r){
       var v=r.result&&r.result.overall!=null?Number(r.result.overall):null;
-      var oval=v==null?'未解析':one(v),key=v!=null&&v>=t;
-      return '<div class="wr-rec-row"><span class="wr-rec-date">'+esc(r.date||'')+'</span>'
-        +'<span class="wr-rec-mode">'+esc(modeOf(r))+'</span>'
-        +'<span class="wr-rec-brief">'+esc(String(briefOf(r)).slice(0,42))+'</span>'
-        +'<span class="wr-pill '+(key?'key':'warn')+'">'+esc(oval)+'</span></div>';
+      var cells=bdKeys.map(function(k){
+        var x=bd(r,k);return '<td class="wr-rt-sc'+(x!=='—'&&Number(x)<t?' wr-rt-low':'')+'">'+esc(x)+'</td>';
+      }).join('');
+      return '<tr><td class="wr-rt-date">'+esc(r.date||'')+'</td>'
+        +'<td><span class="wr-pill">'+esc(modeOf(r))+'</span></td>'
+        +'<td class="wr-rt-brief">'+esc(String(briefOf(r)).slice(0,26))+'</td>'
+        +cells
+        +'<td class="wr-rt-overall">'+esc(v==null?'未解析':one(v))+'</td></tr>';
     }).join('');
-    box.innerHTML='<div class="wr-panel">'+panelHead('评分记录','AI 预估分，不是官方成绩 · 共 '+recs.length+' 次（最多显示 20 条）')
-      +'<div>'+rows+'</div></div>';
+    var table='<div class="wr-panel">'+panelHead('评分记录','AI 预估分，不是官方成绩 · 共 '+recs.length+' 次（最多显示 20 条）')
+      +'<div class="wr-tbl-scroll"><table class="wr-rec-table"><thead><tr><th>日期</th><th>类型</th><th>题目</th><th>TR</th><th>CC</th><th>LR</th><th>GRA</th><th>预估总分</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
+      +'<div class="wr-rec-row" style="border-top:1px solid var(--wt-line);color:var(--wt-muted);font-size:11.5px"><span>共 '+Math.min(recs.length,20)+' 条 · 按日期倒序</span></div></div>';
+    var plot=recs.slice(0,Math.min(8,recs.length)).reverse();
+    var tagCnt={};recs.slice(0,10).forEach(function(r){
+      var g=r.result&&r.result.grammar;if(Array.isArray(g))g.forEach(function(x){if(x&&x.tag)tagCnt[x.tag]=(tagCnt[x.tag]||0)+1});
+    });
+    var tags=Object.keys(tagCnt).sort(function(a,b){return tagCnt[b]-tagCnt[a]}).slice(0,3);
+    var gramHtml=tags.length?tags.map(function(k){
+      return '<div class="wr-gram-row"><span class="grow"><span class="t">'+esc(k)+'</span></span><span class="wr-pill warn">'+tagCnt[k]+' 次</span></div>';
+    }).join(''):'<div class="wr-gram-row"><span class="grow"><span class="t" style="color:var(--wt-muted);font-weight:600">还没有标出常犯的语法点</span></span></div>';
+    var twoCol='<div class="wr-two-col">'
+      +'<div class="wr-panel">'+panelHead('评分走势','近 '+plot.length+' 次 · 每个点是一篇 · 虚线 = 目标 '+t)
+        +'<div class="wr-spark">'+sparkHtml(plot,t)
+        +'<div class="wr-spark-foot"><span>'+esc((plot[0].date||'')+' · '+one(Number(plot[0].result.overall)||0))+'</span><span>'+esc((plot[plot.length-1].date||'')+' · '+one(Number(plot[plot.length-1].result.overall)||0))+'</span></div></div></div>'
+      +'<div class="wr-panel">'+panelHead('常犯语法点','近 10 次评分里标得最多')+gramHtml+'</div></div>';
+    box.innerHTML='<div class="wr-stat-grid">'+statHtml(cards)+'</div>'+table+twoCol;
   }
-
   function renderNav(){
     var box=$('wrNav');if(!box)return;
     var badges={tpl:tplCount(),bank:phrCount(),records:scores().length};
@@ -215,7 +257,7 @@
       LEGACY.forEach(function(pid){var p=$(pid);if(p)p.hidden=(pid!==want)});
       hideNew();
     }
-    syncActive();syncBadges();renderPane(id);
+    syncActive();syncBadges();renderPane(id);renderViewHeads();
     try{var hm=document.querySelector('.hub-main');if(hm)hm.scrollTop=0;var main=document.querySelector('main.container');if(main)main.scrollTop=0}catch(e){}
     try{if(typeof window.hubResetPageScroll==='function')window.hubResetPageScroll();if(typeof window.hubFitPageScroll==='function')window.hubFitPageScroll()}catch(e){}
     if(!(opts&&opts.silent)){try{history.replaceState(null,'','#wr='+id)}catch(e){}}
@@ -259,12 +301,12 @@
     if(window.__wrChange){try{document.removeEventListener('change',window.__wrChange)}catch(e){}}
     window.__wrChange=onChange;document.addEventListener('change',onChange);
     if(window.__wrMerge){try{document.removeEventListener('hub:data-merged',window.__wrMerge)}catch(e){}}
-    window.__wrMerge=function(){syncBadges();renderNav();renderPane(window.__wrCur||'home')};document.addEventListener('hub:data-merged',window.__wrMerge);
+    window.__wrMerge=function(){syncBadges();renderNav();renderPane(window.__wrCur||'home');renderViewHeads()};document.addEventListener('hub:data-merged',window.__wrMerge);
     if(window.__wrHash){try{window.removeEventListener('hashchange',window.__wrHash)}catch(e){}}
     window.__wrHash=function(){var id=hashId();if(id&&id!==window.__wrCur)show(id,{silent:true})};window.addEventListener('hashchange',window.__wrHash);
     observe();
   }
-  function boot(){renderNav();bind();show(hashId()||subId()||'home',{silent:true})}
+  function boot(){renderNav();bind();show(hashId()||subId()||'home',{silent:true});renderViewHeads()}
   window.__wrTabs={show:show,renderNav:renderNav,renderPane:renderPane,cur:function(){return window.__wrCur}};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
 })();
