@@ -827,6 +827,12 @@ body.exam-fullscreen .wr-pane{display:none!important}
 .wr-gram-row .d{font-size:11.5px;color:var(--wt-muted)}
 @media(max-width:860px){.wrv-stat{margin-left:0}.wrv-head h1{font-size:18px}}
 
+/* WRITING-VIEWS-CLEAN-1（v836）：AI 评分栏残留的原生下拉与旧「评分记录」卡统一到
+   WRITING-TABS-1 稿组件（圆角时间选择 / 14px 卡片）；只改可见样式，
+   DOM、ID、数据落点、事件绑定一个不删不改，清空记录功能照旧。 */
+#scorePanel #scoreType{height:36px;padding:0 30px 0 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink-2);font:inherit;font-size:12.5px;font-weight:650;appearance:none;-webkit-appearance:none;cursor:pointer;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2371767e' stroke-width='2.4' stroke-linecap='round'><path d='M6 9l6 6 6-6'/></svg>");background-repeat:no-repeat;background-position:right 10px center}
+#scorePanel #scoreHistCard{border-radius:14px}
+@media(max-width:860px){#scorePanel #scoreType{width:100%}}
 </style>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
