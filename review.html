@@ -234,6 +234,13 @@
   .hub-main #rv2Summary > .rv2-empty.rve--hero{padding:24px 16px 20px}
   .rve-title{font-size:16px}
 }
+/* REVIEW-REDESIGN-2（11-09 她「沿用了之前本来就有问题的前端…按照你的设计稿重新设计」）：
+   空账号时把 v828 没清掉的旧 rv2 控件与重复大卡收起来，让 5 栏逐栏对回
+   design/REVIEW-EMPTY-1-回顾页空态重新设计_样子稿-2026-11-09.html。
+   判据沿用本页已有 :has 口径：rvx-data.js 空账号把 #rv2Summary 整块换成 hero；
+   一有成绩 summary() 还原数据版，判据失效，控件原样长回来。
+   只改可见性，DOM、ID、数据落点、事件绑定一个不删；注释内不出现类名通配符字面量。 */
+.hub-main:has(#rv2Summary > .rv2-empty.rve--hero) :is(#rvxTrendView,#rvxTrendChips,.rv2-chart-foot,#rv2Insight,.rv2-performance,#recordFilter){display:none!important}
 </style>
 
 <script>
