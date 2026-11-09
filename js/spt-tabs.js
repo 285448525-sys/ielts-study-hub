@@ -165,6 +165,26 @@
       +'<span class="tx"><b>'+esc(head)+'</b><span>'+esc(sub)+'</span></span>'
       +'<button type="button" class="spt-btn" data-spt-go="bank">去练必考题</button></div>';
   }
+
+  /* SPEAKING-VIEWS-2（v833）：三个转发功能栏共用一枚栏头（#spvHead）。
+     真数据现场算，绝不写死稿里的示意数字；不动 coach.js / materials.js / sp-list.js。 */
+  var VIEW_HEAD={
+    bank:{h1:'题库',hint:'按考频和分类挑一道，开口练或看框架',
+      stat:function(){var b=bankStats();return b.total+' 题 · P1 '+b.p1+' / P2 '+b.p2}},
+    practice:{h1:'陪练',hint:'开口说、录音自查，AI 记住你的常错点',
+      stat:function(){var a=(typeof DATA!=='undefined'&&DATA&&Array.isArray(DATA.coachMem))?DATA.coachMem:[];return '已记住 '+a.length+' 条'}},
+    materials:{h1:'素材',hint:'万能故事卡，一张能串好几道 P2',
+      stat:function(){var n=0;try{var s=JSON.parse(localStorage.getItem('ielts_materials_v1')||'{}');n=(s.materials||[]).length}catch(e){}return n?('已有 '+n+' 张素材卡'):'还没有素材卡'}}
+  };
+  function paintHead(){
+    var head=$('spvHead');if(!head)return;
+    var cfg=VIEW_HEAD[window.__sptCur||'home'];
+    if(!cfg){head.hidden=true;return}
+    head.hidden=false;
+    head.innerHTML='<div class="spv-t"><h1>'+esc(cfg.h1)+'</h1><span>'+esc(cfg.hint)+'</span></div>'
+      +'<span class="spv-stat">'+esc(cfg.stat())+'</span>';
+  }
+
   function mockBtnHtml(){return '<button type="button" class="spt-btn primary" data-spt-mock>开始一次模考</button>'}
 
   function renderHome(){
@@ -215,19 +235,56 @@
     var cards=[
       {k:'近一次预估',v:one(recs[0].overall),d:(recs[0].date||'')+' · 整套模考',ok:true,tone:'teal'},
       {k:'近 3 场均值',v:one(avg),d:'预估分，不是官方成绩'},
-      {k:'累计模考',v:String(all.length),unit:'场',d:'所选范围 '+recs.length+' 场'},
+      {k:'累计模考',v:String(all.length),unit:'场',d:'按日期倒序显示'},
       {k:'最弱一项',v:esc(wk||'—'),d:wk?'按官方四项标准':'还没有四维记录',tone:'warn'}
     ];
-    var rows=recs.slice(0,20).map(function(r){
-      var v=Number(r.overall)||0,key=v>=t;
-      return '<div class="spt-rec-row"><span class="spt-rec-date">'+esc(r.date||'')+'</span>'
-        +'<span class="spt-rec-mode">整套模考</span>'
-        +'<span class="spt-rec-brief">'+esc(String(r.summary||'P1 / P2 / P3').slice(0,42))+'</span>'
-        +'<span class="spt-pill '+(key?'key':'warn')+'">'+esc(one(v))+'</span></div>';
+    /* 最近一场 · 官方四项横条（FC / LR / GRA / 发音），竖线 = 目标分 */
+    var last=recs[0],dims=dimOf(last),gp=Math.max(0,Math.min(100,t/9*100));
+    var critDefs=[['FC','流利性与连贯性'],['LR','词汇丰富度'],['GRA','语法多样性及准确性'],['发音','设置里的固定分']];
+    var critRows=critDefs.map(function(d){
+      var v=dims[d[0]],has=v!=null,dv=has?(Math.round(v*2)/2):null;
+      var fp=has?Math.max(0,Math.min(100,v/9*100)):0,weak=has&&dv<t;
+      return '<div class="sv-crit"><span class="nm">'+d[0]+'<em>'+d[1]+'</em></span>'
+        +'<span class="track"><i class="fill'+(weak?' weak':'')+'" style="width:'+fp.toFixed(1)+'%"></i>'
+        +'<i class="goal" style="left:'+gp.toFixed(1)+'%"></i></span>'
+        +'<span class="v">'+(has?one(dv):'—')+(weak?' <small>差 '+one(t-dv)+'</small>':'')+'</span></div>';
     }).join('');
+    var lastPanel='<div class="spt-panel">'+panelHead('最近一场 · '+(last.date||''),'官方四项标准 · 竖线 = 目标 '+t)
+      +critRows
+      +'<div class="sv-overall"><div class="big">'+one(last.overall)+'<small>/ 9</small></div>'
+      +'<div class="lb">AI 预估总分<span>四项平均按官方半分进位 · 仅供参考，不代表真实考试成绩</span></div></div></div>';
+    /* 三部分表现：直接读 parts.p1/p2/p3 的 overall 与 summary */
+    var parts=(last&&last.parts)||{};
+    var partDefs=[['p1','P1 · 短答'],['p2','P2 · 独白'],['p3','P3 · 讨论']];
+    var partBoxes=partDefs.map(function(p){
+      var o=parts[p[0]],v=o&&num(o.overall),s=o&&o.summary;
+      return '<div class="sv-part"><div class="ph">'+p[1]+' <span class="b">'+(v!=null?one(v):'—')+'</span></div>'
+        +'<div class="d">'+esc(s?String(s).slice(0,60):'这一场没有这部分记录')+'</div></div>';
+    }).join('');
+    var partPanel='<div class="spt-panel">'+panelHead('三部分表现','每部分单独评 FC / LR / GRA')
+      +'<div class="sv-part-grid">'+partBoxes+'</div></div>';
+    /* 记录表：整卷模考逐场，四维分数低于目标标低，胶囊可筛达标 / 未达标 */
+    var okN=recs.filter(function(r){return (Number(r.overall)||0)>=t}).length;
+    var rows=recs.slice(0,20).map(function(r){
+      var d=dimOf(r),v=Number(r.overall)||0,key=v>=t,low=weakestName(r);
+      function sc(k){var x=d[k];return '<td class="sv-sc'+(x!=null&&x<t?' low':'')+'">'+(x!=null?one(x):'—')+'</td>'}
+      return '<tr data-band="'+(key?'ok':'low')+'"><td class="sv-date">'+esc(r.date||'')+'</td>'
+        +'<td><span class="spt-pill '+(key?'key':'warn')+'">整套模考</span></td>'
+        +sc('FC')+sc('LR')+sc('GRA')+sc('发音')
+        +'<td class="sv-overall-td">'+one(v)+'</td><td>'+esc(low||'—')+'</td></tr>';
+    }).join('');
+    var tbl='<div class="spt-panel">'
+      +'<div class="spt-panel-h"><span class="sv-chips">'
+      +'<button type="button" class="sv-chip on" data-sv-chip="all">全部 '+all.length+'</button>'
+      +'<button type="button" class="sv-chip" data-sv-chip="ok">达标 '+okN+'</button>'
+      +'<button type="button" class="sv-chip" data-sv-chip="low">未达标 '+(all.length-okN)+'</button></span></div>'
+      +'<div class="sv-tbl-scroll"><table class="sv-rec-table"><thead><tr>'
+      +'<th>日期</th><th>类型</th><th>FC</th><th>LR</th><th>GRA</th><th>发音</th><th>预估总分</th><th>最弱环节</th>'
+      +'</tr></thead><tbody>'+rows+'</tbody></table></div>'
+      +'<div class="sv-table-foot"><span>共 '+all.length+' 场 · AI 预估分，非官方成绩</span>'
+      +'<span style="margin-left:auto">按日期倒序</span></div></div>';
     box.innerHTML='<div class="spt-stat-grid">'+statHtml(cards)+'</div>'
-      +'<div class="spt-panel">'+panelHead('模考记录','预估分，不是官方成绩 · 共 '+all.length+' 场（最多显示 20 条）')
-      +'<div>'+rows+'</div></div>'
+      +lastPanel+partPanel+tbl
       +'<div style="margin-top:14px">'+mockBtnHtml()+'</div>';
   }
 
@@ -240,7 +297,7 @@
     var m=$('sptMobileTabs');if(m)m.innerHTML=TABS.map(function(tb){return '<button type="button" data-spt-tab="'+tb.id+'">'+esc(tb.nm)+'</button>'}).join('');
     syncActive();
   }
-  function syncActive(){var cur=window.__sptCur||'home';document.querySelectorAll('[data-spt-tab]').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-spt-tab')===cur)})}
+  function syncActive(){var cur=window.__sptCur||'home';document.querySelectorAll('[data-spt-tab]').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-spt-tab')===cur)});paintHead()}
   function syncBadges(){
     var bs=bankStats(),badges={bank:bs.total,records:mocks().length};
     document.querySelectorAll('#sptNav [data-spt-tab]').forEach(function(b){
@@ -301,6 +358,12 @@
       if(mb){try{mb.click()}catch(err){}}
       return;
     }
+    var ch=t.closest('[data-sv-chip]');if(ch){
+      var k=ch.getAttribute('data-sv-chip');
+      document.querySelectorAll('#sptRecordsBody [data-sv-chip]').forEach(function(b){b.classList.toggle('on',b===ch)});
+      document.querySelectorAll('#sptRecordsBody .sv-rec-table tbody tr').forEach(function(tr){tr.hidden=(k!=='all'&&tr.getAttribute('data-band')!==k)});
+      return;
+    }
   }
   function onChange(e){var s=e.target;
     if(s&&s.matches&&s.matches('.spt-range')){
@@ -320,7 +383,7 @@
       if(shown){
         hideNew();
         var want=OBS_MAP[shown];
-        if(window.__sptCur!==want){window.__sptCur=want;syncActive()}
+        if(window.__sptCur!==want){window.__sptCur=want;syncActive()}else{paintHead()}
         return;
       }
       /* 6 个 view 全被收起（例如退出模考）→ 把当前 pane 归位，绝不空白 */
