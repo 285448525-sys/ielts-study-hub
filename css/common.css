@@ -3210,3 +3210,117 @@ body.hub-exam-locked #ancBarHost{ display:none !important }
 }
 /* 兜底：任何走 .ui-field-search 的输入框都不该再有 outline（含未聚焦态） */
 .ui-field-search input:not([type=checkbox]):not([type=radio]):not([type=range]){outline:none}
+
+/* =======================================================================
+   EMPTY-SYSTEM-1（11-09 她「空态设计的挺好看的全部都做上去吧」）
+   一套全站统一空态：4 尺寸 hero / inline / result / error + loading，前缀 esys-，
+   只取站点既有 token（深色自动跟随），不引入新色相、不新增 DATA 字段、不编新话术。
+   来源 design/EMPTY-SYSTEM-1-全站统一空态系统_样子稿-2026-11-09.html。
+   配套 js/common.js 的 renderEmpty 升级与 window.EMPTY 工厂。
+   ======================================================================= */
+.esys{text-align:center}
+.esys--hero{position:relative;padding:30px 24px 24px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.esys--hero::before{content:"";position:absolute;left:50%;top:-120px;width:460px;height:260px;transform:translateX(-50%);background:radial-gradient(ellipse at center,rgba(92,179,171,.13),rgba(92,179,171,0) 70%);pointer-events:none}
+.esys-art{position:relative;width:220px;max-width:100%;margin:2px auto 4px}
+.esys-art svg{width:100%;height:auto;display:block}
+.esys-title{margin:0;font-size:15px;font-weight:750;letter-spacing:-.01em;color:var(--ink);line-height:1.6}
+.esys-desc{max-width:440px;margin:8px auto 0;font-size:12.5px;line-height:1.75;color:var(--muted)}
+.esys--hero .esys-title{font-size:17px;font-weight:800}
+.esys-btn{margin-top:18px;min-height:38px;padding:0 18px;border:0;border-radius:10px;background:var(--primary);color:var(--on-primary);font-size:12.5px;font-weight:700;font-family:inherit;cursor:pointer;box-shadow:0 6px 16px -8px rgba(58,143,135,.9)}
+.esys-btn.ghost{background:var(--surface);color:var(--ink-2);border:1px solid var(--line);box-shadow:none}
+.esys-acts{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:16px}
+.esys-after{display:flex;align-items:center;justify-content:center;gap:9px;flex-wrap:wrap;margin-top:20px;padding-top:16px;border-top:1px solid var(--n-100,var(--line))}
+.esys-after>span{font-size:11px;color:var(--muted)}
+.esys-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:var(--primary-soft);color:var(--primary-700);font-size:10.5px;font-weight:700}
+.esys-pill i{width:5px;height:5px;border-radius:50%;background:var(--primary);display:inline-block}
+.esys--inline{padding:34px 18px;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);box-shadow:var(--shadow)}
+.esys-ic{width:44px;height:44px;border-radius:13px;background:var(--primary-soft);color:var(--primary-700);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;animation:var(--esys-float)}
+.esys-ic svg{width:21px;height:21px}
+.esys--inline .esys-title{font-size:13.5px}
+.esys--inline .esys-desc{margin-top:6px;font-size:12px;line-height:1.65;max-width:330px}
+.esys--roomy{padding:46px 18px}
+.esys--roomy .esys-ic{width:52px;height:52px;border-radius:15px}
+.esys--roomy .esys-ic svg{width:24px;height:24px}
+.esys--roomy .esys-title{font-size:14.5px}
+.esys--auto:not(.esys--compat) .esys-ic{width:32px;height:32px;border-radius:10px;margin-bottom:8px}
+.esys--auto:not(.esys--compat) .esys-ic svg{width:17px;height:17px}
+.esys--auto:not(.esys--compat) .esys-title{font-size:12.5px;line-height:1.55}
+.esys--auto:not(.esys--compat) .esys-desc{font-size:11px;margin-top:4px}
+.esys--result{padding:28px 18px;border:1px dashed var(--line);border-radius:var(--radius);background:var(--surface)}
+.esys--result .esys-ic{width:40px;height:40px;border-radius:50%;background:var(--bg,var(--n-50));color:var(--muted)}
+.esys--result .esys-ic svg{width:19px;height:19px}
+.esys--result .esys-title{font-size:13px;font-weight:650;color:var(--ink-2)}
+.esys--result .esys-desc{font-size:12px;margin-top:5px;max-width:330px}
+.esys--error{padding:30px 18px;border:1px solid var(--warn-soft);border-radius:var(--radius);background:var(--surface)}
+.esys--error .esys-ic{background:var(--warn-soft);color:var(--warn-ink)}
+.esys--error .esys-title{font-size:13.5px}
+.esys--error .esys-desc{font-size:12px;margin-top:6px;max-width:330px}
+.esys--loading{padding:30px 18px;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface)}
+.esys--loading .esys-ic{background:var(--primary-soft);color:var(--primary-700)}
+.esys-loadbar{width:120px;height:6px;margin:14px auto 0;border-radius:6px;background:linear-gradient(90deg,var(--n-100,#eef1f2) 0%,var(--primary-soft) 50%,var(--n-100,#eef1f2) 100%);background-size:180px 100%;animation:var(--esys-shimmer)}
+.esys--compat .empty-t,.esys--compat .empty-s,.esys--compat .empty-acts{margin-left:auto;margin-right:auto}
+.esys-halo{transform-box:fill-box;transform-origin:center;animation:var(--esys-breathe)}
+@media(max-width:860px){.esys--hero{padding:24px 16px 20px}.esys--roomy{padding:34px 16px}.esys-art{width:180px}}
+
+/* 全站既有空态类就地统一：只改外观，不动任何 DOM / id / 文案 / 交互。
+   body:not(...) 前缀把特异性抬高，压过各页后来写的单类规则；四个全屏 / 沉浸 / 考试锁状态整段排除。 */
+body:not(.exam-fullscreen):not(.mock-immerse):not(.word-fullscreen):not(.hub-exam-locked) :is(.bank-empty,.hist-empty,.spt-empty,.wr-empty,.cp2-empty,.wb-empty,.wb2-chap-empty,.kt-empty,.kt-rec-empty,.kc-cc-empty,.sp-empty,.cfx-empty,.coach-ctx-empty,.anc-empty,.practice-empty,.ss-empty,.empty,#trendEmpty,#invEmpty,#userEmpty,#vipEmpty,#roleEmpty,#auditEmpty,#fbEmpty){
+  padding:58px 16px 22px !important;
+  border:1px dashed var(--line) !important;
+  border-radius:var(--radius) !important;
+  background-color:var(--surface) !important;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='12' fill='%23e8f3f1'/%3E%3Cg fill='none' stroke='%232c7873' stroke-width='1.8' stroke-linecap='round' transform='translate(8 8)'%3E%3Crect x='3' y='5' width='18' height='16' rx='2'/%3E%3Cpath d='M3 10h18M8 3v4M16 3v4'/%3E%3C/g%3E%3C/svg%3E") !important;
+  background-repeat:no-repeat !important;
+  background-position:center 14px !important;
+  background-size:40px 40px !important;
+  color:var(--muted) !important;
+  text-align:center !important;
+  line-height:1.7;
+}
+
+/* =======================================================================
+   MOTION-SYSTEM-1（11-09 她「刚进页面的动效做到所有能做的地方去」+「再加些好看的动效」）
+   ① 入场：淡入 + 上滑 8px，260ms cubic-bezier(.23,1,.32,1)，backwards 填充（动画结束后不残留 transform，
+      卡片原有 hover 位移照常可用）；main 直属子块 60ms 错峰，最多三档。
+      元素从 display:none 变可见时浏览器会自动重播，所以软导航换页 / 切 tab / 空态出现都自然带上，
+      不需要任何 JS 监听（js/common.js 在软导航里不重跑，见 common-shell.js pageScriptSources）。
+   ② 空态图标轻微浮动、hero 光晕呼吸、加载条 shimmer。
+   ③ 侧栏小栏目 hover 微交互（仅精确指针设备）。
+   ④ 全屏考试 / 沉浸 / 背词全屏 / 考试锁：整段停用，不干扰计时考试。
+   ⑤ 系统偏好与站点手动开关都降级为无动画。
+   ======================================================================= */
+@keyframes esysIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes esysFade{from{opacity:0}to{opacity:1}}
+@keyframes esysFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
+@keyframes esysBreathe{0%,100%{opacity:.12;transform:scale(1)}50%{opacity:.22;transform:scale(1.07)}}
+@keyframes esysShimmer{0%{background-position:-180px 0}100%{background-position:180px 0}}
+:root{
+  --esys-anim:esysIn 260ms cubic-bezier(.23,1,.32,1) backwards;
+  --esys-fade:esysFade 260ms cubic-bezier(.23,1,.32,1) backwards;
+  --esys-float:esysFloat 3.4s ease-in-out infinite;
+  --esys-breathe:esysBreathe 3.6s ease-in-out infinite;
+  --esys-shimmer:esysShimmer 1.4s linear infinite;
+}
+/* 🔴 transform 的包含块陷阱：做题全屏层 #examRoot / #examPanel / #diagOverlay 等都挂在 <main> 内，
+   main 直属子级只要带 transform，position:fixed 后代就会被钉在该子级上而不是视口，全屏机考立刻错位。
+   所以顶层容器一律**只淡入**（opacity 动画不产生包含块）；淡入 + 上滑 8px 只加在不含 fixed 后代的叶子块上。 */
+body.exam-fullscreen,body.mock-immerse,body.word-fullscreen,body.hub-exam-locked{--esys-anim:none;--esys-fade:none;--esys-float:none;--esys-breathe:none;--esys-shimmer:none}
+@media(prefers-reduced-motion:reduce){:root{--esys-anim:none;--esys-fade:none;--esys-float:none;--esys-breathe:none;--esys-shimmer:none}}
+:root[data-reduce-motion="1"]{--esys-anim:none;--esys-fade:none;--esys-float:none;--esys-breathe:none;--esys-shimmer:none}
+/* position:sticky 的吸顶条不参与入场，避免位移抖动 */
+main .page-head-row,main .plan-tabsbar,main [style*="position:sticky"]{animation:none}
+/* 顶层容器只淡入 + 60ms 错峰；软导航换 main.innerHTML 时新节点自动重播 */
+main > *:not([hidden]){animation:var(--esys-fade)}
+main > *:nth-child(2):not([hidden]){animation-delay:60ms}
+main > *:nth-child(3):not([hidden]){animation-delay:120ms}
+main > *:nth-child(n+4):not([hidden]){animation-delay:180ms}
+/* 叶子内容块：淡入 + 上滑，不含任何 position:fixed 后代，安全 */
+main .esys,main .stat,main .stat-card,main .rve-stat,
+main .wr-pane:not([hidden]),main .spt-pane:not([hidden]),main .cp2-pane:not([hidden]),
+main .tab-panel.active,main .mock-pane:not([hidden]),main .rv2-pane:not([hidden]),
+main .m-plancard,main .m-side-card,main .esys--inline,main .exam-item,main .wb2-chap-card{animation:var(--esys-anim)}
+@media(hover:hover) and (pointer:fine){
+  .hub-sub,.sub,.side-item{transition:background-color .18s ease,color .18s ease,border-color .18s ease,transform .18s ease}
+  .hub-sub:hover,.sub:hover{transform:translateX(2px)}
+}
+

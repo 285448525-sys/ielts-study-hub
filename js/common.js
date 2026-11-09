@@ -2710,7 +2710,57 @@ function progressBar(label, percent, color){
   </div>`;
 }
 
-function renderEmpty(msg){ return `<div class="empty">${msg}</div>`; }
+/* ===== EMPTY-SYSTEM-1（11-09 她「空态设计的挺好看的全部都做上去吧」）=====
+   全站统一空态工厂 + renderEmpty 升级。全部用函数声明（提升），不依赖任何顶层 var 或 const，
+   避开 TDZ 铁律。文案沿用各页原句，只装进卡里；不编新话术、不新增 DATA 字段、不加交互。
+   renderEmpty 旧签名（一句话）不变；传结构化 HTML 的调用（words.js 的「去导入」按钮）原样保留。 */
+function esysIcon(k){
+  var p = {
+    book:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+    search:'<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+    alert:'<path d="M12 8v5M12 17h.01"/><circle cx="12" cy="12" r="9"/>',
+    spark:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 9v11"/>',
+    grid:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>'
+  };
+  return '<div class="esys-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (p[k] || p.book) + '</svg></div>';
+}
+function esysBuild(kind, o){
+  o = o || {};
+  var cls = 'esys esys--' + kind + (o.roomy ? ' esys--roomy' : '');
+  var icn = o.icon || (kind === 'result' ? 'search' : kind === 'error' ? 'alert' : kind === 'loading' ? 'spark' : 'book');
+  var h = '<div class="' + cls + '"' + (o.style ? ' style="' + o.style + '"' : '') + '>';
+  if(kind === 'hero' && o.art) h += '<div class="esys-art">' + o.art + '</div>';
+  if(kind !== 'hero') h += esysIcon(icn);
+  h += '<div class="esys-title">' + String(o.title == null ? '' : o.title) + '</div>';
+  if(o.desc) h += '<p class="esys-desc">' + String(o.desc) + '</p>';
+  if(o.actions) h += '<div class="esys-acts">' + o.actions + '</div>';
+  if(o.after) h += '<div class="esys-after">' + o.after + '</div>';
+  if(kind === 'loading') h += '<div class="esys-loadbar"></div>';
+  h += '</div>';
+  return h;
+}
+var EMPTY = {
+  hero:    function(o){ return esysBuild('hero', o); },
+  inline:  function(o){ return esysBuild('inline', o); },
+  result:  function(o){ return esysBuild('result', o); },
+  error:   function(o){ return esysBuild('error', o); },
+  loading: function(o){ return esysBuild('loading', o); }
+};
+window.EMPTY = EMPTY;
+function renderEmpty(msg){
+  var s = String(msg == null ? '' : msg);
+  /* 结构化 HTML（words.js 的 .empty-t / .empty-s / .empty-acts + 「去导入」按钮）原样保留内容，
+     只套一层统一卡壳，那个按钮的 id 与后续绑定一个不动。 */
+  if(/<[a-z][\s\S]*>/i.test(s)) return '<div class="esys esys--inline esys--auto esys--compat">' + s + '</div>';
+  var kind = 'inline';
+  if(/没加载出来|没读出来|读不出|加载失败|读不出来/.test(s)) kind = 'error';
+  else if(/加载中|正在载入|载入中/.test(s)) kind = 'loading';
+  else if(/没有匹配|没有符合|该筛选|该条件|换个关键词|换个条件|这一栏还没有|已录科目之外|暂无可统计/.test(s)) kind = 'result';
+  var m = s.match(/^([\s\S]*?[。！？.!?])\s*([\s\S]*)$/);
+  var title = m ? m[1] : s, desc = m ? (m[2] || '').trim() : '';
+  var h = esysBuild(kind, { title: title, desc: desc });
+  return h.replace('esys--' + kind, 'esys--' + kind + ' esys--auto');
+}
 
 /* ===== AI 不可用提示（10/1 商业化改造）=====
    站内通道（/api/ai，Key 只在站长服务端）成为默认路径，「用户自备 Key」概念随设置页 AI 模块
