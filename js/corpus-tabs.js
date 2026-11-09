@@ -135,7 +135,29 @@
     var m=$('cpMobileTabs');if(m)m.innerHTML=TABS.map(function(t){return '<button type="button" data-cp-tab="'+t.id+'">'+esc(t.nm)+'</button>'}).join('');
     syncActive();
   }
-  function syncActive(){var cur=window.__cpCur||'home';document.querySelectorAll('[data-cp-tab]').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-cp-tab')===cur)})}
+  /* CORPUS-VIEWS-2（v834）：四个功能栏共用栏头，标题/提示照稿、统计现场算真字段 */
+  var VIEW_HEAD={
+    long:{t:'长难句',h:'看不懂的句子贴进来，AI 拆开讲'},
+    errors:{t:'错题本',h:'整段贴进来，AI 帮你收好、随时回看'},
+    bank:{t:'我的句子库',h:'要默写的句子都存在这里'},
+    dict:{t:'听写默写',h:'看中文默写 / 听英文写下来，再逐句核对'}
+  };
+  function paintHead(){
+    var box=$('cpViewHead');if(!box)return;
+    var id=window.__cpCur||'home',cfg=VIEW_HEAD[id];
+    if(!cfg){box.hidden=true;return}
+    box.hidden=false;
+    var t=$('cpViewTitle'),h=$('cpViewHint'),s=$('cpViewStat');
+    if(t)t.textContent=cfg.t;if(h)h.textContent=cfg.h;
+    var er=cntErr(),stat={
+      long:arr('longSent').length+' 条拆解记录',
+      errors:'未掌握 '+er.open+' · 已掌握 '+er.known,
+      bank:'共 '+arr('corpus').length+' 条',
+      dict:'累计默写 '+arr('dictationLogs').length+' 次'
+    };
+    if(s){s.textContent=stat[id]||'';s.className='cp2-pill '+(id==='errors'&&er.open?'warn':'key')}
+  }
+  function syncActive(){var cur=window.__cpCur||'home';document.querySelectorAll('[data-cp-tab]').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-cp-tab')===cur)});paintHead()}
   function syncBadges(){
     var badges={long:arr('longSent').length,errors:cntErr().open,bank:arr('corpus').length,dict:arr('dictationLogs').length};
     document.querySelectorAll('#cpNav [data-cp-tab]').forEach(function(b){
@@ -228,7 +250,19 @@
     renderNav();bind();
     var h=hashId();
     if(h){show(h,{silent:true});return}
-    if(hasDeep()){window.__cpCur='long';syncActive();syncBadges();splitDictView('dict');return}
+    if(hasDeep()){
+      /* v834：按深链算真正的栏（#eb / ?sub=eb -> 错题本，?sub=ls -> 长难句，
+         ?sub=dict -> 听写默写）；#eb 时 corpus.js 先切了 ebView、observer 后挂
+         收不到那次 hidden 变化，写死 long 会让左栏与共用栏头停在长难句。 */
+      var want='long';
+      try{
+        var q=new URLSearchParams(location.search),sub=q.get('sub');
+        if(location.hash==='#eb'||sub==='eb')want='errors';
+        else if(sub==='dict')want='dict';
+        else if(sub==='ls')want='long';
+      }catch(e){}
+      window.__cpCur=want;syncActive();syncBadges();splitDictView('dict');return;
+    }
     show('home',{silent:true});
   }
   window.__cpTabs={show:show,renderNav:renderNav,renderPane:renderPane,cur:function(){return window.__cpCur}};

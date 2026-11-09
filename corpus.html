@@ -277,6 +277,18 @@ body.exam-fullscreen .cp2-pane{display:none!important}
   .cp2-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .cp2-vhead h1{font-size:18px}
 }
+/* ===== CORPUS-VIEWS-2（v834）：四个功能栏按已点头 CORPUS-TABS-1 稿补栏头并就地重皮 =====
+   只加栏头与组件皮肤；既有 DOM / ID / 数据落点 / 事件绑定一个不删不改，
+   js/corpus.js 的全部 id 照常工作；选择器一律以 cpViewHead 或 kc-page 限定，不串号全站。 */
+#cpViewHead{margin:2px 0 16px}
+#cpViewHead .cp2-pill{font-size:11.5px;font-weight:700;padding:5px 12px}
+.kc-page .kc-card,.kc-page .lsr-composer,.kc-page .lsr-history,.kc-page #resultCard,
+.kc-page .kc-add-panel,.kc-page .kc-dm-card{border-radius:14px;
+  box-shadow:0 1px 2px rgba(24,40,48,.04),0 6px 18px -12px rgba(24,40,48,.18)}
+.kc-page #lsModeSeg button,.kc-page .kc-add-tabs button{border-radius:16px}
+.kc-page #lsModeSeg button.on,.kc-page .kc-add-tabs button.kc-active{
+  background:var(--ink,#1f2328);border-color:var(--ink,#1f2328);color:#fff;font-weight:700}
+@media(max-width:860px){#cpViewHead h1{font-size:18px}.kc-page #wordTabs{display:none!important}}
 </style>
 </head>
 <body data-shell="top">
@@ -313,6 +325,10 @@ body.exam-fullscreen .cp2-pane{display:none!important}
           </div>
         </div>
         <div id="cpHomeBody"></div>
+      </div>
+      <div class="cp2-pane cp2-vhead" id="cpViewHead" hidden>
+        <div><h1 id="cpViewTitle"></h1><span class="hint" id="cpViewHint"></span></div>
+        <div class="right"><span class="cp2-pill key" id="cpViewStat"></span></div>
       </div>
 <!-- ═══ KIMI-P2-2（10-26）· 句子页按 Kimi 样子稿 1:1 重排 ═══
 结构原文 design/kimi-visual-upgrade-2026-10-25/_KC-corpus_结构原文.html（前缀 kc-）
@@ -380,7 +396,7 @@ importCorpus · importHint · aiImportBox · aiImportBtn · aiImportHint · dict
 
 <link rel="stylesheet" href="css/p/hub-shell.css?v=20261107a" />
 <script defer src="js/hub-side-shell.js?v=20261106b"></script>
-<script defer src="js/corpus-tabs.js?v=20261108a"></script>
+<script defer src="js/corpus-tabs.js?v=20261109a"></script>
 </body>
 </html>
 

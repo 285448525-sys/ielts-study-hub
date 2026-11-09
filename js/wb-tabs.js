@@ -198,7 +198,7 @@
     var all = wrongData();
     var hit = wHit(all);
     var cnt = $('wbWrongCount');
-    if(cnt) cnt.textContent = all.length ? ('共 ' + all.length + ' 个词') : '';
+    if(cnt) cnt.textContent = '共 ' + all.length + ' 个词';
     document.querySelectorAll('#wbWrongChips [data-wk]').forEach(function(b){
       b.classList.toggle('on', b.getAttribute('data-wk') === _wFilter);
     });
