@@ -158,6 +158,68 @@ const HUBG_CSS = `
   .hg-stats{grid-template-columns:1fr;gap:14px;padding:16px}
   .hg-stat-cell + .hg-stat-cell{padding-left:0;padding-top:14px;border-left:0;border-top:1px solid var(--n-300)}
 }
+
+/* ===== MOBILE-GROUP-1（11-09）：手机「学习 / 我的」两页各自的样子 =====
+   study 用 Today 屏（问候 + 距考试 + 今日目标 + 接着练 + 双列入口），
+   me 用个人中心（身份区 + 会员卡 + 单列常用列表）。
+   只用本文件已注入的站点变量与字面色，不新增外部依赖。 */
+.ln-hero{position:relative;overflow:hidden;border-radius:18px;padding:20px 18px 18px;margin:2px 2px 14px;color:#fff;background:linear-gradient(155deg,#3a8f87 0%,#2f7d76 58%,#256a64 100%);box-shadow:0 12px 26px -14px rgba(47,125,118,.7)}
+.ln-hero::after{content:"";position:absolute;right:-50px;top:-60px;width:160px;height:160px;border-radius:50%;background:rgba(255,255,255,.10)}
+.ln-date{font-size:11.5px;letter-spacing:.04em;opacity:.85;position:relative}
+.ln-hi{font-size:22px;font-weight:750;letter-spacing:-.02em;margin:6px 0 3px;position:relative}
+.ln-sub{font-size:12.5px;opacity:.9;position:relative}
+.ln-goal{position:relative;margin-top:16px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);border-radius:12px;padding:11px 13px}
+.ln-goal .top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:12px;font-weight:600}
+.ln-goal .top b{font-size:12px;text-align:right}
+.ln-track{height:6px;border-radius:999px;background:rgba(255,255,255,.28);margin-top:10px;overflow:hidden}
+.ln-track i{display:block;height:100%;border-radius:999px;background:#fff;transition:width .3s}
+.ln-resume{display:flex;align-items:center;gap:13px;background:var(--n-0);border:1px solid var(--n-300);border-radius:16px;padding:15px 16px;margin:0 2px 16px;box-shadow:var(--sh-1)}
+.ln-resume .ic{width:44px;height:44px;flex:none;border-radius:14px;background:var(--primary-50);color:var(--primary-700);display:flex;align-items:center;justify-content:center}
+.ln-resume .ic svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.ln-resume .tx{flex:1;min-width:0}
+.ln-resume .tx small{display:block;font-size:11.5px;color:var(--n-500)}
+.ln-resume .tx b{display:block;font-size:14.5px;font-weight:700;color:var(--n-800);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ln-resume .go{flex:none;background:var(--primary-700);color:#fff;border-radius:999px;padding:8px 15px;font-size:12.5px;font-weight:700;text-decoration:none}
+.sec-t{display:flex;justify-content:space-between;align-items:baseline;margin:0 2px 10px}
+.sec-t b{font-size:14px;font-weight:700;color:var(--n-800)}
+.sec-t span{font-size:11.5px;color:var(--n-500)}
+.ln-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0 2px}
+.ln-tile{background:var(--n-0);border:1px solid var(--n-300);border-radius:14px;padding:13px 13px 12px;min-height:92px;box-shadow:var(--sh-1);display:flex;flex-direction:column;gap:5px;text-decoration:none;color:inherit}
+.ln-tile .ic{width:30px;height:30px;border-radius:10px;background:var(--primary-50);color:var(--primary-700);display:flex;align-items:center;justify-content:center}
+.ln-tile .ic svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.ln-tile b{font-size:13.5px;font-weight:700;color:var(--n-800)}
+.ln-tile span{font-size:11px;color:var(--n-500);line-height:1.45}
+.ln-tile.soft{background:transparent;border-style:dashed;box-shadow:none}
+.ln-login{margin:16px 2px 0}
+.me-id{display:flex;align-items:center;gap:13px;background:var(--n-0);border:1px solid var(--n-300);border-radius:16px;padding:16px;margin:2px 2px 12px;box-shadow:var(--sh-1)}
+.me-av{width:52px;height:52px;flex:none;border-radius:50%;background:var(--primary-50);border:2px solid #fff;box-shadow:0 0 0 1px var(--n-300);color:var(--primary-700);display:flex;align-items:center;justify-content:center}
+.me-av svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.me-id .tx{flex:1;min-width:0}
+.me-id .tx b{display:block;font-size:16px;font-weight:700;color:var(--n-800)}
+.me-id .tx span{display:block;font-size:11.5px;color:var(--n-500);line-height:1.5;margin-top:2px}
+.me-id .go{flex:none;border:1px solid var(--primary-500);color:var(--primary-700);border-radius:999px;padding:7px 13px;font-size:12px;font-weight:700;text-decoration:none}
+.me-vip{display:flex;align-items:center;gap:12px;border-radius:16px;padding:15px 16px;margin:0 2px 18px;background:linear-gradient(120deg,var(--primary-50) 0%,#f2f9f7 62%,#fff 100%);border:1px solid #dceeea;box-shadow:var(--sh-1)}
+.me-vip .ic{width:40px;height:40px;flex:none;border-radius:12px;background:var(--primary-700);color:#fff;display:flex;align-items:center;justify-content:center}
+.me-vip .ic svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.me-vip .tx{flex:1;min-width:0}
+.me-vip .tx b{display:block;font-size:14px;font-weight:700;color:var(--n-800)}
+.me-vip .tx span{display:block;font-size:11.5px;color:var(--n-600);margin-top:2px}
+.me-vip .go{flex:none;color:var(--primary-700);font-size:12px;font-weight:700;text-decoration:none}
+.me-list{background:var(--n-0);border:1px solid var(--n-300);border-radius:16px;overflow:hidden;box-shadow:var(--sh-1);margin:0 2px}
+.me-row{display:flex;align-items:center;gap:12px;padding:14px 15px;text-decoration:none;color:inherit;border-bottom:1px solid var(--n-300)}
+.me-row:last-child{border-bottom:0}
+.me-row .ic{width:34px;height:34px;flex:none;border-radius:10px;background:#f1f5f6;color:var(--primary-700);display:flex;align-items:center;justify-content:center}
+.me-row .ic svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.me-row .tx{flex:1;min-width:0}
+.me-row .tx b{display:block;font-size:14px;font-weight:600;color:var(--n-800)}
+.me-row .tx span{display:block;font-size:11.5px;color:var(--n-500);margin-top:1px}
+.me-row .ar{color:var(--n-400);font-size:17px;flex:none}
+.ln-search{margin:14px 2px 0}
+@media(max-width:360px){
+  .ln-grid{gap:8px}
+  .ln-tile{padding:11px}
+}
+
 `;
 function injectHubgCss(){
   if(document.getElementById('hubgT011Css')) return;
@@ -263,77 +325,157 @@ function renderStats(){
       || (typeof normalizePageFile === 'function' ? normalizePageFile(location.pathname.split('/').pop() || '') : '');
 
     const items = G.items.slice();
-    /* 🔴 10-23 她拍板「把服药页计时页删掉不用做」→ 服药入口从「我的」组撤掉。
-       medsOn()/medsModuleOn() 保留（plans.js 的 AI prompt 仍读它拼服药上下文，别动）。 */
-    // if(G.key === 'me' && medsOn()) items.push({ id:'meds', name:'服药', desc:'专注达药效窗口' });
-    /* 三级权限（10-22 第二批）：管理员在「我的」组里也能进「学生数据」。
-       手机端底部 dock 只有四个组、侧栏是抽屉 —— 这里是最容易被找到的位置。
-       角色读本地缓存（普通用户 / 未登录 → 看不到）；真正的门在 /api/roles。 */
     if(G.key === 'me' && typeof hubIsAdmin === 'function' && hubIsAdmin()){
       items.unshift({ id:'teacher', name:'学生数据', desc:'绑定学生的学情（只读）' });
     }
 
     injectHubgCss();
+    const link = it => { const p = pageById ? pageById(it.id) : null; return p ? p.file : (it.id + '.html'); };
+    const icon = it => { const p = pageById ? pageById(it.id) : null; return p ? p.icon : ''; };
+    let settings = {};
+    try{ settings = (typeof DATA !== 'undefined' && DATA && DATA.settings) ? DATA.settings : {}; }catch(e){}
+    /* 组页 defer 顺序里 hubgroup.js 排在 common-sync.js 之前，isSignedIn() 依赖的 authToken()
+       此刻可能尚未定义；直接读同一个 hub_auth_token 键，口径与 common.js 一致且时序无关。 */
+    const isLogin = (function(){
+      try{ return !!(localStorage.getItem('hub_auth_token') && settings.syncCode); }
+      catch(e){ return false; }
+    })();
+    const nick = (settings.name ? String(settings.name).trim() : '');
+
+    /* 三个布局都保留同一组搜索 id，wireSearchCard() 一行不用改 */
+    const SEARCH_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>';
+    const searchBox = '<div class="hg-search ln-search" id="hgSearch" hidden>'
+      + '<div class="hs-box">'
+      +   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>'
+      +   '<input type="text" id="hgSearchInput" placeholder="搜功能、查单词、搜句子" aria-label="搜索" autocomplete="off">'
+      +   '<button type="button" class="hs-close" id="hgSearchClose" aria-label="收起搜索">&times;</button>'
+      + '</div><div class="hs-list" id="hgSearchList"></div></div>';
+
     let h = '';
-    h += '<div class="hg-head">'
-      +   '<h1>' + esc(G.title) + '</h1>'
-      +   '<p>' + esc(G.tagline) + '</p>'
-      + '</div>';
-    /* T-011：状态摘要条（驾驶舱式三格）。数据拿不到就不渲染（禁忌：不许假数据）。 */
-    h += renderStats();
-    /* 10-23 1-1：未登录引导条（手机端顶栏摘掉后，头像登录入口没了；设置页里那条要两步才到）。 */
-    if(!isSignedIn()){
-      h += '<div class="hg-loginbar" id="hgLoginBar">'
-        +   '<span class="lb-tx"><b>未登录</b><span>登录后进度、错句、成绩都能跨设备同步</span></span>'
-        +   '<a class="lb-a" href="login.html">去登录</a>'
+    if(G.key === 'study'){
+      /* 学习：Today 屏。所有数字只读真实数据，没设目标 / 没练过就不画假进度、不编模块名。 */
+      const now = new Date();
+      const wk = ['周日','周一','周二','周三','周四','周五','周六'][now.getDay()];
+      const hr = now.getHours();
+      const hi = hr < 11 ? '早上好' : (hr < 14 ? '中午好' : (hr < 18 ? '下午好' : '晚上好'));
+      const dateTx = (now.getMonth() + 1) + ' 月 ' + now.getDate() + ' 日 · ' + wk;
+      let sub = '今天练一项就够';
+      try{
+        if(typeof examCountdown === 'function'){
+          const cd = examCountdown();
+          if(cd && cd.hasExam && cd.daysLeft != null && cd.daysLeft >= 0){
+            sub = cd.daysLeft === 0 ? '就是今天，稳住' : ('离考试还有 ' + cd.daysLeft + ' 天，今天练一项就够');
+          }
+        }
+      }catch(e){}
+      let sec = 0, goal = 0;
+      try{
+        const t = (typeof todayKey === 'function') ? todayKey() : '';
+        (DATA.sessions || []).forEach(s => { if(s && s.date === t) sec += (s.durationSec || 0); });
+        goal = (DATA.settings && Number(DATA.settings.dailyGoalHours)) || 0;
+      }catch(e){}
+      const mins = Math.round(sec / 60);
+      const pct = goal > 0 ? Math.min(100, Math.round(sec / (goal * 3600) * 100)) : 0;
+      const goalTx = goal > 0
+        ? ('今日已学 ' + mins + ' 分钟 / 目标 ' + goal + ' 小时')
+        : (mins > 0 ? ('今日已学 ' + mins + ' 分钟 · 今天练过就算数') : '今天练过就算数');
+      h += '<div class="ln-hero">'
+        +   '<div class="ln-date">' + esc(dateTx) + '</div>'
+        +   '<div class="ln-hi">' + esc(hi) + '，同学</div>'
+        +   '<div class="ln-sub">' + esc(sub) + '</div>'
+        +   '<div class="ln-goal"><div class="top"><span>今天的目标</span><b>' + esc(goalTx) + '</b></div>'
+        +     '<div class="ln-track"><i style="width:' + pct + '%"></i></div></div>'
         + '</div>';
+      let last = null;
+      try{
+        const arr = (DATA.sessions || []).filter(s => s && (s.subName || s.moduleName));
+        arr.sort((a, b) => (b.startTs || 0) - (a.startTs || 0));
+        last = arr[0] || null;
+      }catch(e){}
+      if(last){
+        h += '<div class="ln-resume">'
+          +   '<span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8 5l11 7-11 7z"/></svg></span>'
+          +   '<span class="tx"><small>接着上次练</small><b>' + esc(String(last.subName || last.moduleName).slice(0, 18)) + '</b></span>'
+          +   '<a class="go" href="home.html">去练 &rarr;</a></div>';
+      }
+      h += '<div class="sec-t"><b>全部练习</b><span>' + (items.length + 1) + ' 个入口</span></div>';
+      h += '<div class="ln-grid">';
+      for(const it of items){
+        h += '<a class="ln-tile" href="' + link(it) + '" data-id="' + it.id + '">'
+          +   '<span class="ic">' + icon(it) + '</span><b>' + esc(it.name) + '</b>'
+          +   '<span>' + esc(it.desc || '') + '</span></a>';
+      }
+      h += '<a class="ln-tile soft" id="hgSearchCard" href="javascript:void 0" role="button">'
+        +   '<span class="ic">' + SEARCH_SVG + '</span><b>搜索</b><span>找功能 · 查单词</span></a>';
+      h += '</div>' + searchBox;
+      if(!isLogin){
+        h += '<div class="hg-loginbar ln-login" id="hgLoginBar">'
+          +   '<span class="lb-tx"><b>未登录</b><span>登录后进度、错句、成绩都能跨设备同步</span></span>'
+          +   '<a class="lb-a" href="login.html">去登录</a></div>';
+      }
+    } else if(G.key === 'me'){
+      /* 我的：个人中心。会员卡只做权益引导，不编等级 / 到期日等没有的数据。 */
+      const who = isLogin ? (nick || settings.syncCode || '同学') : '未登录';
+      const desc = isLogin ? '进度、错句、成绩已跨设备同步' : '登录后进度、错句、成绩都能跨设备同步';
+      const goTx = isLogin ? '去设置' : '去登录';
+      const goHref = isLogin ? 'settings.html' : 'login.html';
+      h += '<div class="me-id">'
+        +   '<span class="me-av"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg></span>'
+        +   '<span class="tx"><b>' + esc(who) + '</b><span>' + esc(desc) + '</span></span>'
+        +   '<a class="go" href="' + goHref + '">' + esc(goTx) + '</a></div>';
+      h += '<div class="me-vip">'
+        +   '<span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 6-9 12L3 9z"/><path d="M3 9h18"/></svg></span>'
+        +   '<span class="tx"><b>会员 · AI 无限用</b><span>专属权益、无限次评分与陪练</span></span>'
+        +   '<a class="go" href="vip.html">了解 &rarr;</a></div>';
+      h += '<div class="sec-t"><b>常用</b><span>' + (items.length + 1) + ' 个入口</span></div>';
+      h += '<div class="me-list">';
+      for(const it of items){
+        h += '<a class="me-row" href="' + link(it) + '" data-id="' + it.id + '">'
+          +   '<span class="ic">' + icon(it) + '</span>'
+          +   '<span class="tx"><b>' + esc(it.name) + '</b><span>' + esc(it.desc || '') + '</span></span>'
+          +   '<span class="ar">&rsaquo;</span></a>';
+      }
+      h += '<a class="me-row" id="hgSearchCard" href="javascript:void 0" role="button">'
+        +   '<span class="ic">' + SEARCH_SVG + '</span>'
+        +   '<span class="tx"><b>搜索</b><span>找功能、查单词、搜句子</span></span>'
+        +   '<span class="ar">&rsaquo;</span></a>';
+      h += '</div>' + searchBox;
+    } else {
+      /* plans 组（孤儿页）：保留原来的整页渲染，一行不动 */
+      h += '<div class="hg-head"><h1>' + esc(G.title) + '</h1><p>' + esc(G.tagline) + '</p></div>';
+      h += renderStats();
+      if(!isLogin){
+        h += '<div class="hg-loginbar" id="hgLoginBar">'
+          +   '<span class="lb-tx"><b>未登录</b><span>登录后进度、错句、成绩都能跨设备同步</span></span>'
+          +   '<a class="lb-a" href="login.html">去登录</a></div>';
+      }
+      h += '<div class="hg-grid">';
+      for(const it of items){
+        const on = (link(it) === cur) ? ' cur' : '';
+        h += '<a class="hg-card' + on + (it.accent ? ' accent' : '') + '" href="' + link(it) + '" data-id="' + it.id + '">'
+          +   '<span class="hg-ic">' + icon(it) + '</span>'
+          +   '<span class="hg-tx"><b>' + esc(it.name) + '</b><span>' + esc(it.desc || '') + '</span></span>'
+          +   '<span class="hg-ar" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></a>';
+      }
+      h += '<div class="hg-search" id="hgSearch" hidden>'
+        +   '<div class="hs-box">'
+        +     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>'
+        +     '<input type="text" id="hgSearchInput" placeholder="搜功能、查单词、搜句子" aria-label="搜索" autocomplete="off">'
+        +     '<button type="button" class="hs-close" id="hgSearchClose" aria-label="收起搜索">&times;</button>'
+        +   '</div><div class="hs-list" id="hgSearchList"></div></div>'
+        +   '<a class="hg-card hg-search-card" id="hgSearchCard" href="javascript:void 0" role="button">'
+        +     '<span class="hg-ic">' + SEARCH_SVG + '</span>'
+        +     '<span class="hg-tx"><b>搜索</b><span>找功能、查单词、搜句子</span></span>'
+        +     '<span class="hg-newbadge">新</span>'
+        +     '<span class="hg-ar" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></a>';
+      h += '</div>';
+      if(!items.length){
+        h += '<div class="hg-empty"><p>这一组暂时没有可进的页面。</p><a class="btn btn-primary" href="home.html">回首页</a></div>';
+      }
+      h += '<p class="hg-note">导航里都能进这些页面；这里只是把常用的挑出来放一屏。</p>';
     }
-    h += '<div class="hg-grid">';
-    for(const it of items){
-      const p = pageById ? pageById(it.id) : null;
-      const file = p ? p.file : (it.id + '.html');
-      const icon = p ? p.icon : '';
-      const on = (p && p.file === cur) ? ' cur' : '';
-      h += '<a class="hg-card' + on + (it.accent ? ' accent' : '') + '" href="' + file + '" data-id="' + it.id + '">'
-        +   '<span class="hg-ic">' + icon + '</span>'
-        +   '<span class="hg-tx">'
-        +     '<b>' + esc(it.name) + '</b>'
-        +     '<span>' + esc(it.desc || '') + '</span>'
-        +   '</span>'
-        +   '<span class="hg-ar" aria-hidden="true">'
-        +     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>'
-        +   '</span>'
-        + '</a>';
-    }
-    /* 10-23 1-1：搜索卡 —— 手机端史上第一次能搜（顶栏搜索框自 T-011 起在手机就是 display:none）。
-       默认折叠成一张卡，点开就地展开输入框；输入走全站同一套 ssMatchPages（中文跳功能、英文 AI 查词）。
-       不做新搜索：只用 common.js 里已有的匹配函数与 ssNewWord。 */
-    h += '<div class="hg-search" id="hgSearch" hidden>'
-      +   '<div class="hs-box">'
-      +     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>'
-      +     '<input type="text" id="hgSearchInput" placeholder="搜功能、查单词、搜句子" aria-label="搜索" autocomplete="off">'
-      +     '<button type="button" class="hs-close" id="hgSearchClose" aria-label="收起搜索">&times;</button>'
-      +   '</div>'
-      +   '<div class="hs-list" id="hgSearchList"></div>'
-      + '</div>'
-      + '<a class="hg-card hg-search-card" id="hgSearchCard" href="javascript:void 0" role="button">'
-      +   '<span class="hg-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></span>'
-      +   '<span class="hg-tx"><b>搜索</b><span>找功能、查单词、搜句子</span></span>'
-      +   '<span class="hg-newbadge">新</span>'
-      +   '<span class="hg-ar" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>'
-      + '</a>';
-    h += '</div>';
-    /* T-011：没有可展示的入口时给引导（不许白板一块）。plans 组现在只剩「计划」一项，
-       真变空时这里就是唯一出口 —— 文案指向顶栏导航，不编造不存在的功能。 */
-    if(!items.length){
-      h += '<div class="hg-empty"><p>这一组暂时没有可进的页面。</p>'
-        +  '<a class="btn btn-primary" href="home.html">回首页</a></div>';
-    }
-    /* 底部提示条：她 12:10 报过「入口找不到」，这里明确告诉她「导航里也能进所有页面」
-       10-22 换顶栏后原话「桌面端左侧栏仍列出全部页面」已不成立（这三个页面没有侧栏了）→ 改成导航口径。 */
-    h += '<p class="hg-note">导航里都能进这些页面；这里只是把常用的挑出来放一屏。</p>';
     root.innerHTML = h;
-    root.setAttribute('data-shown-group', G.key);   // 供跨组软导航的 repaint 比对
+    root.setAttribute('data-shown-group', G.key);
     wireSearchCard();
   }
 
@@ -453,7 +595,7 @@ function renderStats(){
       const g = hostGroup();
       const shown = root.getAttribute('data-shown-group') || null;
       // 条件：组认出来了 且（组变了 或 还没画过卡）
-      if(g && (g !== lastGroup || g !== shown || !root.querySelector('.hg-card'))){
+      if(g && (g !== lastGroup || g !== shown || !root.querySelector('.hg-card, .ln-hero, .me-id'))){
         lastGroup = g;
         render();
       }
