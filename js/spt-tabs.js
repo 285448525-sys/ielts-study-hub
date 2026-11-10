@@ -223,9 +223,10 @@
   }
   function renderRecords(){
     var box=$('sptRecordsBody');if(!box)return;
-    var all=mocks(),recs=all.slice().reverse(),t=target();
+    var all=mocks(),recs=all.filter(inRange).slice().reverse(),t=target();
     if(!recs.length){
-      box.innerHTML='<div class="spt-empty"><b>还没有模考记录</b>做一次整套模考（P1 → P2 → P3），结果会自动存到这里。'
+      var msg=all.length?'这个时间范围里还没有模考，换到「全部时间」看看。':'做一次整套模考（P1 → P2 → P3），结果会自动存到这里。';
+      box.innerHTML='<div class="spt-empty"><b>'+(all.length?'这个范围没有模考':'还没有模考记录')+'</b>'+esc(msg)
         +'<div style="margin-top:14px">'+mockBtnHtml()+'</div></div>';
       return;
     }
@@ -275,13 +276,13 @@
     }).join('');
     var tbl='<div class="spt-panel">'
       +'<div class="spt-panel-h"><span class="sv-chips">'
-      +'<button type="button" class="sv-chip on" data-sv-chip="all">全部 '+all.length+'</button>'
+      +'<button type="button" class="sv-chip on" data-sv-chip="all">全部 '+recs.length+'</button>'
       +'<button type="button" class="sv-chip" data-sv-chip="ok">达标 '+okN+'</button>'
-      +'<button type="button" class="sv-chip" data-sv-chip="low">未达标 '+(all.length-okN)+'</button></span></div>'
+      +'<button type="button" class="sv-chip" data-sv-chip="low">未达标 '+(recs.length-okN)+'</button></span></div>'
       +'<div class="sv-tbl-scroll"><table class="sv-rec-table"><thead><tr>'
       +'<th>日期</th><th>类型</th><th>FC</th><th>LR</th><th>GRA</th><th>发音</th><th>预估总分</th><th>最弱环节</th>'
       +'</tr></thead><tbody>'+rows+'</tbody></table></div>'
-      +'<div class="sv-table-foot"><span>共 '+all.length+' 场 · AI 预估分，非官方成绩</span>'
+      +'<div class="sv-table-foot"><span>共 '+recs.length+' 场 · AI 预估分，非官方成绩</span>'
       +'<span style="margin-left:auto">按日期倒序</span></div></div>';
     box.innerHTML='<div class="spt-stat-grid">'+statHtml(cards)+'</div>'
       +lastPanel+partPanel+tbl
@@ -370,6 +371,7 @@
       window.__sptRange=s.value;
       document.querySelectorAll('.spt-range').forEach(function(x){x.value=window.__sptRange});
       if(window.__sptCur==='home')renderHome();
+      else if(window.__sptCur==='records')renderRecords();
     }
   }
   function observe(){
