@@ -3356,3 +3356,37 @@ main .m-plancard,main .m-side-card,main .esys--inline,main .exam-item,main .wb2-
 @media (hover:hover) and (pointer:fine){
   .pill-tab:active,.wl-filter-chips .chip:active,.wb-seg-btn:active{transform:scale(.97)}
 }
+
+/* ==================== NO-DECO-HEAD（11-10 她定，全站硬规矩） ====================
+   她：所有页面左上角那种「大字标题 + 一行装饰小字」毫无意义、没有功能，全部删掉；
+   以后出设计稿 / 样子稿 / 施工都不再产出这类东西。只留「没它就看不懂 / 用不了」的
+   必要标注：数卡与图表标题、按钮、筛选控件、表头、表单 label、空态文案、以及必要
+   免责说明（如「预估分不是官方成绩」，仍保留在 .wrv-stat 与口语记录卡里）。
+   做法：纯 CSS 隐藏、零 DOM / id / JS / 判分改动；选择器写到全站共享样式里，
+   将来若误把同类装饰栏头写回页面，这里会自动压住，不会再冒出来。
+   按「所有页面 / 其他以此类推」一并收口：首页 .hero 与学习组页 .ln-hero 的问候大字、
+   plans-hub 的 .hg-head 标题 + 口号，同属没功能的装饰大字，一起隐藏；周围的日期、
+   距考倒计时、连续天数、今日已学 / 目标进度等真实数据全部保留。
+   保留：时间范围下拉、录入成绩 / 拆解长难句 / 开始模考等按钮、统计数字胶囊、
+   免责说明、日期与倒计时等真实数据、以及全部数据卡片与图表标题
+   （含 JS 动态生成的 spvHead / cpViewHead）；没标注就看不懂的章节 / 图表标题一律不动。 */
+.spt-vhead h1,.spt-vhead>div>span,
+.wr-vhead h1,.wr-vhead>div>span,
+.cp2-vhead h1,.cp2-vhead .hint,
+.spv-head h1,.spv-head .spv-t>span,
+.wrv-head h1,.wrv-head .wrv-hint,
+.rv2-head h1,.rv2-head>div>p,
+.rv-vhead h1,.rv-vhead .hint,
+.v-head h1,.v-head .hint,
+.wm-topbar .wm-title{display:none!important}
+/* 这两处栏头整块只有装饰文字、没有任何控件，整块收掉，避免留一段空白间隙 */
+#sptPaneMock>.spt-vhead,#wrPaneExam>.wr-vhead{display:none!important}
+
+/* 「所有页面 / 其他以此类推」：首页 .hero 与学习组页 .ln-hero 的问候大字、plans-hub
+   的 .hg-head 标题+口号，同样是没功能的纯装饰，一并按硬约束收掉；它们周围的真实数据
+   （日期 .eyebrow/.ln-date、距考倒计时 .countdown/.ln-sub、连续天数 .streak-chip、
+   今日目标进度 .ln-goal、状态摘要 .hg-stats、入口卡 .hg-grid）全部保留。
+   没标注就看不懂的章节 / 图表 / 内容标题（新手必读、公告、帮助、隐私、会员、
+   「粘贴长难句」这类功能说明）一律不动。index.html 是独立营销落地页、不引本样式，
+   其主标题不受影响。 */
+.hero h1,.ln-hero .ln-hi,.hg-head h1,.hg-head p{display:none!important}
