@@ -328,21 +328,31 @@ function hubBellHtml(){
     + '</span>'
     + '<div class="pop" id="tbBellPop" hidden></div>';
 }
-/* 错词数（本地两处）：① 自定义词库 = DATA.dailyWrong[今天]（DATA 顶层，全站可读）；
-   ② 官方词库 = 独立 localStorage ielts_hub_obank_v1（wordbank.js 的纯本地键，直读即可，
-   🔴 不能调 wbTodayWrongEns() —— 那是 practice 页专属脚本，顶栏在 19 页都在，调用必 undefined） */
+/* 错词数：自定义词库 = DATA.dailyWrong（按日期分桶）所有桶；官方词库 = 独立
+   localStorage ielts_hub_obank_v1 各库的 wrong（按日期分桶）所有桶；去重取并集大小。
+   WRONGBOOK-HISTORY-1：原来只读 [今天] 这一桶，历史错词隔天全漏、顶栏红点归零；
+   改成汇总全部日期桶，与 wb-tabs.js 的 wrongData() 同口径。只读、不写、不碰判分。
+   顶栏在 19 页都在，不能调 practice 页专属的 wbTodayWrongEns()。 */
 function hubWrongCount(){
-  const t = todayKey();
   const ids = new Set();
   try{
-    ((DATA.dailyWrong || {})[t] || []).forEach(k => { const s = String(k||'').trim().toLowerCase(); if(s) ids.add(s); });
+    const dw = (DATA && DATA.dailyWrong) || {};
+    Object.keys(dw).forEach(day => {
+      (Array.isArray(dw[day]) ? dw[day] : []).forEach(k => {
+        const s = String(k||'').trim().toLowerCase(); if(s) ids.add(s);
+      });
+    });
   }catch(e){}
   try{
     const ob = JSON.parse(localStorage.getItem('ielts_hub_obank_v1') || 'null');
     if(ob && ob.banks){
       Object.keys(ob.banks).forEach(id => {
-        const w = (ob.banks[id] && ob.banks[id].wrong && ob.banks[id].wrong[t]) || [];
-        w.forEach(k => { const s = String(k||'').trim().toLowerCase(); if(s) ids.add(s); });
+        const byDay = (ob.banks[id] && ob.banks[id].wrong) || {};
+        Object.keys(byDay).forEach(day => {
+          (Array.isArray(byDay[day]) ? byDay[day] : []).forEach(k => {
+            const s = String(k||'').trim().toLowerCase(); if(s) ids.add(s);
+          });
+        });
       });
     }
   }catch(e){}

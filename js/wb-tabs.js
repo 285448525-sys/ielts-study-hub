@@ -59,15 +59,20 @@
   function num(v){ var n = Number(v); return (isNaN(n) || n < 0) ? 0 : n; }
 
   /* ── 任务2：错词本真数据 ──────────────────────────────────────────────
-     来源 = 今日错词（与设计稿「错词本」同义、与 hubWrongCount()/todayWrongEns() 同口径）：
-       · 自定义词库：DATA.dailyWrong[今天] 的 en 数组
-       · 官方词库：localStorage ielts_hub_obank_v1 的 banks[*].wrong[今天] 的 en 数组
-     每个 en 用 findWordByEn() 拿真词对象补 cn/ipa/errTotal/hardWord/keyWord（查不到就留空，
-     绝不造词）。来源词书名从 window.__WM_BOOKS 取，custom 显示「我的词库」。
-     🔴 不做「逐行移除」：common-merge.js:399-411 的 dailyWrong 合并是跨端「并集」且无 en 级
-        墓碑，本机删掉的元素会被另一端并回来（v812 同款联动坑）。要做移除得先给合并层加
-        墓碑（动 22 页串号的共用文件），留待单独一笔，不在本任务埋隐性 bug。
-        // TODO: [待确认] 错词本移除 + 跨端墓碑（涉及 common-merge.js / 22 页串号） */
+     WRONGBOOK-HISTORY-1（11-10 她「明明有很多错词但一个都没收录进去」）：
+     🔴 病根坐实：原来只读 [今天] 这一天的名单，前几天答错的词隔天就查不到，错词本
+        显示「还没有错词」（实测 8 个历史错词、今天没答错 → 显示 0 个）；顶栏红点同病。
+     来源 = 全部历史错词。名单本就按日期分桶、跨端并集合并、永不清空，汇总所有日期桶
+     即用户的全部历史错词，一个不漏；照爱听写/疯狂背单词/百词斩「错词一直留在本子里、
+     不是每天清零」的口径。与 hubWrongCount() 同口径（本笔同步改）。
+       · 自定义词库：DATA.dailyWrong 各日期桶的 en 数组
+       · 官方词库：localStorage ielts_hub_obank_v1 各库的 wrong 各日期桶的 en 数组
+     每个 en 用 findWordByEn()/wordFromBank() 按来源库拿真词对象补 cn/ipa/errTotal/
+     hardWord/keyWord（查不到就留空，绝不造词）；词书名从 window.__WM_BOOKS 取。
+     按答错次数降序（错得多的排前面），同次数按字母序稳定。
+     🔴 不做「逐行移除 / 练会了自动移走」：dailyWrong 合并是跨端「并集」且无 en 级
+        墓碑（common-merge.js），本机删掉会被另一端并回来；且「练会」判据要碰判分/SRS。
+        这两件事留待单独一笔（待确认），不在本任务埋隐性 bug。 */
   /* WRONGBOOK-BUGFIX-1：按「来源库」只读查词对象。
      错词本汇总了自定义库与各官方库的今日错词，但 findWordByEn 只查当前活动库 ——
      切词书后其它库的错词会查不到，释义/答错次数/标难/重点全丢、chips 全空、重练灰掉。
@@ -91,8 +96,6 @@
     }catch(e){ return null; }
   }
   function wrongData(){
-    var t = '';
-    try{ t = (typeof todayKey === 'function') ? todayKey() : ''; }catch(e){}
     var out = [], seen = {};
     function add(en, bankId){
       var k = String(en || '').trim().toLowerCase();
@@ -100,8 +103,8 @@
       seen[k] = 1;
       var w = null;
       try{ w = (typeof findWordByEn === 'function') ? findWordByEn(k) : null; }catch(e){}
-      /* WRONGBOOK-BUGFIX-1：展示字段改按「来源库」取词对象（见上方 wordFromBank）。
-         w 仍保留当前库对象给 reviewWrong 用，语义不变；只读来源库补展示，绝不写进度。 */
+      /* 展示字段按「来源库」取词对象（WRONGBOOK-BUGFIX-1）：w 仍保留当前库对象给
+         reviewWrong 用，语义不变；只读来源库补展示，绝不写进度、绝不造词。 */
       var d = wordFromBank(k, bankId) || w;
       var nm = '我的词库';
       if(bankId && bankId !== 'custom'){
@@ -116,15 +119,25 @@
         key:  !!(d && d.keyWord)
       });
     }
-    try{ (((typeof DATA !== 'undefined' ? DATA : {}) || {}).dailyWrong || {})[t] &&
-         DATA.dailyWrong[t].forEach(function(en){ add(en, 'custom'); }); }catch(e){}
+    // WRONGBOOK-HISTORY-1：汇总所有日期桶（原来只读 [今天] 这一桶，历史错词隔天全漏）。
+    // 名单按天分桶、跨端并集合并、永不清空；合并所有桶 = 用户全部历史错词，一个不漏。
+    try{
+      var dw = ((typeof DATA !== 'undefined' && DATA) ? DATA.dailyWrong : null) || {};
+      Object.keys(dw).forEach(function(day){
+        (Array.isArray(dw[day]) ? dw[day] : []).forEach(function(en){ add(en, 'custom'); });
+      });
+    }catch(e){}
     try{
       var ob = JSON.parse(localStorage.getItem('ielts_hub_obank_v1') || 'null');
       if(ob && ob.banks) Object.keys(ob.banks).forEach(function(id){
-        var list = ((ob.banks[id] || {}).wrong || {})[t] || [];
-        list.forEach(function(en){ add(en, id); });
+        var byDay = ((ob.banks[id] || {}).wrong) || {};
+        Object.keys(byDay).forEach(function(day){
+          (Array.isArray(byDay[day]) ? byDay[day] : []).forEach(function(en){ add(en, id); });
+        });
       });
     }catch(e){}
+    // 错得多的排前面；同次数按字母序稳定。
+    out.sort(function(a,b){ return (b.err - a.err) || (a.en < b.en ? -1 : (a.en > b.en ? 1 : 0)); });
     return out;
   }
   function wrongCount(){ return wrongData().length; }
