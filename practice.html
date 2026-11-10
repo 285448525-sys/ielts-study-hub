@@ -31,7 +31,7 @@
 })();
 </script>
 <title>单词 · 雅思备考 Hub</title>
-<link rel="preload" as="script" href="js/practice.js?v=20261106a" /> <!-- W1-PRELOAD-1 (168KB)：与下方 defer 同串防双下载 -->
+<link rel="preload" as="script" href="js/practice.js?v=20261110d" /> <!-- W1-PRELOAD-1 (168KB)：与下方 defer 同串防双下载 -->
 <link rel="preload" as="script" href="js/words.js?v=20261102c" /> <!-- W1-PRELOAD-1 (90KB)：与下方 defer 同串防双下载 -->
 <link rel="preload" as="script" href="js/common-shell.js?v=20261107b" /> <!-- W1-PRELOAD-1 (113KB)：与下方 defer 同串防双下载 -->
 <link rel="stylesheet" href="css/common.css?v=20261110b" />
@@ -58,7 +58,7 @@
   <script defer src="js/wordbank.js?v=20261102c"></script>
   <!-- design/77 DHP+SSP-MMC 策略表：必须在 practice.js 之前（defer 按文档序执行，表未加载时 practice.js 有回退兜底） -->
   <script defer src="js/dhp_policy.js?v=20260921a"></script>
-  <script src="js/practice.js?v=20261106a" defer></script>
+  <script src="js/practice.js?v=20261110d" defer></script>
   <script src="js/words.js?v=20261102c" defer></script>
   <script src="js/wd-dict.js?v=20261104d" defer></script>
 <style>
@@ -371,6 +371,35 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
   .wb-setrow{flex-wrap:wrap}
   .wb-setselect{max-width:100%;width:100%}
 }
+
+/* WORDBOOK-UX-1（11-10 样子稿 1:1）：设置页新控件 + 背词页自评三档/撤销/音标 */
+.pill-new{font-size:10px;font-weight:700;color:#2f7d76;background:#e8f3f1;border-radius:20px;padding:2px 7px;margin-left:5px;vertical-align:1px}
+.wb-ratio{display:inline-flex;background:var(--surface-2,#eef2f3);border-radius:10px;padding:3px;gap:2px;flex:0 0 auto}
+.wb-ratio button{border:0;background:transparent;border-radius:8px;padding:7px 12px;font-size:12.5px;color:var(--muted,#71767e);cursor:pointer}
+.wb-ratio button.on{background:var(--surface,#fff);color:var(--primary-700,#2f7d76);font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.wb-bookcur{font-size:13px;font-weight:650;color:var(--primary-700,#2f7d76)}
+.wb-linkbtn{margin-left:8px;border:0;background:transparent;color:var(--primary-700,#2f7d76);font:inherit;font-size:12.5px;cursor:pointer;padding:4px}
+.wb-linkbtn:hover{text-decoration:underline}
+.wb-bookhint{font-size:12px;color:var(--muted,#71767e);padding:6px 2px 2px;line-height:1.6}
+/* 背词卡：音标开关只隐音标文本（喇叭留在 .pw-ipa 内） */
+#practiceBody.wb-hide-ipa .pw-ipa-tx{display:none}
+/* 自评三档：隐藏「不知道」，选项区改单列，翻卡与三档按钮 */
+#practiceBody.self-mode .abtn-unknown{display:none}
+#practiceBody.self-mode .opts-grid{grid-template-columns:1fr}
+.wb-self-reveal{grid-column:1/-1;min-height:52px;border:1px solid var(--line,#e6e9ea);border-radius:12px;background:var(--surface,#fff);color:var(--ink,#1f2328);font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+.wb-self-reveal:hover{border-color:var(--primary,#5cb3ab)}
+.wb-self-mean{grid-column:1/-1;text-align:center;padding:6px 0}
+.wb-self-mean .sm-cn{font-size:20px;font-weight:650;color:var(--ink,#1f2328)}
+.wb-self-mean .sm-eg{font-size:13px;color:var(--muted,#71767e);margin-top:6px;line-height:1.6}
+.wb-self-grades{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.wb-grade{min-height:64px;border:1px solid var(--line,#e6e9ea);border-radius:12px;background:var(--surface,#fff);color:var(--ink,#1f2328);font:inherit;font-size:14px;font-weight:650;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
+.wb-grade small{font-size:11px;font-weight:400;color:var(--muted,#9aa1a8)}
+.wb-grade.g1{border-color:#bfe3d8}
+.wb-grade.g2{border-color:#f0dca8}
+.wb-grade.g3{border-color:#f0c4c4}
+.abtn-undo{margin-left:10px;min-height:40px;padding:0 16px;border:1px solid var(--line,#e6e9ea);border-radius:10px;background:var(--surface,#fff);color:var(--ink,#1f2328);font:inherit;font-size:13px;cursor:pointer}
+.abtn-undo[hidden]{display:none}
+@media (max-width:600px){ .wb-self-grades{grid-template-columns:1fr} }
 
 /* WORDBOOK-TABS-1 任务4 · 词书页（真数据列表 + 复用站内子态；teal / 44px 触控） */
 .wb-btags{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto;flex:0 0 auto}
@@ -891,9 +920,23 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
           <button type="button" class="wb-switch" id="wbSwFx" data-wb-sw="fxFeedback" role="switch"><i></i></button>
         </div>
         <div class="wb-setrow">
-          <div class="grow"><div class="t">当前词书</div><div class="d">从哪本书里挑今天的词</div></div>
-          <select class="wb-setselect" id="wbSetBook"></select>
+          <div class="grow"><div class="t">显示音标 <span class="pill-new">新</span></div><div class="d">背词卡上在单词下方标出音标，关掉就不显示</div></div>
+          <button type="button" class="wb-switch" id="wbSwIpa" data-wb-sw="showIpa" role="switch"><i></i></button>
         </div>
+        <div class="wb-setrow">
+          <div class="grow"><div class="t">新词 : 复习 <span class="pill-new">新</span></div><div class="d">今天的量里，新词和旧词怎么配</div></div>
+          <div class="wb-ratio" id="wbRatio">
+            <button type="button" data-ratio="3:7">3:7</button>
+            <button type="button" data-ratio="5:5">5:5</button>
+            <button type="button" data-ratio="6:4">6:4</button>
+          </div>
+        </div>
+        <div class="wb-setrow">
+          <div class="grow"><div class="t">当前词书</div><div class="d">从哪本书里挑今天的词</div></div>
+          <span class="wb-bookcur" id="wbBookCur">—</span>
+          <button type="button" class="wb-linkbtn" id="wbBookGo">去词书页换 ›</button>
+        </div>
+        <div class="wb-bookhint" id="wbBookHint" hidden>换书去「词书」页，在书架或商城里挑；这里只显示当前在用哪本。</div>
       </div>
 
       <div class="wbs-panel">
@@ -1175,7 +1218,7 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
   window.__wwordB1 = true;
 
   /* WD-DICT-TYPE-1（11-01）：删混合，三模式。听写=打字型（js/wd-dict.js）。 */
-  var MODE_TXT = { visual: '看词选义', audio: '听音选义', dictation: '听写模式' };
+  var MODE_TXT = { visual: '看词选义', audio: '听音选义', dictation: '听写模式', self: '自评三档' };
   var $ = function(id){ return document.getElementById(id); };
   var setTxt = function(id, v){ var e = $(id); if (e) e.textContent = String(v); };
 
@@ -1354,6 +1397,9 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
     try{ m = (typeof pc === 'function' ? pc() : {}).questionMode || 'visual'; }catch(e){}
     setTxt('wdModeTxt', MODE_TXT[m] || MODE_TXT.visual);
   }
+  /* WORDBOOK-UX-1：把「刷新头部模式胶囊」开成全局口子，给设置页切模式时同步调用。
+     两套 DOM（头部胶囊 / 设置页模式卡）各刷各的，不能指望对方顺带更新。 */
+  window.__wdSyncMode = syncModeTxt;
 
   /* 🔴 WD-DICT-TYPE-2（11-02 A1 实测）：原来这里是 `closeModePop(){ 删节点 }` +
      openModePop 里 `document.addEventListener('click', closeModePop, {once:true})`。
@@ -1378,7 +1424,7 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
     box.id = 'wdModePopList';
     box.className = 'wd-mode-pop';
     /* WD-DICT-TYPE-1（11-01）：三选一（混合已删，她口令）。 */
-    [['visual','看词选义'],['audio','听音选义'],['dictation','听写模式']].forEach(function(it){
+    [['visual','看词选义'],['audio','听音选义'],['dictation','听写模式'],['self','自评三档']].forEach(function(it){
       var b = document.createElement('button');
       b.type = 'button';
       b.className = 'wd-mode-opt' + (it[0] === cur ? ' on' : '');
@@ -2427,7 +2473,7 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
 
 <link rel="stylesheet" href="css/p/hub-shell.css?v=20261107a" />
 <script defer src="js/hub-side-shell.js?v=20261106b"></script>
-<script defer src="js/wb-tabs.js?v=20261110c"></script>
+<script defer src="js/wb-tabs.js?v=20261110d"></script>
 </body>
 </html>
 

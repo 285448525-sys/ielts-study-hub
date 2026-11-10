@@ -515,7 +515,20 @@
   function setMode(id){
     if(id === 'smart') return;                 // 智能模式：占位，不写配置
     try{ if(typeof pcSave === 'function') pcSave({ questionMode:id }); }catch(e){}
+    /* WORDBOOK-UX-1：头部模式胶囊也跟着更新（设置页与头部是两套独立 DOM，
+       syncModeTxt 平时只随 syncToday 跑，而 syncToday 只在离开答题态时触发）。 */
+    try{ if(window.__wdSyncMode) window.__wdSyncMode(); }catch(e){}
     renderSet();
+    /* WORDBOOK-UX-1：跟头部模式菜单同口径 —— 切完立刻按新模式重出当前题，
+       别等下一题才生效（她最烦「像没生效」）。只在有队列且当前没在揭示/判定时重出，
+       不打断正在作答的那一题；切模式时通常停在设置页，studyView 隐藏，重渲染不闪屏。 */
+    try{
+      if(typeof nextQuestion === 'function' && typeof pq !== 'undefined'
+         && pq && pq.queue && pq.queue.length && !pq.revealed){
+        clearTimeout(pq.undoTimer); pq.undoStack = [];   // 换模式清掉旧撤销槽，避免跨模式退回
+        nextQuestion();
+      }
+    }catch(e){}
   }
   function setCap(delta){
     var cap = 0;
@@ -551,6 +564,7 @@
         visual: '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
         audio: '<path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/>',
         dictation: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+        self: '<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',
         smart: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/>'
       };
       function modeIc(k){
@@ -561,6 +575,7 @@
         { id:'visual',    nm:'看词选义', ds:'看英文，选中文' },
         { id:'audio',     nm:'听音选义', ds:'听发音，选中文' },
         { id:'dictation', nm:'听写模式', ds:'听发音，拼单词' },
+        { id:'self',      nm:'自评三档', ds:'翻卡后自己评级' },
         { id:'smart',     nm:'智能模式', ds:'待开放', off:true }
       ];
       box.innerHTML = modes.map(function(m){
@@ -578,12 +593,14 @@
     sw('wbSwAuto', c.autoPlay);
     sw('wbSwShuffle', c.shuffle);
     sw('wbSwFx', c.fxFeedback);
-    var sel = $('wbSetBook');
-    if(sel){
-      var books = window.__WM_BOOKS || [];
-      sel.innerHTML = books.map(function(b){
-        return '<option value="' + esc(b.id) + '"' + (b.id === curBook ? ' selected' : '') + '>' + esc(b.nm) + '</option>';
-      }).join('');
+    sw('wbSwIpa', c.showIpa);                       // WORDBOOK-UX-1：显示音标
+    var rb = $('wbRatio');                         // WORDBOOK-UX-1：新词:复习 三档
+    if(rb){ [].forEach.call(rb.children, function(b){ b.classList.toggle('on', b.getAttribute('data-ratio') === (c.newReviewRatio || '5:5')); }); }
+    var bcur = $('wbBookCur');                     // 当前词书改只读显示，换书去词书页
+    if(bcur){
+      var books = window.__WM_BOOKS || [], nm = curBook;
+      for(var i = 0; i < books.length; i++){ if(books[i].id === curBook){ nm = books[i].nm; break; } }
+      bcur.textContent = nm;
     }
   }
   function renderPane(id){
@@ -608,6 +625,10 @@
     if(cp){ e.preventDefault(); setCap(5); return; }
     var swa = t.closest('[data-wb-sw]');
     if(swa){ e.preventDefault(); setToggle(swa.getAttribute('data-wb-sw')); return; }
+    var rt = t.closest('#wbRatio [data-ratio]');   // WORDBOOK-UX-1：新词:复习比例
+    if(rt){ e.preventDefault(); try{ if(typeof pcSave === 'function') pcSave({ newReviewRatio: rt.getAttribute('data-ratio') }); }catch(e2){} renderSet(); return; }
+    var bgo = t.closest('#wbBookGo');              // WORDBOOK-UX-1：换书去词书页（show 与 hash 对齐）
+    if(bgo){ e.preventDefault(); var bh = $('wbBookHint'); if(bh) bh.hidden = false; show('books'); return; }
     var mgr = t.closest('#wbSetManage');
     if(mgr){ e.preventDefault(); importBook(); return; }
     /* 任务4：词书页 打开 / 编辑书架 / 导入 */
@@ -640,8 +661,8 @@
     }
   }
   function onChange(e){
-    var t = e.target;
-    if(t && t.id === 'wbSetBook'){ setBook(t.value); }
+    /* WORDBOOK-UX-1：当前词书改只读，设置页不再有 wbSetBook 下拉；换书走词书页。
+       保留 change 入口（bind 已挂），这里留空以兼容其它 change 源。 */
   }
   function onMerged(){
     renderNav();

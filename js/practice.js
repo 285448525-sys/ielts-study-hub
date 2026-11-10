@@ -79,12 +79,18 @@ var PC_DEFAULTS = {
   showEn: 0,              // 0=不显示 1=答错时显示 2=始终显示
   /* visual=看词选义（默认，一切照旧）/ audio=听音选义（题干隐藏、先听后选释义）
      / dictation=听写（WD-DICT-TYPE-1 · 11-01 她口令：删混合只留三模式；
-       听写改打字型——听音打出单词，逐键音效+对错反馈音，判题仍走 judge）。
+       听写改打字型——听音打出单词，逐键音效+对错反馈音，判题仍走 judge）
+     / self=自评三档（WORDBOOK-UX-1 11-10：翻卡后自评 认识/有点卡/完全不会，
+       档位分别对接 答对/模糊/不认识 的既有排程，不新造第二套判题）。
      mixed 已删除：旧数据/云同步脏值落白名单外自动回退看词。 */
   questionMode: 'visual',
   optCount: 4,
   wrongHoldMs: 2500,
-  fxFeedback: true        // design/54：连击与反馈层开关（设置弹窗「连击与反馈」）
+  fxFeedback: true,       // design/54：连击与反馈层开关（设置弹窗「连击与反馈」）
+  // WORDBOOK-UX-1（11-10 她点头的样子稿）：三处新配置，默认都贴现有行为，不推翻旧口径
+  showIpa: true,          // 背词卡单词下方显示音标（关掉只隐音标文本，喇叭保留）
+  newReviewRatio: '5:5',  // 新词 : 复习 配比（3:7 / 5:5 / 6:4），5:5 为样子稿默认
+  selfGrades: true        // 自评三档模式可用（新增第四种 questionMode='self'）
 };
 function pc(){
   if(!DATA.settings || typeof DATA.settings !== 'object') DATA.settings = {};
@@ -111,10 +117,13 @@ function pc(){
   c.autoPlay = !!c.autoPlay;
   c.showCn = !!c.showCn;
   c.showEn = clampNum(c.showEn, 0, 2, PC_DEFAULTS.showEn);
-  c.questionMode = (['visual','audio','dictation'].indexOf(c.questionMode) !== -1) ? c.questionMode : PC_DEFAULTS.questionMode;   // mixed 已删：旧值/云同步脏值回退看词
+  c.questionMode = (['visual','audio','dictation','self'].indexOf(c.questionMode) !== -1) ? c.questionMode : PC_DEFAULTS.questionMode;   // mixed 已删：旧值/云同步脏值回退看词；self=WORDBOOK-UX-1 自评三档
   c.optCount = clampNum(c.optCount, 2, 10, PC_DEFAULTS.optCount);
   c.wrongHoldMs = clampNum(c.wrongHoldMs, 1000, 5000, PC_DEFAULTS.wrongHoldMs);
   c.fxFeedback = !!c.fxFeedback;
+  c.showIpa = (c.showIpa !== false);   // 默认显示（旧配置没有这个字段时保持现状），只有显式 false 才关
+  c.newReviewRatio = (['3:7','5:5','6:4'].indexOf(c.newReviewRatio) !== -1) ? c.newReviewRatio : PC_DEFAULTS.newReviewRatio;
+  c.selfGrades = !!c.selfGrades;
   return c;
 }
 function pcSave(obj){
@@ -809,7 +818,23 @@ function buildQueue(today, nowISO, _sliceCap){
      新词背完自然写上 nextReview，从此自动进复习段 —— 不改任何词的 level / nextReview。 */
   const _reviews = due.filter(w => (Number(w.level) || 0) >= 1);
   const _news = due.filter(w => !(Number(w.level) || 0) >= 1);
-  return _reviews.concat(_news).slice(0, (_sliceCap != null && _sliceCap > 0) ? _sliceCap : DAILY_DUE_CAP);
+  /* WORDBOOK-UX-1（11-10 她点头的样子稿）：新词 : 复习 配比（3:7 / 5:5 / 6:4，默认 5:5）。
+     口径 = 照墨墨「每日学习量 + 新复比例」：把本轮总量按配比拆成「新词配额 / 复习配额」两段，
+     段内仍用上面排好的优先级；某一段不够时，空出来的名额让给另一段补满，不浪费额度。
+     🔴 只改「两段各取多少」，不动 dueCmp 排序、不动 level>=1 判据、不写词对象、不落盘。 */
+  const _ratio = String(c.newReviewRatio || '5:5').split(':');
+  const _nPart = parseInt(_ratio[0], 10) || 5;
+  const _rPart = parseInt(_ratio[1], 10) || 5;
+  const _total = (_sliceCap != null && _sliceCap > 0) ? _sliceCap : DAILY_DUE_CAP;
+  const _newCap = Math.round(_total * _nPart / (_nPart + _rPart));
+  const _revCap = _total - _newCap;
+  let _takeNew = _news.slice(0, _newCap);
+  let _takeRev = _reviews.slice(0, _revCap);
+  // 一段不够 → 另一段补满（复习全在前、新词在后，顺序口径不变）
+  if(_takeNew.length < _newCap) _takeRev = _reviews.slice(0, _revCap + (_newCap - _takeNew.length));
+  if(_takeRev.length < _revCap) _takeNew = _news.slice(0, _newCap + (_revCap - _takeRev.length));
+  // 复习在前、新词在后；总量仍按 _total 截断兜底（防浮点/补算越界）
+  return _takeRev.concat(_takeNew).slice(0, _total);
 }
 
 // ======= 今日已学词集合（跨轮累计，保证「第二轮不重复第一轮的词」）=======
@@ -902,7 +927,7 @@ async function autoStartSeeWord(){
       }
       /* WD-DICT-TYPE-1：听写已改打字型（不靠选项干扰项），1 个词也能练；
          只有需要选项的两种模式（看词/听音）才保住 2 词门槛。 */
-      if(_wbAll.length < 2 && pc().questionMode !== 'dictation'){
+      if(_wbAll.length < 2 && pc().questionMode !== 'dictation' && pc().questionMode !== 'self'){
         $('#practiceBody').innerHTML = '<div class="q-word">词库至少需要 2 个单词</div><div class="q-cn">「看词选义」需要选项作干扰项，请先加至少 2 个词。</div>';
         _markEmptyState(true);
         return;
@@ -1019,7 +1044,9 @@ async function autoStartSeeWord(){
            reholdMap:{},   // P0-2：本词当场重考次数（仅内存，不持久化，key=小写单词）
            shortMode: new Set(),  // 本轮"答错/不认识过"的词集合 → 需短线分散重复3次才过
            attempts:{},    // 本词本轮作答次数（防死循环）
-           sessionStart: s.sessionStart || Date.now() };
+           sessionStart: s.sessionStart || Date.now(),
+           // WORDBOOK-UX-1（11-10 样子稿）：撤销单槽快照 + 自动进词定时器句柄 + 自评翻卡标记
+           undoStack: [], undoTimer: null, advanceTimer: null, _selfRevealed: false };
     const order = (s.queueOrder && s.queueOrder.length) ? s.queueOrder : s.planEn;
     pq.queue = order
       .map(en => findWordByEn(en))
@@ -1521,6 +1548,7 @@ function renderQuestion(cur, isRehold){
   if(!isRehold || !pq._curQMode){
     pq._curQMode = (c.questionMode === 'audio') ? 'audio'
       : (c.questionMode === 'dictation') ? 'dictation'
+      : (c.questionMode === 'self') ? 'self'
       : 'visual';
   }
   /* WD-DICT-MODE-1（10-31）：听写模式。形态与听音选义同源（题干英文隐藏、只留音标+喇叭），
@@ -1529,9 +1557,10 @@ function renderQuestion(cur, isRehold){
         所以 SRS / 短线重复 / 统计 / 已掌握 / 不知道 全部沿用，不存在第二套判题。 */
   const audioMode = (pq._curQMode === 'audio');
   const dictMode  = (pq._curQMode === 'dictation');
+  const selfMode  = (pq._curQMode === 'self');   // WORDBOOK-UX-1：自评三档（翻卡后自己评级）
 
   /* 听写只要拼写，不需要释义干扰项那套「释义撞车」判据，单独一套生成器 */
-  const opts = dictMode ? genDictationOptions(cur, wbWords()) : genDistractors(cur, wbWords());
+  const opts = selfMode ? [] : (dictMode ? genDictationOptions(cur, wbWords()) : genDistractors(cur, wbWords()));
 
   let html = '';
   // ── 顶部区：上一词回顾 ──
@@ -1580,9 +1609,18 @@ function renderQuestion(cur, isRehold){
   /* WD-DICT-MODE-1：听写与听音共用 .pw-audio 那套「题干隐藏」的 CSS，
      区别只在提示文案（选释义 / 选拼写）与标签。 */
   const hideStem = (audioMode || dictMode);
+  /* WORDBOOK-UX-1：音标归一成「一层斜杠」（贴她点头样子稿的单斜杠样式）。
+     数据源两制：官方词库 ipa 自带斜杠（形如 /ˈænəlaɪz/），words.js 导入/补全路径
+     存的是剥掉斜杠的裸串（形如 ˈænəlaɪz）。旧模板一律再包一层斜杠，官方词
+     就显示成两层斜杠。这里归一：已带斜杠原样出，裸串才补斜杠 —— 两种来源都只显示一层。 */
+  const _ipaTx = (function(){
+    var s = String((cur && cur.ipa) || '').trim();
+    if(!s) return '&nbsp;';
+    return escapeHtml(/^\/.*\/$/.test(s) ? s : '/ ' + s + ' /');
+  })();
   html += '<div class="practice-word-area' + (hideStem ? ' pw-audio' : '') + (dictMode ? ' pw-dict' : '') + '">' +
     '<div class="pw-en"><span class="pw-en-tx">' + escapeHtml(cur.en) + '</span></div>' +
-    '<div class="pw-ipa">' + (cur.ipa ? '/ ' + escapeHtml(cur.ipa) + ' /' : '&nbsp;') +
+    '<div class="pw-ipa"><span class="pw-ipa-tx">' + _ipaTx + '</span>' +
       '<button class="wd-sound" id="qSpeaker" type="button" title="再读一遍" aria-label="播放发音">' +
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M15 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/></svg>' +
       '</button>' +
@@ -1593,15 +1631,17 @@ function renderQuestion(cur, isRehold){
               + '<button class="wdd-log-entry" id="wddLogEntry" type="button">听写记录</button></div>'
               : (audioMode ? '<div class="pw-audio-hint">听发音，选释义 · 点喇叭重播</div>' : '')) +
     '<div class="pw-cn" id="pwCn"></div>' +
-    /* 听写模式不显示真题例句 —— 例句里就带着目标词的拼写，等于把答案印在题干上 */
-    (_eg && !dictMode ? '<p class="wd-example" id="wdExample">' + highlightWord(_eg, cur.en) + '</p>' : '') +
+    /* 听写模式不显示真题例句 —— 例句里就带着目标词的拼写，等于把答案印在题干上；
+       自评三档同理：例句应等「显示意思」后再出现，不能提前印在题干里（WORDBOOK-UX-1） */
+    (_eg && !dictMode && !selfMode ? '<p class="wd-example" id="wdExample">' + highlightWord(_eg, cur.en) + '</p>' : '') +
   '</div>';
 
   // ── 选项网格：电脑四宫格 / 手机四条横排（终稿 @media 700 切列）──
   html += '<div class="opts-grid" id="opts"></div>';
   /* ⑥ 「不知道」不学爱听写：保持原来那条长条、与上面选项同宽（终稿 .bottom-actions = flex:1 通栏）。
      旧 #qSpeaker 通栏喇叭已撤（播放键并入音标行，见上）。 */
-  html += '<div class="answer-btns"><button class="abtn abtn-unknown" id="unknownBtn" title="不知道">不知道</button></div>';
+  html += '<div class="answer-btns"><button class="abtn abtn-unknown" id="unknownBtn" title="不知道">不知道</button>'
+        + '<button class="abtn abtn-undo" id="wbUndoBtn" type="button" title="撤销上一词，重新评级" hidden>↶ 撤销上一词</button></div>';
   /* 🔴 WD-PAGE-REDESIGN-4 第③条（她 21:2x「我们下面也要弄一个就是播放音量的喇叭按钮」）：
      对照爱听写 —— 单词区上方有一颗喇叭，页面下部也有一颗。我们原来只有音标右侧那一颗（32px 透明，
      她根本没看见），所以这轮：①音标那颗改成 40px 实底圆钮（CSS 里改）；②在底部按钮行下面
@@ -1616,6 +1656,9 @@ function renderQuestion(cur, isRehold){
 
   const body = $('#practiceBody');
   body.innerHTML = html;
+  /* WORDBOOK-UX-1：音标开关只隐音标文本（喇叭在 .pw-ipa 内，不能整块隐）；self-mode 供页内 CSS 隐藏「不知道」并改选项区布局 */
+  body.classList.toggle('wb-hide-ipa', c.showIpa === false);
+  body.classList.toggle('self-mode', !!selfMode);
   /* 🔴 DICT-HEADER-SLIM-1（11-03）：听写态把例句彻底关掉。
      原逻辑两处：①renderQuestion 的模板对 dictMode 已经不输出 .wd-example；
      ②practice.html 的 refreshExampleFor() 在例句表异步到位后，只判断「#wdExample 有没有」就往回补 ——
@@ -1624,7 +1667,7 @@ function renderQuestion(cur, isRehold){
      这一版在渲染时先插一个隐藏占位：#wdExample 存在 → refreshExampleFor 直接 return；
      反过来也不影响看词选义/听音选义（那两种模式整块 HTML 重渲染，占位不会带过去）。
      这是本笔唯一改判分之外的一处逻辑，判分/SRS/落盘一行未动。 */
-  if(dictMode){
+  if(dictMode || selfMode){
     var _ar = document.querySelector('#practiceBody .practice-word-area');
     if(_ar && !document.getElementById('wdExample')){
       var _ph = document.createElement('p');
@@ -1654,6 +1697,8 @@ function renderQuestion(cur, isRehold){
         bindOpts(cur);
       }
     }catch(e){ try{ console.error('[wd-dict] mount failed', e); }catch(_e){} }
+  } else if(selfMode){
+    renderSelfMode(cur);     /* WORDBOOK-UX-1：显示意思 → 三档自评 */
   } else {
   $('#opts').innerHTML = opts.map((o, i) => {
     const ps = practiceSense(o);
@@ -1684,6 +1729,10 @@ function renderQuestion(cur, isRehold){
   const left0 = document.getElementById('unknownBtn');
   if(left0) left0.onclick = () => judge(cur, null, false, true);
   ensureMasteredBtn(cur);
+  /* WORDBOOK-UX-1：撤销按钮随每题重建 → 每题重绑；显隐按 8 秒窗口内的单槽快照 */
+  var _undoBtn = document.getElementById('wbUndoBtn');
+  if(_undoBtn) _undoBtn.onclick = () => undoLast();
+  syncUndoBtn();
   /* 10-24 RV-1：撤 P-3 v2 的「答题态收掉底部工具行」—— 底部那枚喇叭已恢复输出，
      工具行也就跟着回来（#practiceTools 不再被强制 display:none）。
      qSpeakerInline（单词右侧那枚）已随 DOM 一并撤掉，这里只认回 #qSpeaker。 */
@@ -1775,11 +1824,208 @@ function shortLineCorrect(cur, today, k){
   return 'requeue';
 }
 
+/* =====================================================================
+   WORDBOOK-UX-1（11-10 她点头的样子稿）：撤销 + 自评三档
+   · 撤销用「整快照还原」：判分会改词对象进度字段、splice 队列、改 pq 计数、
+     markPracticed、recordDailyWrong、写 session，DHP 公式不可逆，绝不逐字段反算。
+   · 单槽：只反悔「最近一次判定」。新判定覆盖旧快照（开始答下一题＝放弃上一题撤销）。
+   · 8 秒窗口；窗口内哪怕已自动进到下一词，也能把那词拉回队首重评。
+   · self 三档：认识→答对过词、完全不会→答错本轮重考、有点卡→模糊排程本轮过词。
+   全部复用既有 promote/demote/judge，不新造第二套判题。
+   ===================================================================== */
+var WB_PROG_KEYS = ['level','nextReview','errTotal','errStreak','okStreak','lastReview','cleared',
+                    'shortCount','lastShortTouch','cleanRounds','hist','resetEpoch','dd','dh',
+                    'mcDue','hardWord','keyWord','ts','lastPracticeAt'];
+function _wbDeep(v){ try{ return JSON.parse(JSON.stringify(v)); }catch(e){ return v; } }
+/* 取当天错词桶的数组引用（判定只会往里 push，不换引用）——供撤销原地回填 */
+function _wbWrongHost(){
+  try{
+    var t = todayKey(), a = (typeof wbActive === 'function') ? wbActive() : 'custom';
+    if(a === 'custom') return (DATA.dailyWrong || {})[t] || null;
+    var rec = (window.__OB && window.__OB.banks && window.__OB.banks[a]) || null;
+    return (rec && rec.wrong) ? (rec.wrong[t] || null) : null;
+  }catch(e){ return null; }
+}
+function pushUndoSnapshot(cur){
+  if(!pq) return;
+  try{
+    var live = (typeof findWordByEn === 'function') ? (findWordByEn(cur && cur.en) || cur) : cur;
+    var word = {};
+    WB_PROG_KEYS.forEach(function(k){ if(live && live[k] !== undefined) word[k] = _wbDeep(live[k]); });
+    var host = _wbWrongHost();
+    var s = wbSession();
+    pq.undoStack = [{
+      en: String(cur && cur.en || '').trim().toLowerCase(),
+      word: word,
+      queueEn: (pq.queue || []).map(function(w){ return String(w && w.en || '').trim().toLowerCase(); }),
+      correct: pq.correct, total: pq.total, initLen: pq.initLen,
+      passed: (pq.passed || []).slice(),
+      counted: pq.counted ? Array.from(pq.counted) : [],
+      stats: Object.assign({}, pq.stats || {}),
+      wrongList: (pq.wrongList || []).slice(),
+      shortMode: pq.shortMode ? Array.from(pq.shortMode) : [],
+      attempts: Object.assign({}, pq.attempts || {}),
+      reholdMap: Object.assign({}, pq.reholdMap || {}),
+      streak: pq.streak || 0, maxStreak: pq.maxStreak || 0, xp: pq.xp || 0,
+      lastEn: pq.lastEn || null, _prevEn: pq._prevEn || '',
+      curQMode: pq._curQMode || 'visual',
+      practicedWords: (function(){ try{ return (wbPracticed().words || []).slice(); }catch(e){ return []; } })(),
+      practicedMem: (function(){ try{ return Array.from(practicedSet()); }catch(e){ return []; } })(),
+      wrongHost: host,
+      wrongArr: host ? host.slice() : null,
+      session: s ? _wbDeep(s) : null
+    }];
+    pq._undoHideAt = Date.now() + 8000;
+    clearTimeout(pq.undoTimer);
+    pq.undoTimer = setTimeout(function(){ if(pq){ pq.undoStack = []; } syncUndoBtn(); }, 8000);
+    syncUndoBtn();
+  }catch(e){ try{ console.error('[wb-undo] snapshot failed', e); }catch(_e){} }
+}
+function syncUndoBtn(){
+  var b = document.getElementById('wbUndoBtn');
+  if(!b) return;
+  var show = !!(pq && pq.undoStack && pq.undoStack.length && Date.now() < (pq._undoHideAt || 0));
+  b.hidden = !show;
+}
+function undoLast(){
+  if(!pq || !pq.undoStack || !pq.undoStack.length) return;
+  /* 取消还没触发的自动进词 / 答错重考停顿 */
+  clearTimeout(pq.advanceTimer); pq.advanceTimer = null;
+  clearTimeout(pq._holdTimer);  pq._holdTimer = null; pq._holdCur = null;
+  clearTimeout(pq.undoTimer);
+  var s = pq.undoStack.pop();
+  pq.undoStack = [];
+  try{
+    /* ① 词对象进度字段整体还原（promote/demote 写过的一律覆盖回去） */
+    var w = (typeof findWordByEn === 'function') ? findWordByEn(s.en) : null;
+    if(w){
+      WB_PROG_KEYS.forEach(function(k){
+        if(s.word[k] === undefined) delete w[k];
+        else w[k] = _wbDeep(s.word[k]);
+      });
+    }
+    /* ② 队列按判定前顺序重建（被 splice 掉的词回到队首） */
+    pq.queue = (s.queueEn || []).map(function(en){ return findWordByEn(en); }).filter(Boolean);
+    pq.idx = 0;
+    /* ③ pq 计数还原 */
+    pq.correct = s.correct; pq.total = s.total; pq.initLen = s.initLen;
+    pq.passed = (s.passed || []).slice();
+    pq.counted = new Set(s.counted || []);
+    pq.stats = Object.assign({}, s.stats || {});
+    pq.wrongList = (s.wrongList || []).slice();
+    pq.shortMode = new Set(s.shortMode || []);
+    pq.attempts = Object.assign({}, s.attempts || {});
+    pq.reholdMap = Object.assign({}, s.reholdMap || {});
+    pq.streak = s.streak; pq.maxStreak = s.maxStreak; pq.xp = s.xp;
+    pq.lastEn = s.lastEn; pq._prevEn = s._prevEn; pq._curQMode = s.curQMode;
+    /* ④ 持久层：今日已练（落盘 + 内存）、今日错词桶、当日 session */
+    try{ wbPracticed().words = (s.practicedWords || []).slice(); }catch(e){}
+    _practicedSet = new Set(s.practicedMem || []);
+    _practicedDirty = 0; _practicedFlushAt = Date.now();
+    if(s.wrongHost){
+      s.wrongHost.length = 0;
+      (s.wrongArr || []).forEach(function(x){ s.wrongHost.push(x); });
+    }else{
+      /* 判定前没有当天错词桶：判定新建了它，撤掉 */
+      try{
+        var t = todayKey(), a = (typeof wbActive === 'function') ? wbActive() : 'custom';
+        if(a === 'custom'){ if(DATA.dailyWrong) delete DATA.dailyWrong[t]; }
+        else { var rec = (window.__OB && window.__OB.banks && window.__OB.banks[a]) || null; if(rec && rec.wrong) delete rec.wrong[t]; }
+      }catch(e){}
+    }
+    var sess = wbSession();
+    if(sess && s.session){
+      Object.keys(sess).forEach(function(k){ if(!(k in s.session)) delete sess[k]; });
+      Object.keys(s.session).forEach(function(k){ sess[k] = _wbDeep(s.session[k]); });
+    }
+    /* ⑤ 一次落盘 */
+    try{ wbSave(); }catch(e){}
+    try{ if(typeof hubSave === 'function') hubSave(); }catch(e){}
+    /* ⑥ 回到那个词重新评级 */
+    pq.revealed = false; pq._picked = false; pq._selfRevealed = false;
+    pq._qStartAt = Date.now();
+    renderQuestion(pq.queue[pq.idx] || w);
+    updateProgBar(); updateWordStats();
+    if(typeof toast === 'function') toast('已退回上一个词，可重新评级');
+  }catch(e){ try{ console.error('[wb-undo] restore failed', e); }catch(_e){} }
+  syncUndoBtn();
+}
+
+/* 自评三档：只负责翻卡与把三档接到既有判题，不改 judge 语义 */
+function renderSelfMode(cur){
+  var box = document.getElementById('opts');
+  if(!box) return;
+  pq._selfRevealed = false;
+  box.innerHTML =
+    '<button class="wb-self-reveal" id="wbSelfReveal" type="button">显示意思</button>' +
+    '<div class="wb-self-mean" id="wbSelfMean" hidden></div>' +
+    '<div class="wb-self-grades" id="wbGradeBtns" hidden>' +
+      '<button class="wb-grade g1" data-g="认识" type="button">认识<small>下次晚点再见</small></button>' +
+      '<button class="wb-grade g2" data-g="有点卡" type="button">有点卡<small>很快再出现</small></button>' +
+      '<button class="wb-grade g3" data-g="完全不会" type="button">完全不会<small>本轮就再练</small></button>' +
+    '</div>';
+  var rev = document.getElementById('wbSelfReveal');
+  if(!rev) return;
+  rev.onclick = function(){
+    if(!pq || pq._selfRevealed) return;
+    pq._selfRevealed = true;
+    rev.hidden = true;
+    var cn = cur.cn ? practiceSense(cur).cn : '';
+    var eg = '';
+    try{ if(typeof window.wdGetExample === 'function') eg = String(window.wdGetExample(cur) || '').trim(); }catch(e){}
+    if(!eg && cur.eg) eg = String(cur.eg).trim();
+    var mean = document.getElementById('wbSelfMean');
+    if(mean){
+      mean.innerHTML = '<div class="sm-cn">' + escapeHtml(cn) + '</div>' +
+        (eg ? '<div class="sm-eg">' + highlightWord(eg, cur.en) + '</div>' : '');
+      mean.hidden = false;
+    }
+    var pcn = document.getElementById('pwCn');
+    if(pcn && cn) pcn.textContent = cn;
+    var gb = document.getElementById('wbGradeBtns');
+    if(gb){
+      gb.hidden = false;
+      [].forEach.call(gb.children, function(b){
+        b.onclick = function(){ settleSelfGrade(b.getAttribute('data-g'), cur); };
+      });
+    }
+  };
+}
+function settleSelfGrade(grade, cur){
+  if(!pq || pq.revealed) return;
+  if(typeof toast === 'function') toast('记下了：' + grade);
+  var gb = document.getElementById('wbGradeBtns');
+  if(gb){ gb.style.pointerEvents = 'none'; gb.style.opacity = '.55'; }
+  if(grade === '认识'){ judge(cur, cur.en, true, false); return; }       /* 复用答对过词 + 自动进词 */
+  if(grade === '完全不会'){ judge(cur, null, false, true); return; }      /* 复用答错本轮重考 */
+  /* 有点卡：模糊 → 按遗忘排程（明天再现），本轮过词、不重考 */
+  pushUndoSnapshot(cur);
+  pq.revealed = true;
+  cur = findWordByEn(cur && cur.en) || cur;
+  var k = String(cur.en).toLowerCase();
+  var today = todayKey();
+  try{ markPracticed(cur.en); }catch(e){}
+  if(!pq.counted) pq.counted = new Set();
+  pq.stats.unknown++;
+  demoteLongTerm(cur, today, false);
+  pq.queue.splice(pq.idx, 1);
+  pq.correct++;
+  pq.passed.push(k);
+  if(!pq.counted.has(k)){ pq.counted.add(k); pq.total++; }
+  if(!pq.isWrongReview){ var _ws = wbSession(); if(_ws) _ws.total = pq.total; }
+  updateProgBar(); updateWordStats(); ensureAnswerSaved();
+  var c = pc();
+  clearTimeout(pq.advanceTimer);
+  pq.advanceTimer = setTimeout(function(){ pq.advanceTimer = null; if(pq && pq.revealed){ nextQuestion(); } }, c.autoNextDelay);
+}
+
 // 统一处理一次作答（4 选 1 直接判 / 点「完全不认识」）。
 // 长线由 promote/demote 排程（design/77 DHP 策略表）；短线由 shortCount + gapFor 间隔插回队列实现「**连续** 3 次答对才放行」（10/9 她拍板改回 3 次，同日二次修正：中途答错清零，见下方错误分支）。
 // P0-2（9/24 她拍板改）：答错 → 当场重考，一直重考到选对为止（不再「只重考 1 次」）。
 function judge(cur, pickedEn, correct, isUnknownBtn){
   if(!pq || pq.revealed) return;
+  // WORDBOOK-UX-1：判定前存整快照（含词进度/队列/计数/已练/错词/会话），供 8 秒内「撤销」整体还原
+  pushUndoSnapshot(cur);
   // 9/23 她改口径：第一次作答才自动开「背单词」计时（原为进练习/出题即开——打开页面不动也算时长）
   // 9/26：真作答开的表不算「跳转误开」，撤销 30s 门槛标记（门槛只拦「点了任务但没学就走」的碎片）
   try{ window.__wordTimerByJump = false; maybeStartWordTimer(); }catch(e){}
@@ -1936,7 +2182,8 @@ function judge(cur, pickedEn, correct, isUnknownBtn){
   } else {
     // 注意：cur 已从队列移除并被重新插到 idx 之后，队首已「滑」到 pq.idx，故不递增 idx
     const delay = correct ? c.autoNextDelay : 1400;
-    setTimeout(() => { if(pq && pq.revealed){ nextQuestion(); } }, delay);
+    clearTimeout(pq.advanceTimer);
+    pq.advanceTimer = setTimeout(() => { pq.advanceTimer = null; if(pq && pq.revealed){ nextQuestion(); } }, delay);
   }
 
   // ── design/54 趣味性反馈（只追加，不动上方任何过词逻辑/跳转时机）──
@@ -2351,7 +2598,7 @@ function renderCfgModal(){
         // 9/25：newPerDay（每日新词上限）已下线——总量只按「每日学习上限」为准
         // 9/29 之之：小字说明删掉（嫌多余）；0=不限/背满就停的逻辑不变
         { key:'dailyCap',      label:'每日学习上限',  type:'num', min:0, max:999, unit:' 个' },
-        { key:'questionMode',  label:'题型',          type:'select', opts:[{v:'visual',t:'看词选义'},{v:'audio',t:'听音选义'},{v:'dictation',t:'听写模式'}] },
+        { key:'questionMode',  label:'题型',          type:'select', opts:[{v:'visual',t:'看词选义'},{v:'audio',t:'听音选义'},{v:'dictation',t:'听写模式'},{v:'self',t:'自评三档'}] },
         { key:'shuffle',       label:'勾选练习乱序',  type:'toggle' },
         { key:'wrongHoldMs',   label:'答错停留',      type:'range', min:1000, max:5000, step:500, unit:'ms' },
         { key:'autoNextDelay', label:'自动间隔',      type:'range', min:300, max:3000, step:100, unit:'ms' },
