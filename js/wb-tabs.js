@@ -68,6 +68,28 @@
         墓碑，本机删掉的元素会被另一端并回来（v812 同款联动坑）。要做移除得先给合并层加
         墓碑（动 22 页串号的共用文件），留待单独一笔，不在本任务埋隐性 bug。
         // TODO: [待确认] 错词本移除 + 跨端墓碑（涉及 common-merge.js / 22 页串号） */
+  /* WRONGBOOK-BUGFIX-1：按「来源库」只读查词对象。
+     错词本汇总了自定义库与各官方库的今日错词，但 findWordByEn 只查当前活动库 ——
+     切词书后其它库的错词会查不到，释义/答错次数/标难/重点全丢、chips 全空、重练灰掉。
+     这里只补展示用对象，绝不写任何进度、不碰判分/SRS/落盘；词包没加载就留空，绝不造词。 */
+  function wordFromBank(en, bankId){
+    var k = String(en || '').trim().toLowerCase();
+    if(!k) return null;
+    function inList(ws){
+      for(var i = 0; i < ws.length; i++){
+        if(ws[i] && String(ws[i].en || '').trim().toLowerCase() === k) return ws[i];
+      }
+      return null;
+    }
+    if(!bankId || bankId === 'custom'){
+      try{ return inList((typeof DATA !== 'undefined' && Array.isArray(DATA.words)) ? DATA.words : []); }catch(e){ return null; }
+    }
+    try{
+      var ob = window.__OB;
+      var rec = ob && ob.banks && ob.banks[bankId];
+      return inList((rec && rec.words) ? rec.words : []);
+    }catch(e){ return null; }
+  }
   function wrongData(){
     var t = '';
     try{ t = (typeof todayKey === 'function') ? todayKey() : ''; }catch(e){}
@@ -78,17 +100,20 @@
       seen[k] = 1;
       var w = null;
       try{ w = (typeof findWordByEn === 'function') ? findWordByEn(k) : null; }catch(e){}
+      /* WRONGBOOK-BUGFIX-1：展示字段改按「来源库」取词对象（见上方 wordFromBank）。
+         w 仍保留当前库对象给 reviewWrong 用，语义不变；只读来源库补展示，绝不写进度。 */
+      var d = wordFromBank(k, bankId) || w;
       var nm = '我的词库';
       if(bankId && bankId !== 'custom'){
         try{ (window.__WM_BOOKS || []).forEach(function(b){ if(b.id === bankId) nm = b.nm; }); }catch(e){}
       }
       out.push({
         en: k, w: w, bank: nm,
-        cn:  w ? (w.cn  || '') : '',
-        ipa: w ? (w.ipa || '') : '',
-        err: w ? num(w.errTotal) : 0,
-        hard: !!(w && w.hardWord),
-        key:  !!(w && w.keyWord)
+        cn:  d ? (d.cn  || '') : '',
+        ipa: d ? (d.ipa || '') : '',
+        err: d ? num(d.errTotal) : 0,
+        hard: !!(d && d.hardWord),
+        key:  !!(d && d.keyWord)
       });
     }
     try{ (((typeof DATA !== 'undefined' ? DATA : {}) || {}).dailyWrong || {})[t] &&
