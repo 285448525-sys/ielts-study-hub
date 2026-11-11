@@ -95,7 +95,16 @@ function renderDays(){
     const total = arr.reduce((a,s) => a + s.durationSec, 0);
     const pause = arr.reduce((a,s) => a + (s.pauseSec||0), 0);
     const parts = {};
-    arr.forEach(s => parts[s.subName] = (parts[s.subName]||0) + s.durationSec);
+    // HIST-SUBNAME-UNDEF-1（11-12 全站查 bug）：旧格式 / 云同步来的学习记录可能只有
+    // moduleName、没有 subName（rv-record.js 明确两套字段并存）。原来直接拿 s.subName
+    // 当键又拼进 chip-name，会渲染出字面量 undefined。这里按 subName → moduleName → 学习
+    // 兜底，聚合口径（按名字累加 durationSec）一字不动，也不写回任何数据。
+    const partName = s => {
+      const sub = (s && s.subName != null && String(s.subName).trim() !== '') ? String(s.subName).trim() : '';
+      const mod = (s && s.moduleName != null && String(s.moduleName).trim() !== '') ? String(s.moduleName).trim() : '';
+      return sub || mod || '学习';
+    };
+    arr.forEach(s => { const n = partName(s); parts[n] = (parts[n]||0) + s.durationSec; });
     const isLong = total >= 3600;
     const chips = Object.entries(parts).sort((a,b)=>b[1]-a[1]).map(([n,s]) => {
       const longCls = (isLong && s >= 3600) ? ' chip-long' : '';
