@@ -321,6 +321,38 @@ function homeGreeting(){
   if(h < 18) return '下午好';
   return '晚上好';
 }
+/* 11-11 HOME-GREET-B：hero 那句「今天还有几件事要做」—— 全部读真数据，一句不编。
+   口径与 js/index.js renderDashTasks 同源：今天有 DATA.plans 清单就用「未完成 / 已完成」；
+   没排计划就退回 threeThingsList() 的真实候选条数（已完成 0）；清单全勾完给一句正向反馈；
+   连候选都没有就整行收起，不硬凑一句假话。 */
+function renderHg2Sub(){
+  const el = document.getElementById('hg2Sub');
+  if(!el) return;
+  let left = 0, done = 0, allDone = false;
+  try{
+    const tkey = todayKey();
+    const plan = (DATA.plans || []).find(p => p && p.date === tkey);
+    const items = (plan && Array.isArray(plan.items)) ? plan.items : [];
+    if(items.length){
+      done = items.filter(i => i && i.done).length;
+      left = items.length - done;
+      allDone = (left === 0);
+    }else{
+      left = threeThingsList().length;
+      done = 0;
+    }
+  }catch(e){}
+  if(allDone){
+    el.innerHTML = '今天的任务都完成了，<b>辛苦啦</b> ✓';
+  }else if(left > 0){
+    el.innerHTML = '今天还有 <b>' + left + '</b> 件事要做 · 已完成 <b>' + done + '</b> 件';
+  }else{
+    el.hidden = true;
+    el.textContent = '';
+    return;
+  }
+  el.hidden = false;
+}
 /* ===== W-DUE-2（10-25）：首页「单词数」唯一口径 = 她设的「每日学习上限」=====
    她 02:4x 原话：「单词页面把新增复习删掉，所以待复习数据以设置里自己定义的数值为准，记得首页显示也要改一下」
    → 首页出现的每一处「到期 / 待学 / 复习」数字，一律以 `DATA.settings.practiceCfg.dailyCap`
@@ -769,6 +801,9 @@ function renderThreeThings(){
 function renderDashTasks(){
   // 自带兜底：本函数被 ready 闭包（safe 包裹）与顶层 renderDashV6 两处调用，闭包外的调用点没有 safe
   try{
+  // 11-11 HOME-GREET-B：hero 那句「今天还有几件事」与今日任务卡同源、同刷新时机，
+  // 挂在这里一次覆盖首屏 / 云合并 / 计时 / 勾选任务全部路径，不在别处重复挂监听。
+  try{ renderHg2Sub(); }catch(e){}
   const host = document.getElementById('dashTodayTasks');
   if(!host) return;
   /* 🔴 每次进来先恢复显示：上一轮无任务时本卡被 style.display='none' 收起来过，

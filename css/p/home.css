@@ -32,19 +32,25 @@ body.hub-home{ background-image:none; }
    🔴 首页不需要这层装饰（它服务的卡片形态在本页已不存在）→ 只在首页关掉，别的页/别的组件一行不碰。 */
 body.hub-home .hero::before{ display:none; }
 
-/* ===== hero 一行（稿 §二.1）：左 eyebrow + 问候大字 + 副行；右 距考大数字 =====
-   🔴 11-05 她本人拍板恢复（选 A）：撤销 11-04 PAGEHEAD-SLIM-1 第 3 笔对**左上角问候块**的压缩 ——
-      日期回独立一行小字（11px uppercase）、问候回独立一行大字（24px）、chips 回第三行。
-      只撤她点名的这一处（用户名那块的大小字层级）；同笔的 .hero-setdate 收成纯文字、
-      .setup 收空间两处保留，不在本次范围。原版 CSS 见 git b9db88ae^；压缩说明见该提交 message。
-      ⚠️ 别再把这几行当「死规则 / 可优化项」压回一行 —— 她 11-05 明确要这个层级。 */
+/* ===== hero（稿 §二.1）：左「日期 + 问候 + 连续/VIP 一行 + 一句今天真实要做的事」；右 距考大数字 =====
+   11-05 她拍板恢复过「日期小字 + 问候大字 + chips」三行层级；11-11 她看到 NO-DECO-HEAD 把
+   首页左上大字问候藏掉后空了一块，选「B 重新设计」：不再放大字标题，把日期、问候、连续天数、
+   VIP 收成干净一行，底下补一句今天真实要做的事（真数据，不编），整块变矮、不留空。
+   ⚠️ 全局 css/common.css 末尾那条隐藏大字标题的规则仍生效 —— 本版故意不再用 h1，
+      问候改 span.hg2-hi（18px 短句），既绕开隐藏规则、也贴 B 版「不放大字」的语义，
+      所以 css/common.css 与 22 页通用串号一字不动。右边距考大数字与 6 个业务 id 全保留。 */
 .hero{display:flex;border-radius:0 !important;background:none !important;border:0 !important;box-shadow:none !important;
-  padding:0 !important;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:0}
-.hero .eyebrow{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--primary-700);
-  font-weight:750;margin-bottom:5px}
-.hero h1{font-size:24px;line-height:1.25;letter-spacing:-.02em;color:var(--ink);margin:0;font-weight:760}
-.hero-sub{margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-height:20px}
-/* 连续 chip 从旧绿条挪到副行：改成浅青底细 chip（稿内没有绿条） */
+  padding:0 !important;align-items:center;justify-content:space-between;gap:18px;margin-bottom:0}
+.hg2-left{min-width:0}
+.hg2-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.hero .eyebrow{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--primary-700);font-weight:750;margin:0}
+.hg2-hi{font-size:18px;font-weight:700;letter-spacing:-.01em;color:var(--ink);white-space:nowrap}
+.hg2-sub{margin-top:9px;font-size:12.5px;color:var(--muted)}
+.hg2-sub b{color:var(--primary-700);font-weight:800}
+/* 一行里这几枚是可选的：连续天数 / 会员标 / 今天那句话没数据时都不占位 */
+.hero [hidden]{display:none !important}
+/* 连续 chip 沿用现有浅青底细 chip 皮肤，放进一行里自然排列 */
 .hero .streak-chip{background:var(--surface-2);color:var(--muted);border:1px solid var(--line);
   font-size:11.5px;padding:2px 9px;border-radius:999px;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
 .hero .streak-chip svg{width:12px;height:12px}
