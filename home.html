@@ -29,8 +29,8 @@
 })();
 </script>
 <title>首页 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261110b" />
-<link rel="stylesheet" href="css/p/home.css?v=20261111c" />
+<link rel="stylesheet" href="css/common.css?v=20261110d" />
+<link rel="stylesheet" href="css/p/home.css?v=20261111d" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png?v=7">
@@ -51,7 +51,7 @@
 <!-- design/78 双词库适配层：index.js 的 wbActive/wbDueCount 依赖它（defer 按文档序执行） -->
 <script defer src="js/wordbank.js?v=20261102c"></script>
 <script defer src="js/home-quick.js?v=20261029a"></script>
-<script defer src="js/index.js?v=20261111c"></script>
+<script defer src="js/index.js?v=20261111d"></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(0,0,0,.02),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -86,18 +86,15 @@
   <div class="hlayout">
       <div class="hmain">
 
-        <!-- ① hero（11-11 她选 B 重新设计）：日期 + 问候 + 连续/VIP 收成干净一行，
-             底下补一句今天真实要做的事；右 距考大数字。6 个业务 id 全保留，问候不再用 h1
-             （绕开全局 .hero h1 隐藏规则，也贴 B 版「不放大字」的语义）。 -->
+        <!-- ① hero 一行：左 eyebrow + 问候 + 副行（连续 chip 挪到这里）；右 距考大数字 -->
         <section class="hero">
-          <div class="hg2-left">
-            <div class="hg2-row">
-              <span class="eyebrow" id="dashDate"></span>
-              <span class="hg2-hi"><span id="dashHello">你好</span>，<span id="userName">Camille</span> 👋</span>
+          <div>
+            <div class="eyebrow"><span id="dashDate"></span></div>
+            <h1><span id="dashHello">你好</span>，<span id="userName">Camille</span></h1>
+            <div class="hero-sub">
               <span class="streak-chip" id="dashStreakChip" hidden></span>
               <a class="vip-chip" id="heroVipChip" href="vip.html" hidden></a>
             </div>
-            <div class="hg2-sub" id="hg2Sub" hidden></div>
           </div>
           <!-- 距考大数字：#dashHeroNum 由 js/index.js 渲染两态；§四.1 不许出现稿上没有的承诺小字 -->
           <div class="countdown" id="dashHeroNum"></div>

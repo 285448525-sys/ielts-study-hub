@@ -3382,11 +3382,16 @@ main .m-plancard,main .m-side-card,main .esys--inline,main .exam-item,main .wb2-
 /* 这两处栏头整块只有装饰文字、没有任何控件，整块收掉，避免留一段空白间隙 */
 #sptPaneMock>.spt-vhead,#wrPaneExam>.wr-vhead{display:none!important}
 
-/* 「所有页面 / 其他以此类推」：首页 .hero 与学习组页 .ln-hero 的问候大字、plans-hub
-   的 .hg-head 标题+口号，同样是没功能的纯装饰，一并按硬约束收掉；它们周围的真实数据
-   （日期 .eyebrow/.ln-date、距考倒计时 .countdown/.ln-sub、连续天数 .streak-chip、
-   今日目标进度 .ln-goal、状态摘要 .hg-stats、入口卡 .hg-grid）全部保留。
+/* 「所有页面 / 其他以此类推」：学习组页 .ln-hero 的问候大字、plans-hub 的 .hg-head
+   标题+口号，同样是没功能的纯装饰，一并按硬约束收掉；它们周围的真实数据
+   （距考倒计时 .ln-sub、连续天数、今日目标进度 .ln-goal、状态摘要 .hg-stats、
+   入口卡 .hg-grid）全部保留。
+   11-11 她纠正：本意只删「别的页面」的装饰大字，首页 .hero 的 h1 问候大字是她
+   11-05 拍板要留的，属误伤，已从下面隐藏名单里摘出，首页恢复显示。
    没标注就看不懂的章节 / 图表 / 内容标题（新手必读、公告、帮助、隐私、会员、
    「粘贴长难句」这类功能说明）一律不动。index.html 是独立营销落地页、不引本样式，
    其主标题不受影响。 */
-.hero h1,.ln-hero .ln-hi,.hg-head h1,.hg-head p{display:none!important}
+.ln-hero .ln-hi,.hg-head h1,.hg-head p{display:none!important}
+/* 11-11 她纠正：NO-DECO-HEAD 本意只删别的页面的装饰大字，首页 .hero 的问候大字
+   被误伤一起藏掉 → 左上角空一块变丑。把 .hero h1 从隐藏名单里摘出来，首页恢复
+   她 11-05 拍板的大字问候；别的页面装饰大字照旧隐藏，不动那条硬规矩的其余部分。 */
