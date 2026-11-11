@@ -464,3 +464,39 @@ body.hub-home:has(#hubAncBar) .hmods .hmod{padding-top:7px;padding-bottom:7px}
   }
   body.hub-home:has(#hubAncBar) .container{padding-bottom:8px}
 }
+
+
+/* ===================================================================
+   HOME-POLISH-1（11-11 她点头「按照微调的改了吧」）：紧凑版纯外观微调。
+   1:1 贴 design/HOME-POLISH-1-紧凑版微调_样子稿_2026-11-11.html 的 .polish 版，
+   用真页面实际类名承载同样效果；结构 / DOM / 字号主体 / 间距 / 高度一律不动
+   → PC 与手机仍一屏显示完整。五处：
+   ① 数字等宽对齐 ② 去挥手（恢复大字问候时已无挥手，天然达成）
+   ③ 卡片细边框 / 微圆角 10px / 无重阴影
+   ④ 图标底色由浅青收敛到中性浅灰 + 细边框（她点名的「图标填充色」）、标签字重层级统一
+   ⑤ 克制 hover。主标题本就 800 加粗，②与主标题加粗已达成。
+   想撤只需删本段，前面所有定稿样式一字未动。
+   =================================================================== */
+/* ① 数字等宽对齐 */
+body.hub-home .countdown b,
+body.hub-home .metric .value,
+body.hub-home .ringtxt b,
+body.hub-home .dash-tasks-count,
+body.hub-home .w7 .c{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1,"lnum" 1}
+/* ③ 卡片克制：1px 细边框 / 10px 微圆角 / 无重阴影 */
+body.hub-home .metrics,
+body.hub-home .three-card,
+body.hub-home .dash-tasks,
+body.hub-home .hmod,
+body.hub-home .rail-card,
+body.hub-home .rail-quick{border:1px solid var(--line);border-radius:10px;box-shadow:none}
+/* ④ 图标底色收敛中性浅灰 + 1px 细边框 */
+body.hub-home .three-ic,
+body.hub-home .hmod .ic,
+body.hub-home .qk .ic{background:var(--surface-2);border:1px solid var(--line)}
+/* ④ 标签字重层级统一 */
+body.hub-home .metric .label,
+body.hub-home .rc-cap{font-size:11px;font-weight:600;letter-spacing:.02em;color:var(--muted)}
+/* ⑤ 克制的 hover 反馈 */
+body.hub-home .metric:hover{background:var(--primary-50)}
+body.hub-home .hmod:hover{border-color:var(--primary-500);transform:translateY(-1px)}
