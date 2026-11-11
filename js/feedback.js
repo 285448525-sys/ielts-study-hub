@@ -106,8 +106,22 @@
        feedback.js 被 14 页引用，动 common.css 就得全站 bump 版本串；样式随 JS 走零 bump（弹层只由本文件创建，无 FOUC）。 */
     if (!document.getElementById('fbStyle')){
       const st = document.createElement('style'); st.id = 'fbStyle';
-      st.textContent = '.fb-greet{font-size:12.5px;color:var(--muted);line-height:1.7;margin:0 0 12px;padding-bottom:10px;border-bottom:1px dashed var(--line)}'
-        + '.fb-greet b{color:var(--ink-2);font-weight:600}';
+      st.textContent = '.fb-greet{font-size:12.5px;color:var(--muted);line-height:1.7;margin:0 0 10px}'
+        + '.fb-greet b{color:var(--ink-2);font-weight:600}'
+        + '.fb-who{font-size:12.5px;line-height:1.7;color:var(--ink-2);background:var(--primary-50);border:1px solid #dcece9;border-radius:10px;padding:9px 12px;margin:0 0 2px}'
+        + '.fb-who b{color:var(--primary);font-weight:600}'
+        + '.fb-x{width:auto;height:auto;padding:6px 10px;font-size:13px;font-weight:600;line-height:1.2}'
+        + '.fb-foot #fbSubmit{white-space:nowrap;flex-shrink:0}'
+        + '.fb-done{display:none;flex-direction:column;align-items:center;text-align:center;padding:30px 22px 28px}'
+        + '.fb-panel.fb-done-mode .fb-head,.fb-panel.fb-done-mode .fb-body,.fb-panel.fb-done-mode .fb-foot{display:none}'
+        + '.fb-panel.fb-done-mode .fb-done{display:flex}'
+        + '.fb-tick{width:44px;height:44px;border-radius:50%;background:var(--primary-50);border:1px solid #dcece9;display:flex;align-items:center;justify-content:center;margin-bottom:12px}'
+        + '.fb-tick svg{width:22px;height:22px}'
+        + '.fb-done h3{font-size:15px;margin:0 0 6px;color:var(--ink)}'
+        + '.fb-done p{font-size:12.5px;color:var(--ink-2);line-height:1.7;margin:0 0 4px}'
+        + '.fb-loop{margin-top:14px;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:11px 13px;font-size:12px;color:var(--ink-2);line-height:1.7;text-align:left}'
+        + '.fb-loop b{color:var(--primary)}'
+        + '.fb-again{border:1px solid var(--line);background:var(--surface);color:var(--ink-2);font-size:12.5px;padding:8px 16px;border-radius:9px;cursor:pointer;margin-top:16px;font-family:inherit}';
       document.head.appendChild(st);
     }
     overlay = document.createElement('div');
@@ -116,18 +130,19 @@
     overlay.hidden = true;
     overlay.setAttribute('role', 'dialog');
     overlay.setAttribute('aria-modal', 'true');
-    overlay.setAttribute('aria-label', '意见反馈');
+    overlay.setAttribute('aria-label', '许愿站');
     overlay.innerHTML =
       '<div class="fb-backdrop"></div>'
       + '<div class="fb-panel">'
-      +   '<div class="fb-head"><b>意见反馈</b><button class="fb-x" type="button" aria-label="关闭">✕</button></div>'
+      +   '<div class="fb-head"><b>许愿站</b><button class="fb-x" type="button" aria-label="关闭">关闭</button></div>'
       +   '<div class="fb-body">'
       /* 10/13 文案真人化批（她「文案标识啥的写得真人感善解人意一点」）：
          成熟口径（≥2 来源已核，10/13 搜）：corebee.ai 反馈模板「Every response is read by a real person /
          even one sentence helps」+ userguiding.com 反馈弹层五要素（清晰简短 copy / 友好设计）。
          站长第一人称 + 降低门槛（一句话也行）+ 技术元信息退到悬停提示，不再怼用户脸上。 */
-      +     '<p class="fb-greet">你写下的每一条都是<b>站长本人亲自看</b>，提的意见也会认真斟酌。遇到 bug、用着别扭、想要什么功能，都可以说。</p>'
-      +     '<label class="fb-lbl" for="fbText">你遇到什么了？</label>'
+      +     '<p class="fb-greet">想让这个站更好用？哪里别扭、还差什么、想要什么功能，许一句就行 —— 每一条<b>站长本人亲自看</b>。</p>'
+      +     '<p class="fb-who"><b>站长自己也是雅思考生</b>，这个站就是我一边备考一边做的 —— 你踩的坑我多半也踩过，所以真话最有用，夸的、骂的都收。</p>'
+      +     '<label class="fb-lbl" for="fbText">想提一句什么？</label>'
       +     '<textarea id="fbText" class="fb-text" rows="4" maxlength="' + MAX_TEXT + '" placeholder="一句话也行。比如：点「添加任务」没反应 / 口语页句子显示不全 / 想要个某某功能……"></textarea>'
       +     '<div class="fb-meta"><span id="fbCount">0 / ' + MAX_TEXT + '</span><span id="fbEnv" title=""></span></div>'
       /* 10/6 11:40 她要求：把设置页那行黄底说明删掉，改成在弹层里**轻轻标一行**。
@@ -157,6 +172,13 @@
       +     '<span class="fb-tip">不用登录也能发；截图只用来定位问题，不会外传</span>'
       +     '<button class="btn btn-sm" id="fbSubmit" type="button">发给站长</button>'
       +   '</div>'
+      +   '<div class="fb-done" id="fbDone">'
+      +     '<div class="fb-tick"><svg viewBox="0 0 24 24" fill="none" stroke="#3a9a93" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>'
+      +     '<h3>记下了，谢谢</h3>'
+      +     '<p>这条已经进了「要改的清单」，我会和其它反馈一起看。</p>'
+      +     '<div class="fb-loop"><b>你的这句我记下来了</b> —— 会和其它反馈一起归到「要改的清单」，重复的归一类、排先后；改好了会在「更新日志」里说一声。</div>'
+      +     '<button class="fb-again" id="fbAgain" type="button">再提一句</button>'
+      +   '</div>'
       + '</div>';
     document.body.appendChild(overlay);
     bind(overlay);
@@ -172,6 +194,10 @@
     el.querySelector('#fbAdd').addEventListener('click', () => el.querySelector('#fbFile').click());
     el.querySelector('#fbFile').addEventListener('change', ev => { onPick(ev.target.files); ev.target.value = ''; });
     el.querySelector('#fbSubmit').addEventListener('click', submit);
+    el.querySelector('#fbAgain').addEventListener('click', function(){
+      el.querySelector('.fb-panel').classList.remove('fb-done-mode');
+      const t = el.querySelector('#fbText'); if (t) t.focus();
+    });
     /* 急事出口：原位展开/收起。展开后滚到可见（弹层自带内滚，App Shell 锁壳不影响） */
     el.querySelector('#fbWxLink').addEventListener('click', () => toggleWx(!wxOpen));
     el.querySelector('#fbWxCopy').addEventListener('click', copyWx);
@@ -234,6 +260,8 @@
     envEl.title = envDetail + '（已随反馈一起带上，不用自己描述）';
     /* 每次打开都收成收起态：联系方式属于「临时看一眼」，不该跨次留着 */
     if (wxOpen) toggleWx(false);
+    const _panel = el.querySelector('.fb-panel');
+    if (_panel) _panel.classList.remove('fb-done-mode');
     el.hidden = false;
     requestAnimationFrame(() => el.classList.add('on'));
     setTimeout(() => { const t = el.querySelector('#fbText'); if (t) t.focus(); }, 60);
@@ -282,7 +310,7 @@
       d.className = 'fb-pick';
       d.innerHTML = '<img alt="截图 ' + (i + 1) + '" src="data:' + p.mime + ';base64,' + p.b64 + '" />'
         + '<span class="fb-pick-kb">' + Math.max(1, Math.round(p.bytes / 1024)) + ' KB</span>'
-        + '<button class="fb-pick-x" type="button" aria-label="删除这张">✕</button>';
+        + '<button class="fb-pick-x" type="button" aria-label="删除这张">×</button>';
       d.querySelector('.fb-pick-x').addEventListener('click', () => { picks.splice(i, 1); renderPicks(); });
       box.appendChild(d);
     });
@@ -330,8 +358,8 @@
       ta.value = ''; contact.value = '';
       el.querySelector('#fbCount').textContent = '0 / ' + MAX_TEXT;
       picks.length = 0; renderPicks();
-      close();
-      if (window.toast) window.toast('谢谢反馈！我会看的');
+      const _panel = el.querySelector('.fb-panel');
+      if (_panel) _panel.classList.add('fb-done-mode');
     } catch (e){
       err.textContent = '网络异常，提交没成功。你的文字还在——急事可点下面的「等不及回复？加站长微信」直接找我';
     } finally {

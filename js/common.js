@@ -2307,7 +2307,7 @@ function ensureMobileChrome(){
     /* 10/2 意见反馈入口（她拍板「更多抽屉 + 设置页各一个」）：非跳转项，所以是 button 不是 a。
        点击由 js/feedback.js 的 [data-fb-open] 委托接管（打开全站共用弹层）。 */
     sh += '<button class="sheet-item" data-fb-open type="button">'
-      + '<span class="nav-icon">💬</span><span class="side-label">意见反馈</span></button>';
+      + '<span class="nav-icon">💬</span><span class="side-label">许愿站</span></button>';
     sh += '</div>';
     const bd = document.createElement('div'); bd.id = 'sheetBackdrop'; bd.className = 'sheet-backdrop';
     const sheet = document.createElement('div'); sheet.id = 'moreSheet'; sheet.className = 'sheet'; sheet.innerHTML = sh;
