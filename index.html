@@ -113,6 +113,43 @@
   .total b{color:var(--ink)}
   .progress{height:5px;border-radius:9px;background:var(--line);overflow:hidden}
   .progress i{display:block;width:66%;height:100%;background:var(--p)}
+  /* P1-2（11-11）：右栏「先试一题」——沿用 .shot 外壳，只把里面换成能真点的小题。
+     全部走站点主题变量，深色档一并给值；不动左栏、顶栏、整页高度、功能清单。 */
+  #p12Card{
+    --p12-ok:#2f7d5b;--p12-okbg:#eaf6ef;--p12-okline:#cfe8d8;
+    --p12-bad:#a4533a;--p12-badbg:#fbefe9;--p12-badline:#f0d9cd;
+  }
+  [data-theme=dark] #p12Card{
+    --p12-ok:#8fd6b0;--p12-okbg:#1d3327;--p12-okline:#2c4a38;
+    --p12-bad:#e0a58c;--p12-badbg:#37231d;--p12-badline:#573a30;
+  }
+  .p12-tag{font-size:10.5px;font-weight:700;color:var(--pd);background:var(--pl);border:1px solid var(--soft);padding:2px 9px;border-radius:999px;letter-spacing:0}
+  .p12-q{font-size:12px;color:var(--muted);margin:0 0 5px}
+  .p12-cn{font-size:15px;font-weight:750;color:var(--title);line-height:1.5;margin:0 0 3px}
+  .p12-tip{font-size:11.5px;color:var(--muted);margin:0 0 13px}
+  .p12-opts{margin:0}
+  .p12-opt{display:flex;align-items:center;gap:11px;width:100%;text-align:left;border:1px solid var(--line);border-radius:11px;background:var(--card);padding:11px 13px;margin-bottom:9px;cursor:pointer;font-family:inherit;font-size:13px;color:var(--ink);transition:.15s}
+  .p12-opt:hover{border-color:var(--p);background:var(--pl)}
+  .p12-lt{width:22px;height:22px;flex:none;border-radius:7px;background:var(--sub);border:1px solid var(--line);display:grid;place-items:center;font-size:11px;font-weight:700;color:var(--muted)}
+  .p12-en{line-height:1.45}
+  .p12-opt.pick-ok{border-color:var(--p12-ok);background:var(--p12-okbg)}
+  .p12-opt.pick-ok .p12-lt{background:var(--p12-ok);border-color:var(--p12-ok);color:#fff}
+  .p12-opt.pick-bad{border-color:var(--p12-bad);background:var(--p12-badbg)}
+  .p12-opt.pick-bad .p12-lt{background:var(--p12-bad);border-color:var(--p12-bad);color:#fff}
+  .p12-opt[disabled]{cursor:default;opacity:.72}
+  .p12-opt[disabled]:hover{border-color:var(--line);background:var(--card)}
+  .p12-opt.pick-ok[disabled]:hover{border-color:var(--p12-ok);background:var(--p12-okbg)}
+  .p12-opt.pick-bad[disabled]:hover{border-color:var(--p12-bad);background:var(--p12-badbg)}
+  .p12-fb{display:none;margin-top:4px;border-radius:11px;padding:11px 13px;font-size:12.5px;line-height:1.7;color:var(--ink)}
+  .p12-fb.show{display:block}
+  .p12-fb.ok{background:var(--p12-okbg);border:1px solid var(--p12-okline)}
+  .p12-fb.bad{background:var(--p12-badbg);border:1px solid var(--p12-badline)}
+  .p12-fb b{color:var(--pd)}
+  .p12-src{display:block;margin-top:7px;font-size:11px;color:var(--muted)}
+  .p12-foot{margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .p12-again{border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:12px;padding:8px 14px;border-radius:9px;cursor:pointer;font-family:inherit}
+  .p12-cta{margin-left:auto;font-size:12px;font-weight:700;color:var(--pd);white-space:nowrap}
+  .p12-note{margin-top:11px;font-size:11px;color:var(--muted);line-height:1.6}
 
   .numbers{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--line);border-radius:14px;background:var(--card)}
   .number{padding:25px}
@@ -221,14 +258,23 @@
   </div>
 </div>
 
-<div class="shot">
-  <div class="shot-h">今天的清单<small>已完成 2 / 4</small></div>
+<div class="shot" id="p12Card">
+  <div class="shot-h">先试一题 <span class="p12-tag">不用注册</span><small>约 10 秒</small></div>
   <div class="shot-b">
-    <div class="task done"><span class="check">✓</span><div><h3>单词复习 24 个</h3><p>间隔重复排的，反复错的排在前面</p></div><span class="num">24/24</span></div>
-    <div class="task done"><span class="check">✓</span><div><h3>口语 P2 · 1 张题卡</h3><p>AI 陪练，说完给反馈</p></div><span class="num">1/1</span></div>
-    <div class="task"><span class="check"></span><div><h3>写作 Task 2 一篇</h3><p>套模板写，写完 AI 逐句点评</p></div><a class="go" href="home.html">去写</a></div>
-    <div class="task"><span class="check"></span><div><h3>长难句拆解 3 句</h3><p>拆主干、修饰和逻辑信号</p></div><a class="go" href="home.html">去拆</a></div>
-    <div class="total"><div><span>今日投入</span><b>1h 20m / 2h</b></div><div class="progress"><i></i></div></div>
+    <div class="p12-q">口语 P2 开头 · 选出正确的英文</div>
+    <div class="p12-cn">我想聊聊我家乡的一个安静地方。</div>
+    <div class="p12-tip">别急着注册，先点一个看看合不合你。</div>
+    <div class="p12-opts" id="p12Opts">
+      <button class="p12-opt" data-k="a" type="button"><span class="p12-lt">A</span><span class="p12-en">I'd like to talk about a quiet place in my hometown.</span></button>
+      <button class="p12-opt" data-k="b" type="button"><span class="p12-lt">B</span><span class="p12-en">I'd like to talking about a quiet place in my hometown.</span></button>
+      <button class="p12-opt" data-k="c" type="button"><span class="p12-lt">C</span><span class="p12-en">I'd like talk about a quiet place in my hometown.</span></button>
+    </div>
+    <div class="p12-fb" id="p12Fb" aria-live="polite"></div>
+    <div class="p12-foot" id="p12Foot" style="display:none">
+      <button class="p12-again" id="p12Again" type="button">再试一次</button>
+      <a class="p12-cta" href="home.html">进站接着练 →</a>
+    </div>
+    <div class="p12-note" id="p12Note">题目来自站里自建的口语句型库（通用虚构示例，不含真题、不含个人资料）；这一下不登录、不存任何学习数据。</div>
   </div>
 </div>
 </div></div>
@@ -310,5 +356,45 @@
   <div class="wrap"><p class="copyright">© 2026 雅思备考 Hub · 界面与代码为本站开发并保留相应权利；站内学习内容供个人备考练习使用。</p></div>
 </footer>
 
+<script>
+/* P1-2（11-11）：落地页右栏「先试一题」——免注册真点一下，当场判对错。
+   题目取自 data/sentences.json 的 s_c1_1（通用虚构示例，来源干净，不含真题与个人资料）。
+   纯前端判定：不写任何学习数据、不注册、不请求后端；左栏与整页其它部分一行未动。 */
+(function(){
+  var picked = null;
+  var FB = {
+    a: { ok:1, html:'<b>答对了。</b>「I\'d like to + 动词原形」后面接 talk，这句能直接套到任何 P2 话题的开头 —— 站里口语句型库就是按这种「万能句 + 换主题」排的。<span class="p12-src">进站后这类开头句会按你选的话题自动换词。</span>' },
+    b: { ok:0, html:'<b>差一点。</b>like to 后面要接动词原形（talk），不能说 to talking —— 这正是很多人开口第一句最容易滑的地方。<span class="p12-src">站里把这类错句单独收进了错句本，练熟就能避开。</span>' },
+    c: { ok:0, html:'<b>差一点。</b>would like 后面漏了 to，得是 I\'d like to talk。<span class="p12-src">这属于「双动词 / 缺 to」的常见毛病，句型库里给了固定骨架。</span>' }
+  };
+  function byId(id){ return document.getElementById(id); }
+  var opts = [].slice.call(document.querySelectorAll('#p12Opts .p12-opt'));
+  function reset(){
+    picked = null;
+    opts.forEach(function(b){ b.className = 'p12-opt'; b.disabled = false; });
+    var fb = byId('p12Fb'); fb.className = 'p12-fb'; fb.innerHTML = '';
+    byId('p12Foot').style.display = 'none';
+    byId('p12Note').style.display = '';
+  }
+  function pick(k){
+    if (picked) return;
+    picked = k;
+    var f = FB[k];
+    opts.forEach(function(b){
+      b.disabled = true;
+      if (b.getAttribute('data-k') === k) b.className = 'p12-opt ' + (f.ok ? 'pick-ok' : 'pick-bad');
+    });
+    if (!f.ok) {
+      var okBtn = document.querySelector('#p12Opts .p12-opt[data-k="a"]');
+      if (okBtn) okBtn.className = 'p12-opt pick-ok';
+    }
+    var fb = byId('p12Fb'); fb.className = 'p12-fb show ' + (f.ok ? 'ok' : 'bad'); fb.innerHTML = f.html;
+    byId('p12Foot').style.display = 'flex';
+    byId('p12Note').style.display = 'none';
+  }
+  opts.forEach(function(b){ b.addEventListener('click', function(){ pick(b.getAttribute('data-k')); }); });
+  byId('p12Again').addEventListener('click', reset);
+})();
+</script>
 </body>
 </html>
