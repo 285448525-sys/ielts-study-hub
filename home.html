@@ -30,7 +30,7 @@
 </script>
 <title>首页 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css?v=20261110b" />
-<link rel="stylesheet" href="css/p/home.css?v=20261111a" />
+<link rel="stylesheet" href="css/p/home.css?v=20261111b" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png?v=7">
@@ -51,7 +51,7 @@
 <!-- design/78 双词库适配层：index.js 的 wbActive/wbDueCount 依赖它（defer 按文档序执行） -->
 <script defer src="js/wordbank.js?v=20261102c"></script>
 <script defer src="js/home-quick.js?v=20261029a"></script>
-<script defer src="js/index.js?v=20261111a"></script>
+<script defer src="js/index.js?v=20261111b"></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(0,0,0,.02),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -73,80 +73,42 @@
 <nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
 
 <main class="container home">
-  <!-- ═══ HOME-VISUAL-1（10-26 · 她 21:0x 点头「派下去」）═══
-       按 design/首页视觉重做-2026-10-26.html 重排：
-         hero 一行（eyebrow + 问候大字 + 副行含连续 chip / 右侧距考大数字）
-         → 设置补齐条 → 四数字一张横卡四格（格间 1px 竖线） → 今天先做这些
-         → 常用模块 2×2 → 右侧轨 260px（完成度环 + 7 格周历 + 快速入口）
-       🔴 27 个业务 id 一个没改名（js/index.js 与 home-quick.js 全按它们写）。
-       🔴 §四.1：稿子倒计时下面那行「10 月 31 日 · 还有时间，不急」是**装饰性编造文案**，已删；
-          #dashHeroNum 仍由 JS 渲染「距机考还有 N 天 / 还没设考试日期→去设置」两态，
-          大数字样式套到它的 <b> 上（见 css 的 #dashHeroNum b）。
-       🔴 §四.2/3：顶栏/搜索/铃铛是共享壳、外观预览条是稿内控件 —— 都不进本批。 -->
+  <!-- ═══ HOME-RELAYOUT-1（11-11 · 她点头「密度适中」修订版）═══
+       按 design/HOME-RELAYOUT-1-首页整体重新布局_样子稿_2026-11-11.html 1:1 重排：
+         通栏欢迎条（日期+问候两行+真实徽标+一句真数据+距考大数字）→ 设置条
+         → 主区两张卡（今天先做这些 / 今日完成度）→ 本周状态四小卡 → 继续学习四入口
+       🔴 27 个业务 id 一个没改名（js/index.js 与 home-quick.js 全按它们写），只重排容器与皮肤；
+         任务/周历/状态/快速入口内容全是 JS 现算现填，这里不写任何示意假数字。
+       🔴 她明确「不要用 emoji」：去掉旧版挥手，图标一律线性 SVG。
+       🔴 问候仍用 span 不用 h1（绕开 css/common.css 末尾 .hero h1 隐藏规则）。 -->
   <div class="hlayout">
-      <div class="hmain">
 
-        <!-- ① hero（11-11 她选 B 重新设计）：日期 + 问候 + 连续/VIP 收成干净一行，
-             底下补一句今天真实要做的事；右 距考大数字。6 个业务 id 全保留，问候不再用 h1
-             （绕开全局 .hero h1 隐藏规则，也贴 B 版「不放大字」的语义）。 -->
-        <section class="hero">
-          <div class="hg2-left">
-            <div class="hg2-row">
-              <span class="eyebrow" id="dashDate"></span>
-              <span class="hg2-hi"><span id="dashHello">你好</span>，<span id="userName">Camille</span> 👋</span>
-              <span class="streak-chip" id="dashStreakChip" hidden></span>
-              <a class="vip-chip" id="heroVipChip" href="vip.html" hidden></a>
-            </div>
-            <div class="hg2-sub" id="hg2Sub" hidden></div>
+      <!-- ① 欢迎条（通栏浅底分区，非重卡） -->
+      <section class="hero">
+        <div class="hg2-left">
+          <span class="eyebrow" id="dashDate"></span>
+          <div class="hg2-hi"><span id="dashHello">你好</span>，<span id="userName">Camille</span></div>
+          <div class="hg2-pills">
+            <span class="streak-chip" id="dashStreakChip" hidden></span>
+            <a class="vip-chip" id="heroVipChip" href="vip.html" hidden></a>
           </div>
-          <!-- 距考大数字：#dashHeroNum 由 js/index.js 渲染两态；§四.1 不许出现稿上没有的承诺小字 -->
-          <div class="countdown" id="dashHeroNum"></div>
-        </section>
+          <!-- 一句今天真实要做的事（js/index.js renderHg2Sub 读今日 DATA.plans，不编） -->
+          <div class="hg2-sub" id="hg2Sub" hidden></div>
+        </div>
+        <!-- 距考大数字：JS 渲染两态；CD-1b 口径：父不能是 flex，b 必须行内混排 -->
+        <div class="countdown" id="dashHeroNum"></div>
+      </section>
 
-        <!-- ② 设置补齐条（W-UI-1 第 2 批逻辑不动：四项配齐 → 整条不渲染） -->
-        <div class="setup" id="homeSetup" hidden></div>
+      <!-- ② 设置补齐条（W-UI-1 逻辑不动：四项配齐 → 整条不渲染） -->
+      <div class="setup" id="homeSetup" hidden></div>
 
-        <!-- ③ 四数字 = 一张横卡四格（格间 1px 竖线）；四格仍是 <a>，落点不变 -->
-        <section class="metrics">
-          <a class="metric" href="timer.html">
-            <div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>今日专注</div>
-            <div class="value" id="statFocusVal"></div>
-            <div class="sub" id="statFocusSub"></div>
-            <div class="track"><i id="statFocusTrack" style="width:0%"></i></div>
-          </a>
-          <a class="metric" href="practice.html">
-            <div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>今日单词</div>
-            <div class="value" id="statWordsVal"></div>
-            <div class="sub" id="statWordsSub"></div>
-            <div class="track"><i id="statWordsTrack" style="width:0%"></i><i class="g" id="statWordsTrackHard" style="width:0%"></i></div>
-          </a>
-          <a class="metric" href="speaking.html">
-            <div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>口语已练</div>
-            <div class="value" id="statSpkVal"></div>
-            <div class="sub" id="statSpkSub"></div>
-          </a>
-          <!-- 10-23 她：「点击模考，进的是回顾页面，而不是模考页面」→ 落点 bank.html 不变 -->
-          <a class="metric" href="bank.html">
-            <div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h7l5 5v13H7V3z"/><path d="M14 3v5h5"/><path d="M10 12h6M10 16h6"/></svg>本周模考</div>
-            <div class="value" id="statMockVal"></div>
-            <div class="sub" id="statMockSub"></div>
-          </a>
-        </section>
-
-        <!-- ④ 今天先做这些（有今日任务时三件事整卡不渲染，让位给任务卡；内容由 index.js 写） -->
+      <!-- ③ 主区左卡：今天先做这些（三件事 / 今日任务卡由 JS 二选一渲染） -->
+      <div class="hmain">
         <section id="threeThings" hidden></section>
         <section class="dash-tasks" id="dashTodayTasks"></section>
-
-        <!-- ⑤ 常用模块 2×2（A3a：模块卡回归；图标 34px 浅青底圆角块） -->
-        <section class="hmods">
-          <a class="hmod" href="bank.html"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h7l5 5v13H7V3z"/><path d="M14 3v5h5"/><path d="M10 12h6M10 16h6"/></svg></span><span class="tx"><b>模考</b><span>阅读 · 听力 · 写作 · 口语</span></span><svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></a>
-          <a class="hmod" href="practice.html"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></svg></span><span class="tx"><b>单词</b><span>学习与管理你的单词</span></span><svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></a>
-          <a class="hmod" href="corpus.html"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6.5h16M4 11.5h16M4 16.5h9"/></svg></span><span class="tx"><b>句子</b><span>长难句 · 错题 · 听写</span></span><svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></a>
-          <a class="hmod" href="speaking.html"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg></span><span class="tx"><b>口语</b><span>题库 + AI 串题 + 陪练</span></span><svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></a>
-        </section>
       </div>
 
-      <!-- ⑥ 右侧轨 260px：完成度卡（环 + 两行文案 + 7 格周历）+ 快速入口；手机端折叠条 -->
+      <!-- ③ 主区右卡：今日完成度（环 + 周历 + 快速入口，手机端也常显） -->
       <aside class="hrail" id="homeRail">
         <button class="hrail-toggle" id="railToggle" type="button" aria-expanded="false" aria-controls="railBody">
           <span class="ht-ring" aria-hidden="true"><svg viewBox="0 0 26 26" width="26" height="26" aria-hidden="true"><circle cx="13" cy="13" r="10" fill="none" stroke="var(--primary-50)" stroke-width="3.5"/><circle id="railToggleRing" cx="13" cy="13" r="10" fill="none" stroke="var(--primary-500)" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="62.8" stroke-dashoffset="62.8" transform="rotate(-90 13 13)"/></svg></span>
@@ -169,6 +131,42 @@
           </div>
         </div>
       </aside>
+
+      <!-- ④ 本周状态：四张紧凑小指标卡（数字仍由 JS 填） -->
+      <div class="sec-cap">本周状态</div>
+      <section class="metrics">
+        <a class="metric" href="timer.html">
+          <div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>今日专注</div>
+          <div class="value" id="statFocusVal"></div>
+          <div class="sub" id="statFocusSub"></div>
+          <div class="track"><i id="statFocusTrack" style="width:0%"></i></div>
+        </a>
+        <a class="metric" href="practice.html">
+          <div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>今日单词</div>
+          <div class="value" id="statWordsVal"></div>
+          <div class="sub" id="statWordsSub"></div>
+          <div class="track"><i id="statWordsTrack" style="width:0%"></i><i class="g" id="statWordsTrackHard" style="width:0%"></i></div>
+        </a>
+        <a class="metric" href="speaking.html">
+          <div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>口语已练</div>
+          <div class="value" id="statSpkVal"></div>
+          <div class="sub" id="statSpkSub"></div>
+        </a>
+        <a class="metric" href="bank.html">
+          <div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h7l5 5v13H7V3z"/><path d="M14 3v5h5"/><path d="M10 12h6M10 16h6"/></svg>本周模考</div>
+          <div class="value" id="statMockVal"></div>
+          <div class="sub" id="statMockSub"></div>
+        </a>
+      </section>
+
+      <!-- ⑤ 继续学习：四入口紧凑格 -->
+      <div class="sec-cap">继续学习</div>
+      <section class="hmods">
+        <a class="hmod" href="bank.html"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h7l5 5v13H7V3z"/><path d="M14 3v5h5"/><path d="M10 12h6M10 16h6"/></svg></span><span class="tx"><b>模考</b><span>阅读 · 听力 · 写作 · 口语</span></span><svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></a>
+        <a class="hmod" href="practice.html"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></svg></span><span class="tx"><b>单词</b><span>学习与管理你的单词</span></span><svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></a>
+        <a class="hmod" href="corpus.html"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6.5h16M4 11.5h16M4 16.5h9"/></svg></span><span class="tx"><b>句子</b><span>长难句 · 错题 · 听写</span></span><svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></a>
+        <a class="hmod" href="speaking.html"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg></span><span class="tx"><b>口语</b><span>题库 + AI 串题 + 陪练</span></span><svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></a>
+      </section>
   </div>
 </main>
 

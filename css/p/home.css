@@ -471,3 +471,158 @@ body.hub-home:has(#hubAncBar) .hmods .hmod{padding-top:7px;padding-bottom:7px}
   }
   body.hub-home:has(#hubAncBar) .container{padding-bottom:8px}
 }
+
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   HOME-RELAYOUT-1（11-11 · 她点头的「密度适中」修订版）—— 覆盖段（追加在文件末尾）
+   ───────────────────────────────────────────────────────────────────────────────
+   为什么用「追加覆盖」而不是重写：本文件大半是 JS 现填内容的样式
+   （.three-card / .three-row / .dash-tasks / .week7 / .w7 / .qk / .rq / .ringwrap / .setup /
+    .onb / .rec 等系列），整段重写极易漏一条就错乱。这里只覆盖「布局骨架 + 皮肤」，
+   🔴 本注释块里禁止出现「星号后紧跟斜杠」的字面量：那会提前闭合块注释、吞掉后面整段规则
+      （11-11 首跑两卡不齐平就是踩了这个坑，注释配平 63 开 65 闭，stretch 规则被吞）。
+   其余细节全部沿用上方原文，一个字不动。
+   依据：design/HOME-RELAYOUT-1-首页整体重新布局_样子稿_2026-11-11.html（notes 里带成熟出处）。
+   口径：密度加在组件细节、不加在层级数量 —— 主区仍只两张大卡，不退回一屏六七张卡平级。
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* ① 布局骨架：两列 grid，通栏块跨列，hmain + hrail 自然并排成主区两张卡
+      ⚠️ 必须显式写 align-items:stretch：上方原文 .hlayout(line 15) 带 align-items:start，
+         不覆盖就还是生效 → 左「今天先做这些」矮、右「今日完成度」高，中间空一块
+         （11-11 首跑截图实锤，去掉声明都没用，因为原规则仍在）。stretch 让两卡等高齐平贴样子稿。 */
+body.hub-home .hlayout{display:grid;grid-template-columns:minmax(0,1fr) 236px;gap:14px;align-items:stretch}
+body.hub-home .hlayout > .hero,
+body.hub-home .hlayout > .setup,
+body.hub-home .hlayout > .sec-cap,
+body.hub-home .hlayout > .metrics,
+body.hub-home .hlayout > .hmods{grid-column:1 / -1}
+/* 旧 .hmain 是「塞满一屏的 flex 竖列」、.hrail 是独立侧轨；现在两者都是主区里的卡片 */
+body.hub-home .hmain{display:block;min-width:0;min-height:0 !important;gap:0;
+  background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden;
+  box-shadow:0 2px 6px rgba(28,43,47,.06),0 14px 34px rgba(28,43,47,.07)}
+body.hub-home .hrail{min-height:0 !important;gap:0;order:0;
+  background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;
+  box-shadow:0 1px 2px rgba(28,43,47,.04),0 10px 30px -18px rgba(28,43,47,.14)}
+body.hub-home .hrail-body{gap:0}
+/* 侧卡内部：去掉 rail-card / rail-quick 各自的边框，改由 .hrail 一张卡统管 */
+body.hub-home .rail-card{background:none;border:0;border-radius:0;padding:0;box-shadow:none}
+body.hub-home .rail-quick{background:none;border:0;border-top:1px solid var(--line);border-radius:0;
+  padding:12px 0 0;margin-top:12px;box-shadow:none}
+
+/* ② 欢迎条：浅色渐变页头分区（背景负责分区，不是重卡）。原 .hero 一大堆 none !important
+      必须同用 !important + 更高特异性覆盖；HOME-GLOW-1 两条去绿光斑规则保留在上方，别删。 */
+body.hub-home .hero{display:flex;align-items:center;justify-content:space-between;gap:20px;margin:0;
+  background:linear-gradient(115deg,var(--primary-50) 0%,#f7fbfb 52%,var(--surface) 100%) !important;
+  border:1px solid var(--line) !important;border-radius:16px !important;
+  box-shadow:0 1px 2px rgba(28,43,47,.04),0 10px 30px -18px rgba(28,43,47,.18) !important;
+  padding:16px 20px !important;overflow:hidden}
+[data-theme="dark"] body.hub-home .hero{background:linear-gradient(115deg,#23423f,#1c3331 55%,var(--surface)) !important;
+  border-color:rgba(255,255,255,.10) !important}
+body.hub-home .hg2-left{min-width:0}
+body.hub-home .hero .eyebrow{display:block;font-size:11px;letter-spacing:.1em;color:var(--primary-700);
+  font-weight:750;margin:0 0 6px}
+body.hub-home .hg2-hi{font-size:24px;font-weight:750;letter-spacing:-.03em;line-height:1.2;
+  color:var(--ink);white-space:nowrap}
+/* 一行真实徽标：连续天数 / 会员态（JS 现填，绝不编数字） */
+body.hub-home .hg2-pills{display:flex;gap:7px;flex-wrap:wrap;margin-top:11px}
+body.hub-home .hero [hidden]{display:none !important}
+body.hub-home .hero .streak-chip,
+body.hub-home .hero .vip-chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;
+  font-weight:600;color:var(--primary-700);background:var(--surface);border:1px solid #d7ece8;
+  border-radius:999px;padding:3px 10px;white-space:nowrap;text-decoration:none}
+body.hub-home .hero .streak-chip svg{width:12px;height:12px}
+body.hub-home .hero .vip-chip.free{color:var(--muted);border-color:var(--line)}
+body.hub-home .hero .vip-chip.vip{color:var(--warn-ink)}
+body.hub-home .hg2-sub{margin-top:8px;font-size:11.5px;color:var(--muted)}
+body.hub-home .hg2-sub b{color:var(--primary-700);font-weight:800}
+/* 距考大数字：竖线分隔；CD-1b 的 b 行内混排口径沿用上方原文，绝不改成 flex 父 */
+body.hub-home .countdown{border-left:1px solid var(--line);padding-left:18px}
+
+/* ③ 主区左卡内部：去「卡套卡」—— dash-tasks / three-card 都是 JS 生成的，本身自带卡壳 */
+body.hub-home .dash-tasks{background:none;border:0;border-radius:0;padding:14px 18px 16px;
+  box-shadow:none;flex-direction:column}
+body.hub-home .hmain .three-card{border:0;border-radius:0;box-shadow:none;background:none;overflow:visible}
+body.hub-home .hmain .three-h{border-bottom:1px solid var(--line);padding:0 0 10px;margin-bottom:4px}
+body.hub-home .hmain .three-h h3{font-size:14px}
+body.hub-home .hmain .three-row{padding:10px 0}
+body.hub-home .hmain .three-plan{border-top:1px solid var(--line)}
+/* 任务卡头 / 进度 / 胶囊按钮：密度补在组件细节上 */
+body.hub-home .dash-tasks-h{padding:2px 0 10px;border-bottom:1px solid var(--line);margin-bottom:10px}
+body.hub-home .dash-tasks-h h3{font-size:14px}
+body.hub-home .dash-tasks-count{background:var(--surface-2);border-radius:999px;padding:3px 10px;font-size:11px}
+body.hub-home .dash-tasks-count b{color:var(--primary-700)}
+body.hub-home .dash-tasks-bar{height:6px;background:var(--surface-2);border:1px solid #eaf0ef;
+  border-radius:999px;overflow:hidden;margin-bottom:12px}
+body.hub-home .dash-tasks-bar i{background:linear-gradient(90deg,var(--primary),#5cb3ab)}
+body.hub-home .dash-tasks-tip a{display:inline-flex;align-items:center;background:var(--primary);color:#fff;
+  border-radius:999px;padding:4px 12px;font-size:11px;font-weight:650}
+body.hub-home .dash-tasks-tip a:hover{text-decoration:none;filter:brightness(1.06)}
+body.hub-home .dash-tasks .plan-item{padding:10px 0;border-top:1px solid var(--line)}
+body.hub-home .dash-tasks .plan-item input{width:16px;height:16px}
+
+/* ④ 本周状态：四张独立紧凑小卡（把原「一张横卡四格」的边框/底色/阴影从 .metrics 移到 .metric） */
+body.hub-home .metrics{grid-template-columns:repeat(4,minmax(0,1fr));gap:11px;
+  background:none;border:0;border-radius:0;box-shadow:none;overflow:visible}
+body.hub-home .metric{background:var(--surface);border:1px solid var(--line);border-radius:13px;
+  padding:13px 14px;transition:transform .15s,box-shadow .15s}
+body.hub-home .metric + .metric{border-left:1px solid var(--line)}
+body.hub-home .metric:hover{background:var(--surface);border-color:var(--primary-300);
+  transform:translateY(-2px);box-shadow:0 8px 22px rgba(28,43,47,.09)}
+body.hub-home .metric .label{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--muted);
+  font-weight:600;margin-bottom:9px}
+body.hub-home .metric .label svg{width:13px;height:13px}
+body.hub-home .metric .value{font:750 21px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;
+  letter-spacing:-.04em;margin:0}
+body.hub-home .metric .value .u{font-size:11px}
+body.hub-home .metric .sub{font-size:10.5px;margin-top:8px}
+body.hub-home .metric .track{height:4px;margin-top:10px;border-radius:999px;background:var(--surface-2)}
+/* 分区小标题：纯排版，无卡、无编造数字、无死链接 */
+body.hub-home .sec-cap{display:flex;align-items:center;gap:10px;margin:4px 2px -4px;
+  font-size:11.5px;font-weight:700;color:#5c6b70;letter-spacing:.04em}
+body.hub-home .sec-cap::after{content:"";flex:1;height:1px;background:var(--line)}
+
+/* ⑤ 继续学习：四入口紧凑格（图标底 + 箭头 + hover 上浮） */
+body.hub-home .hmods{grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+body.hub-home .hmod{padding:11px 12px;border-radius:12px;transition:background .15s,transform .15s,box-shadow .15s}
+body.hub-home .hmod:hover{background:var(--surface-2);border-color:var(--primary-300);
+  transform:translateY(-1px);box-shadow:0 6px 18px rgba(28,43,47,.07)}
+body.hub-home .hmod .ic{width:32px;height:32px;border-radius:10px;background:var(--primary-50);color:var(--primary-700)}
+body.hub-home .hmod .ic svg{width:16px;height:16px}
+body.hub-home .hmod .tx{flex:1}
+body.hub-home .hmod b{font-size:12.5px;font-weight:650}
+body.hub-home .hmod .tx span{font-size:10.5px;margin-top:2px}
+body.hub-home .hmod .arrow{width:13px;height:13px;color:#b9c6c8}
+
+/* ⑥ 响应式：新布局是自然流式分区页，旧「一屏不滚动 min-height 撑满」口径作废 */
+@media (min-width:861px){
+  body.hub-home .container{padding-bottom:12px}
+  body.hub-home .hmain,body.hub-home .hrail{min-height:0 !important}
+}
+@media (max-width:860px){
+  body.hub-home .hlayout{grid-template-columns:1fr;gap:14px}
+  body.hub-home .hmain,body.hub-home .hrail{min-height:0 !important}
+  body.hub-home .hrail{order:0}                    /* 盖掉原文 .hrail{order:-1}，保持「任务卡→完成度卡」 */
+  body.hub-home .hero{align-items:flex-start;padding:15px 16px !important;gap:12px}
+  body.hub-home .hg2-hi{font-size:21px;white-space:normal}
+  body.hub-home .countdown{padding-left:12px}
+  body.hub-home .countdown b{font-size:32px}
+  /* 手机端完成度卡常显（稿子手机态即展开），折叠按钮让位，避免变成死按钮 */
+  body.hub-home .hrail-toggle{display:none}
+  body.hub-home .hrail-body{display:flex}
+  body.hub-home .hrail-body .rail-card,body.hub-home .hrail-body .rail-quick{padding:0}
+  body.hub-home .metrics{grid-template-columns:1fr 1fr}
+  body.hub-home .hmods{grid-template-columns:1fr 1fr}
+  body.hub-home .metric .sub{white-space:normal}
+  body.hub-home .dash-tasks{padding:12px 14px 14px}
+}
+@media (max-width:560px){
+  body.hub-home .metrics{gap:9px}
+  body.hub-home .metric{padding:11px 12px}
+  body.hub-home .metric .value{font-size:18px}
+  body.hub-home .hmods{gap:8px}
+  body.hub-home .hmod{padding:10px}
+}
+/* 公告条出现时只收一点上方留白，不再改 min-height 把内容顶出或留大白 */
+body.hub-home:has(#hubAncBar) .container{padding-top:4px;padding-bottom:8px}
+body.hub-home:has(#hubAncBar) .hmain,
+body.hub-home:has(#hubAncBar) .hrail{min-height:0 !important}

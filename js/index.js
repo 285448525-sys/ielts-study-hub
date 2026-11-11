@@ -343,7 +343,7 @@ function renderHg2Sub(){
     }
   }catch(e){}
   if(allDone){
-    el.innerHTML = '今天的任务都完成了，<b>辛苦啦</b> ✓';
+    el.innerHTML = '今天的任务都完成了，<b>辛苦啦</b>';
   }else if(left > 0){
     el.innerHTML = '今天还有 <b>' + left + '</b> 件事要做 · 已完成 <b>' + done + '</b> 件';
   }else{
