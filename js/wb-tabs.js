@@ -591,7 +591,8 @@
     var capPlus = $('wbCapPlus'); if(capPlus) capPlus.disabled = (cap >= 999);
     function sw(id, on){ var el = $(id); if(el){ el.classList.toggle('on', !!on); el.setAttribute('aria-checked', on ? 'true' : 'false'); } }
     sw('wbSwAuto', c.autoPlay);
-    sw('wbSwShuffle', c.shuffle);
+    /* 11-11 撤掉「练习乱序」设置开关：主流程 buildQueue 从不读 shuffle，摆着只会让人误会。
+       底层 c.shuffle 字段与 practice.js 勾选开轮 / 错词重练的打乱逻辑照旧保留，行为一字未改。 */
     sw('wbSwFx', c.fxFeedback);
     sw('wbSwIpa', c.showIpa);                       // WORDBOOK-UX-1：显示音标
     var rb = $('wbRatio');                         // WORDBOOK-UX-1：新词:复习 三档
