@@ -54,6 +54,38 @@ setTimeout(__rvRescue,2500);
 <meta property="og:description" content="会员中心：会员权益、价格与开通方式。" />
 <meta property="og:url" content="https://yasihub.com/vip" />
 <meta name="twitter:card" content="summary" />
+<style>
+/* 会员页 B 定版（11-12 她点头「按所有方案的推荐来做」）：三档对齐、只把 30 天轻轻突出；
+   对比先给差异速览、完整表收进折叠。共享定价脚本与动态价格一字不动，颜色走站点 token。 */
+/* 三档：中间主推略放大，左右两档收成陪衬 */
+.kv-page #vipPlans{display:grid;grid-template-columns:1fr 1.14fr 1fr;gap:14px;align-items:center}
+.kv-page #vipPlans .plan-card{min-width:0}
+.kv-page #vipPlans .plan-card:not(.plan-card--featured){background:var(--surface-2);padding:16px 14px}
+.kv-page #vipPlans .plan-card:not(.plan-card--featured) .plan-price-num{font-size:22px}
+.kv-page #vipPlans .plan-card--featured{background:var(--surface);border:2px solid var(--primary);box-shadow:0 0 0 3px var(--primary-50);padding:22px 18px}
+.kv-page #vipPlans .plan-card--featured .plan-price-num{font-size:32px}
+/* 差异速览：只列真正有差别的四处，完整表折叠在下面 */
+.vip-diff{border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:0 0 12px}
+.vip-diff-row{display:grid;grid-template-columns:1fr 92px 22px 96px;gap:8px;align-items:center;padding:10px 14px;border-bottom:1px dashed var(--line);font-size:12.5px}
+.vip-diff-row:last-of-type{border-bottom:0}
+.vip-diff-row span{color:var(--ink-2);font-weight:700}
+.vip-diff-row b{color:var(--muted);font-weight:600;text-align:right}
+.vip-diff-row i{font-style:normal;color:var(--muted);text-align:center}
+.vip-diff-row strong{color:var(--primary-600);font-weight:800;text-align:right}
+.vip-diff-note{font-size:11.5px;color:var(--muted);background:var(--primary-50);border-radius:8px;padding:9px 12px;margin:0 12px 12px;line-height:1.6}
+.vip-mx-full{margin:0 0 12px}
+.vip-mx-full>summary{cursor:pointer;font-size:12.5px;font-weight:700;color:var(--primary-600);list-style:none;padding:8px 0}
+.vip-mx-full>summary::-webkit-details-marker{display:none}
+.vip-mx-full>summary::before{content:"\25B8";display:inline-block;margin-right:6px;transition:transform .15s}
+.vip-mx-full[open]>summary::before{transform:rotate(90deg)}
+/* 手机：三档回单列、主推不必强行置顶（动态渲染顺序不动）、差异行收窄 */
+@media(max-width:640px){
+  .kv-page #vipPlans{grid-template-columns:1fr}
+  .kv-page #vipPlans .plan-card:not(.plan-card--featured){padding:16px 14px}
+  .kv-page #vipPlans .plan-card:not(.plan-card--featured) .plan-price-num{font-size:24px}
+  .vip-diff-row{grid-template-columns:1fr 76px 16px 78px;gap:5px;font-size:11.5px}
+}
+</style>
 </head>
 <body data-shell="top">
 <div id="bootLoader" class="hub-loader show" aria-hidden="true"><div class="ui-loader" role="status" aria-label="Loading"><span class="ui-loader-dot"></span><span class="ui-loader-dot m2"></span><span class="ui-loader-dot m3"></span><span class="ui-loader-shadow"></span><span class="ui-loader-shadow m2"></span><span class="ui-loader-shadow m3"></span></div></div>
@@ -140,11 +172,23 @@ setTimeout(__rvRescue,2500);
       </section>
 
       <!-- 权益对比：表体由共享层 js/pricing.js 渲染（legacy 口径 = 原静态表 9 行），
-           稿子类名 kv-compare 由 js/vip.js 挂上，图例按 .kv-fine 口径收成一行。 -->
+           稿子类名 kv-compare 由 js/vip.js 挂上，图例按 .kv-fine 口径收成一行。
+           11-12 会员页 B 定版：对比先只给真正有差别的四处，完整表收进「看完整对比表」折叠；
+           #vipMatrix 仍由共享脚本渲染完整表，包一层原生折叠不影响接线、零新增脚本。 -->
       <section class="kv-card">
         <div class="kv-section-label">Compare · 差在哪</div>
         <h2>免费版 vs 会员</h2>
-        <div id="vipMatrix" class="vip-cmp kv-table-scroll"></div>
+        <div class="vip-diff">
+          <div class="vip-diff-row"><span>口语模考</span><b>每月 1 次</b><i>→</i><strong>无限次</strong></div>
+          <div class="vip-diff-row"><span>写作批改</span><b>每月 3 次</b><i>→</i><strong>无限次</strong></div>
+          <div class="vip-diff-row"><span>串题素材生成</span><b>会员专属</b><i>→</i><strong>无限生成</strong></div>
+          <div class="vip-diff-row"><span>其他 AI 辅助</span><b>每周 5 次</b><i>→</i><strong>不限次</strong></div>
+          <div class="vip-diff-note">其余学习功能、云同步、数据导出：免费版和会员完全一样，永久免费。</div>
+        </div>
+        <details class="vip-mx-full">
+          <summary>看完整对比表</summary>
+          <div id="vipMatrix" class="vip-cmp kv-table-scroll"></div>
+        </details>
         <p class="kv-fine">学习功能本身全部免费且无差别（为什么收费，见上面「先说清楚」）——会员提升的是 <b>AI 额度</b>（模考 / 批改 / 素材 / 辅助）和后续专属功能。</p>
       </section>
 
