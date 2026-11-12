@@ -205,18 +205,16 @@ function ancLoad(){
 function ancSettled(){
   return _ancFetch || Promise.resolve(_ancCache || { items: [] });
 }
-/* 公告条只推「最新那一条」，且仅在它未读时显示。
-   🔴 为什么不是「最新一条未读」：那样点掉一条会立刻顶上下一条 —— 站上现在躺着 3 条历史公告，
-      她第一次进来要连点 3 次 ✕ 才清干净，等于连续打扰。banner 型元素的语义是「通知你一次」，
-      点掉 = 这件事我知道了；想逐条看的人去公告列表页（那里保留逐条 NEW 角标）。
-      她以后发新公告 → 新的一条成为 items[0] → 条自动再出现一次。
-      依据：设计稿「一个用户同时只显示一条」+ 多邻国/扇贝 banner 的一次性关闭语义。 */
+/* P0 横幅 A 定版（11-12 她点头「按照那个所有方案的推荐来做」）：
+   全站每个页面顶上那条「单词页重设计上线」开发播报撤干净，顶部不再挂任何公告条，
+   零高度、零维护；要播报的内容去公告页 / 更新日志（公告数据不动、列表照显）。
+   原先「公告条只推最新一条未读」的取舍见 git 历史；现在这里恒返回「没有待显示的一条」，
+   ancEnsure 因此总是走既有的清空分支，那正是每位「已读完公告」用户一直在跑的路径，零新逻辑。
+   只停用顶部横幅：公告数据 ancLoad 与 _ancCache、铃铛红点 hubUnreadCount、公告页列表、
+   已读状态 ancMarkRead、跳转 hubMsgGo，以及下面 ancBarHtml 与 ancBindBar 等停用渲染件
+   全部原样保留，不删不改，避免牵动 22 页共享脚本的既有引用面。 */
 function ancPending(){
-  const s = ancReadSet();
-  const j = _ancCache;
-  if(!j || !j.items || !j.items.length) return null;
-  const top = j.items[0];
-  return (top && !s.has(top.id)) ? top : null;
+  return null;
 }
 /* ANN-1（10-26）：公告条轻量化 —— 标签胶囊换成 6px 小圆点，颜色/尺寸全部交给 CSS 的 .dot / .anc。
    她 19:4x 看过样子稿（design/_样子稿-公告条轻量化-2026-10-26.html）点头，1:1 还原方案 B：
