@@ -29,6 +29,13 @@
   }catch(e){}
 })();
 </script>
+<style>
+/* P2 登录页 B 定版（11-12 她点头「按所有方案的推荐来做」）：品牌条整块之后加两行主张。
+   颜色全走本页主题变量，深浅两档自动跟随，不写死色值。 */
+.p2-lead-b{display:flex;flex-direction:column;gap:5px;padding:0 0 16px;margin-bottom:16px;border-bottom:1px solid var(--line)}
+.p2-lead-b b{font-size:19px;font-weight:800;letter-spacing:-.01em;color:var(--ink)}
+.p2-lead-b span{font-size:12.5px;color:var(--muted);line-height:1.7}
+</style>
 </head>
 <body>
 <!-- 10/4 00:20：带了 ?from= 的进来（设置页「去登录 →」），返回键回到来源页而不是落地页 -->
@@ -46,6 +53,8 @@
         <i aria-hidden="true"><svg viewBox="0 0 512 512" fill="none" aria-hidden="true" focusable="false"><g fill="#ffffff" stroke="#ffffff" stroke-width="38" stroke-linejoin="round" stroke-linecap="round"><path d="M256 136 L344 194 L256 252 L168 194 Z"/><path d="M160 304 L212 304 L256 362 L300 304 L352 304 L352 354 Q352 394 256 394 Q160 394 160 354 Z"/></g></svg></i>
         <div class="lg-mb-txt"><b>雅思备考站</b><span>机考备考系统</span></div>
       </div>
+
+      <div class="p2-lead p2-lead-b"><b>从今天的清单开始</b><span>627 篇真题、89 条口语题卡、42 套写作模板，按你今天的进度排好，不用自己翻。</span></div>
 
       <div id="modeLogin">
         <h2>登录学习台</h2>
@@ -115,7 +124,7 @@
         <!-- why-log 保留：登录态下解释「为什么要登录」，对首次来访仍有价值 -->
         <div class="lg-why-log">
           <b>为什么要登录</b>
-          <span>不登录也能用，但数据只存在这台设备的浏览器里——换设备、清缓存就没了。<br />登录后自动同步到云端，换手机换电脑都接着用。</span>
+          <span>这台设备上记的进度，登录后会跟着账号走：换手机、换电脑、清了缓存，今天的清单还在。不登录也能练，只是进度只留在这台设备里。</span>
         </div>
       </div>
 
