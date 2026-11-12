@@ -1881,7 +1881,7 @@ function renderDiagEntry(){
     }
     root.innerHTML =
       '<div class="card dg-hero">'
-      + '<div class="dg-hero-ic">🎯</div>'
+      + '<div class="dg-hero-ic p0-target-b">' + '<svg class="p0-ic" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/></svg>' + '</div>'
       + '<h2>备考诊断</h2>'
       + '<p class="dg-hero-p">有清晰的目标和节奏，就不需要这一步，按自己的走法来就行。'
       + '<br>实在没方向的话，可以让 AI 结合你的情况出一份参考计划。</p>'

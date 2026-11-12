@@ -494,13 +494,17 @@ function tplCardHtml(t, lockTag){
   const meta = '<div class="tpl-meta"><span class="tpl-lv">目标 ' + escapeHtml(lv) + ' 分</span>'
     + ((cat && cat !== tt) ? '<span class="tpl-cat">' + escapeHtml(cat) + '</span>' : '') + '</div>';
   const tips = String(t.tips || '').trim();
+  /* P0 装饰符号 B（11-12 定版）：含警示三角的提示条改成「注意」小标签；数据里的文案一字不动，只在此处渲染层收口。 */
+  const tipWarn = tips.indexOf('⚠️') >= 0;
+  const tipTxt = tipWarn ? tips.replace('⚠️', '').trim() : tips;
   const sk = skeletonFirstLine(t.skeleton);
   const pa = skeletonParaCount(t.skeleton);
   /* Q-2（10-24）：t.id 直插属性位 —— 云端同步/导入的历史数据里 id 不保证是 uid() 生成的，
      含引号就能跳出属性边界挂事件。属性位一律过 escapeHtml（它同时转义 " 与 '，见 data.js:2990）。 */
   return '<div class="card tpl-card" data-id="' + escapeHtml(t.id) + '" style="position:relative">'
     + lockTag + '<b>' + escapeHtml(tt) + '</b>' + meta
-    + (tips ? '<div class="tpl-tip">' + escapeHtml(tips) + '</div>' : '')
+    + (tips ? '<div class="tpl-tip' + (tipWarn ? ' p0-tip-b' : '') + '">'
+             + (tipWarn ? '<span class="p0-tag">注意</span>' : '') + escapeHtml(tipTxt) + '</div>' : '')
     + (sk ? '<div class="tpl-sk">' + escapeHtml(sk) + '</div>' : '')
     + '<div class="tpl-foot"><span>' + (pa ? pa + ' 段' : '') + '</span><span class="tpl-go">打开模板 →</span></div>'
     + '</div>';
@@ -510,12 +514,16 @@ function tplRowHtml(t, locked){
   const cat = t.category || '';
   const lv = t.level || '5.5';
   const tips = String(t.tips || '').trim();
+  /* P0 装饰符号 B（11-12 定版）：列表视图与网格视图是同一份 tips，警示三角同样收成「注意」标签。 */
+  const tipWarn = tips.indexOf('⚠️') >= 0;
+  const tipTxt = tipWarn ? tips.replace('⚠️', '').trim() : tips;
   const pa = skeletonParaCount(t.skeleton);
   return '<div class="tl-row" data-id="' + escapeHtml(t.id) + '">'
     + '<span class="tpl-lv">' + escapeHtml(lv) + '</span>'
     + '<span style="min-width:0">'
     +   '<span class="tl-t">' + (locked ? '<span class="tl-lock" title="会员专属">🔒</span>' : '') + escapeHtml(tt) + '</span>'
-    +   (tips ? '<span class="tl-sub">' + escapeHtml(tips) + '</span>' : '')
+    +   (tips ? '<span class="tl-sub' + (tipWarn ? ' p0-tip-b' : '') + '">'
+    +          (tipWarn ? '<span class="p0-tag">注意</span>' : '') + escapeHtml(tipTxt) + '</span>' : '')
     + '</span>'
     + '<span class="tl-dim tl-cat">' + escapeHtml(cat) + '</span>'
     + '<span class="tl-dim tl-pa">' + (pa ? pa + ' 段' : '') + '</span>'
@@ -1721,7 +1729,8 @@ function openTplDict(tplId){
       if(hidden) renderWtSrcView();          // 展开前按当前勾选刷新内容
       $('#wtDictSrc').hidden = !hidden;
       peek.setAttribute('aria-expanded', String(hidden));
-      peek.textContent = hidden ? '🙈 收起原文' : '👁 偷看原文';
+      const p0Ic = peek.querySelector('svg.p0-ic');
+      peek.innerHTML = (p0Ic ? p0Ic.outerHTML : '') + (hidden ? ' 收起原文' : ' 偷看原文');
     };
   }
 
@@ -3283,7 +3292,7 @@ function examShellHtml(){
       <div class="ex-icons">
         <span class="ex-saved" id="wtSaved" hidden>Saved</span>
         <button class="ex-ico ex-toolbtn" id="wrtFsBtn" type="button" title="Full screen" aria-label="Full screen">${wrtIcoFull()}</button>
-        <button class="ex-ico ex-menubtn" type="button" title="Option">☰</button>
+        <button class="ex-ico ex-menubtn" type="button" title="Option"><svg class="p0-ic" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
       </div>
     </header>
 
@@ -3586,7 +3595,7 @@ function wrtInjectOption(){
     btn.type = 'button';
     btn.title = 'Option';
     btn.setAttribute('aria-label', 'Option');
-    btn.innerHTML = '\u2630';
+    btn.innerHTML = '<svg class="p0-ic" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>';
     head.appendChild(btn);
   }
   /* 10/15 改元素级绑定（panel 级委托在软导航/eval 环境实测不生效，已删）*/

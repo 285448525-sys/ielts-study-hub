@@ -52,7 +52,7 @@
   <script defer src="js/factory-writing.js?v=20261023b"></script>
 <script defer src="js/writing_prompts.js?v=20260903ab"></script>
 <script defer src="js/exam-timer.js?v=20261102c"></script>
-  <script defer src="js/writing.js?v=20261101l"></script>
+  <script defer src="js/writing.js?v=20261112b"></script>
 <style>
 
   /* ===== 10-23 W-1：撤左栏 → 单列 + 横向筛选带（方案 §二）
@@ -898,6 +898,13 @@ body.exam-fullscreen .wr-pane{display:none!important}
 <meta property="og:description" content="写作练习：模板填空、骨架默写练习与 AI 评分。" />
 <meta property="og:url" content="https://yasihub.com/writing" />
 <meta name="twitter:card" content="summary" />
+<style>
+/* P0 装饰符号 B（她 11-12 点头的定版）：表情换线性小图标、四条警示收成「注意」标签、锁收进浅色圆底。颜色全走站点 token，深浅两档自动跟随，零写死色值。 */
+.p0-ic{vertical-align:middle;flex:0 0 auto;color:var(--primary-600)}
+.p0-tag{display:inline-block;font-size:11px;font-weight:700;color:var(--warn-ink);background:var(--warn-soft);border:1px solid var(--line);border-radius:6px;padding:2px 8px;letter-spacing:.02em}
+.p0-tip-b .p0-tag{margin-right:2px}
+.p0-lock-b{width:44px;height:44px;border-radius:50%;background:var(--primary-50);display:flex;align-items:center;justify-content:center;margin:0 auto}
+</style>
 </head>
 <body data-shell="top">
 <div id="bootLoader" class="hub-loader show" aria-hidden="true"><div class="ui-loader" role="status" aria-label="Loading"><span class="ui-loader-dot"></span><span class="ui-loader-dot m2"></span><span class="ui-loader-dot m3"></span><span class="ui-loader-shadow"></span><span class="ui-loader-shadow m2"></span><span class="ui-loader-shadow m3"></span></div></div>
@@ -1031,7 +1038,7 @@ body.exam-fullscreen .wr-pane{display:none!important}
 
           <!-- 10/2 她拍板：模板=会员专属。免费用户点开只显示此锁卡，内容区块由 writing.js 隐藏 -->
           <div id="tplLockCard" hidden style="text-align:center;padding:34px 16px">
-            <div style="font-size:40px;line-height:1" aria-hidden="true">🔒</div>
+            <div class="p0-lock-b" aria-hidden="true"><svg class="p0-ic" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7.4a4 4 0 0 1 8 0V11"/></svg></div>
             <h2 style="margin:12px 0 6px;font-size:19px">作文模板是会员专属</h2>
             <p class="muted" style="font-size:13.5px;line-height:1.8;margin:0 auto 14px;max-width:420px">两套背诵模板 + 全部类型的填空练习、默写、AI 评分，开通会员即可无限使用。</p>
             <a class="btn btn-primary" href="vip.html" style="text-decoration:none;display:inline-block;min-height:44px;line-height:44px;padding:0 22px">开通会员 · 首购 ¥19 起</a>
@@ -1241,7 +1248,7 @@ body.exam-fullscreen .wr-pane{display:none!important}
           <input type="checkbox" id="wtDictRedoWrong" />
           <span>每次做前重默错过的句子</span>
         </label>
-        <button class="btn btn-sm" id="wtDictPeek" type="button" aria-expanded="false">👁 偷看原文</button>
+        <button class="btn btn-sm" id="wtDictPeek" type="button" aria-expanded="false"><svg class="p0-ic" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.2 12s3.8-6.6 9.8-6.6 9.8 6.6 9.8 6.6-3.8 6.6-9.8 6.6S2.2 12 2.2 12z"/><circle cx="12" cy="12" r="2.9"/></svg> 偷看原文</button>
       </div>
 
       <!-- 句子选择：勾选本次要默写的句子（默认全勾）。用 details 折叠，选好后收起，避免长模板一直占屏 -->
@@ -1262,7 +1269,7 @@ body.exam-fullscreen .wr-pane{display:none!important}
       </div>
 
       <div id="wtDictDraftNote" class="dict-draft-note" hidden style="margin-top:12px;padding:9px 12px;background:var(--primary-soft);border:1px solid var(--primary);border-radius:var(--radius);font-size:13px;color:var(--ink);display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-        <span>📝 已恢复上次没默完的内容（<span id="wtDictDraftNoteAgo">刚刚</span>保存的草稿）</span>
+        <span><svg class="p0-ic" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8.6 8h6.8M8.6 12h6.8M8.6 16h4.2"/></svg> 已恢复上次没默完的内容（<span id="wtDictDraftNoteAgo">刚刚</span>保存的草稿）</span>
         <button class="btn btn-sm" id="wtDictDiscardDraft" type="button" style="margin-left:auto">放弃草稿</button>
       </div>
 
