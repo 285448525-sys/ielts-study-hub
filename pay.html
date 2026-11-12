@@ -56,6 +56,36 @@
 <meta name="description" content="会员开通：档位确认、扫码转账与开通说明。" />
 <link rel="canonical" href="https://yasihub.com/pay" />
 <meta name="robots" content="noindex" />
+<style>
+/* P2 付费页 B 定版（11-12 她点头「按所有方案的推荐来做」）：订单与付款拆两栏，
+   收掉三步圆点与土黄警示框的视觉重量，功能节点与动态价格一个不丢。
+   颜色一律走站点 token，深浅两档自动跟随，不写死任何色值。 */
+.pay-wrap{max-width:860px;margin:0 auto}
+.pay-cols{display:grid;grid-template-columns:270px minmax(0,1fr);gap:18px;align-items:start}
+.pay-cols > .pay-card{margin-bottom:0}
+.pay-order,.pay-paysec{padding:24px 22px}
+/* 左栏订单：价格放大，档名退到次级 */
+.pay-order .pay-summary{border-left:0;background:var(--primary-50);border-radius:10px;padding:14px 16px;margin-top:8px}
+.pay-order .pay-name{font-size:15px;font-weight:700;color:var(--ink-2)}
+.pay-order .pay-price{font-size:40px;font-weight:800;letter-spacing:-.02em;color:var(--ink);margin-top:4px}
+.pay-order .pay-note{font-size:12.5px;line-height:1.75}
+/* 右栏付款：两张真实收款码收小，都留着 */
+.pay-wrap .pay-qrrow{gap:14px;margin:6px 0 12px}
+.pay-wrap .pay-qr,.pay-wrap .pay-qr img{width:108px}
+.pay-wrap .pay-qr{height:108px}
+/* 未登录提示收成中性浅底，去登录按钮照留 */
+.pay-wrap .pay-loginhint{background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2);padding:10px 14px;border-radius:10px;font-size:12.5px;line-height:1.6;margin-bottom:12px}
+.pay-wrap .pay-loginhint b{color:var(--ink);margin-right:4px}
+.pay-wrap .pay-loginhint span{color:var(--muted)}
+[data-theme="dark"] .pay-wrap .pay-loginhint{background:var(--surface-2);border-color:var(--line);color:var(--ink-2)}
+[data-theme="dark"] .pay-wrap .pay-loginhint b{color:var(--ink)}
+[data-theme="dark"] .pay-wrap .pay-loginhint span{color:var(--muted)}
+/* 手机两栏回单列 */
+@media(max-width:760px){
+  .pay-cols{grid-template-columns:1fr;gap:14px}
+  .pay-order,.pay-paysec{padding:18px 16px}
+}
+</style>
 </head>
 <body data-shell="top">
 <div id="bootLoader" class="hub-loader show" aria-hidden="true"><div class="ui-loader" role="status" aria-label="Loading"><span class="ui-loader-dot"></span><span class="ui-loader-dot m2"></span><span class="ui-loader-dot m3"></span><span class="ui-loader-shadow"></span><span class="ui-loader-shadow m2"></span><span class="ui-loader-shadow m3"></span></div></div>
@@ -77,9 +107,13 @@
       <div></div>
     </div>
 
-    <!-- ① 档摘要：档名与价格由 js/pay.js 从 VIP_PLANS + URL ?plan= 渲染 -->
-    <section class="pay-card">
-      <div class="pay-label">开通确认</div>
+    <!-- P2 付费页 B 定版（11-12 她点头「按所有方案的推荐来做」）：订单与付款拆成两栏，
+         左栏一眼看清买了什么、多少钱，右栏只管扫码。收掉一长条三步圆点与土黄警示框的视觉重量，
+         双码收小；两张真实收款码、动态价格、登录分叉、本地完成态切换一个不丢。 -->
+    <div class="pay-cols">
+    <!-- ① 档摘要（左栏 = 你的订单）：档名与价格由 js/pay.js 从 VIP_PLANS + URL ?plan= 渲染 -->
+    <section class="pay-card pay-order">
+      <div class="pay-label">你的订单</div>
       <div class="pay-summary" id="planSummary">
         <div class="pay-name" id="pName">30 天</div>
         <div class="pay-price" id="pPrice">—</div>
@@ -87,14 +121,9 @@
       </div>
     </section>
 
-    <!-- ② 三步指引 -->
-    <section class="pay-card">
-      <div class="pay-label">操作步骤</div>
-      <div class="pay-steps">
-        <div class="pay-step"><div class="pay-step-num">1</div><div class="pay-step-txt">扫下方任意一个收款码</div></div>
-        <div class="pay-step"><div class="pay-step-num">2</div><div class="pay-step-txt">按上方金额转账（微信或支付宝都行）</div></div>
-        <div class="pay-step"><div class="pay-step-num">3</div><div class="pay-step-txt">转完点「我已转账」，我当天确认</div></div>
-      </div>
+    <!-- ② 付款（右栏 = 扫码付款）：三步圆点按 B 定版收掉，功能节点全部保留 -->
+    <section class="pay-card pay-paysec">
+      <div class="pay-label">扫码付款</div>
 
       <!-- ③ 未登录分叉（B0 产品方案 §1.3）：未登录能看档摘要，但主按钮置灰 + 引导登录 -->
       <div class="pay-loginhint" id="loginHint" hidden>
@@ -139,6 +168,7 @@
 
       <p class="pay-hint"><b>备注自己注册的邮箱</b>——转账时在金额下方的留言栏填你的邮箱（不是金额备注），我拿到就知道是哪笔，当天开通。</p>
     </section>
+    </div><!-- /pay-cols：FAQ 与页脚回到整行 -->
 
     <!-- ⑦ 缩版 FAQ（从 vip 页挪来的支付相关三条） -->
     <section class="pay-card pay-faq">
