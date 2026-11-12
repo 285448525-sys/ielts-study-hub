@@ -20,7 +20,6 @@ const ICON = {
   writing:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L18.5 9.5l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg>',
   review:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4v16h15"/><path d="M9 14v4M13 10v8M17 6v12"/></svg>',
   settings:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg>',
-  wrongbook:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5V5a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-2z"/><path d="M9 7l1.5 3 3 .5-2 2 .5 3-3-1.5-3 1.5.5-3-2-2 3-.5z"/></svg>',
   /* teacher（10-22 三级权限第二批）：人 + 加号 —— 「管理名单里的人」，只对管理员显示 */
   teacher:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 20v-1.6c0-2-1.7-3.6-3.8-3.6H6.8C4.7 14.8 3 16.4 3 18.4V20"/><circle cx="9.5" cy="8" r="3.4"/><path d="M17 11.5h4M19 9.5v4"/></svg>',
   /* vip：钻石图标 stroke 写死金色（转化入口要跟学习模块区分开；不动 CSS 免全站 bump） */
@@ -62,12 +61,6 @@ const PAGES = [
         `id:'bank'`、`file:'bank.html'`、PRIMARY_NAV 里那个 'bank' 一律不动 —— 路由与高亮全靠它们。
         改 id 或 file 会让 bank.html 变成孤儿页（软导航找不到对应条目）。 */
   { id:'bank',      file:'bank.html',      icon:ICON.mock,      name:'机经',       desc:'阅读 · 听力' },
-  /* 🔴 10-23 T-015 她拍板「错句本不配单独一个 Tab，整个板块前后端删干净」→
-     wrongbook.html 文件已从仓库删除；这里保留条目并标 hidden:true，只为两件事：
-     ① 老链接 / 书签直访 wrongbook.html 时软导航白名单仍认得它（真删条目会 404 白屏）；
-     ② 数据侧 collectWrongSentences / deleteWrongItem / DATA.deletedWrongKeys 仍在
-        （写作页附属模块 + 云同步墓碑要用），一个字段都没动。 */
-  { id:'wrongbook', file:'wrongbook.html', icon:ICON.wrongbook, name:'错句本',     desc:'写作/语料默写错句汇总', hidden:true },
   { id:'review',    file:'review.html',    icon:ICON.review,    name:'回顾',       desc:'模考成绩 + 学习轨迹' },
   { id:'vip',       file:'vip.html',       icon:ICON.vip,       name:'会员',       desc:'AI 无限用 + 专属权益' },  // 10/1 付费方案：非学习功能，不进 PRIMARY_NAV
   { id:'settings',  file:'settings.html',  icon:ICON.settings,  name:'设置',       desc:'同步 / AI / 数据' },
@@ -129,7 +122,7 @@ function capActiveFile(file){ return CAP_ACTIVE[file] || file; }
 /* 10/1 付费方案：vip 放分隔线下方首位（销售入口显眼但不挤占学习导航；她看过效果可再调位置） */
 /* 10-23 她拍板删服药页入口 → MORE_NAV 去掉 'meds'。
    ⚠️ medsModuleOn() 保留（plans.js:545 的 AI prompt 仍读它拼服药上下文）。 */
-/* 10-23 T-014：回顾提级后侧栏也不列（一级入口已覆盖）；错句本 T-015 删页先摘。
+/* 10-23 T-014：回顾提级后侧栏也不列（一级入口已覆盖）；已下线页不进清单。
    ⚠️ MORE_NAV 现在是「顶栏更多面板的数据源」，两边必须一致。 */
 const MORE_NAV    = ['vip','settings'];
 
@@ -584,9 +577,9 @@ function isNavHidden(p){ return !!(p && p.hidden); }
      writing → #writeTabs 的 data-tab：tpl / bank / score
      corpus  → #wordTabs 的 data-sub：ls / eb / dict
      plans   → #planTabs 的 data-ptab：today / plan / history
-   ⚠️ 方案写「句子只剩长难句/听写（错句本删了）」——实测证据以代码为准：
+   ⚠️ 方案写「句子只剩长难句/听写」——实测证据以代码为准：
       corpus.html 的 #wordTabs 仍是三项（长难句 ls / 错题 eb / 听写 dict），
-      错句本删的是 writing 页底部那个 wbArea，不是 corpus 这个「错题」tab。故保留三项。 */
+      这里保留的是 corpus 的三个练习 tab，与写作页的回顾区无关。 */
 const TB_SUB = {
   bank:     [['阅读','reading'], ['听力','listening']],
   speaking: [['题库','BANK'], ['陪练','PRACTICE'], ['素材','MAT']],
@@ -694,7 +687,7 @@ function topBarHtml(current){
       + '</span>';
   }
   /* 「更多」面板（10-23 T-014 她拍板瘦身）：回顾已提一级 → 这里只剩 会员/设置；
-     错句本 T-015 整页删，先从这里摘掉；学生数据由下方权限块追加。 */
+     已下线的页不进清单；学生数据由下方权限块追加。 */
   let moreItems = '';
   for(const pid of ['vip','settings']){
     const p = pageById(pid); if(!p || isNavHidden(p)) continue;
@@ -1955,9 +1948,7 @@ document.addEventListener('change', (e) => {
    （她自己以后想用还能从侧栏/写作页进）。⚠️ 若她之后发现还需要，加回「我的」组即可。
    ========================================================================== */
 
-/* 🔴 10-23 T-015 后记：错句本独立页按她拍板删除（她原话「错句本它只是附属在作文模板界面的
-   一个小模块，它没必要单独做一个 Tab」）。写作页底部折叠区「我的错句」（#wbArea）**保留** ——
-   那是她明说保留的附属模块。PAGES 里 wrongbook 条目标 hidden 只为兼容老链接，不进任何清单。 */
+/* 11-12 她点头「错句本不留」：写作页回顾区与 PAGES 兼容条目已一并收干净。 */
 
 /* 分组定义：唯一的结构来源。g.page 存在 = 直达；无 page = 弹组面板。 */
 const GROUPED_DOCK = [

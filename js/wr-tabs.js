@@ -32,8 +32,7 @@
      软导航契约：本文件随每轮 window.eval 重跑，监听必须先 remove 再 add（bind()）。
      // TODO: [待确认] 设计稿总览「距目标写作 6」目标分口径：优先 DATA.settings.targets.writing，
        没填则回落 targets.overall，再没填按 6。若她另有口径，点头后改 target() 一处。
-     // TODO: [待确认] 练习记录页「分项 40 题答对数 / 错句本」是否复用站内既有弹窗与
-       collectWrongSentences()，任务5 落时再定；本笔只给真记录表，不动既有数据。 */
+     // TODO: [待确认] 分项 40 题答对数的统计口径另议。 */
   var TABS=[
     {id:'home',nm:'总览',ic:'grid'},
     {id:'tpl',nm:'模板库',ic:'book'},
@@ -184,12 +183,10 @@
     if(!recs.length){box.innerHTML='<div class="wr-empty"><b>还没有练习记录</b>写一篇让 AI 评分，或默写一套模板，记录会自动收在这里。<div style="margin-top:14px"><button type="button" class="wr-btn primary" data-wr-go="score">去写一篇</button></div></div>';return}
     var vals=recs.map(function(r){return Number(r.result.overall)||0});
     var last=vals[0], n3=Math.min(3,vals.length), avg=vals.slice(0,n3).reduce(function(a,b){return a+b},0)/n3;
-    var wrong=0;try{if(typeof window.collectWrongSentences==='function'){var w=window.collectWrongSentences();wrong=Array.isArray(w)?w.length:0}}catch(e){}
     var cards=[
       {k:'近一次预估',v:one(last),unit:'/ 9',d:(recs[0].date||'')+' · AI 预估，不是官方成绩',ok:true,tone:'teal'},
       {k:'近 3 次均值',v:one(avg),d:'AI 预估分'},
-      {k:'累计评分',v:String(recs.length),unit:'次',d:'按日期倒序'},
-      {k:'待重默错句',v:String(wrong),unit:'条',d:wrong?('错句本里还没清'):'错句本是空的',tone:wrong?'warn':'teal'}
+      {k:'累计评分',v:String(recs.length),unit:'次',d:'按日期倒序'}
     ];
     var bdKeys=['TR','CC','LR','GRA'];
     function bd(r,k){var b=r.result&&r.result.breakdown;if(!b)return '—';var v=num(b[k]);return v==null?'—':one(v)}

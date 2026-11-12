@@ -41,18 +41,18 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <script defer src="js/data.js?v=20261030a"></script>
-  <script defer src="js/common.js?v=20261112a"></script>
+  <script defer src="js/common.js?v=20261112d"></script>
   <script defer src="js/common-ai.js?v=20261104n"></script>
   <script defer src="js/common-sync.js?v=20261107c"></script>
   <script defer src="js/common-merge.js?v=20261101m"></script>
   <script defer src="js/common-cloud.js?v=20261101m"></script>
   <script defer src="js/common-shell.js?v=20261107b"></script>
-  <script defer src="js/common-pwa.js?v=20261101m"></script>
+  <script defer src="js/common-pwa.js?v=20261112d"></script>
   <script defer src="js/feedback.js?v=20261111b"></script>
   <script defer src="js/factory-writing.js?v=20261023b"></script>
 <script defer src="js/writing_prompts.js?v=20260903ab"></script>
 <script defer src="js/exam-timer.js?v=20261102c"></script>
-  <script defer src="js/writing.js?v=20261112b"></script>
+  <script defer src="js/writing.js?v=20261112d"></script>
 <style>
 
   /* ===== 10-23 W-1：撤左栏 → 单列 + 横向筛选带（方案 §二）
@@ -981,7 +981,6 @@ body.exam-fullscreen .wr-pane{display:none!important}
       <button data-tab="score" class="pill-tab">评分</button>
       <!-- 10/11 第 7 项（她拍板「整块删掉」）：真题 tab 已下线 —— 写作真题搬进「模考」大 tab（bank.html → 写作 pane），
            题目/练习记录/打勾都不变，只是换了入口位置。写作页自身模板/语料/评分三 tab 不动。 -->
-      <!-- 10/2（她拍板）：「错句」Tab 删除——错句本并入模板区底部折叠区 -->
     </div>
   </div>
 
@@ -1075,7 +1074,6 @@ body.exam-fullscreen .wr-pane{display:none!important}
             <div id="tplScoreBox" class="tpl-score" hidden></div>
           </div>
 
-          <div id="tplWrongBox" hidden style="margin-top:12px"></div>
           <!-- 10-23 她要求删掉：「我内置进去的模板全部都是系统自带的，不能删」→ 模板详情页不再给删除入口。
                delTpl() 函数与墓碑机制保留在 js/writing.js 里（数据兼容，不删代码），只是这里没有按钮可点。 -->
         </section>
@@ -1102,21 +1100,6 @@ body.exam-fullscreen .wr-pane{display:none!important}
          #addCard 表单与 addTpl() 一起留着：现在没有入口能打开它（点开它的是那个已删的按钮），
          后续她要在别处做新增入口时直接复用，不用重写。 -->
 
-    <!-- 10/2（她拍板）：错句本从独立 Tab 并入模板区底部（默认收起）
-         🔴 10-23 T-015：独立页 wrongbook.html 已删（她拍板「不配单独一个 Tab」），
-         这个底部折叠区是她明说保留的附属模块，渲染函数从 js/wrongbook.js 迁进 js/writing.js -->
-    <details class="tpl-wrong-wrap" id="wbArea" style="margin-top:14px">
-      <summary class="tpl-wrong-sum" style="cursor:pointer;padding:10px 14px;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius);font-size:13.5px;font-weight:600;user-select:none">我的错句 · <span id="wbCount">0</span> 条（点开回顾）</summary>
-      <div style="padding:12px 2px 0">
-        <div style="margin-bottom:10px;font-size:13px;color:var(--muted)">来源筛选：
-          <select id="wbSourceFilter" style="padding:5px 10px;border:1px solid var(--line);border-radius:8px;font:inherit;background:var(--bg);color:var(--ink)">
-            <option value="all">全部</option>
-          </select>
-        </div>
-        <div id="wbList"></div>
-        <div id="wbEmpty" class="muted" hidden>还没有错句。去写作模板默写或语料库表格默写，写错的句子会自动收集到这里。</div>
-      </div>
-    </details>
   </div>
 
   <!-- 语料库面板 -->
@@ -1228,7 +1211,6 @@ body.exam-fullscreen .wr-pane{display:none!important}
        靠的就是 #examPanel / #examHome / #examPractice 这三个元素。机考界面的 DOM 由 js/writing.js 的
        ensureExamShell() 统一注入（两页共用一份源码，不各抄一份）。#examHome 在写作页永不出内容、只被置 hidden。 -->
 
-  <!-- 10/2（她拍板）：错句本面板已并入 tplPanel 底部折叠区，wrongPanel 整块删除 -->
 
   <!-- 模板内联默写面板（自包含，不依赖 dictation.js） -->
   <div id="dictationPanel" hidden>
@@ -1286,6 +1268,6 @@ body.exam-fullscreen .wr-pane{display:none!important}
 </main>
 <link rel="stylesheet" href="css/p/hub-shell.css?v=20261107a" />
 <script defer src="js/hub-side-shell.js?v=20261106b"></script>
-<script defer src="js/wr-tabs.js?v=20261109b"></script>
+<script defer src="js/wr-tabs.js?v=20261112d"></script>
   <script defer src="js/es-b.js?v=20261112c"></script>
 

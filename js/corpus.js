@@ -616,24 +616,6 @@ async function gradeWrite(q, cfg){
       + (it.missed.length ? ' · 漏：' + it.missed.map(w => escapeHtml(w)).join(' ') : '')
       + (ai && ai.note ? ' · <span class="muted">' + escapeHtml(ai.note) + '</span>' : '');
   });
-  // 错句本：把本次准确率<100%的句子写入 dictationLogs（sourceId='corpus'），供错句本聚合
-  const wrongItems = [];
-  base.forEach((it, i) => {
-    if(it.acc >= 100) return;
-    // 修复：it 是展开副本，q.indexOf(it) 恒为 -1（loc 恒为 "0"），改用下标
-    wrongItems.push({
-      loc: String(i + 1),
-      wrong: it.user || '',
-      right: it.en,
-      type: it.missed.length ? '漏写' : '错词',
-      note: it.missed.length ? ('漏：' + it.missed.join(' ')) : ''
-    });
-  });
-  if(wrongItems.length){
-    DATA.dictationLogs = DATA.dictationLogs || [];
-    DATA.dictationLogs.push({ sourceId: 'corpus', title: '语料库表格默写', date: todayKey(), mistakes: wrongItems });
-    hubSave();
-  }
   clearCorDraft();   // 批改完成 → 本次默写结束，清草稿
 }
 

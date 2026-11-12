@@ -50,13 +50,13 @@
        其余页面由 js/common-pwa.js 在「页面可用之后」按需拉（首屏关键路径少 ~21KB brotli）。 -->
   <script defer src="js/data-static.js?v=20261027a"></script>
   <script defer src="js/pricing.js?v=20261025f"></script>
-  <script defer src="js/common.js?v=20261112a"></script>
+  <script defer src="js/common.js?v=20261112d"></script>
   <script defer src="js/common-ai.js?v=20261104n"></script>
   <script defer src="js/common-sync.js?v=20261107c"></script>
   <script defer src="js/common-merge.js?v=20261101m"></script>
   <script defer src="js/common-cloud.js?v=20261101m"></script>
   <script defer src="js/common-shell.js?v=20261107b"></script>
-  <script defer src="js/common-pwa.js?v=20261101m"></script>
+  <script defer src="js/common-pwa.js?v=20261112d"></script>
   <script defer src="js/feedback.js?v=20261111b"></script>
   <!-- sentence-drill 必须在 speaking.js 之前：其顶层置 window.__SENT_V2_ON 旗，
        speaking.js 的默认 tab 逻辑靠它决定显 #sentView 还是 #pdView（defer 按文档序执行） -->
@@ -1211,7 +1211,7 @@ body.mock-immerse #mockStage{border:0;box-shadow:none;background:transparent}
        ① 只给陪练态加 justify-content:center → 三态跳动 422px
        ② 给所有 tab 加 margin:auto 居中 → **全站 tab 都被推走，句子页/写作页全错**
      ⇒ 正解：sp-tabs 一律不加任何 margin/max-width，删掉 :has() 特例，
-       让 .page-head-row 的默认 space-between 决定位置 —— 与 corpus/wrongbook/
+       让 .page-head-row 的默认 space-between 决定位置 —— 与句子页等旧页/
        review 等页完全一致，跨 tab 态零跳动。
      这里只保留陪练内容区自身的宽度控制（与 tab 无关）。 */
   #coachView #coachWrap{max-width:1010px}

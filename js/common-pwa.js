@@ -308,61 +308,6 @@ function maybeShowSwUpdatePrompt(version){
   }catch(e){}
 }
 
-// ===== 错句本聚合：从 dictationLogs 提取所有错句，按「标准句 + 错误写法」去重 =====
-// 返回 [{key, sourceId, sourceTitle, right(标准英文), wrong(学生写法), type, note, count(出错次数), lastDate}]
-function collectWrongSentences(){
-  const logs = DATA.dictationLogs || [];
-  const map = {};   // key = sourceId + '|' + right + '|' + wrong
-  logs.forEach(log => {
-    const ms = Array.isArray(log.mistakes) ? log.mistakes : [];
-    ms.forEach(m => {
-      const right = (m.right || '').trim();
-      const wrong = (m.wrong || '').trim();
-      if(!right) return;
-      const key = log.sourceId + '|' + right.toLowerCase() + '|' + wrong.toLowerCase();
-      if((DATA.deletedWrongKeys||[]).includes(key)) return;   // 墓碑：已删的错句永不聚合显示（根治「删了又回来」）
-      if(!map[key]){
-        map[key] = { key, sourceId: log.sourceId, sourceTitle: log.title || '', right, wrong, type: m.type || '', note: m.note || '', count: 0, lastDate: log.date || '' };
-      }
-      map[key].count++;
-      if(log.date && (!map[key].lastDate || log.date > map[key].lastDate)) map[key].lastDate = log.date;
-    });
-  });
-  return Object.values(map).sort((a, b) => b.count - a.count);
-}
-// 按 sourceId 过滤错句（用于写作模板下「我的错句」折叠区）
-function collectWrongBySource(sourceId){
-  return collectWrongSentences().filter(x => x.sourceId === sourceId);
-}
-// 删除某条错句聚合项（从所有 logs 中移除该 right+wrong 的 mistake）
-function deleteWrongItem(key){
-  const parts = key.split('|');
-  const sourceId = parts[0], right = parts[1], wrong = parts[2];
-  const logs = DATA.dictationLogs || [];
-  const removedIds = [];
-  const remaining = [];
-  logs.forEach(log => {
-    if(log.id == null) log.id = uid();   // 兜底：删除前确保 id 存在，墓碑/合并按 id 才稳定
-    if(log.sourceId !== sourceId){ remaining.push(log); return; }
-    if(!Array.isArray(log.mistakes)){ remaining.push(log); return; }
-    const before = log.mistakes.length;
-    log.mistakes = log.mistakes.filter(m =>
-      !((m.right || '').trim().toLowerCase() === right && (m.wrong || '').trim().toLowerCase() === wrong));
-    if(log.mistakes.length !== before) log.updatedAt = Date.now();   // 标记本机较新，同步合并优先保留
-    if(log.mistakes.length === 0){ if(log.id != null) removedIds.push(log.id); }  // 整条删光 → 墓碑防云端复活
-    else remaining.push(log);
-  });
-  DATA.dictationLogs = remaining;
-  // 写 mistake 级墓碑：被删 (sourceId|right|wrong) 持久化，跨同步传播，云端旧数据带回也不显示
-  DATA.deletedWrongKeys = DATA.deletedWrongKeys || [];
-  const wk = sourceId + '|' + right + '|' + wrong;
-  if(!DATA.deletedWrongKeys.includes(wk)) DATA.deletedWrongKeys.push(wk);
-  if(removedIds.length){
-    DATA.deletedIds = DATA.deletedIds || [];
-    removedIds.forEach(id => { if(!DATA.deletedIds.includes(id)) DATA.deletedIds.push(id); });
-  }
-  hubSave();
-}
 
 /* =========================================================================
    首次进入引导（9/30 重写 · 五步）
@@ -982,8 +927,7 @@ const PLAN_GEN_PAGES = {
   writing:   { file:'writing.html',   label:'写作' },
   words:     { file:'practice.html',  label:'背单词' },
   corpus:    { file:'corpus.html',    label:'长难句' }
-  /* 10-23 T-015：错句本整页删 → 去掉 wrongbook 项。AI 若仍生成 module:'wrongbook' 的任务，
-     planGenJump 返回 null → 首页任务行纯文本不可点（不跳死链）。 */
+  /* 已下线模块不再列跳转目标：AI 仍生成时任务行纯文本不可点，避免死链。 */
 };
 function planGenJump(item){
   if(!item || !item.module) return null;
@@ -1059,9 +1003,6 @@ function planJumpInfo(text){
   if(/阅读/.test(t)) return { file: 'bank.html', open: '', label: '去模考·阅读' };
   if(/听力/.test(t)) return { file: 'bank.html', open: '', label: '去模考·听力' };
   if(/写作|作文/.test(t)) return { file: 'writing.html', open: '', label: '去写作' };
-  /* 10-23 T-015：错句本独立页删了，附属模块留在 writing.html 底部折叠区 →
-     「错句」类任务改跳写作页（不是死链，也不是不跳）。 */
-  if(/错题|错句本/.test(t)) return { file: 'writing.html', open: '', label: '去写作·我的错句' };
   if(/素材|串题/.test(t)) return { file: 'materials.html', open: '', label: '去素材库' };
   if(/长难句|句子/.test(t)) return { file: 'corpus.html', open: '', label: '去长难句' };
   if(/回顾|轨迹|复盘/.test(t)) return { file: 'review.html', open: '', label: '去回顾' };
