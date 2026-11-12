@@ -488,7 +488,7 @@ function renderHomeSetup(){
     box.hidden = false;
     box.innerHTML =
       '<span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>'
-      + '<span class="tx"><b>还有 ' + missing.length + ' 项没设置</b>（' + escapeHtml(names) + '）　配齐后首页的倒计时、待复习、完成度才准。'
+      + '<span class="tx"><b>还有 ' + missing.length + ' 项没设置</b>（' + escapeHtml(names) + '） · '
       + '<a href="settings.html?pane=targets">30 秒搞定 →</a></span>'
       + '<span class="bar" role="img" aria-label="已完成 ' + done + ' / ' + items.length + '"><i style="width:' + pct + '%"></i></span>';
   }catch(e){ console.error('[index] 完成度条渲染失败', e); }
@@ -732,7 +732,7 @@ function renderThreeThings(){
         + '<a class="three-go" href="' + escapeHtml(t.file) + '" data-three-key="' + t.key + '">' + escapeHtml(t.cta) + '</a>'
       + '</div>').join('')
     + '<div class="three-plan">'
-      + '<span class="three-plan-t">还没布置今天？</span>'
+      + '<span class="three-plan-t">还想再加点？</span>'
       + '<a class="three-plan-b" href="plans.html" data-three-ai>AI 帮我安排</a>'
       + '<a class="three-plan-b" href="plans.html">自己添加</a>'
     + '</div>'

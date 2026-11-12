@@ -334,7 +334,7 @@ body.hub-home .hero::before{ display:none; }
 @media (max-width:860px){
   .hlayout{grid-template-columns:1fr}
   .hmain{min-height:0}
-  .hrail{order:-1;min-height:0}
+  .hrail{min-height:0}
   .hrail-toggle{display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;background:var(--surface);
     border:1px solid var(--line);border-radius:10px;font:inherit;font-size:12px;font-weight:700;color:var(--ink);
     cursor:pointer;text-align:left;box-shadow:0 1px 2px rgba(16,24,40,.05)}
