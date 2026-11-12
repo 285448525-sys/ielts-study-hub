@@ -480,6 +480,13 @@ function applyTaskFilter(taskCard, items){
   if(!list || !filterEl) return;
   var cur = 'all';
   try{ cur = sessionStorage.getItem('hub_plan_taskfilter') || 'all'; }catch(e){}
+  /* 11-12 PLANS-TRIM-1：任务不足两条时筛选没有意义，还会把唯一一条任务藏掉
+     （上次选过「已完成」后重进、筛选按钮整排又被收起，没有按钮能切回）。
+     一律退回「全部」并清掉会话里的旧筛选态，保证任务始终看得见。 */
+  if(items.length < 2){
+    cur = 'all';
+    try{ sessionStorage.removeItem('hub_plan_taskfilter'); }catch(e){}
+  }
   var rows = list.querySelectorAll('.m-task');
   items.forEach(function(it, idx){
     var row = rows[idx];
@@ -684,7 +691,10 @@ function syncSkeleton(date, isToday, items, done, total, pct){
       var top2 = Object.keys(cnt2).sort(function(a, b){ return cnt2[b] - cnt2[a]; }).slice(0, 2);
       if(top2.length) focusTxt2 = top2.map(moduleLabelOf).join(' · ');
     }catch(e){}
-    dateSub.textContent = focusTxt2 ? ('本周重点：' + focusTxt2) : (date + ' · ' + wk);
+    /* 11-12 PLANS-TRIM-1：日期副行只在真有本周重点时出现；
+       没有重点就留空并藏起来，不再用 date 加星期重复上面大字那句。 */
+    dateSub.textContent = focusTxt2 ? ('本周重点：' + focusTxt2) : '';
+    dateSub.hidden = !focusTxt2;
   }
   /* 任务区标题：翻到哪天就写哪天（PLAN-VISIBLE-4，11-02）。
      原来 h2 在 plans.html 里写死「今天的任务」，syncSkeleton 从没碰过它 ——
@@ -697,6 +707,9 @@ function syncSkeleton(date, isToday, items, done, total, pct){
   if(mdt) mdt.hidden = isToday;
 
   var sumCard = document.getElementById('mkSumCard');
+  /* 11-12 PLANS-TRIM-1：0 条任务时收起整张进度卡（0/0 项、完成 0%、空进度条），
+     空态只在 mkEmpty 说一次，不再一屏叠四处；有任务时照常显示。 */
+  if(sumCard) sumCard.hidden = !total;
   if(sumCard){
     var bigq = sumCard.querySelector('.m-bigq');
     if(bigq) bigq.innerHTML = done + '<small>/' + total + ' 项</small>';
@@ -1372,7 +1385,7 @@ function renderDays(){
     /* 日期解析：不能用 new Date('YYYY-MM-DD')（按 UTC 解析，北京 0~8 点会差一天）→ 补 T00:00:00 走本地 */
     const dt = new Date(dstr + 'T00:00:00');
     const wd = isNaN(dt) ? '' : (WEEK[dt.getDay()] || '');
-    return '<div class="m-day' + (pct === 100 ? ' m-full' : '') + '">'
+    return '<div class="m-day' + (pct === 100 ? ' m-full' : '') + '" data-open="' + escapeHtml(dstr) + '" title="打开编辑这天">'
       + '<div class="m-dh"><span class="m-dd">' + escapeHtml(dstr.slice(8, 10)) + '</span>'
       + '<span class="m-dm">' + escapeHtml(dstr.slice(5, 7)) + ' 月 · ' + escapeHtml(wd) + '</span></div>'
       + '<div class="m-db"><i style="width:' + pct + '%"></i></div>'
@@ -1380,6 +1393,17 @@ function renderDays(){
                                             : '<span>' + done + '/' + total + '</span><span>' + pct + '%</span>')
       + '</div></div>';
   }).join('');
+  /* 11-12 PLANS-TRIM-1：往日小卡现在能点，复用 renderHistory 里「打开编辑这天」的
+     现成流程（切回今天 Tab、日期切到那天、render、滚到日期条）。卡片每次重建，逐卡绑定不叠加。 */
+  box.querySelectorAll('.m-day[data-open]').forEach(card =>
+    card.addEventListener('click', () => {
+      setPlanTab('today');
+      const pd = document.getElementById('planDate');
+      if(pd) pd.value = card.getAttribute('data-open');
+      render();
+      const bar = document.querySelector('#ptabToday .m-datebar');
+      if(bar) bar.scrollIntoView({ behavior:'smooth', block:'start' });
+    }));
   if(head) head.textContent = '共 ' + days.length + ' 天有记录 · 平均完成 ' + Math.round(sum / days.length * 100) + '%';
 }
 

@@ -30,7 +30,7 @@
 </script>
 <title>计划 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css?v=20261110d" />
-<link rel="stylesheet" href="css/p/plans.css?v=20261104c" />
+<link rel="stylesheet" href="css/p/plans.css?v=20261112f" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -49,7 +49,7 @@
   <script defer src="js/common-shell.js?v=20261107b"></script>
   <script defer src="js/common-pwa.js?v=20261112d"></script>
   <script defer src="js/feedback.js?v=20261111b"></script>
-  <script src="js/plans.js?v=20261112b" defer></script>
+  <script src="js/plans.js?v=20261112f" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -659,7 +659,7 @@
       <button type="button" class="m-daybtn m-daynav-lg" id="mkDayPrev" aria-label="前一天">‹</button>
       <div class="m-datemain">
         <div class="m-datetitle" id="mkDateRow"><span class="m-datetext">10-24 · 周五</span><span class="m-todaytag" hidden>今天</span></div>
-        <div class="m-datesub" id="mkDateSub">本周重点：听力 · 口语</div>
+        <div class="m-datesub" id="mkDateSub" hidden></div>
         <button type="button" class="m-backtoday" id="mkDayToday" hidden>回到今天</button>
       </div>
       <button type="button" class="m-daybtn m-daynav-lg" id="mkDayNext" aria-label="后一天">›</button>
@@ -744,7 +744,7 @@
               <button type="button" class="m-addbtn m-pri" id="mkAddBtn">添加任务</button>
             </div>
             <button type="button" class="m-addbtn m-aibtn" id="mkAiBtn">AI 安排今天</button>
-            <p class="m-ainote">根据诊断结果、考试日期与可用时间生成</p>
+            <p class="m-ainote">按你写的目标，结合弱项与考试日期来排</p>
           </div>
         </div>
 
