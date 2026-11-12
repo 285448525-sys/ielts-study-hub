@@ -115,7 +115,7 @@
     <section class="kt-card kt-record">
       <div class="kt-record-head"><h2>今日学习记录</h2><span class="kt-total">总计 <b id="recTotalMini">0h0m</b></span></div>
       <div id="recMiniGrid"></div>
-      <p class="kt-rec-empty" id="recEmpty" hidden>今天还没有计时记录。开一次专注学习吧。</p>
+      <p class="kt-rec-empty" id="recEmpty" hidden>今天还没有计时记录，学过的会按项目列在这里。</p>
     </section>
   </div>
 </main>
@@ -271,7 +271,7 @@
 
     var recHtml = '';
     if(!recent.length){
-      recHtml = '<p class="kt-empty">最近 7 天还没有计时记录。开一次计时，这里就会出现。</p>';
+      recHtml = '<p class="kt-empty">最近 7 天用过的任务会出现在这里，点「再来一次」就能直接开始。</p>';
     }else{
       recHtml = recent.map(function(r, i){
         var durTxt = r.durSec >= 60 ? (Math.round(r.durSec/60) + ' 分') : (r.durSec + ' 秒');
