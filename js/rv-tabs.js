@@ -21,10 +21,8 @@
   var SUBJ=[{k:'listening',n:'听力'},{k:'reading',n:'阅读'},{k:'writing',n:'写作'},{k:'speaking',n:'口语'}];
   var TABS=[
     {id:'home',nm:'总览',ic:'grid'},
-    {id:'trend',nm:'成绩趋势',ic:'line'},
-    {id:'subjects',nm:'四科表现',ic:'layers'},
-    {id:'records',nm:'考试记录',ic:'table'},
-    {id:'effort',nm:'学习投入',ic:'cal'}
+    {id:'trend',nm:'趋势',ic:'line'},
+    {id:'records',nm:'记录',ic:'table'}
   ];
   var ICON={
     grid:'<rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>',
@@ -206,7 +204,7 @@
   function valid(id){ return TABS.some(function(t){return t.id===id}) }
   function renderPane(id){
     renderNav();
-    if(id==='home')renderHome();
+    if(id==='home'){renderHome();try{renderSubjects();renderEffort()}catch(e){}}
     else if(id==='trend')renderTrend();
     else if(id==='subjects')renderSubjects();
     else if(id==='effort')renderEffort();
@@ -225,7 +223,7 @@
     if(!(opts&&opts.silent)){ try{ history.replaceState(null,'','#rv='+id) }catch(e){} }
     try{ document.dispatchEvent(new CustomEvent('rv:tab',{detail:{id:id}})) }catch(e){}
   }
-  function hashId(){ var h=(location.hash||'').replace('#','');if(h.indexOf('rv=')===0)h=h.slice(3);return valid(h)?h:null }
+  function hashId(){ var h=(location.hash||'').replace('#','');if(h.indexOf('rv=')===0)h=h.slice(3);if(h==='subjects'||h==='effort')h='home';return valid(h)?h:null }
   function subId(){ try{var p=new URLSearchParams(location.search),q=p.get('sub')||'';if(p.get('rec'))return 'records';if(q==='record'||q==='trajectory'||q==='history')return 'records';if(q)return 'home'}catch(e){} return null }
   function onClick(e){ var t=e.target;if(!t||!t.closest)return;
     var jp=t.closest('[data-rv-jump]');
