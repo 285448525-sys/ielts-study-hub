@@ -2737,6 +2737,71 @@ main.container:has(> .hub-shell){
 /* MODULE-MOVE-1：机经左栏共用脚本仍渲染 4 颗 sub，这里藏掉已搬走的写作/口语两颗。 */
 #hubSubs .hub-sub[data-hub-sub="writing"],#hubSubs .hub-sub[data-hub-sub="speaking"]{display:none!important}
 </style>
+<style id="brRlPolish">
+/* 11-13 BANK-EXTEND-2：五个板块整页统一。阅读与听力沿用既有 DOM 与全部功能节点，
+   这里只把整套入口、说明折叠、Part 筛选、分组头与篇目行收进和记录区同一套密度。
+   颜色一律站点 token，深浅两档自动跟随；身份色沿用她 11-05 定下的两科色，只把色条收细。 */
+#bankRoot .full-card{background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:9px 12px;margin:0 0 10px;gap:12px;box-shadow:none;color:var(--ink)}
+#bankRoot .full-card .bk-tag{font-size:10.5px;font-weight:750;color:var(--primary-600);background:var(--primary-50);border:1px solid var(--primary-100);border-radius:4px;padding:2px 7px}
+#bankRoot .full-card .bk-m b{font-size:13.5px;font-weight:750;letter-spacing:-.01em}
+#bankRoot .full-card .bk-m>span,#bankRoot .full-card .bk-hint{font-size:11.5px;color:var(--muted)}
+#bankRoot .full-card .btn-primary{font-size:12px;min-height:32px;padding:0 12px;border-radius:4px;background:var(--primary);color:var(--on-primary);border:1px solid var(--primary)}
+#bankRoot .full-card .btn-primary:hover{background:var(--primary-600);border-color:var(--primary-600)}
+#bankRoot .full-card .fc-last{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+#bankRoot .full-card .fc-last b{color:var(--ink)}
+#bankRoot > .bank-info{margin:0 0 8px;border:0;border-bottom:1px solid var(--line);border-radius:0;background:none}
+#bankRoot > .bank-info summary{padding:7px 2px;font-size:12px;font-weight:650;color:var(--muted)}
+#bankRoot > .bank-info .bank-info-body{font-size:11.5px;line-height:1.8;padding:0 2px 8px}
+#bankRoot .partbar{gap:12px;flex-wrap:wrap;padding:0 0 8px;border-bottom:1px solid var(--line);margin:0 0 10px}
+#bankRoot .partbar .pill-tabs{gap:6px}
+#bankRoot .partbar .pill-tab{font-size:12.5px;padding:5px 7px;border-radius:4px;line-height:1.2}
+#bankRoot .partbar .pill-tab.active{color:var(--primary-600);font-weight:750;box-shadow:inset 0 -2px 0 var(--primary)}
+#bankRoot .partbar .pill-tab.active::after{display:none}
+#bankRoot .partbar .pt-n{font-size:10.5px;color:var(--muted);opacity:1;font-variant-numeric:tabular-nums}
+#bankRoot .partmeta{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums;margin-left:auto}
+#bankRoot .bk-search{flex:0 1 210px;min-width:160px}
+#bankRoot .bk-grp-h{background:none;box-shadow:inset 2px 0 0 var(--primary);border-radius:0;border-bottom:1px solid var(--line);padding:8px 2px;margin:14px 0 0}
+#bankRoot .bk-grp-h b{font-size:12.5px;font-weight:750;color:var(--ink)}
+#bankRoot .bk-grp-n{margin-left:auto;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+#bankRoot .bk-grp-more{padding:8px 0 0}
+#bankRoot .bk-more{border:0;background:none;color:var(--primary-600);border-radius:4px;padding:6px 8px;font:inherit;font-size:11.5px;font-weight:650;box-shadow:none}
+#bankRoot .bk-more:hover{background:var(--surface-2)}
+#bankRoot .bank-items{border:0;border-radius:0;background:none;overflow:visible}
+#bankRoot .bank-item{border:0;border-bottom:1px solid var(--line);padding:9px 8px;gap:8px;background:none;transition:background .12s}
+#bankRoot .bank-item:hover{background:var(--surface-2)}
+#bankRoot .bank-item[data-ch="reading"]{box-shadow:inset 2px 0 0 var(--corpus)}
+#bankRoot .bank-item[data-ch="listening"]{box-shadow:inset 2px 0 0 var(--mock)}
+#bankRoot .bank-item:has(.bi-ch.t1){box-shadow:inset 2px 0 0 var(--primary)}
+#bankRoot .bank-item:has(.bi-ch.t2){box-shadow:inset 2px 0 0 var(--aux-slate-400)}
+#bankRoot .bank-item:has(.bi-ch.t3){box-shadow:inset 2px 0 0 var(--aux-clay-400)}
+#bankRoot .bi-no{width:20px;font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+#bankRoot .bi-tt{gap:8px}
+#bankRoot .bi-tt b{font-size:13.5px;font-weight:700;letter-spacing:-.01em}
+#bankRoot .bi-tt i{font-size:11.5px;color:var(--muted)}
+#bankRoot .bi-st{width:auto;font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+#bankRoot .bi-st.ok{color:var(--primary-600);font-weight:700}
+#bankRoot .bi-st b,#bankRoot .bi-st.ok b{font-size:11.5px;color:inherit}
+#bankRoot .bi-when{font-size:10.5px;color:var(--muted)}
+#bankRoot .bi-chev{width:10px;font-size:14px;color:var(--muted)}
+#bankRoot .pill-tab:focus-visible,#bankRoot .bank-info summary:focus-visible,#bankRoot .bk-more:focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:4px;box-shadow:none}
+@media(max-width:860px){
+  #bankRoot .full-card{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;padding:9px 10px}
+  #bankRoot .full-card .bk-hint{display:none}
+  #bankRoot .full-card .bk-m{flex:none;display:flex;flex-direction:column;align-items:flex-start;gap:2px}
+  #bankRoot .full-card .fc-last{grid-column:1/-1;grid-row:2;justify-self:start}
+  #bankRoot .full-card .btn-primary{grid-column:3;grid-row:1;width:auto}
+  #bankRoot .partbar{gap:8px}
+  #bankRoot .partbar .pill-tabs{width:100%;overflow-x:auto;flex-wrap:nowrap}
+  #bankRoot .partmeta{order:2;margin-left:0;flex:1}
+  #bankRoot .bk-search{order:3;flex:1 1 100%;min-width:0}
+  #bankRoot .bank-item{gap:6px;padding:9px 6px}
+  #bankRoot .bi-tt{flex-direction:column;align-items:flex-start;gap:2px}
+  #bankRoot .bi-tt b{white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;line-height:1.35}
+  #bankRoot .bi-st{width:auto;flex:none}
+  #bankRoot .bi-chev{width:10px;flex:none}
+}
+@media(prefers-reduced-motion:reduce){#bankRoot .bank-item,#bankRoot .partbar .pill-tab,#bankRoot .bk-more{transition:none}}
+</style>
 </head>
 <body data-shell="top">
 <div id="bootLoader" class="hub-loader show" aria-hidden="true"><div class="ui-loader" role="status" aria-label="Loading"><span class="ui-loader-dot"></span><span class="ui-loader-dot m2"></span><span class="ui-loader-dot m3"></span><span class="ui-loader-shadow"></span><span class="ui-loader-shadow m2"></span><span class="ui-loader-shadow m3"></span></div></div>
