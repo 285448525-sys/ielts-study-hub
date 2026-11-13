@@ -406,6 +406,7 @@ function hubLoad(){
   try{
     if(!DATA || typeof DATA !== 'object') DATA = {};
     const raw = localStorage.getItem(HUB_KEY);
+    if(!raw) hubOffloadLoad();   // QUOTA-SELFHEAL-1：localStorage 被清空/写不进时，从 IndexedDB 兜底副本异步补回
     if(raw){
       const parsed = JSON.parse(raw);
       // 仅当存储是合法对象时才合并；若被写成 "null"/"[]"/标量（异常写入），
@@ -852,33 +853,118 @@ function trimDictationDupes(){
   return true;
 }
 
+/* 11-13 QUOTA-SELFHEAL-1：iPhone Safari 本地存储约 5MB（UTF-16 口径，内存紧张/无痕时可能更低）。
+   主 blob 写不进时分级自救，绝不静默丢数据、绝不弹挡人的 modal。
+   成熟口径：超限要「精准清理 + 重试」（按前缀删纯缓存键，禁止 clear() 误删凭证/主题），
+   仍放不下时兜底到 IndexedDB（异步、容量更大），云同步保持既有链路不变。
+   三个小函数都只服务 hubSave/hubLoad，不新增对外接口、不改 DATA 结构。 */
+var HUB_OFFLOAD_DB = 'ielts_hub_offload';
+var HUB_OFFLOAD_FLAG = 'hub_offloaded_v1';
+/* 这些键全是「做题草稿 / 上次成绩 / 音量 / 分栏比例 / 顶栏公告缓存 / 角色缓存」等纯缓存，
+   删掉后各功能下次自建，不含用户学习数据。主 blob、凭证、登录、引导、设备 id、offload 标记一律不动。 */
+function hubCacheKeyPrefixes(){
+  return ['hub_bank_draft_','hub_bank_full_draft','hub_bank_full_l_draft','hub_bank_last_',
+    'hub_bank_vol','hub_bank_rate','hub_bank_lmode','hub_ex_split_pct','hub_ex_ai_h',
+    'ielts_study_hub_active','hub_sw_known','hub_msg_dismiss','hub_role_v1','hub_side_scroll',
+    'hub_anc_items_v1','hub_anc_read'];
+}
+function hubKeepKey(k){
+  return k===HUB_KEY || k===CREDS_KEY || k==='hub_onboarding_v2' || k==='hub_auth_token' ||
+    k==='hub_device_id' || k==='hub_vip_flag_v1' || k===HUB_OFFLOAD_FLAG;
+}
+function shedLocalCacheKeys(){
+  try{
+    var pref = hubCacheKeyPrefixes(), rm = [], i, k, j;
+    for(i=0;i<localStorage.length;i++){
+      k = localStorage.key(i); if(!k || hubKeepKey(k)) continue;
+      for(j=0;j<pref.length;j++){ if(k.indexOf(pref[j])===0){ rm.push(k); break; } }
+    }
+    for(i=0;i<rm.length;i++){ try{ localStorage.removeItem(rm[i]); }catch(_e){} }
+    return rm.length;
+  }catch(e){ return 0; }
+}
+function hubOffloadOpen(cb){
+  try{
+    if(!window.indexedDB){ cb(null); return; }
+    var req = indexedDB.open(HUB_OFFLOAD_DB, 1);
+    req.onupgradeneeded = function(){ var db=req.result; if(!db.objectStoreNames.contains('kv')) db.createObjectStore('kv'); };
+    req.onsuccess = function(){ cb(req.result); };
+    req.onerror = function(){ cb(null); };
+    req.onblocked = function(){ cb(null); };
+  }catch(e){ cb(null); }
+}
+function hubOffloadSave(json){
+  hubOffloadOpen(function(db){
+    if(!db) return;
+    try{
+      var tx = db.transaction('kv','readwrite');
+      tx.objectStore('kv').put(json,'main');
+      tx.oncomplete = function(){ try{ localStorage.setItem(HUB_OFFLOAD_FLAG,'1'); }catch(_e){} try{ db.close(); }catch(_e2){} };
+      tx.onerror = function(){ try{ db.close(); }catch(_e){} };
+    }catch(e){ try{ db.close(); }catch(_e){} }
+  });
+}
+function hubOffloadLoad(){
+  try{ if(!localStorage.getItem(HUB_OFFLOAD_FLAG)) return; }catch(e){ return; }
+  hubOffloadOpen(function(db){
+    if(!db) return;
+    try{
+      var tx = db.transaction('kv','readonly'), g = tx.objectStore('kv').get('main');
+      g.onsuccess = function(){
+        try{ db.close(); }catch(_e){}
+        try{
+          var s = g.result; if(!s) return;
+          var saved = JSON.parse(s);
+          if(saved && typeof saved === 'object' && !Array.isArray(saved)){
+            DATA = deepMergeDefaults(DATA, saved);   // 只补缺字段，不覆盖较新的本机内存态
+            saveCredsMirror();
+            try{ document.dispatchEvent(new CustomEvent('hub:data-merged')); }catch(_e){}
+          }
+        }catch(_e){}
+      };
+      g.onerror = function(){ try{ db.close(); }catch(_e){} };
+    }catch(e){ try{ db.close(); }catch(_e){} }
+  });
+}
+function hubQuotaNotice(){
+  var now = Date.now();
+  if(window.__hubQuotaToastAt && now - window.__hubQuotaToastAt < 60000) return;   // 高频保存不刷屏
+  window.__hubQuotaToastAt = now;
+  var msg = '这台设备本地空间满了，刚才一下没存住；已自动留底，联网登录会自动同步，不影响继续用。';
+  try{ if(typeof window.toast === 'function'){ window.toast(msg); return; } }catch(e){}
+  try{ console.warn('[hubSave] ' + msg); }catch(e){}
+}
 function hubSave(){
   try{
     DATA._lastSaved = Date.now();   // 记录本机保存时间，供云端下载比对新旧（Bug17）
     localStorage.setItem(HUB_KEY, JSON.stringify(DATA));
     saveCredsMirror();              // 同步镜像账号凭证到隔离键，确保 Key/账号永不因主 blob 被清而丢失
+    try{ localStorage.removeItem(HUB_OFFLOAD_FLAG); }catch(_rm){}   // 主 blob 已落地，旧的 IndexedDB 兜底副本作废
   }
   catch(e){
-    // 9/23：区分「配额满」与「存储被禁」。iPhone Safari 配额按 UTF-16 算只有 ~5MB（桌面 Chrome/Edge 10MB），
-    // 数据膨胀超限时 setItem 抛 QuotaExceededError——先做一次冗余日志去重再重试；仍失败才告警，且每次会话最多弹一次
-    //（此前每次失败都 alert，一次合并触发几十次保存会连环弹窗）。
+    // 11-13 QUOTA-SELFHEAL-1：分级自救，不再 alert 挡人、不再让用户导出备份/截图。
     const quota = !!(e && (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014));
     let saved = false;
     if(quota){
-      try{
-        trimDictationDupes();
-        DATA._lastSaved = Date.now();
-        localStorage.setItem(HUB_KEY, JSON.stringify(DATA));
-        saveCredsMirror();
-        saved = true;
-      }catch(_e2){ saved = false; }
+      // ① 冗余默写日志去重（9/23 口径保留）
+      try{ trimDictationDupes(); }catch(_e0){}
+      // ② 精准清 origin 内纯缓存/草稿键（白名单前缀，绝不 clear、不碰凭证/登录/主 blob），每级都重试写盘
+      shedLocalCacheKeys();
+      const steps = [1,2];
+      for(let _s=0; _s<steps.length && !saved; _s++){
+        try{
+          DATA._lastSaved = Date.now();
+          localStorage.setItem(HUB_KEY, JSON.stringify(DATA));
+          saveCredsMirror();
+          saved = true;
+        }catch(_e2){ saved = false; if(_s===0){ shedLocalCacheKeys(); } }
+      }
+      // ③ 仍放不下：异步兜底写 IndexedDB 留底（不阻塞），数据交给末尾既有 scheduleCloudUpload 上行，不弹 modal
+      if(!saved){
+        try{ hubOffloadSave(JSON.stringify(DATA)); }catch(_e3){}
+      }
     }
-    if(!saved && !window.__hubSaveAlerted){
-      window.__hubSaveAlerted = true;
-      alert(quota
-        ? '保存失败：本地存储空间已满（iPhone Safari 上限约 5MB），自动清理后仍放不下。请在「设置」导出备份，并把此提示截图反馈。'
-        : '保存失败：浏览器存储不可用（' + ((e && e.name) || '未知错误') + '）。若在 iPhone Safari：请检查是否开了无痕浏览，或设置里关闭了 Cookie。请用「历史/设置」导出备份。');
-    }
+    if(!saved) hubQuotaNotice();   // 非阻塞、60s 防抖；无痕/禁存储也走同一句轻提示
   }
   // 云端自动同步（防抖）：仅当开启且已生成登录码；失败静默，不弹 toast
   if(typeof scheduleCloudUpload === 'function') scheduleCloudUpload();
