@@ -327,6 +327,10 @@ function renderStats(){
     const items = G.items.slice();
     if(G.key === 'me' && typeof hubIsAdmin === 'function' && hubIsAdmin()){
       items.unshift({ id:'teacher', name:'学生数据', desc:'绑定学生的学情（只读）' });
+      /* 第五批 PERM-ENTRY-1（11-14）：站长面板卡 = root 专属（panel_root）；teacher 不出现 */
+      if(typeof hubIsRoot === 'function' && hubIsRoot()){
+        items.unshift({ id:'admin', name:'站长面板', desc:'权限配置 · 用户 · 留痕' });
+      }
     }
 
     injectHubgCss();

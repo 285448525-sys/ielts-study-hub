@@ -78,11 +78,13 @@ const json = o => ({ status: 200, contentType: 'application/json', body: JSON.st
     await p.goto(BASE + '/teacher.html', { waitUntil: 'domcontentloaded' });
     await p.waitForSelector('.tch-state', { timeout: 8000 }).catch(() => {});
     const r = await p.evaluate(() => ({
-      txt: (document.querySelector('.tch-state') || {}).textContent || '',
-      login: !!document.querySelector('.tch-state a[href="login.html"]'),
+      /* 11-12 空状态 B（她点头定版）会把未登录态 .tch-state 整卡换成 es-box 卡
+         （「这一页只给机构教师」+ 去登录），所以两种形态都算过：旧 .tch-state 或 .es-box */
+      txt: (document.querySelector('.tch-state, .es-box[data-es="teacher"]') || {}).textContent || '',
+      login: !!document.querySelector('.tch-state a[href="login.html"], .es-box[data-es="teacher"] a[href="login.html"]'),
       roster: !!document.querySelector('.tch-ritem')
     }));
-    ok('①1 未登录 → 「先登录」态（不是空白、不是转圈）', /先登录/.test(r.txt), r.txt.slice(0, 30));
+    ok('①1 未登录 → 「先登录」态（不是空白、不是转圈）', /先登录|机构教师/.test(r.txt), r.txt.slice(0, 30));
     ok('①2 给了去登录的按钮', r.login);
     ok('①3 未登录不泄露名单', !r.roster);
     await c.close();

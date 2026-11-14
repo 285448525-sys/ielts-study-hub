@@ -47,7 +47,10 @@ async function apiPart() {
   /* 复制成 .mjs 才能被 Node 当 ESM 加载（仓库没设 type:module） */
   cp('functions/api/auth.js', '_auth.mjs');
   cp('functions/api/roles.js', '_roles.mjs', s => s.replace("from './auth.js'", "from './_auth.mjs'"));
-  cp('functions/api/admin.js', '_admin.mjs');
+  /* 11-14 第三批 PERM-CFG-1 后 admin.js 顶部 import 了 roles.js 的 PERM_DEFAULTS
+     （校验权威共用一份）—— 复制时要把这条 import 一起改指本地副本，并把 roles.js 也拷进去，
+     否则模块加载直接炸「Cannot find module roles.js」。 */
+  cp('functions/api/admin.js', '_admin.mjs', s => s.replace("from './roles.js'", "from './_roles.mjs'"));
   const rolesMod = await import(pathToFileURL(path.join(TMP, '_roles.mjs')).href);
   const adminMod = await import(pathToFileURL(path.join(TMP, '_admin.mjs')).href);
 

@@ -22,6 +22,8 @@ const ICON = {
   settings:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg>',
   /* teacher（10-22 三级权限第二批）：人 + 加号 —— 「管理名单里的人」，只对管理员显示 */
   teacher:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 20v-1.6c0-2-1.7-3.6-3.8-3.6H6.8C4.7 14.8 3 16.4 3 18.4V20"/><circle cx="9.5" cy="8" r="3.4"/><path d="M17 11.5h4M19 9.5v4"/></svg>',
+  /* admin（11-14 第五批 PERM-ENTRY-1）：盾牌 —— 「站长台」，只对 root 显示（panel_root） */
+  admin:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 2.6v5.6c0 4.4-2.9 7.4-7 9-4.1-1.6-7-4.6-7-9V5.6z"/><path d="M9.2 12l2 2 3.6-3.8"/></svg>',
   /* vip：钻石图标 stroke 写死金色（转化入口要跟学习模块区分开；不动 CSS 免全站 bump） */
   vip:'<svg viewBox="0 0 24 24" fill="none" stroke="#eab308" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12l4 6-10 12L2 9z"/><path d="M2 9h20M9.5 9L12 3l2.5 6M12 21L9.5 9M12 21l2.5-12"/></svg>',
   /* 10-22 她指出「落地页和首页的图标都不对」：站点唯一品牌标记 = 学士帽
@@ -77,6 +79,15 @@ const PAGES = [
         但它**不在 PRIMARY_NAV / MORE_NAV 里** → 侧栏是否出现由角色决定（见 injectNav 末尾）。
      铁律：不在任何入口文案里承诺「老师能改学生数据」—— 整页只读。 */
   { id:'teacher',   file:'teacher.html',   icon:ICON.teacher,  name:'学生数据', desc:'绑定学生的学情（只读）' },
+  /* 11-14 第五批 PERM-ENTRY-1：站长面板（admin.html）按规矩登记进 PAGES。
+     ⚠️ admin.html 整页自带样式、不加载 common.js —— 这条登记只服务三件事：
+     ① 顶栏「更多」面板 / 侧栏的入口显隐渲染（都走 pageById('admin')）
+     ② 站内搜索（ssMatchPages 只搜 PAGES 里有的页）
+     ③ 软导航 hubLinkTarget()：登记了它才认得这个链接，未登录/非 root 点击才会**整页跳转**去
+        （软导航换 <main> 会把自包含的 admin.html 拆坏 —— hubLinkTarget 对不在 PAGES 的链接
+        原生放行整页跳，这恰好是对的行为，但搜索结果卡 / 更多面板要能点它就必须登记）。
+     它跟 teacher 一样不进 PRIMARY_NAV / MORE_NAV：侧栏是否出现由角色决定（见 injectNav 末尾）。 */
+  { id:'admin',     file:'admin.html',     icon:ICON.admin,    name:'站长面板', desc:'权限配置 · 用户 · 留痕' },
   /* W-UI-1（10-25）公告页：软导航按 id 找 js/announce.js + 公告条「去看看」的直达目标。
      ⚠️ 不进 PRIMARY_NAV / MORE_NAV（成熟站都不把公告放一级导航，见下方公告段注释），
         三条入口 = 公告条「去看看」· 消息中心「全部消息」· 设置页「更新日志」一行。 */
@@ -699,6 +710,12 @@ function topBarHtml(current){
     const tp = pageById('teacher');
     if(tp) moreItems += '<a class="tb-more-item' + (tp.file === current ? ' on' : '') + '" href="' + tp.file + '" data-id="' + tp.id + '">'
       + '<span class="tm-ic">' + tp.icon + '</span><span>' + escapeHtml(tp.name) + '</span></a>';
+    /* 第五批 PERM-ENTRY-1（11-14）：站长面板在顶栏「更多」里同样只给 root（panel_root） */
+    if(hubIsRoot()){
+      const ap = pageById('admin');
+      if(ap) moreItems += '<a class="tb-more-item' + (ap.file === current ? ' on' : '') + '" href="' + ap.file + '" data-id="' + ap.id + '">'
+        + '<span class="tm-ic">' + ap.icon + '</span><span>' + escapeHtml(ap.name) + '</span></a>';
+    }
   }
   return '<a class="tb-logo" href="home.html"><i aria-hidden="true">' + ICON.brand + '</i><span>IELTS</span></a>'
     + '<nav class="tb-caps" aria-label="主导航">' + caps
@@ -1161,6 +1178,8 @@ function hubRoleCached(){
   }catch(e){ return ''; }
 }
 function hubIsAdmin(){ return !!hubRoleCached(); }
+/* 第五批 PERM-ENTRY-1（11-14）：root 判定 —— 「站长面板」入口（预览口径 panel_root）只对它亮 */
+function hubIsRoot(){ return hubRoleCached() === 'root'; }
 
 /* 侧栏「学生数据」右上角那枚「只读」小标签的样式：
    只为一条导航项动全站 common.css 不值得（要 20 页一起 bump），
@@ -1306,6 +1325,18 @@ function injectNav(){
         + '<span class="nav-icon">' + tp.icon + '</span><span class="side-label">' + escapeHtml(tp.name) + '</span>'
         + '<span class="side-ro">只读</span></a>';
     }
+    /* 第五批 PERM-ENTRY-1（11-14）：站长面板 = root 专属（预览口径 panel_root）。
+       teacher 看不到这一格 —— 教师是「看学生」的人，不是「管站」的人。 */
+    if(hubIsRoot()){
+      const ap = pageById('admin');
+      if(ap){
+        injectRoleNavStyle();
+        html += '<a class="side-item' + (ap.file === current ? ' active' : '') + '" href="' + ap.file + '"'
+          + ' data-name="' + escapeHtml(ap.name) + '" data-id="' + ap.id + '">'
+          + '<span class="nav-icon">' + ap.icon + '</span><span class="side-label">' + escapeHtml(ap.name) + '</span>'
+          + '<span class="side-ro">站长</span></a>';
+      }
+    }
   }
   /* 10/5 她 14:36 要求：侧栏/抽屉不再单独挂「意见反馈」入口，**收进设置页最后一个分组**。
      理由 = 设置页本来就是「个人配置 + 账号 + 反馈」的地方，侧栏条目越加越长反而不是核心功能。
@@ -1334,7 +1365,9 @@ const SIDE_SEARCH_PAGES = [
   { id:'settings',  kw:'设置 配置 同步 api key 账号 数据 导出 导入 settings' },
   { id:'meds',      kw:'服药 用药 药 专注达 健康 药效 meds' },
   /* 三级权限（10-22）：只对管理员可见，ssMatchPages 里按角色过滤 */
-  { id:'teacher',   kw:'学生 数据 学情 老师 教师 机构 管理员 学员 students teacher' }
+  { id:'teacher',   kw:'学生 数据 学情 老师 教师 机构 管理员 学员 students teacher' },
+  /* 第五批 PERM-ENTRY-1（11-14）：站长面板搜索项，root 专属（ssMatchPages 按 hubIsRoot 过滤） */
+  { id:'admin',     kw:'站长 面板 管理 权限 配置 用户 审计 留痕 admin root' }
 ];
 let _ssAiToken = 0;   // 查词请求序号：过期响应直接丢弃
 let _ssAiBusy = false;
@@ -1349,6 +1382,7 @@ function ssMatchPages(q){
   for(const p of SIDE_SEARCH_PAGES){
     if(p.id === 'meds' && !medsModuleOn()) continue;    // 服药模块未开启 → 搜索不命中
     if(p.id === 'teacher' && !hubIsAdmin()) continue;   // 老师端只对管理员可搜（10-22）
+    if(p.id === 'admin' && !hubIsRoot()) continue;      // 站长面板只对 root 可搜（11-14 第五批）
     const page = PAGES.find(x => x.id === p.id);
     if(!page || isNavHidden(page)) continue;            // 10-23 hidden 页（计时/服药）搜不到
     const hay = (page.name + ' ' + p.kw + ' ' + (page.desc || '')).toLowerCase();
