@@ -362,6 +362,17 @@ details.more .body{padding:0 16px 8px}
 .dlg .acts .btn:hover{background:var(--teal-d);border-color:var(--teal-d)}
 .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:var(--ink);color:var(--bg);
   font-size:13px;padding:10px 18px;border-radius:9px;z-index:60;box-shadow:var(--sh-toast)}
+/* 预览（11-14 第四批）：三档身份快切 + 入口 chips + 按钮 ops，划线/灰底 = 该档看不到。 */
+.roleseg{display:inline-flex;border:1px solid var(--line2);border-radius:9px;overflow:hidden}
+.roleseg button{border:0;background:none;color:var(--ink2);font-size:12.5px;padding:7px 15px;cursor:pointer;font-family:inherit}
+.roleseg button+button{border-left:1px solid var(--line2)}
+.roleseg button.on{background:var(--teal-50);color:var(--teal-d);font-weight:700}
+.chips{display:flex;flex-wrap:wrap;gap:8px;padding:14px 16px}
+.chip{font-size:12.5px;padding:6px 12px;border-radius:8px;border:1px solid var(--line2);background:var(--panel);color:var(--ink2)}
+.chip.off{opacity:.42;text-decoration:line-through;background:var(--surface-2)}
+.ops{display:flex;flex-wrap:wrap;gap:8px;padding:0 16px 16px}
+.op{font-size:12.5px;padding:7px 13px;border-radius:8px;border:1px solid var(--teal);background:var(--teal-deep);color:var(--on)}
+.op.dis{background:var(--surface-2);border-color:var(--line2);color:var(--ink3)}
 /* 手机档矩阵：权限名收窄、三列开关并排仍在。 */
 @media (max-width:720px){
   .mx th.rc{width:58px;font-size:11px;padding:8px 4px}
@@ -654,6 +665,17 @@ details.more .body{padding:0 16px 8px}
         <button class="btn ghost small" type="button" id="permReset">恢复默认</button>
         <button class="btn small" type="button" id="permSave" disabled>保存更改</button>
       </div>
+    </div>
+
+    <!-- 预览（11-14 第四批）：按身份演入口与按钮，只演界面状态、不真授权。
+         数据从矩阵当前生效口径推导（含未保存的编辑态），翻开关立刻联动。 -->
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="padding:16px 18px 0"><h2>预览</h2>
+        <p class="desc">模拟三档身份各自看到的入口与按钮——只是演示，不真授权。<span class="muted">划线灰底 = 这档看不到。</span></p>
+      </div>
+      <div style="padding:12px 16px 0"><div class="roleseg" id="prevRoles"></div></div>
+      <div id="prevNav" class="chips"></div>
+      <div id="prevOps" class="ops"></div>
     </div>
   </div><!-- /pgPerm -->
 
@@ -1188,6 +1210,7 @@ details.more .body{padding:0 16px 8px}
     var n = mxChanged();
     $('permCnt').innerHTML = '已改 <b>' + n + '</b> 处';
     $('permSave').disabled = (n === 0);
+    if (typeof renderPreview === 'function') renderPreview();   /* 第四批：预览跟矩阵实时联动 */
   }
   function permLoad(){
     api('perm_get', {}, function(r){
@@ -1258,6 +1281,60 @@ details.more .body{padding:0 16px 8px}
         _mxSaveShown = true;
       });
     });
+  });
+
+  /* ---------- 预览（11-14 第四批，样子稿 ADMIN-PERM-3 预览页 1:1）----------
+     与样子稿的差异只有一处：样子稿的 PREV 可见性是硬编码演示表，这里改成**从矩阵推导**——
+     每个入口/按钮挂一个权限点，该档矩阵为开才亮。翻开关（还没保存）预览立刻跟着变，
+     保存后自然一致 —— 预览是「当前规矩的镜子」，不是又一张写死的表。
+     入口/按钮清单 = 前台/面板真实存在的样子，零凭空发明：
+       nav   = 全站侧栏入口（学生数据 = teacher.html，站长面板 = admin.html）
+       ops   = 各界面真实按钮，按权限点归组。 */
+  var _prevRole = 'teacher';
+  /* 入口清单：nm = 显示名，need = 需要的权限点（null = 人人可见） */
+  var PREV_NAV = [
+    { nm: '首页', need: null }, { nm: '机经', need: null }, { nm: '口语', need: null },
+    { nm: '写作', need: null }, { nm: '计划', need: null }, { nm: '回顾', need: null },
+    { nm: '学生数据', need: 'bind_view' },      /* teacher.html 入口：有角色才看得到（bind 名单或教师身份） */
+    { nm: '站长面板', need: 'panel_root' }      /* admin.html 入口：仅 root */
+  ];
+  /* 按钮清单：need 是权限点数组（任一为开即亮，与入口显隐第五批的判定口径一致） */
+  var PREV_OPS = [
+    { nm: '开始练习', need: null }, { nm: '录入成绩', need: null },
+    { nm: '查看学生数据', need: 'bind_view' },
+    { nm: '绑定学生名单', need: 'bind_set' },
+    { nm: '开通会员', need: 'vip_grant' },
+    { nm: '指定角色', need: 'role_set' },
+    { nm: '调整价格', need: 'price_set' },
+    { nm: '清理探针', need: 'probe_clean' },
+    { nm: '删除反馈', need: 'fb_del' }
+  ];
+  function prevHas(role, pt) {
+    /* 特判两个非矩阵点：bind_view = 有 bind 名单/教师身份（第五批前恒等 teacher/root 可见）；
+       panel_root = root 专属。其余直接查矩阵当前编辑态（含未保存改动）。 */
+    if (pt === 'panel_root') return role === 'root';
+    if (pt === 'bind_view') return role === 'teacher' || role === 'root';
+    return mxVal(role, pt);
+  }
+  function renderPreview(){
+    var seg = $('prevRoles'); if(!seg || !_mxDEF) return;
+    seg.innerHTML = ['user','teacher','root'].map(function(r){
+      return '<button type="button" data-pr="' + r + '"' + (r === _prevRole ? ' class="on"' : '') + '>' + PERM_ROLE_NM[r] + '</button>';
+    }).join('');
+    $('prevNav').innerHTML = '<div class="chips" style="padding:14px 0 0">' + PREV_NAV.map(function(x){
+      var vis = !x.need || prevHas(_prevRole, x.need);
+      return '<span class="chip' + (vis ? '' : ' off') + '">' + esc(x.nm) + '</span>';
+    }).join('') + '</div>';
+    $('prevOps').innerHTML = '<div class="ops" style="padding:14px 0 0">' + PREV_OPS.map(function(x){
+      var vis = !x.need || prevHas(_prevRole, x.need);
+      return '<span class="op' + (vis ? '' : ' dis') + '">' + esc(x.nm) + '</span>';
+    }).join('') + '</div>';
+  }
+  if($('prevRoles')) $('prevRoles').addEventListener('click', function(e){
+    var b = e.target.closest ? e.target.closest('[data-pr]') : null;
+    if(!b) return;
+    _prevRole = b.getAttribute('data-pr');
+    renderPreview();
   });
 
   /* ---------- 页签（10/2；10/5 P3 加审计页；11-14 第三批加权限配置页）---------- */
