@@ -19,6 +19,11 @@
 //   GET  /api/roles?action=students  → { ok, students:[{email,nickname,lastActive}] }
 //        只回邮箱 + 最近活跃时间（nickname 恒为空串，10-22 起列表不再读学生 blob）；
 //        **绝不回任何学习数据**。
+//   GET  /api/roles?action=perm      → { ok, perm:{ user:{...}, teacher:{...}, root:{...} } }
+//        （11-14 第二批「身份规矩」）返回**当前生效的权限默认矩阵**——14 个站长台真实动作点
+//        × 三角色，服务端硬编码，**零 KV 读写**。这是后续权限配置（ADMIN-PERM）的回落默认：
+//        配置读不到 / 损坏 / 为空 → fail closed 回落到本表。现阶段任何配置都还没做，
+//        本表就是唯一权威口径；登录用户均可查询（回自己的矩阵不泄密，且口径本就要给前端预览用）。
 //   GET  /api/roles?view=<email>     → 老师看学生（只读；必须在自己 bind 列表内）
 //       回包只搬白名单字段：成绩记录（分数与时间）/ 学习时长（按模块）/ 词汇掌握度（各级词量统计）/
 //       口语与写作提交原文（教学批改必要）。**绝不整包透传 DATA**，绝不回 token / settings（含服药）/ relayToken。
@@ -92,6 +97,50 @@ async function bindOf(kv, email) {
 /* 邮箱账号 → 云端数据键（与 /api/auth 的 acctKey() 同族；数据键由 /api/sync 写） */
 function syncKeyOf(email) { return 'sync:e:' + String(email || '').trim().toLowerCase(); }
 function metaKeyOf(email) { return 'meta:e:' + String(email || '').trim().toLowerCase(); }
+
+/* ── 权限默认矩阵（11-14 第二批「身份规矩」）────────────────────────────────
+   14 个权限点 = functions/api/admin.js 现有动作（overview / probe_clean / invite_mint /
+   invite_revoke / vip_grant / vip_revoke / price_set / price_clear / role_set / bind_set /
+   audit_list / fb_list / fb_get / fb_read / judge_set / fb_del 中取站长台界面真实暴露的 14 个，
+   与样子稿 ADMIN-PERM-3 一一对应），零凭空发明。
+   默认口径（她 10-21 拍板的三级定义 + 11-14 样子稿）：
+     user    = 全关（最小权限，fail closed）
+     teacher = 只读三处：查看总览 / 查看操作审计 / 读取反馈（与 teacher.html 只读定位一致，
+               不参与系统配置、不能改任何账号权限——price/role/vip/删除类一律不在）
+     root    = 全量 true（结构性锁死，配置界面不可改这一档）
+   🔴 本表只读、硬编码、不进 KV —— 后续配置化（第三批）落 KV 后，本表降级为回落默认；
+      在那之前它就是唯一权威。role_set / bind_set 行为一字不改。 */
+const PERM_DEFAULTS = {
+  user: {
+    overview: false, probe_clean: false,
+    invite_mint: false, invite_revoke: false,
+    vip_grant: false, vip_revoke: false, price_set: false,
+    role_set: false, bind_set: false,
+    audit_list: false,
+    fb_get: false, fb_read: false, judge_set: false, fb_del: false
+  },
+  teacher: {
+    overview: true, probe_clean: false,
+    invite_mint: false, invite_revoke: false,
+    vip_grant: false, vip_revoke: false, price_set: false,
+    role_set: false, bind_set: false,
+    audit_list: true,
+    fb_get: true, fb_read: false, judge_set: false, fb_del: false
+  },
+  root: {
+    overview: true, probe_clean: true,
+    invite_mint: true, invite_revoke: true,
+    vip_grant: true, vip_revoke: true, price_set: true,
+    role_set: true, bind_set: true,
+    audit_list: true,
+    fb_get: true, fb_read: true, judge_set: true, fb_del: true
+  }
+};
+
+function permOf(role) {
+  /* 未知角色 / 读不到 → 一律按普通用户矩阵（fail closed，绝不给多） */
+  return PERM_DEFAULTS[role] || PERM_DEFAULTS.user;
+}
 
 /* ── 白名单视图构建（老师看学生）──────────────────────────────────────────
    只搬这四类，字段全部显式点出来 —— 不 Object.assign(data)、不透传任何整包。 */
@@ -235,6 +284,19 @@ export async function onRequest(context) {
     /* ── 自己的角色（登录后全站判断入口用；普通用户也允许调，回 role:'user'）── */
     if (action === 'me' || (!action && !viewEmail)) {
       return json({ ok: true, acct: acct, role: role || 'user' });
+    }
+
+    /* ── 权限默认矩阵（11-14 第二批）：登录即可查，回的是「自己这档 + 全口径」──
+       零 KV 读写；后续配置化后这里改成「读配置 → 坏了回落本表」。 */
+    if (action === 'perm') {
+      return json({
+        ok: true,
+        acct: acct,
+        role: role || 'user',
+        mine: permOf(role || 'user'),
+        all: { user: PERM_DEFAULTS.user, teacher: PERM_DEFAULTS.teacher, root: PERM_DEFAULTS.root },
+        source: 'defaults'
+      });
     }
 
     /* 以下全部要求 teacher / root —— 普通用户 403（fail closed，绝不因为读不到角色就放行） */
