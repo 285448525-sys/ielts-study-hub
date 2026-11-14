@@ -20,10 +20,9 @@
 //        只回邮箱 + 最近活跃时间（nickname 恒为空串，10-22 起列表不再读学生 blob）；
 //        **绝不回任何学习数据**。
 //   GET  /api/roles?action=perm      → { ok, perm:{ user:{...}, teacher:{...}, root:{...} } }
-//        （11-14 第二批「身份规矩」）返回**当前生效的权限默认矩阵**——14 个站长台真实动作点
-//        × 三角色，服务端硬编码，**零 KV 读写**。这是后续权限配置（ADMIN-PERM）的回落默认：
-//        配置读不到 / 损坏 / 为空 → fail closed 回落到本表。现阶段任何配置都还没做，
-//        本表就是唯一权威口径；登录用户均可查询（回自己的矩阵不泄密，且口径本就要给前端预览用）。
+//        （11-14 第二批「身份规矩」）返回**当前生效的权限矩阵**——14 个站长台真实动作点
+//        × 三角色。11-14 第三批起可配置化：读 KV 配置键 permcfg（admin.js perm_set 写入），
+//        读不到 / 损坏 / 为空 → fail closed 整份回落本表（PERM_DEFAULTS）。
 //   GET  /api/roles?view=<email>     → 老师看学生（只读；必须在自己 bind 列表内）
 //       回包只搬白名单字段：成绩记录（分数与时间）/ 学习时长（按模块）/ 词汇掌握度（各级词量统计）/
 //       口语与写作提交原文（教学批改必要）。**绝不整包透传 DATA**，绝不回 token / settings（含服药）/ relayToken。
@@ -109,8 +108,10 @@ function metaKeyOf(email) { return 'meta:e:' + String(email || '').trim().toLowe
                不参与系统配置、不能改任何账号权限——price/role/vip/删除类一律不在）
      root    = 全量 true（结构性锁死，配置界面不可改这一档）
    🔴 本表只读、硬编码、不进 KV —— 后续配置化（第三批）落 KV 后，本表降级为回落默认；
-      在那之前它就是唯一权威。role_set / bind_set 行为一字不改。 */
-const PERM_DEFAULTS = {
+      在那之前它就是唯一权威。role_set / bind_set 行为一字不改。
+      11-14 第三批起本表导出给 admin.js 复用（perm_set 校验 / perm_get 回默认矩阵），
+      保证「默认口径」只有这一份来源。 */
+export const PERM_DEFAULTS = {
   user: {
     overview: false, probe_clean: false,
     invite_mint: false, invite_revoke: false,
@@ -140,6 +141,50 @@ const PERM_DEFAULTS = {
 function permOf(role) {
   /* 未知角色 / 读不到 → 一律按普通用户矩阵（fail closed，绝不给多） */
   return PERM_DEFAULTS[role] || PERM_DEFAULTS.user;
+}
+
+/* ── 权限配置读取与校验（11-14 第三批「两页接规矩」）────────────────────────
+   配置键 permcfg（admin.js perm_set 写入）形状：{ user:{14 键 bool}, teacher:{14 键 bool} }。
+   🔴 校验规则（fail closed，任何一条不满足整份丢弃 → 回落 PERM_DEFAULTS）：
+     · 不是合法 JSON / 不是对象 → 丢
+     · 缺 user 或 teacher 档 → 丢（配置必须是「整份」的，半份配置直接不用）
+     · 键集合与 PERM_DEFAULTS 不完全一致（多键少键都算坏）→ 丢
+     · 有一个值不是 boolean → 丢
+     · root 永远不在配置里（结构性锁死，写了也忽略）
+   🔴 读不到（无键）不算坏 —— 配置化的默认态就是「没写过配置」。
+   ⚠️ 每次多一次 KV 读：仅当配置键存在时。KV 读无每日硬限（写才有 1000/天），可接受。 */
+const PERM_CFG_KEY = 'permcfg';
+function parsePermCfg(raw) {
+  if (!raw) return null;
+  try {
+    const o = JSON.parse(raw);
+    if (!o || typeof o !== 'object' || Array.isArray(o)) return null;
+    if (!o.user || !o.teacher || typeof o.user !== 'object' || typeof o.teacher !== 'object') return null;
+    const out = {};
+    for (const r of ['user', 'teacher']) {
+      const src = o[r], dst = {};
+      for (const k of Object.keys(PERM_DEFAULTS[r])) {
+        if (typeof src[k] !== 'boolean') return null;      // 缺键 / 非 bool → 整份丢
+        dst[k] = src[k];
+      }
+      if (Object.keys(src).length !== Object.keys(PERM_DEFAULTS[r]).length) return null;  // 多余键 → 整份丢
+      out[r] = dst;
+    }
+    return out;
+  } catch (e) { return null; }
+}
+async function loadPermCfg(kv) {
+  let raw = null;
+  try { raw = await kv.get(PERM_CFG_KEY); } catch (e) { raw = null; }   // 读失败也当没配置（fail closed 回落）
+  const cfg = parsePermCfg(raw);
+  return cfg ? { cfg: cfg, source: 'config' } : { cfg: null, source: 'defaults' };
+}
+function effectiveMatrix(cfg) {
+  return {
+    user: cfg ? cfg.user : PERM_DEFAULTS.user,
+    teacher: cfg ? cfg.teacher : PERM_DEFAULTS.teacher,
+    root: PERM_DEFAULTS.root,                            // root 永远全量，不进配置
+  };
 }
 
 /* ── 白名单视图构建（老师看学生）──────────────────────────────────────────
@@ -286,16 +331,19 @@ export async function onRequest(context) {
       return json({ ok: true, acct: acct, role: role || 'user' });
     }
 
-    /* ── 权限默认矩阵（11-14 第二批）：登录即可查，回的是「自己这档 + 全口径」──
-       零 KV 读写；后续配置化后这里改成「读配置 → 坏了回落本表」。 */
+    /* ── 权限矩阵（11-14 第二批新增 / 第三批接配置）：登录即可查，回的是「自己这档 + 全口径」──
+       读 KV 配置键 permcfg（admin.js perm_set 写入）→ 校验 → 坏了/空了整份回落 PERM_DEFAULTS。
+       root 档永远全量（结构性锁死），source 标明当前生效口径来自 config 还是 defaults。 */
     if (action === 'perm') {
+      const p = await loadPermCfg(kv);
+      const mat = effectiveMatrix(p.cfg);
       return json({
         ok: true,
         acct: acct,
         role: role || 'user',
-        mine: permOf(role || 'user'),
-        all: { user: PERM_DEFAULTS.user, teacher: PERM_DEFAULTS.teacher, root: PERM_DEFAULTS.root },
-        source: 'defaults'
+        mine: mat[role || 'user'] || mat.user,
+        all: { user: mat.user, teacher: mat.teacher, root: mat.root },
+        source: p.source
       });
     }
 

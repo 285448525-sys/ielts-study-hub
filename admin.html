@@ -297,6 +297,77 @@ button.mini.danger:hover{background:var(--bad-bg);border-color:var(--bad)}
 [data-theme="dark"] .adm-area{fill:rgba(124,202,194,.18)}
 [data-theme="dark"] .adm-line{stroke:#7ccac2}
 [data-theme="dark"] .adm-dot{fill:#7ccac2}
+
+/* ===== 11-14 第三批：权限配置页组件（样子稿 ADMIN-PERM-3 1:1 还原）=====
+   矩阵 .mx / 开关 .sw / 底部动作条 .savebar / 确认浮层 .dlg / 轻提示 .toast。
+   色值全部走本页已有变量；样子稿独有的 --teal-deep / --on / --mask / 两个阴影
+   在这里就地补两档（浅色 = 样子稿原值，深色 = 提亮一档，同 admin 深色口径）。 */
+:root{
+  --teal-deep:#2c7873; --on:#ffffff;
+  --mask:rgba(10,14,16,.42);
+  --sh-dot:0 1px 2px rgba(0,0,0,.18);
+  --sh-toast:0 8px 24px rgba(0,0,0,.18);
+}
+[data-theme="dark"]{ --teal-deep:#6bc0b8; --on:#101a1a; }
+/* 权限矩阵：三列勾选，分组只做一行细分隔，系统管理员列整列锁死。 */
+.mx{width:100%;border-collapse:collapse;font-size:13px}
+.mx th{padding:10px 12px;border-bottom:1px solid var(--line);background:var(--surface-2);font-size:12px;color:var(--ink2);white-space:nowrap}
+.mx th.rl{text-align:left}
+.mx th.rc{text-align:center;width:104px}
+.mx th.rc .rlk{display:inline-flex;align-items:center;gap:5px;color:var(--bad)}
+.mx th.rc .rlk svg{width:12px;height:12px}
+.mx td{padding:8px 12px;border-bottom:1px solid var(--line)}
+.mx tr:last-child td{border-bottom:0}
+.mx td.pn{color:var(--ink)}
+.mx tr.grp td{padding:7px 12px 5px;background:var(--panel);border-bottom:1px solid var(--line);font-size:11px;font-weight:700;color:var(--ink3);letter-spacing:.06em}
+.mx td.csw{text-align:center;position:relative}
+.mx td.csw.diff{background:var(--teal-50)}
+.mx tr.rootrow td,.mx th.rootcol{background:var(--surface-2)}
+.mx tr.rootrow td.pn{color:var(--ink2)}
+.mx tbody tr:not(.grp):hover td.pn{color:var(--teal-deep)}
+/* 开关：36×20，开即主青。 */
+.sw{position:relative;display:inline-block;width:36px;height:20px;vertical-align:middle}
+.sw input{position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer;z-index:2}
+.sw .track{position:absolute;inset:0;border-radius:20px;background:var(--line2);border:1px solid var(--line);transition:background .16s,border-color .16s}
+.sw .dot{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--panel);box-shadow:var(--sh-dot);transition:transform .16s ease-out}
+.sw input:checked+.track{background:var(--teal);border-color:var(--teal-d)}
+.sw input:checked+.track+.dot{transform:translateX(16px)}
+.sw input:disabled{cursor:default}
+.sw input:disabled+.track{opacity:.55}
+.sw input:focus-visible+.track{outline:2px solid var(--teal-d);outline-offset:2px}
+/* 底部动作条：只显示改了几处 + 保存 / 恢复。主按钮用 --teal-deep（样子稿口径）。 */
+.savebar{display:flex;align-items:center;gap:12px;padding:13px 16px;border-top:1px solid var(--line);background:var(--surface-2);border-radius:0 0 var(--r) var(--r)}
+.savebar .cnt{flex:1;font-size:12.5px;color:var(--ink2)}
+.savebar .cnt b{color:var(--teal-d);font-size:15px}
+.savebar .btn{background:var(--teal-deep);border-color:var(--teal-deep);color:var(--on)}
+.savebar .btn:hover{background:var(--teal-d);border-color:var(--teal-d)}
+.savebar .btn:disabled{opacity:.5;cursor:default}
+/* 折叠：低频项（绑学生名单）收深一层，默认收起。 */
+details.more{border-top:1px solid var(--line)}
+details.more>summary{list-style:none;cursor:pointer;padding:12px 16px;font-size:12.5px;color:var(--teal-d);font-weight:600;display:flex;align-items:center;gap:8px}
+details.more>summary::-webkit-details-marker{display:none}
+details.more>summary .arw{transition:transform .16s ease-out;display:inline-block}
+details.more[open]>summary .arw{transform:rotate(90deg)}
+details.more .body{padding:0 16px 8px}
+/* 角色表标签：管理员青 / 系统管理员红（样子稿口径）。 */
+.tag.teacher{color:var(--teal-d);background:var(--teal-50);border:1px solid var(--teal-bd)}
+.tag.root{color:var(--bad);background:var(--bad-bg);border:1px solid var(--bad-bd)}
+/* 确认浮层 + 轻提示。 */
+.mask{position:fixed;inset:0;background:var(--mask);display:grid;place-items:center;z-index:50}
+.dlg{width:min(380px,calc(100vw - 32px));background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px}
+.dlg p{font-size:13.5px;color:var(--ink2);line-height:1.7;margin:0 0 18px}
+.dlg p b{color:var(--ink)}
+.dlg .acts{display:flex;justify-content:flex-end;gap:8px}
+.dlg .acts .btn{background:var(--teal-deep);border-color:var(--teal-deep);color:var(--on)}
+.dlg .acts .btn:hover{background:var(--teal-d);border-color:var(--teal-d)}
+.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:var(--ink);color:var(--bg);
+  font-size:13px;padding:10px 18px;border-radius:9px;z-index:60;box-shadow:var(--sh-toast)}
+/* 手机档矩阵：权限名收窄、三列开关并排仍在。 */
+@media (max-width:720px){
+  .mx th.rc{width:58px;font-size:11px;padding:8px 4px}
+  .mx td{padding:8px 6px}
+  .mx td.pn{font-size:12.5px}
+}
 </style>
 </head>
 <body>
@@ -332,6 +403,7 @@ button.mini.danger:hover{background:var(--bad-bg);border-color:var(--bad)}
 
   <div class="tabs" id="tabs">
     <button class="tab on" data-tab="data" type="button">数据</button>
+    <button class="tab" data-tab="perm" type="button">权限配置</button>
     <button class="tab" data-tab="audit" type="button">操作审计</button>
     <button class="tab" data-tab="fb" type="button">反馈<span class="dot zero" id="fbDot">0</span></button>
   </div>
@@ -516,45 +588,76 @@ button.mini.danger:hover{background:var(--bad-bg);border-color:var(--bad)}
     <p class="muted" id="vipEmpty" style="margin-top:8px">还没有会员。开通过程全自动，无需到 CF 后台。</p>
   </div>
 
-  <!-- 角色管理（10/21 三级权限：普通用户 / 管理员（机构教师）/ 系统管理员） -->
-  <div class="card" id="roleCard">
-    <h2>角色管理</h2>
-    <p class="desc">三层身份：<b>普通用户</b>（注册考生，默认）· <b>管理员（机构教师）</b>（由这里指定，可绑学生、只读查看成绩与练习提交，不参与系统配置、不能改任何账号权限）· <b>系统管理员</b>（本面板）。
-      取消角色后立刻生效，对方刷新页面入口即消失。</p>
-    <div class="toolbar">
-      <label class="muted">邮箱</label>
-      <input class="small" id="roleAcct" placeholder="注册邮箱" style="width:230px" maxlength="60" />
-      <label class="muted">角色</label>
-      <select class="small" id="roleKind">
-        <option value="teacher">管理员（机构教师）</option>
-        <option value="root">系统管理员</option>
-      </select>
-      <button class="btn small" id="roleSetBtn" type="button">设为该角色</button>
-      <button class="btn ghost small" id="roleClearBtn" type="button">取消角色</button>
-      <span class="err" id="roleErr" style="margin:0"></span>
-    </div>
-    <div class="tw">
-    <table>
-      <thead><tr><th>账号</th><th>角色</th><th>已绑学生</th><th>操作</th></tr></thead>
-      <tbody id="roleBody"></tbody>
-    </table>
-    </div>
-    <p class="muted" id="roleEmpty" style="margin-top:8px">还没有其它管理员 —— 除站长本人外，所有人都是普通用户。</p>
-
-    <div class="toolbar" style="margin:14px 0 8px;border-top:1px solid var(--line);padding-top:14px">
-      <label class="muted">给管理员绑学生</label>
-      <input class="small" id="bindAcct" placeholder="管理员邮箱" style="width:230px" maxlength="60" />
-      <textarea class="small" id="bindList" rows="3" placeholder="一行一个学生邮箱，如&#10;student1@x.com&#10;student2@x.com" style="width:260px"></textarea>
-      <button class="btn small" id="bindSaveBtn" type="button">保存名单</button>
-      <span class="err" id="bindErr" style="margin:0"></span>
-    </div>
-    <p class="muted">名单是整份覆盖：留空保存 = 清空。一个管理员最多绑 50 个学生；取消角色后名单保留，重新授权即恢复。</p>
-  </div>
+  <!-- 角色管理卡 11-14 第三批整体迁入「权限配置」页（#pgPerm），数据页不再有它 -->
 
   <p class="muted" style="text-align:center">会员状态以服务端 vip:&lt;账号&gt; 键为准 · 已接入 AI 额度闸（会员不受免费额度限制）· AI 用量统计自 10/5 修复计数丢失后开始累计（此前未计费，历史无数据）</p>
   </div><!-- /pgData -->
 
-  <!-- 操作审计（10/5 P3） -->
+  <!-- 权限配置（11-14 第三批「两页接规矩」，样子稿 ADMIN-PERM-3 1:1）：
+       上块 = 角色管理（原 #roleCard 整体迁入，id 与接线零变化）；
+       下块 = 权限矩阵（14 权限点 × 三列，root 列锁死），读写走 permcfg 配置键，
+              坏了/空了服务端整份回落 PERM_DEFAULTS。 -->
+  <div id="pgPerm" class="hidden">
+    <div class="card" id="roleCard">
+      <h2>角色管理</h2>
+      <p class="desc">三层身份：<b>普通用户</b>（注册考生，默认）· <b>管理员（机构教师）</b>（由这里指定，可绑学生、只读查看成绩与练习提交，不参与系统配置、不能改任何账号权限）· <b>系统管理员</b>（本面板）。
+        取消角色后立刻生效，对方刷新页面入口即消失。</p>
+      <div class="toolbar">
+        <label class="muted">邮箱</label>
+        <input class="small" id="roleAcct" placeholder="注册邮箱" style="width:230px" maxlength="60" />
+        <label class="muted">角色</label>
+        <select class="small" id="roleKind">
+          <option value="teacher">管理员（机构教师）</option>
+          <option value="root">系统管理员</option>
+        </select>
+        <button class="btn small" id="roleSetBtn" type="button">设为该角色</button>
+        <button class="btn ghost small" id="roleClearBtn" type="button">取消角色</button>
+        <span class="err" id="roleErr" style="margin:0"></span>
+      </div>
+      <div class="tw">
+      <table>
+        <thead><tr><th>账号</th><th>角色</th><th>已绑学生</th><th>操作</th></tr></thead>
+        <tbody id="roleBody"></tbody>
+      </table>
+      </div>
+      <p class="muted" id="roleEmpty" style="margin-top:8px">还没有其它管理员 —— 除站长本人外，所有人都是普通用户。</p>
+
+      <details class="more" id="bindMore">
+        <summary><span class="arw">›</span>给管理员绑学生</summary>
+        <div class="body">
+          <div class="toolbar" style="margin:4px 0 8px">
+            <input class="small" id="bindAcct" placeholder="管理员邮箱" style="width:230px" maxlength="60" />
+            <textarea class="small" id="bindList" rows="3" placeholder="一行一个学生邮箱，如&#10;student1@x.com&#10;student2@x.com" style="width:260px"></textarea>
+            <button class="btn small" id="bindSaveBtn" type="button">保存名单</button>
+            <span class="err" id="bindErr" style="margin:0"></span>
+          </div>
+          <p class="muted">名单是整份覆盖：留空保存 = 清空。一个管理员最多绑 50 个学生；取消角色后名单保留，重新授权即恢复。</p>
+        </div>
+      </details>
+    </div>
+
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="padding:16px 18px 0"><h2>权限矩阵</h2>
+        <p class="desc">14 个权限点 × 三档身份。改动格会高亮，保存后立刻生效并写入变更留痕；系统管理员档锁死为全量。</p>
+      </div>
+      <table class="mx" id="mxTable">
+        <thead><tr>
+          <th class="rl">权限点</th>
+          <th class="rc">普通用户</th>
+          <th class="rc">机构教师</th>
+          <th class="rc rootcol"><span class="rlk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="8" cy="12" r="4"/><path d="M12 12h9M18 12v3M15 12v2"/></svg>系统管理员</span></th>
+        </tr></thead>
+        <tbody id="mxBody"></tbody>
+      </table>
+      <div class="savebar">
+        <span class="cnt" id="permCnt"></span>
+        <button class="btn ghost small" type="button" id="permReset">恢复默认</button>
+        <button class="btn small" type="button" id="permSave" disabled>保存更改</button>
+      </div>
+    </div>
+  </div><!-- /pgPerm -->
+
+  <!-- 操作审计（10/5 P3；11-14 第三批加权限变更标签） -->
   <div id="pgAudit" class="hidden">
     <div class="card">
       <h2>操作审计</h2>
@@ -1035,9 +1138,132 @@ button.mini.danger:hover{background:var(--bad-bg);border-color:var(--bad)}
     });
   });
 
-  /* ---------- 页签（10/2；10/5 P3 加审计页）---------- */
+  /* ---------- 权限矩阵（11-14 第三批「两页接规矩」，样子稿 ADMIN-PERM-3 1:1）----------
+     14 权限点 × 三列开关；root 列锁死（服务端结构性拒绝配置 root）。
+     读写走 admin.js 新口 perm_get / perm_set → KV 键 permcfg；
+     服务端坏了/空了整份回落 PERM_DEFAULTS（roles.js），前端只如实显示 source。
+     ⚠️ 默认矩阵（DEF）以 perm_get 回包的 defaults 为准（服务端唯一权威），前端不硬编码第二份。
+     ⚠️ 页面模块级状态统一放前面（本文件铁律）：这四个 var 在 enter() 之前就位。 */
+  var PERM_GROUPS = [
+    { g:'数据', pts:[['overview','查看总览'],['probe_clean','清理探针']] },
+    { g:'发码', pts:[['invite_mint','生成邀请码'],['invite_revoke','撤销邀请码']] },
+    { g:'会员', pts:[['vip_grant','开通／续费会员'],['vip_revoke','撤销会员'],['price_set','调整价格']] },
+    { g:'角色', pts:[['role_set','指定／取消角色'],['bind_set','绑学生名单']] },
+    { g:'审计', pts:[['audit_list','查看操作审计']] },
+    { g:'反馈', pts:[['fb_get','读取反馈'],['fb_read','标记已读'],['judge_set','判定标记'],['fb_del','删除反馈']] }
+  ];
+  var PERM_ROLE_NM = { user:'普通用户', teacher:'机构教师', root:'系统管理员' };
+  var _mxLoaded = false;        /* 首次进入权限页拉过一次配置就不再自动拉（手动恢复默认/保存后本地已同步） */
+  var _mxDEF = null;            /* 服务端回的默认矩阵（唯一权威），形状 {user,teacher,root} */
+  var _mxCUR = null;            /* 当前编辑态 {user,teacher}（root 不存，恒为全量） */
+  var _mxSaveShown = false;     /* 本轮改动有没有弹过「已保存」轻提示 */
+
+  function mxVal(role, id){ if(role === 'root') return true; return !!(_mxCUR && _mxCUR[role] && _mxCUR[role][id]); }
+  function mxDef(role, id){ return !!(_mxDEF && _mxDEF[role] && _mxDEF[role][id]); }
+  function mxChanged(){
+    var n = 0;
+    ['user','teacher'].forEach(function(r){
+      PERM_GROUPS.forEach(function(gr){ gr.pts.forEach(function(p){ if(mxVal(r, p[0]) !== mxDef(r, p[0])) n++; }); });
+    });
+    return n;
+  }
+  function swHtml(role, id, dis){
+    var on = mxVal(role, id);
+    return '<span class="sw"><input type="checkbox" data-r="' + role + '" data-pid="' + id + '"' + (on ? ' checked' : '') + (dis ? ' disabled' : '') + '><span class="track"></span><span class="dot"></span></span>';
+  }
+  function renderMx(){
+    var host = $('mxBody'); if(!host || !_mxDEF) return;
+    var html = '';
+    PERM_GROUPS.forEach(function(gr){
+      html += '<tr class="grp"><td colspan="4">' + esc(gr.g) + '</td></tr>';
+      gr.pts.forEach(function(p){
+        html += '<tr' + (p[0] === 'role_set' ? ' class="rootrow"' : '') + '>'
+          + '<td class="pn">' + esc(p[1]) + '</td>'
+          + '<td class="csw' + (mxVal('user', p[0]) !== mxDef('user', p[0]) ? ' diff' : '') + '">' + swHtml('user', p[0]) + '</td>'
+          + '<td class="csw' + (mxVal('teacher', p[0]) !== mxDef('teacher', p[0]) ? ' diff' : '') + '">' + swHtml('teacher', p[0]) + '</td>'
+          + '<td class="csw rootcol">' + swHtml('root', p[0], true) + '</td></tr>';
+      });
+    });
+    host.innerHTML = html;
+    var n = mxChanged();
+    $('permCnt').innerHTML = '已改 <b>' + n + '</b> 处';
+    $('permSave').disabled = (n === 0);
+  }
+  function permLoad(){
+    api('perm_get', {}, function(r){
+      _mxLoaded = true;
+      if(!r.ok || !r.j || !r.j.ok || !r.j.defaults){
+        $('permCnt').textContent = '配置读取失败，稍后重试';
+        return;
+      }
+      _mxDEF = { user: r.j.defaults.user, teacher: r.j.defaults.teacher, root: r.j.defaults.root };
+      /* 编辑态 = 当前生效矩阵（配置生效就用配置；没配置/坏了回落默认 —— source 如实标注） */
+      var src = (r.j.source === 'config' && r.j.cfg) ? r.j.cfg : r.j.defaults;
+      _mxCUR = { user: Object.assign({}, src.user), teacher: Object.assign({}, src.teacher) };
+      renderMx();
+      if(r.j.source === 'defaults'){
+        $('permCnt').insertAdjacentHTML('beforeend', '　·　当前按<b>默认口径</b>生效（还没有保存过配置）');
+      }
+    });
+  }
+  if($('mxBody')) $('mxBody').addEventListener('change', function(e){
+    var t = e.target;
+    if(!t.matches || !t.matches('input[data-pid]') || t.disabled) return;
+    var r = t.getAttribute('data-r');
+    if(r === 'root') return;
+    _mxCUR[r][t.getAttribute('data-pid')] = t.checked;
+    renderMx();
+  });
+  if($('permReset')) $('permReset').addEventListener('click', function(){
+    if(!_mxDEF) return;
+    _mxCUR = { user: Object.assign({}, _mxDEF.user), teacher: Object.assign({}, _mxDEF.teacher) };
+    renderMx();
+  });
+  /* 保存：先确认影响范围（逐条列出改了什么），服务端写 permcfg + 留痕。 */
+  function mxToast(msg){
+    var t = document.createElement('div'); t.className = 'toast'; t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(function(){ if(t.parentNode) t.parentNode.removeChild(t); }, 1800);
+  }
+  function mxOpenDlg(n, cb){
+    var ov = document.createElement('div');
+    ov.className = 'mask';
+    ov.innerHTML = '<div class="dlg" role="dialog" aria-modal="true"><p>本次改动 <b>' + n + '</b> 处。保存后立刻生效，并写入变更留痕。</p>'
+      + '<div class="acts"><button class="btn ghost small" type="button" data-x="0">取消</button><button class="btn small" type="button" data-x="1">确认保存</button></div></div>';
+    document.body.appendChild(ov);
+    ov.querySelector('[data-x="0"]').addEventListener('click', function(){ document.body.removeChild(ov); });
+    ov.querySelector('[data-x="1"]').addEventListener('click', function(){ document.body.removeChild(ov); cb(); });
+  }
+  if($('permSave')) $('permSave').addEventListener('click', function(){
+    var n = mxChanged();
+    if(!n || !_mxDEF) return;
+    mxOpenDlg(n, function(){
+      var diffs = [];
+      ['user','teacher'].forEach(function(r){
+        PERM_GROUPS.forEach(function(gr){ gr.pts.forEach(function(p){
+          if(mxVal(r, p[0]) !== mxDef(r, p[0])) diffs.push(PERM_ROLE_NM[r] + '·' + p[1] + ' ' + (mxDef(r, p[0]) ? '关' : '开') + '→' + (mxVal(r, p[0]) ? '开' : '关'));
+        }); });
+      });
+      $('permSave').disabled = true;
+      api('perm_set', { cfg: { user: _mxCUR.user, teacher: _mxCUR.teacher } }, function(r){
+        if(!r.ok || !r.j || !r.j.ok){
+          $('permSave').disabled = false;
+          alert('保存失败：' + ((r.j && r.j.msg) || ('HTTP ' + r.status)));
+          return;
+        }
+        /* 服务端已写入：默认基准更新为刚存的那份（改动格高亮清零），留痕在 audit_list 里 */
+        _mxDEF = { user: Object.assign({}, r.j.cfg.user), teacher: Object.assign({}, r.j.cfg.teacher), root: _mxDEF.root };
+        renderMx();
+        mxToast('已保存，改动已写入留痕');
+        _mxSaveShown = true;
+      });
+    });
+  });
+
+  /* ---------- 页签（10/2；10/5 P3 加审计页；11-14 第三批加权限配置页）---------- */
   function switchTab(name){
     $('pgData').classList.toggle('hidden', name !== 'data');
+    $('pgPerm').classList.toggle('hidden', name !== 'perm');
     $('pgAudit').classList.toggle('hidden', name !== 'audit');
     $('pgFb').classList.toggle('hidden', name !== 'fb');
     Array.prototype.forEach.call(document.querySelectorAll('#tabs .tab'), function(b){
@@ -1045,6 +1271,8 @@ button.mini.danger:hover{background:var(--bad-bg);border-color:var(--bad)}
     });
     /* 审计页的数据在 overview 里已带（audits 字段），切过去直接渲染，不用额外请求 */
     if (name === 'audit' && DATA) renderAudits(DATA.audits);
+    /* 权限配置页第一次切进去才拉配置（懒加载，不拖累面板首屏） */
+    if (name === 'perm' && !_mxLoaded) permLoad();
   }
 
   /* ---------- 操作审计（10/5 P3）---------- */
@@ -1053,6 +1281,7 @@ button.mini.danger:hover{background:var(--bad-bg);border-color:var(--bad)}
     vip_revoke: '撤销会员', invite_mint: '生成邀请码', invite_revoke: '作废邀请码',
     judge_mark_real: '标记为真人', judge_mark_probe: '标记为探针', judge_clear: '清除标记',
     role_set: '设置角色', role_revoke: '取消角色', bind_set: '设置学生名单',
+    perm_set: '权限变更',
   };
   function auditDetailText(d) {
     d = d || {};
@@ -1074,6 +1303,10 @@ button.mini.danger:hover{background:var(--bad-bg);border-color:var(--bad)}
       return t.join(' · ');
     }
     if ('code' in d) return d.code + ' · 限 ' + d.max + ' 次' + (d.vipDays ? ' · 送 ' + d.vipDays + ' 天会员' : ' · 不送会员');
+    /* 权限变更（11-14 第三批）：diffs 是 "role.权限点=on/off" 逗号串，直接摊开给人看 */
+    if (d.diffs !== undefined && d.n !== undefined) {
+      return '改 ' + d.n + ' 处' + (d.n ? ('：' + String(d.diffs).split(',').join('、')) : '（与默认一致）');
+    }
     return JSON.stringify(d);
   }
   function renderAudits(list) {

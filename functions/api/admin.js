@@ -36,6 +36,10 @@
 //   aiqwv:<acct>:<YYYY-Www>           —— 面板「本周 AI 次数」（长 TTL 聚合键，TTL 400 天）
 //   aiqmv:<acct>:<YYYY-MM>            —— 面板「本月 AI 次数」（长 TTL 聚合键，自然月 UTC）
 //   fb:<id> / fbimg:<id>               —— feedback.js 的意见反馈（正文 / 图片体，分键避免列表拉图）
+//   permcfg                            —— 11-14 第三批权限配置（perm_get/perm_set 读写，roles.js 读）：
+//                                          { user:{14 键 bool}, teacher:{14 键 bool} }，root 不进配置
+
+import { PERM_DEFAULTS } from './roles.js';   // 11-14 第三批：权限默认矩阵唯一权威来源（回落与校验共用一份）
 
 const CORS = {
   'access-control-allow-origin': '*',
@@ -805,6 +809,78 @@ export async function onRequest(context) {
     else await kv.put('bind:' + acct, JSON.stringify(list));
     await audit(kv, 'bind_set', { acct: acct, count: list.length, students: list.slice(0, 50).join(',') });
     return json({ ok: true, acct: acct, students: list });
+  }
+
+  /* ⭐ 11-14 第三批「两页接规矩」· 权限配置读写（perm_get / perm_set）──────────
+     配置键 permcfg = { user:{14 键 bool}, teacher:{14 键 bool} }，整份覆盖语义。
+     校验唯一权威 = roles.js 的 PERM_DEFAULTS（键集合必须与之逐键一致，缺/多/非 bool 都拒）。
+     🔴 root 档**结构性锁死**：不在配置形状里，传了也直接拒 —— root 永远全量 true。
+     🔴 fail closed：写校验失败绝不半写；读侧（roles.js action=perm）坏配置整份回落默认表。
+     KV 写量：perm_set 每次点击 1 次（permcfg）+ 1 条审计 = 2 次，与 role_set 同量级。
+     perm_get 零写、1 次读。 */
+  if (action === 'perm_get') {
+    let raw = null;
+    try { raw = await kv.get('permcfg'); } catch (e) {}
+    let cfg = null;
+    if (raw) {
+      try {
+        const o = JSON.parse(raw);
+        if (o && typeof o === 'object' && !Array.isArray(o)) {
+          let good = true;
+          const out = {};
+          for (const r of ['user', 'teacher']) {
+            const src = o[r], dst = {};
+            if (!src || typeof src !== 'object' || Array.isArray(src)) { good = false; break; }
+            for (const k of Object.keys(PERM_DEFAULTS[r])) {
+              if (typeof src[k] !== 'boolean') { good = false; break; }
+              dst[k] = src[k];
+            }
+            if (!good || Object.keys(src).length !== Object.keys(PERM_DEFAULTS[r]).length) { good = false; break; }
+            out[r] = dst;
+          }
+          if (good) cfg = out;
+        }
+      } catch (e) { cfg = null; }
+    }
+    return json({ ok: true, cfg: cfg, source: cfg ? 'config' : 'defaults', defaults: PERM_DEFAULTS });
+  }
+
+  if (action === 'perm_set') {
+    const incoming = body.cfg;
+    if (!incoming || typeof incoming !== 'object' || Array.isArray(incoming)) {
+      return json({ ok: false, error: 'bad_cfg', msg: '配置形状不对（要 user/teacher 两档整份矩阵）' }, 400);
+    }
+    const clean = {};
+    for (const r of ['user', 'teacher']) {
+      const src = incoming[r];
+      if (!src || typeof src !== 'object' || Array.isArray(src)) {
+        return json({ ok: false, error: 'bad_cfg', msg: '缺少 ' + (r === 'user' ? '普通用户' : '机构教师') + ' 档' }, 400);
+      }
+      const dst = {};
+      for (const k of Object.keys(PERM_DEFAULTS[r])) {
+        if (typeof src[k] !== 'boolean') {
+          return json({ ok: false, error: 'bad_cfg', msg: '权限点 ' + k + ' 的值必须是 开/关' }, 400);
+        }
+        dst[k] = src[k];
+      }
+      if (Object.keys(src).length !== Object.keys(PERM_DEFAULTS[r]).length) {
+        return json({ ok: false, error: 'bad_cfg', msg: '权限点清单与系统口径不一致（有多/有少）' }, 400);
+      }
+      clean[r] = dst;
+    }
+    if (incoming.root !== undefined) {
+      return json({ ok: false, error: 'root_locked', msg: '系统管理员档是锁死的，不能配置' }, 400);
+    }
+    await kv.put('permcfg', JSON.stringify(clean));
+    /* 审计详情：逐键记 diff（相对默认表），留痕页能直接看到「改了什么」 */
+    const diffs = [];
+    for (const r of ['user', 'teacher']) {
+      for (const k of Object.keys(PERM_DEFAULTS[r])) {
+        if (clean[r][k] !== PERM_DEFAULTS[r][k]) diffs.push(r + '.' + k + '=' + (clean[r][k] ? 'on' : 'off'));
+      }
+    }
+    await audit(kv, 'perm_set', { diffs: diffs.join(','), n: diffs.length });
+    return json({ ok: true, cfg: clean, source: 'config', changed: diffs.length });
   }
 
   /* ---------- 操作审计列表（10/5 P3）---------- */
