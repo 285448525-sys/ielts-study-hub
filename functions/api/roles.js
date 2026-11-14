@@ -19,7 +19,7 @@
 //   GET  /api/roles?action=students  → { ok, students:[{email,nickname,lastActive}] }
 //        只回邮箱 + 最近活跃时间（nickname 恒为空串，10-22 起列表不再读学生 blob）；
 //        **绝不回任何学习数据**。
-//   GET  /api/roles?action=perm      → { ok, perm:{ user:{...}, teacher:{...}, root:{...} } }
+//   GET  /api/roles?action=perm      → { ok, acct, role, mine:{...}, all:{ user:{...}, teacher:{...}, root:{...} }, source }
 //        （11-14 第二批「身份规矩」）返回**当前生效的权限矩阵**——14 个站长台真实动作点
 //        × 三角色。11-14 第三批起可配置化：读 KV 配置键 permcfg（admin.js perm_set 写入），
 //        读不到 / 损坏 / 为空 → fail closed 整份回落本表（PERM_DEFAULTS）。
@@ -138,11 +138,6 @@ export const PERM_DEFAULTS = {
   }
 };
 
-function permOf(role) {
-  /* 未知角色 / 读不到 → 一律按普通用户矩阵（fail closed，绝不给多） */
-  return PERM_DEFAULTS[role] || PERM_DEFAULTS.user;
-}
-
 /* ── 权限配置读取与校验（11-14 第三批「两页接规矩」）────────────────────────
    配置键 permcfg（admin.js perm_set 写入）形状：{ user:{14 键 bool}, teacher:{14 键 bool} }。
    🔴 校验规则（fail closed，任何一条不满足整份丢弃 → 回落 PERM_DEFAULTS）：
@@ -154,7 +149,7 @@ function permOf(role) {
    🔴 读不到（无键）不算坏 —— 配置化的默认态就是「没写过配置」。
    ⚠️ 每次多一次 KV 读：仅当配置键存在时。KV 读无每日硬限（写才有 1000/天），可接受。 */
 const PERM_CFG_KEY = 'permcfg';
-function parsePermCfg(raw) {
+export function parsePermCfg(raw) {
   if (!raw) return null;
   try {
     const o = JSON.parse(raw);
@@ -173,11 +168,11 @@ function parsePermCfg(raw) {
     return out;
   } catch (e) { return null; }
 }
-async function loadPermCfg(kv) {
+export async function loadPermCfg(kv) {
   let raw = null;
   try { raw = await kv.get(PERM_CFG_KEY); } catch (e) { raw = null; }   // 读失败也当没配置（fail closed 回落）
   const cfg = parsePermCfg(raw);
-  return cfg ? { cfg: cfg, source: 'config' } : { cfg: null, source: 'defaults' };
+  return { cfg: cfg, source: cfg ? 'config' : 'defaults', hasCfg: !!raw };
 }
 function effectiveMatrix(cfg) {
   return {

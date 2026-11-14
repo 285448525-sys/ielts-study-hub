@@ -1175,17 +1175,18 @@ details.more .body{padding:0 16px 8px}
     { g:'反馈', pts:[['fb_get','读取反馈'],['fb_read','标记已读'],['judge_set','判定标记'],['fb_del','删除反馈']] }
   ];
   var PERM_ROLE_NM = { user:'普通用户', teacher:'机构教师', root:'系统管理员' };
-  var _mxLoaded = false;        /* 首次进入权限页拉过一次配置就不再自动拉（手动恢复默认/保存后本地已同步） */
-  var _mxDEF = null;            /* 服务端回的默认矩阵（唯一权威），形状 {user,teacher,root} */
+  var _mxLoaded = false;        /* 配置读取成功过才置真；失败允许切回来重试 */
+  var _mxDEF = null;            /* 服务端回的默认矩阵（恢复默认用，形状 {user,teacher,root}） */
   var _mxCUR = null;            /* 当前编辑态 {user,teacher}（root 不存，恒为全量） */
-  var _mxSaveShown = false;     /* 本轮改动有没有弹过「已保存」轻提示 */
+  var _mxBASE = null;           /* 当前页面上「已保存/已生效」基准 {user,teacher}，只跟未保存改动比 */
+  var _mxHasCfg = false;        /* KV 里有没有配置：区分「没保存过」与「配置坏了回落默认」 */
 
   function mxVal(role, id){ if(role === 'root') return true; return !!(_mxCUR && _mxCUR[role] && _mxCUR[role][id]); }
-  function mxDef(role, id){ return !!(_mxDEF && _mxDEF[role] && _mxDEF[role][id]); }
+  function mxBase(role, id){ return !!(_mxBASE && _mxBASE[role] && _mxBASE[role][id]); }
   function mxChanged(){
     var n = 0;
     ['user','teacher'].forEach(function(r){
-      PERM_GROUPS.forEach(function(gr){ gr.pts.forEach(function(p){ if(mxVal(r, p[0]) !== mxDef(r, p[0])) n++; }); });
+      PERM_GROUPS.forEach(function(gr){ gr.pts.forEach(function(p){ if(mxVal(r, p[0]) !== mxBase(r, p[0])) n++; }); });
     });
     return n;
   }
@@ -1201,8 +1202,8 @@ details.more .body{padding:0 16px 8px}
       gr.pts.forEach(function(p){
         html += '<tr' + (p[0] === 'role_set' ? ' class="rootrow"' : '') + '>'
           + '<td class="pn">' + esc(p[1]) + '</td>'
-          + '<td class="csw' + (mxVal('user', p[0]) !== mxDef('user', p[0]) ? ' diff' : '') + '">' + swHtml('user', p[0]) + '</td>'
-          + '<td class="csw' + (mxVal('teacher', p[0]) !== mxDef('teacher', p[0]) ? ' diff' : '') + '">' + swHtml('teacher', p[0]) + '</td>'
+          + '<td class="csw' + (mxVal('user', p[0]) !== mxBase('user', p[0]) ? ' diff' : '') + '">' + swHtml('user', p[0]) + '</td>'
+          + '<td class="csw' + (mxVal('teacher', p[0]) !== mxBase('teacher', p[0]) ? ' diff' : '') + '">' + swHtml('teacher', p[0]) + '</td>'
           + '<td class="csw rootcol">' + swHtml('root', p[0], true) + '</td></tr>';
       });
     });
@@ -1214,18 +1215,23 @@ details.more .body{padding:0 16px 8px}
   }
   function permLoad(){
     api('perm_get', {}, function(r){
-      _mxLoaded = true;
       if(!r.ok || !r.j || !r.j.ok || !r.j.defaults){
+        /* 失败不算「已加载」：切到别的页签再回来会自动重试，不必整页刷新 */
         $('permCnt').textContent = '配置读取失败，稍后重试';
         return;
       }
       _mxDEF = { user: r.j.defaults.user, teacher: r.j.defaults.teacher, root: r.j.defaults.root };
       /* 编辑态 = 当前生效矩阵（配置生效就用配置；没配置/坏了回落默认 —— source 如实标注） */
       var src = (r.j.source === 'config' && r.j.cfg) ? r.j.cfg : r.j.defaults;
+      _mxBASE = { user: Object.assign({}, src.user), teacher: Object.assign({}, src.teacher) };
       _mxCUR = { user: Object.assign({}, src.user), teacher: Object.assign({}, src.teacher) };
+      _mxHasCfg = !!r.j.hasCfg;
+      _mxLoaded = true;
       renderMx();
       if(r.j.source === 'defaults'){
-        $('permCnt').insertAdjacentHTML('beforeend', '　·　当前按<b>默认口径</b>生效（还没有保存过配置）');
+        $('permCnt').insertAdjacentHTML('beforeend', _mxHasCfg
+          ? '　·　配置读取失败，当前按<b>默认口径</b>生效'
+          : '　·　当前按<b>默认口径</b>生效（还没有保存过配置）');
       }
     });
   }
@@ -1239,6 +1245,7 @@ details.more .body{padding:0 16px 8px}
   });
   if($('permReset')) $('permReset').addEventListener('click', function(){
     if(!_mxDEF) return;
+    /* 「恢复默认」永远回服务端默认表；已保存配置不覆盖这个基准 */
     _mxCUR = { user: Object.assign({}, _mxDEF.user), teacher: Object.assign({}, _mxDEF.teacher) };
     renderMx();
   });
@@ -1264,7 +1271,7 @@ details.more .body{padding:0 16px 8px}
       var diffs = [];
       ['user','teacher'].forEach(function(r){
         PERM_GROUPS.forEach(function(gr){ gr.pts.forEach(function(p){
-          if(mxVal(r, p[0]) !== mxDef(r, p[0])) diffs.push(PERM_ROLE_NM[r] + '·' + p[1] + ' ' + (mxDef(r, p[0]) ? '关' : '开') + '→' + (mxVal(r, p[0]) ? '开' : '关'));
+          if(mxVal(r, p[0]) !== mxBase(r, p[0])) diffs.push(PERM_ROLE_NM[r] + '·' + p[1] + ' ' + (mxBase(r, p[0]) ? '关' : '开') + '→' + (mxVal(r, p[0]) ? '开' : '关'));
         }); });
       });
       $('permSave').disabled = true;
@@ -1274,11 +1281,12 @@ details.more .body{padding:0 16px 8px}
           alert('保存失败：' + ((r.j && r.j.msg) || ('HTTP ' + r.status)));
           return;
         }
-        /* 服务端已写入：默认基准更新为刚存的那份（改动格高亮清零），留痕在 audit_list 里 */
-        _mxDEF = { user: Object.assign({}, r.j.cfg.user), teacher: Object.assign({}, r.j.cfg.teacher), root: _mxDEF.root };
+        /* 服务端已写入：只把「未保存改动」基准推进到刚存的那份；
+           恢复默认仍指向服务端默认表，留痕在 audit_list 里 */
+        _mxBASE = { user: Object.assign({}, r.j.cfg.user), teacher: Object.assign({}, r.j.cfg.teacher) };
+        _mxHasCfg = true;
         renderMx();
         mxToast('已保存，改动已写入留痕');
-        _mxSaveShown = true;
       });
     });
   });

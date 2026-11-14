@@ -535,6 +535,8 @@ function renderStats(){
           btn.addEventListener('click', () => {
             const f = btn.getAttribute('data-file');
             if(!f) return;
+            /* admin.html 自包含、无共享壳：点搜索结果必须整页跳，别交给 softNavigate */
+            if(f === 'admin.html'){ location.href = f; return; }
             try{ if(typeof softNavigate === 'function'){ softNavigate({ href: f, file: f, id: f.replace(/\.html$/, '') }); return; } }catch(e){}
             location.href = f;
           });
@@ -606,6 +608,9 @@ function renderStats(){
     };
     window.addEventListener('popstate', function(){ setTimeout(repaint, 0); });
     window.addEventListener('hub:page-shown', function(){ setTimeout(repaint, 0); });
+    /* 角色刷新后侧栏会重建，「我的」组页常用卡也要按新角色重画；
+       直接把 lastGroup 清掉，让既有 repaint 条件走一次完整 render。 */
+    window.addEventListener('hub:role', function(){ lastGroup = null; setTimeout(repaint, 0); });
     document.addEventListener('visibilitychange', function(){ if(!document.hidden) repaint(); });
     try{
       const main = document.querySelector('main');

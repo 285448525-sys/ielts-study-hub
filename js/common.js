@@ -80,12 +80,9 @@ const PAGES = [
      铁律：不在任何入口文案里承诺「老师能改学生数据」—— 整页只读。 */
   { id:'teacher',   file:'teacher.html',   icon:ICON.teacher,  name:'学生数据', desc:'绑定学生的学情（只读）' },
   /* 11-14 第五批 PERM-ENTRY-1：站长面板（admin.html）按规矩登记进 PAGES。
-     ⚠️ admin.html 整页自带样式、不加载 common.js —— 这条登记只服务三件事：
-     ① 顶栏「更多」面板 / 侧栏的入口显隐渲染（都走 pageById('admin')）
-     ② 站内搜索（ssMatchPages 只搜 PAGES 里有的页）
-     ③ 软导航 hubLinkTarget()：登记了它才认得这个链接，未登录/非 root 点击才会**整页跳转**去
-        （软导航换 <main> 会把自包含的 admin.html 拆坏 —— hubLinkTarget 对不在 PAGES 的链接
-        原生放行整页跳，这恰好是对的行为，但搜索结果卡 / 更多面板要能点它就必须登记）。
+     ⚠️ admin.html 整页自带样式、不加载 common.js，也没有软导航要求的 <main>——
+     这条登记只服务入口渲染（pageById('admin')）与站内搜索（ssMatchPages）；
+     所有指向它的链接都必须走整页跳转，软导航/预热/回退一律显式跳过（common-shell.js / common.js）。
      它跟 teacher 一样不进 PRIMARY_NAV / MORE_NAV：侧栏是否出现由角色决定（见 injectNav 末尾）。 */
   { id:'admin',     file:'admin.html',     icon:ICON.admin,    name:'站长面板', desc:'权限配置 · 用户 · 留痕' },
   /* W-UI-1（10-25）公告页：软导航按 id 找 js/announce.js + 公告条「去看看」的直达目标。
@@ -301,7 +298,7 @@ function hubMsgGo(href){
   const url = href.split('#')[0];
   const file = url.split('?')[0].split('/').pop();
   const page = (typeof PAGES !== 'undefined') ? PAGES.find(p => p.file === file) : null;
-  if(page && typeof softNavigate === 'function'){
+  if(page && page.id !== 'admin' && typeof softNavigate === 'function'){
     try{
       const r = softNavigate({ id:page.id, file:page.file, href:page.file, url:url }, false);
       Promise.resolve(r).then(function(){
@@ -1200,11 +1197,11 @@ function injectRoleNavStyle(){
 }
 
 /* 拉一次自己的角色；变了才重建外壳（避免无谓的侧栏重绘 + 高亮闪烁） */
-function hubRefreshRole(){
+function hubRefreshRole(force){
   try{
     if(typeof authToken !== 'function' || !authToken()) return Promise.resolve('');
     if(_roleFetching) return _roleFetching;
-    if(_roleFetchedAt && Date.now() - _roleFetchedAt < 30000) return Promise.resolve(hubRoleCached());
+    if(!force && _roleFetchedAt && Date.now() - _roleFetchedAt < 30000) return Promise.resolve(hubRoleCached());
     const before = hubRoleCached();
     _roleFetching = fetch('/api/roles?action=me', {
       headers: { 'X-Session': authToken() },

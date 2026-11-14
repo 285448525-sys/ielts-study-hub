@@ -32,6 +32,24 @@ ready(() => {
   /* 三级权限（10-22）：先用缓存画入口，再异步核对一次自己的角色；角色变了 injectNav 会自己重建。
      无 token 时直接返回（未登录不请求）。失败静默、绝不影响首屏。 */
   if(typeof hubRefreshRole === 'function') hubRefreshRole();
+  /* 授权/取消角色后，已打开的标签页也要能跟上：ready 一次 + 回到前台/恢复网络强刷 +
+     可见标签 30 秒节流复查。只请求只读 /api/roles?action=me，零 KV 写、后台标签不发请求。 */
+  try{
+    if(!window.__HUB_ROLE_WATCH){
+      window.__HUB_ROLE_WATCH = true;
+      let _roleRecheckAt = Date.now();   // ready() 刚查过一次，别让首个 focus 立刻重复请求
+      const recheck = function(force){
+        if(document.hidden) return;
+        if(!force && Date.now() - _roleRecheckAt < 30000) return;
+        _roleRecheckAt = Date.now();
+        if(typeof hubRefreshRole === 'function') hubRefreshRole(force);
+      };
+      window.addEventListener('focus', function(){ recheck(false); });
+      window.addEventListener('online', function(){ recheck(true); });
+      document.addEventListener('visibilitychange', function(){ if(!document.hidden) recheck(false); });
+      window.setInterval(function(){ recheck(true); }, 30000);
+    }
+  }catch(e){}
   initOnboarding();                          // 首次进入引导（全新浏览器才弹，老用户静默回填零打扰）
   injectGlobalDock();                        // 全站玻璃底栏 dock（9/16 之之：+ FAB 砍掉——全站只有计划页有 data-fab-add 接杆，软导航残留后其他页全是死按钮）
   initListSearch();                          // 列表页 .ui-search 即时过滤（data-search-input + data-search-target）
@@ -1072,7 +1090,7 @@ function hubSoftGo(href){
   try{
     const file = String(href || '').split('?')[0].split('#')[0] || 'home.html';
     const page = PAGES.find(p => p.file === file);
-    if(!page){ location.href = href; return; }
+    if(!page || page.id === 'admin'){ location.href = href; return; }   // 自包含面板不走软导航
     if(typeof showHubLoader === 'function') showHubLoader();
     if(typeof updateActiveNav === 'function') updateActiveNav(file);
     softNavigate({ id:page.id, file:page.file, href:href }, false);

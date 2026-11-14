@@ -585,6 +585,8 @@ function hubLinkTarget(a){
   const file = normalizePageFile(href.split('#')[0].split('?')[0].split('/').pop());
   const page = PAGES.find(p => p.file === file);
   if(!page) return null;
+  /* admin.html 自包含、无 <main>、不加载共享壳：只走浏览器整页跳，绝不软切换 */
+  if(page.id === 'admin') return null;
   /* 🔴 10-24 G4：把查询串一起带回去。
      原来只回 page.file（裸文件名），于是 softNavigate 末尾那句 pushState 写的是裸文件名，
      把链接上原有的 ?pane= / ?sub= / ?drill= 一律抹掉：地址栏停在**上一个**分栏的参数，
@@ -1083,6 +1085,10 @@ function pageScriptSources(id, doc){
 }
 
 async function softNavigate(t, isPop){
+  /* admin.html 自包含、无 <main>：任何程序化入口误传它也统一整页跳，不让软切换拆页面 */
+  if(t && (t.id === 'admin' || t.file === 'admin.html' || String(t.href || '').split('?')[0].split('#')[0] === 'admin.html')){
+    location.href = t.href || 'admin.html'; return;
+  }
   /* 🔴 10/20 模考锁（最后一道兜底）：softNavigate 会被点击、popstate、以及各页的
      程序化调用（bank.js spkStartMock / writing / speaking 入口）触发。
      统一在最外层拦一次 —— 任何来源的「离开考场」都走同一条闸。 */
@@ -1581,7 +1587,7 @@ function navPrefetchAllowed(){
    最差情况：退回「没预热」的状态，功能零影响（HTML 现拉照常可用）。 */
 function prefetchPage(id){
   const p = PAGES.find(pp => pp.id === id);
-  if(!p || _navDocCache.has(p.file)) return Promise.resolve();
+  if(!p || p.id === 'admin' || _navDocCache.has(p.file)) return Promise.resolve();   // 自包含面板不预热
   return navGetDoc(p.file).catch(() => {});   // 只把 HTML 收进 _navDocCache，脚本留给软导航现拉
 }
 let _prefetchRunning = false;
@@ -1623,6 +1629,7 @@ function prefetchAll(curId){
     if(!id || order.indexOf(id) !== -1) return;
     const pg = PAGES.find(p => p.id === id);
     if(!pg) return;
+    if(pg.id === 'admin') return;                 // 自包含面板不预热、不占 _navDocCache
     const hidden = (typeof isNavHidden === 'function') ? isNavHidden(pg) : !!pg.hidden;
     if(hidden) return;
     order.push(id);

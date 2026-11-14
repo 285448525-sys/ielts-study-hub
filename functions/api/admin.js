@@ -39,7 +39,7 @@
 //   permcfg                            —— 11-14 第三批权限配置（perm_get/perm_set 读写，roles.js 读）：
 //                                          { user:{14 键 bool}, teacher:{14 键 bool} }，root 不进配置
 
-import { PERM_DEFAULTS } from './roles.js';   // 11-14 第三批：权限默认矩阵唯一权威来源（回落与校验共用一份）
+import { PERM_DEFAULTS, loadPermCfg } from './roles.js';   // 11-14 第三批：权限默认矩阵与配置校验唯一权威来源
 
 const CORS = {
   'access-control-allow-origin': '*',
@@ -819,30 +819,15 @@ export async function onRequest(context) {
      KV 写量：perm_set 每次点击 1 次（permcfg）+ 1 条审计 = 2 次，与 role_set 同量级。
      perm_get 零写、1 次读。 */
   if (action === 'perm_get') {
-    let raw = null;
-    try { raw = await kv.get('permcfg'); } catch (e) {}
-    let cfg = null;
-    if (raw) {
-      try {
-        const o = JSON.parse(raw);
-        if (o && typeof o === 'object' && !Array.isArray(o)) {
-          let good = true;
-          const out = {};
-          for (const r of ['user', 'teacher']) {
-            const src = o[r], dst = {};
-            if (!src || typeof src !== 'object' || Array.isArray(src)) { good = false; break; }
-            for (const k of Object.keys(PERM_DEFAULTS[r])) {
-              if (typeof src[k] !== 'boolean') { good = false; break; }
-              dst[k] = src[k];
-            }
-            if (!good || Object.keys(src).length !== Object.keys(PERM_DEFAULTS[r]).length) { good = false; break; }
-            out[r] = dst;
-          }
-          if (good) cfg = out;
-        }
-      } catch (e) { cfg = null; }
-    }
-    return json({ ok: true, cfg: cfg, source: cfg ? 'config' : 'defaults', defaults: PERM_DEFAULTS });
+    /* 与 /api/roles?action=perm 共用一份校验：配置坏了两边都整份回落，绝不半用 */
+    const p = await loadPermCfg(kv);
+    return json({
+      ok: true,
+      cfg: p.cfg,
+      source: p.source,
+      hasCfg: p.hasCfg,     // 区分「没保存过」与「保存过但坏了，当前按默认口径生效」
+      defaults: PERM_DEFAULTS
+    });
   }
 
   if (action === 'perm_set') {
