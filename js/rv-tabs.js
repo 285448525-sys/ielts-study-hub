@@ -11,10 +11,10 @@
        overall()/scores.js、examCountdown()/common.js、calcStreak()/common.js、
        DATA.sessions、DATA.mockRecords、RecAll.collect()。
      软导航契约：本文件会随每轮 window.eval 重跑，监听必须先 remove 再 add（bind()）。
-     // TODO: [待确认] 设计稿里的「导出」与「录入」：录入成绩复用站内既有 #rv2AddDialog 弹窗
-       （rvx-data.js:221 的 data-rv2-add 委托，本笔没动）；导出 PDF/CSV 她没点头，本笔不做。
-     // TODO: [待确认] 设计稿「分项 40 题答对数」是否真落库未核，本笔考试记录页直接复用
-       既有 #recAll（RecAll.collect()），不另造表、不编数字。
+     // 已定（11-14 口径落定，原「待确认」两处收口）：设计稿的「录入」复用站内既有 #rv2AddDialog 弹窗
+       （rvx-data.js:221 的 data-rv2-add 委托）；导出 PDF/CSV 她没点头，不做。
+       设计稿「分项 40 题答对数」不另落库，考试记录页直接复用既有 #recAll（RecAll.collect()），
+       不另造表、不编数字。
      REVIEW-POLISH-1（11-08 v821）：她「还是觉得设计稿的比较好看，再扣扣细节」。
      补齐设计稿标志性细节：结论条加 38px 图标 + 右侧按钮、总览两列（迷你走势 + 最近三次），
      数字仍全部现场算真字段。旧 .rv2-* 卡片皮肤统一由 review.html 页内 CSS 重皮，本文件不动 DOM/ID。 */
