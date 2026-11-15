@@ -25,6 +25,8 @@
 // 登录态**可选**：带 X-Session 且有效 → 记 acct；没带/失效也能提交（给 anon 短 id 便于辨识同一人）。
 // 绝不因「没登录」拒绝——反馈是低频善意的入口，把门关死只会让人转去微信。
 
+import { readSession } from './auth.js';
+
 const CORS = {
   'access-control-allow-origin': '*',
   'access-control-allow-methods': 'POST, OPTIONS',
@@ -162,13 +164,8 @@ export async function onRequest(context) {
 
   /* ---- 登录态（可选） ---- */
   let acct = null;
-  const tok = String(request.headers.get('X-Session') || '');
-  if (tok) {
-    try {
-      const s = JSON.parse((await kv.get('sess:' + tok)) || 'null');
-      if (s && s.acct) acct = String(s.acct).slice(0, 32);
-    } catch (e) {}
-  }
+  const sess = await readSession(kv, request);
+  if (sess) acct = String(sess.acct).slice(0, 90);
 
   /* ---- 落库 ---- */
   const id = String(seq + 1) + '-' + randId();

@@ -20,8 +20,10 @@
 //   GET /api/explain?unit=<unitId>            → 返回该篇允许看到的解析
 //   GET /api/explain?unit=<unitId>&meta=1     → 轻量探测 { has, free, paid }（不含正文）
 //
-// 鉴权：可选。带 X-Session（或 ?session=）且有效 → 允许 paid；否则只返回 free。
-//       与 /api/sync 同口径（查 KV 的 sess:<token> 解出账号）。
+// 鉴权：可选。带 X-Session（或 ?session=）且有效、并且会员未过期 → 允许 paid；
+//       否则只返回 free。与 /api/sync 共用统一登录凭证校验。
+
+import { readSession } from './auth.js';
 
 const CORS = {
   'access-control-allow-origin': '*',
@@ -40,22 +42,14 @@ function json(obj, status) {
   });
 }
 
-/* 从 KV 解出「当前请求是否具备付费权限」。
-   口径与 /api/sync 完全一致：sess:<token> → { acct }（10/21 账号收窄为邮箱-only，
-   老记录里可能还有 phone 字段，这里不再认——手机号通道前后端已整体删除）。
+/* 从统一登录凭证和会员记录解出「当前请求是否具备付费权限」。
    任何异常一律当作「无付费权限」（fail closed），绝不因为报错而放行。 */
-async function paidAllowed(env, sid) {
-  if (!sid || !/^[0-9a-f]{32,128}$/.test(sid)) return false;
+async function paidAllowed(env, request) {
   try {
-    const raw = await env.SYNC_KV.get('sess:' + sid);
-    if (!raw) return false;
-    const s = JSON.parse(raw);
-    const acct = String((s && s.acct) || '').trim();
-    if (!acct) return false;
-    /* 过期判断：sess 记录若有 exp 字段且已过期 → 拒绝。
-       老记录没有 exp（/api/auth 早期写入）时不判过期，与 sync 的口径保持一致。 */
-    if (s && s.exp != null && Number(s.exp) > 0 && Date.now() > Number(s.exp)) return false;
-    return true;
+    const sess = await readSession(env.SYNC_KV, request);
+    if (!sess) return false;
+    const v = JSON.parse((await env.SYNC_KV.get('vip:' + sess.acct)) || 'null');
+    return !!(v && v.expire && v.expire > Date.now());
   } catch (e) {
     return false;
   }
@@ -122,8 +116,7 @@ export async function onRequest(context) {
     return json({ ok: true, unit, has: total > 0, total, free, paid });
   }
 
-  const sid = (request.headers.get('X-Session') || url.searchParams.get('session') || '').trim();
-  const allowPaid = await paidAllowed(env, sid);
+  const allowPaid = await paidAllowed(env, request);
   const r = filterItems(items, allowPaid);
 
   return json({

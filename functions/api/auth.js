@@ -216,7 +216,7 @@ async function newSession(kv, acct) {
 }
 async function bumpAuthGen(kv, acct) {
   const gen = await authGenOf(kv, acct);
-  await kv.put('authgen:' + acct, String(gen + 1), { expirationTtl: SESS_TTL * 2 });
+  await kv.put('authgen:' + acct, String(gen + 1));
 }
 
 /* 从 body、X-Session 头或 ?session= 取 token；返回 sess 记录或 null。

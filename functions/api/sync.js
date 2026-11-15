@@ -29,6 +29,8 @@
 //
 // 部署：先建 KV 命名空间 + 在 wrangler.toml 绑定 SYNC_KV，再 `wrangler pages deploy .`
 
+import { readSession } from './auth.js';
+
 const CORS = {
   'access-control-allow-origin': '*',
   'access-control-allow-methods': 'GET, PUT, POST, DELETE, OPTIONS',
@@ -101,34 +103,14 @@ async function handleRequest(context) {
 
   const url = new URL(request.url);
 
-  // ⭐ 10/1 鉴权：X-Session 头（sendBeacon 兜底走 ?session= 参数）→ 查 sess:<token> → 解出账号。
+  // ⭐ 10/1 鉴权：X-Session 头（sendBeacon 兜底走 ?session= 参数）→ 统一查 session → 解出账号。
   //    无 token / token 过期 / 非法 → 401，前端据此提示重新登录（本机数据绝不动）。
-  const sid = (request.headers.get('X-Session') || url.searchParams.get('session') || '').trim();
-  if (!sid || !/^[0-9a-f]{32,128}$/.test(sid)) {
-    return json({ ok: false, error: 'unauthorized', msg: '未登录或登录已过期，请重新登录' }, 401);
-  }
-
   // KV 未绑定：给出明确提示而非抛错（避免浏览器收到无 CORS 头的 500 → Failed to fetch）
   if (!env || !env.SYNC_KV) {
     return json({ ok: false, error: '云端存储未启用（请在 Cloudflare Pages 设置里绑定 SYNC_KV 命名空间）' }, 503);
   }
-
-  /* 🔴🔴 10/16 修（她报「换成邮箱登录后一直显示未登录」）：
-     旧口径只认 /^[a-z0-9_]{6,20}$/（用户名/手机号）→ **邮箱账号的 session 在这里被判非法**
-     → 本接口一律 401「登录已过期」→ 前端 401 处理会 setAuthToken('') 把 token 清掉
-     → 侧栏立刻变回「未登录」。表现就是「怎么登录都显示没登录」，登录本身其实是成功的。
-     ⭐ 10/21：账号收窄为邮箱-only，正则随之收窄成纯邮箱（与 /api/auth、admin.js 三处同步）。
-     数据键命名空间：邮箱 → sync:e:<email> / meta:e:<email>；老手机号/用户名键名只读保留。 */
-  const ACCT_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-  let acct = '';
-  try {
-    const sRaw = await env.SYNC_KV.get('sess:' + sid);
-    if (sRaw) {
-      const s = JSON.parse(sRaw);
-      const a = String((s && s.acct) || '').trim().toLowerCase();
-      if (ACCT_RE.test(a)) acct = a;
-    }
-  } catch (e) {}
+  const sess = await readSession(env.SYNC_KV, request);
+  let acct = sess ? sess.acct : '';
   if (!acct) {
     return json({ ok: false, error: 'unauthorized', msg: '登录已过期，请重新登录' }, 401);
   }
@@ -216,7 +198,7 @@ async function handleRequest(context) {
     }
     const stored = {
       data: body.data,
-      ts: (body.ts != null && !isNaN(Number(body.ts))) ? Number(body.ts) : Date.now(),
+      ts: Date.now(),
       deviceId: body.deviceId || null,
       updatedAt: new Date().toISOString(),
     };
@@ -236,7 +218,7 @@ async function handleRequest(context) {
         return json({ ok: true, ts: stored.ts });
       }
     } catch (e) {
-      return json({ ok: false, error: 'KV 写入失败：' + (e && e.message ? e.message : String(e)) }, 500);
+      return json({ ok: false, error: '云端存储暂时写入失败，请稍后再试（本机数据不受影响）' }, 500);
     }
   }
 

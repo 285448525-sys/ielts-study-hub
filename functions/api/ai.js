@@ -48,13 +48,17 @@
      · 同源（Origin 的 host == 请求 host）→ 回显该 Origin；
      · 异源 → 置 'null'（浏览器直接拒绝，拦住「别的网站借用户浏览器调本站 AI」）；
      · 无 Origin（curl / 服务端脚本）→ 回 '*'，但这类请求**本来就不受 CORS 约束**，
-       所以那道闸（防盗刷额度）交给 Cloudflare Edge 的 Rate Limiting，不在这里假装能挡。 */
+       所以那道闸（防盗刷额度）交给 Cloudflare Edge 的 Rate Limiting，不在这里假装能挡。
+       ⚠️ 浏览器请求会带 X-Session，预检白名单必须包含它；按 Origin 变化回 Vary。 */
+import { readSession } from './auth.js';
+
 function corsHeaders(env) {
   return {
     'access-control-allow-origin': (env && env.__allowOrigin) || (env && env.AI_ALLOW_ORIGIN) || '*',
     'access-control-allow-methods': 'POST, OPTIONS',
-    'access-control-allow-headers': 'Content-Type',
+    'access-control-allow-headers': 'Content-Type, X-Session',
     'access-control-max-age': '86400',
+    'vary': 'Origin',
   };
 }
 
@@ -122,19 +126,6 @@ async function sumBuckets(kv, prefix, day) {
   return total;
 }
 
-/* 登录收口（她 10/1 拍板「必须登录才能用 AI」）：凭 X-Session 头查 sess:<token>，
-   与 /api/auth 的 session 同源。未登录 → 401 auth_required。 */
-async function sessAcctOf(kv, request) {
-  const tok = String(request.headers.get('X-Session') || '').trim();
-  if (!tok || !/^[0-9a-f]{32,128}$/.test(tok)) return null;
-  try {
-    const raw = await kv.get('sess:' + tok);
-    if (!raw) return null;
-    const s = JSON.parse(raw);
-    return (s && s.acct) || null;
-  } catch (e) { return null; }
-}
-
 export async function onRequest(context) {
   const { request } = context;
   /* 10/10 同源校验：没显式配 AI_ALLOW_ORIGIN 时，按「Origin 的 host 是否等于请求 host」判定，
@@ -162,7 +153,8 @@ export async function onRequest(context) {
   }
 
   /* 登录闸：未登录一律 401（先于 AI_API_KEY 检查——没配 Key 时也别给未登录用户探出任何信息） */
-  const acct = await sessAcctOf(env.SYNC_KV, request);
+  const sess = await readSession(env.SYNC_KV, request);
+  const acct = sess ? sess.acct : null;
   if (!acct) {
     return json({ ok: false, error: 'auth_required', msg: '请先登录，登录后即可使用 AI 功能' }, 401, env);
   }
@@ -356,14 +348,7 @@ export async function onRequest(context) {
 
   const text = await upstream.text();
   if (!upstream.ok) {
-    let detail = '';
-    try {
-      const j = JSON.parse(text);
-      const err = j && j.error;
-      detail = (typeof err === 'object' && err && err.message) ? err.message
-        : (typeof err === 'string' ? err : '') || (j && (j.message || j.detail)) || '';
-    } catch (e) { detail = text.slice(0, 200); }
-    return json({ ok: false, error: 'upstream_' + upstream.status, msg: detail || ('AI 服务返回 ' + upstream.status) }, (upstream.status === 429 ? 429 : 502), env);
+    return json({ ok: false, error: 'upstream_' + upstream.status, msg: 'AI 服务暂时不可用，请稍后再试' }, (upstream.status === 429 ? 429 : 502), env);
   }
 
   /* 只有真的拿到 2xx 才计额度：上游报错 / 超时 / Key 失效不该吃掉用户配额。

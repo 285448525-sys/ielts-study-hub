@@ -33,7 +33,7 @@
 // 账号格式：直接复用 /api/auth 的 ACCT_RE 与 acctKey()（**不在本文件重写正则**，
 //   历史上三处拷贝不同步 → 401 → token 被清）。
 
-import { ACCT_RE, acctKey } from './auth.js';
+import { ACCT_RE, acctKey, readSession } from './auth.js';
 
 const CORS = {
   'access-control-allow-origin': '*',
@@ -55,16 +55,8 @@ function json(obj, status) {
 
 /* 从 X-Session（sendBeacon 兜底 ?session=）解出邮箱；任何异常都返回空串（fail closed） */
 async function sessionEmail(request, env) {
-  try {
-    const url = new URL(request.url);
-    const sid = (request.headers.get('X-Session') || url.searchParams.get('session') || '').trim();
-    if (!sid || !/^[0-9a-f]{32,128}$/.test(sid)) return '';
-    const raw = await env.SYNC_KV.get('sess:' + sid);
-    if (!raw) return '';
-    const s = JSON.parse(raw);
-    const a = String((s && s.acct) || '').trim().toLowerCase();
-    return ACCT_RE.test(a) ? a : '';
-  } catch (e) { return ''; }
+  const sess = await readSession(env.SYNC_KV, request);
+  return sess ? sess.acct : '';
 }
 
 /* 读角色。只认两个合法值，其余（含读失败）一律当普通用户 —— 升级靠站长台显式写，不靠推断 */
@@ -306,6 +298,9 @@ function buildView(D) {
 export async function onRequest(context) {
   const { request, env } = context;
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
+  if (request.method !== 'GET' && request.method !== 'POST') {
+    return json({ ok: false, error: 'method not allowed' }, 405);
+  }
 
   try {
     if (!env || !env.SYNC_KV) return json({ ok: false, error: 'kv_not_bound', msg: '云端存储未绑定（SYNC_KV）' }, 503);

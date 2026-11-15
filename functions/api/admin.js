@@ -95,6 +95,16 @@ function randInviteCode() {
   return s;
 }
 
+function secretEqual(a, b) {
+  const aa = String(a || '');
+  const bb = String(b || '');
+  let diff = aa.length ^ bb.length;
+  for (let i = 0; i < Math.max(aa.length, bb.length); i++) {
+    diff |= (aa.charCodeAt(i) || 0) ^ (bb.charCodeAt(i) || 0);
+  }
+  return diff === 0;
+}
+
 /* KV list 分页拉全（她的量级远不到一页 1000，循环只是防御性兜底） */
 async function listAll(kv, prefix) {
   const out = [];
@@ -170,7 +180,9 @@ function weekOfDayKey(ds) {
    ⚠️ 不含任何密钥（X-Admin-Key 绝不入库）。 */
 async function audit(kv, act, detail) {
   try {
-    const id = Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+    const b = new Uint8Array(4);
+    crypto.getRandomValues(b);
+    const id = Date.now() + '-' + Array.from(b, v => v.toString(16).padStart(2, '0')).join('');
     const rec = { ts: Date.now(), act: act, detail: detail || {} };
     await kv.put('audit:' + id, JSON.stringify(rec), { expirationTtl: 31536000 });   // 留一年
   } catch (e) { /* 审计写失败绝不能连带失败主操作 */ }
@@ -277,7 +289,7 @@ export async function onRequest(context) {
   if (!env || !env.SYNC_KV) return json({ ok: false, error: 'kv_not_bound', msg: '云端存储未绑定（SYNC_KV）' }, 503);
   if (!env.ADMIN_KEY) return json({ ok: false, error: 'no_admin_key', msg: '未配置 ADMIN_KEY 环境变量（Cloudflare 后台 → Settings → Environment variables）' }, 503);
   const key = String(request.headers.get('X-Admin-Key') || '');
-  if (!key || key !== env.ADMIN_KEY) return json({ ok: false, error: 'forbidden', msg: '管理员密钥不正确' }, 401);
+  if (!key || !secretEqual(key, env.ADMIN_KEY)) return json({ ok: false, error: 'forbidden', msg: '管理员密钥不正确' }, 401);
 
   let body = {};
   try { body = await request.json(); } catch (e) {}
