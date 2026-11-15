@@ -7,16 +7,46 @@
 #   页面引用虽然都带 ?v=，但 _headers 只能按路径匹配、没法按 query 区分，
 #   所以改走「短缓存 + 必须校验」：正常访问命中 5 分钟强缓存，SW 装新版最迟 5 分钟必拿新文件。
 #
-# 安全头说明：全站未使用 getUserMedia / MediaRecorder / geolocation / camera
-#   （口语只用到 speechSynthesis 朗读，不需要麦克风权限），所以可以放心收紧。
-#   ⚠️ 将来若真要加录音功能，必须先把 microphone 从 Permissions-Policy 里放出来。
+# 安全头说明：当前口语功能以文字练习、AI 反馈和 speechSynthesis 朗读为主，
+#   不调用麦克风 / 摄像头 / 定位。microphone 允许本站页面使用，便于以后加录音自查；
+#   将来若引入第三方录音组件，再按实际来源收紧 allowlist。
 
 /*
   Content-Security-Policy: frame-ancestors 'none'
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
-  Permissions-Policy: microphone=(), camera=(), geolocation=()
+  Permissions-Policy: microphone=(self), camera=(), geolocation=()
+
+/home
+  Cache-Control: private, no-store
+  X-Robots-Tag: noindex
+/settings
+  Cache-Control: private, no-store
+  X-Robots-Tag: noindex
+/me
+  Cache-Control: private, no-store
+  X-Robots-Tag: noindex
+/teacher
+  Cache-Control: private, no-store
+  X-Robots-Tag: noindex
+/admin
+  Cache-Control: private, no-store
+  X-Robots-Tag: noindex
+/pay
+  Cache-Control: private, no-store
+  X-Robots-Tag: noindex
+/login
+  X-Robots-Tag: noindex
+
+/robots.txt
+  Cache-Control: public, max-age=3600, must-revalidate
+/sitemap.xml
+  Cache-Control: public, max-age=3600, must-revalidate
+  Content-Type: application/xml; charset=utf-8
+/404.html
+  Cache-Control: no-store
+  X-Robots-Tag: noindex
 
 /js/*
   Cache-Control: public, max-age=300, must-revalidate

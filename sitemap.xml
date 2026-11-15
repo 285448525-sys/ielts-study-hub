@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://yasihub.com/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
+  <url><loc>https://yasihub.com/beginner</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://yasihub.com/bank</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://yasihub.com/practice</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://yasihub.com/corpus</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://yasihub.com/writing</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://yasihub.com/speaking</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://yasihub.com/plans</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://yasihub.com/timer</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://yasihub.com/review</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://yasihub.com/materials</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://yasihub.com/announce</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>
+  <url><loc>https://yasihub.com/help</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>
+  <url><loc>https://yasihub.com/vip</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>
+  <url><loc>https://yasihub.com/legal</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+</urlset>

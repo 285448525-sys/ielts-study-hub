@@ -1,0 +1,20 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /api/
+Disallow: /errorbook.html
+Disallow: /functions/
+Disallow: /home
+Disallow: /login
+Disallow: /me
+Disallow: /meds
+Disallow: /pay
+Disallow: /settings
+Disallow: /teacher
+Disallow: /tests/
+Disallow: /scripts/
+Disallow: /design/
+Disallow: /plan/
+Disallow: /outputs/
+
+Sitemap: https://yasihub.com/sitemap.xml

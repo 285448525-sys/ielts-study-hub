@@ -40,7 +40,7 @@
 
 # 已下线页面的老链接兜底：在线直访时 302 回落到写作页，避免白屏或落到落地页。
 # 三条仅覆盖旧书签与旧缓存（sw.js 离线兜底同口径），不影响正常加载。
-/js/wrongbook.js      /writing.html  302
-/wrongbook.html       /writing.html  302
-/wrongbook            /writing.html  302
+/js/wrongbook.js      /writing  302
+/wrongbook.html       /writing  302
+/wrongbook            /writing  302
 

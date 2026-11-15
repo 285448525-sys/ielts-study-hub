@@ -16,13 +16,30 @@
 <!-- theme-color 跟全站 19 页一致用品牌色（手机地址栏染色）；页面底色由 CSS 单独走浅底 -->
 <meta name="theme-color" content="#3a9a93" />
 <title>雅思备考 Hub · 从今天的清单开始</title>
-<meta name="description" content="雅思机考备考系统：627 篇真题按机考界面做、89 条当季口语题卡、42 套写作模板带结构提示，AI 陪练与批改即时反馈，多设备云同步。" />
+<meta name="description" content="雅思机考备考系统：627 篇阅读与听力练习按机考界面做、89 条口语题卡、42 套写作模板带结构提示，AI 文字反馈与即时判分，多设备云同步。" />
 <link rel="canonical" href="https://yasihub.com" />
 <meta property="og:type" content="website" />
 <meta property="og:title" content="雅思备考 Hub · 从今天的清单开始" />
-<meta property="og:description" content="627 篇真题按机考界面做、89 条当季口语题卡、42 套写作模板，AI 陪练与批改即时反馈，多设备云同步。" />
+<meta property="og:description" content="627 篇阅读与听力练习、89 条口语题卡、42 套写作模板，AI 文字反馈与即时判分。" />
 <meta property="og:url" content="https://yasihub.com" />
-<meta name="twitter:card" content="summary" />
+<meta property="og:image" content="https://yasihub.com/icons/icon-512.png" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:image" content="https://yasihub.com/icons/icon-512.png" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebSite","name":"雅思备考 Hub","url":"https://yasihub.com/","description":"雅思机考备考系统：阅读与听力练习、口语题卡、写作模板、AI 文字反馈与学习记录。","inLanguage":"zh-CN"}
+</script>
+<script>
+/* 轻量验收计数：只记录当前浏览器，不联网、不进入学习数据、不改变界面。 */
+(function(){
+  try{
+    if (location.pathname === '/' || location.pathname === '/index.html') {
+      var stats = JSON.parse(localStorage.getItem('landing_demo_stats') || '{}');
+      stats.views = (Number(stats.views) || 0) + 1;
+      localStorage.setItem('landing_demo_stats', JSON.stringify(stats));
+    }
+  }catch(e){}
+})();
+</script>
 <script>
 /* 老用户自动跳过：本机已有学习数据 → 直接进学习主页。
    ⚠️ ?landing=1 强制看落地页（作者自己要看成果时用），否则永远看不到本页面。 */
@@ -30,7 +47,7 @@
   try{
     if(/[?&]landing=1/.test(location.search || '')) return;
     var raw = localStorage.getItem('ielts_study_hub_v1');
-    if(raw && raw.length > 200) location.replace('home.html');
+    if(raw && raw.length > 200) location.replace('/home');
   }catch(e){}
 })();
 </script>
@@ -236,23 +253,23 @@
 <header class="nav"><div class="wrap">
   <!-- 品牌标记 = 学士帽（与 favicon.svg / icons/ / 侧栏 / 登录页同一图形；10-22 她指出本页与
        首页顶栏原用「雅」字方框、与站点图标不一致 → 已统一）。换图形要连 favicon.svg + icons/ 一起换。 -->
-  <a class="brand" href="index.html"><i aria-hidden="true"><svg viewBox="0 0 512 512" width="100%" height="100%" fill="none" style="display:block" aria-hidden="true" focusable="false"><g fill="#ffffff" stroke="#ffffff" stroke-width="38" stroke-linejoin="round" stroke-linecap="round"><path d="M256 136L344 194 256 252 168 194Z"/><path d="M160 304L212 304 256 362 300 304 352 304 352 354Q352 394 256 394 160 394 160 354Z"/></g></svg></i>雅思备考 Hub</a>
+  <a class="brand" href="/"><i aria-hidden="true"><svg viewBox="0 0 512 512" width="100%" height="100%" fill="none" style="display:block" aria-hidden="true" focusable="false"><g fill="#ffffff" stroke="#ffffff" stroke-width="38" stroke-linejoin="round" stroke-linecap="round"><path d="M256 136L344 194 256 252 168 194Z"/><path d="M160 304L212 304 256 362 300 304 352 304 352 354Q352 394 256 394 160 394 160 354Z"/></g></svg></i>雅思备考 Hub</a>
   <nav class="links"><a href="#feat">它能干什么</a><a href="#ai">AI 能力</a><a href="#vs">两种做法</a><a href="#start">怎么开始</a></nav>
-  <a class="btn ghost" href="login.html">登录</a>
-  <a class="btn primary" href="home.html">进站用用看</a>
+  <a class="btn ghost" href="/login">登录</a>
+  <a class="btn primary" href="/home">进站用用看</a>
 </div></header>
 
 <main>
 <div class="hero"><div class="wrap hero-grid"><div>
   <div class="kicker">IELTS · 备考工具站</div>
   <h1>雅思备考，<br>从<em>今天的清单</em>开始</h1>
-  <p class="lead">这是作者自己备考时做出来的工具站：<b>627 篇真题、89 条口语题卡、42 套写作模板</b>，加上 AI 批改和陪练。每天照着清单做，做完打勾。</p>
+  <p class="lead">这是作者自己备考时做出来的工具站：<b>627 篇阅读与听力练习、89 条口语题卡、42 套写作模板</b>，加上 AI 文字批改和练习报告。每天照着清单做，做完打勾。</p>
   <div class="actions">
-    <a class="btn primary large" href="home.html">进站用用看 →</a>
+    <a class="btn primary large" href="/home">进站用用看 →</a>
     <a class="btn large" href="#feat">看它能干什么 ↓</a>
   </div>
   <div class="promises">
-    <span><svg class="tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12l4 4L19 6"/></svg><span><b>627 篇真题全配答案</b> · 按机考界面做，交卷即出分</span></span>
+    <span><svg class="tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12l4 4L19 6"/></svg><span><b>627 篇练习全配答案</b> · 按机考界面做，交卷即出分</span></span>
     <span><svg class="tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12l4 4L19 6"/></svg><span><b>多设备云同步</b> · 数据可导出，电脑背的手机接着复习</span></span>
     <span><svg class="tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12l4 4L19 6"/></svg><span><b>作者本人每天在用</b> · 自己备考时做的，功能都是自己用出来的</span></span>
   </div>
@@ -272,18 +289,18 @@
     <div class="p12-fb" id="p12Fb" aria-live="polite"></div>
     <div class="p12-foot" id="p12Foot" style="display:none">
       <button class="p12-again" id="p12Again" type="button">再试一次</button>
-      <a class="p12-cta" href="home.html">进站接着练 →</a>
+      <a class="p12-cta" href="/home">进站接着练 →</a>
     </div>
-    <div class="p12-note" id="p12Note">题目来自站里自建的口语句型库（通用虚构示例，不含真题、不含个人资料）；这一下不登录、不存任何学习数据。</div>
+    <div class="p12-note" id="p12Note">这是口语句型的演示小题（通用虚构示例，不代表考试真题、不含个人资料）；这一下不登录、不存任何学习数据。</div>
   </div>
 </div>
 </div></div>
 
 <div class="wrap"><div class="numbers">
-  <div class="number"><b>627</b><span>篇真题（阅读 280 · 听力 347），全部配答案可判分</span></div>
-  <div class="number"><b>89</b><span>条口语题卡 · P1 197 小题 / P2 56 张卡，当季大陆考区，按考频分档</span></div>
+  <div class="number"><b>627</b><span>篇阅读与听力练习（阅读 280 · 听力 347），全部配答案可判分</span></div>
+  <div class="number"><b>89</b><span>条口语题卡 · P1 197 小题 / P2 56 张卡，按练习频次分档</span></div>
   <div class="number"><b>42</b><span>套写作模板，带结构提示和骨架首句</span></div>
-  <div class="number"><b>4</b><span>科 AI 反馈：口语陪练 · 写作批改 · 串题思路 · 长难句解析</span></div>
+  <div class="number"><b>4</b><span>类 AI 反馈：口语文字反馈 · 写作批改 · 串题思路 · 长难句解析</span></div>
 </div></div>
 
 <section id="feat"><div class="wrap">
@@ -293,9 +310,9 @@
   <div class="grid">
     <div class="card"><div class="icon">词</div><h3>单词</h3><p>按间隔重复排每天的复习量；反复错的词，会再排进来。</p><small>间隔重复 · 可导入自己的词表</small></div>
     <div class="card"><div class="icon">句</div><h3>句子</h3><p>长难句逐句拆主干和修饰，配听写练习，写完当场对答案。</p><small>长难句 · 听写 · 当场对答案</small></div>
-    <div class="card"><div class="icon">说</div><h3>口语</h3><p>当季题卡按考频分档，P1 逐小题过，P2 按考试节奏计时练。</p><small>89 条当季题卡 · 按考频分档</small></div>
+    <div class="card"><div class="icon">说</div><h3>口语</h3><p>题卡按练习频次分档，P1 逐小题过，P2 按考试节奏计时练。</p><small>89 条口语题卡 · 按练习频次分档</small></div>
     <div class="card"><div class="icon">写</div><h3>写作</h3><p>每套模板带结构提示和骨架首句；可以先填空练，再整篇默写。</p><small>可填空练习 · 可整篇默写</small></div>
-    <div class="card"><div class="icon">考</div><h3>模考</h3><p>627 篇真题按机考界面做，交卷即出分。</p><small>阅读 280 · 听力 347 · 成绩进回顾</small></div>
+    <div class="card"><div class="icon">考</div><h3>模考</h3><p>627 篇阅读与听力练习按机考界面做，交卷即出分。</p><small>阅读 280 · 听力 347 · 成绩进回顾</small></div>
     <div class="card"><div class="icon">划</div><h3>计划</h3><p>每天一份清单，AI 按考试日期排；没做完的顺延到明天。</p><small>每项带时长和完成标准</small></div>
     <div class="card"><div class="icon">时</div><h3>时长记录</h3><p>打开任何模块就开始计时，练了多久、练的什么，自动归到对应模块。</p><small>全自动 · 不用手动开表</small></div>
     <div class="card"><div class="icon">顾</div><h3>回顾</h3><p>模考成绩和练习轨迹收在一处；多设备云同步，数据可导出。</p><small>成绩轨迹 · 云同步 · 可导出</small></div>
@@ -307,7 +324,7 @@
   <h2>AI 在这里做四件事</h2>
   <p class="sec-intro">给反馈、指出问题、提供思路——练完马上有，不用等谁有空。</p>
   <div class="grid">
-    <div class="card"><div class="icon">01</div><h3>口语陪练</h3><p>陪你练当季题卡，说完给出模考报告——流利、词汇、语法、发音四个维度。</p><small>练完即出报告</small></div>
+    <div class="card"><div class="icon">01</div><h3>口语练习</h3><p>按题卡整理文字回答，给出词汇、语法与表达结构反馈；发音项支持自评分记录。</p><small>练完即出报告</small></div>
     <div class="card"><div class="icon">02</div><h3>写作批改</h3><p>逐句点评，指出哪句有什么问题；四项评分各附理由。</p><small>逐句点评 · 四项评分</small></div>
     <div class="card"><div class="icon">03</div><h3>串题思路</h3><p>遇到新题，给出「你的素材怎么嵌进去」的几行思路；套不上就直说。</p><small>一段经历 · 一组话题</small></div>
     <div class="card"><div class="icon">04</div><h3>长难句解析</h3><p>把长句拆成主干、修饰和逻辑信号，看清这句在讲什么。</p><small>拆主干 · 看结构</small></div>
@@ -346,22 +363,32 @@
 <section class="final"><div class="wrap">
   <h2>先进站用用看</h2>
   <p>今天的清单已经排好。合不合适，练一天就知道。</p>
-  <div class="actions"><a class="btn primary large" href="home.html">进站用用看 →</a></div>
-  <p class="fine">数据默认存在本机，多设备同步需登录 · <a href="legal.html">用户协议与隐私</a></p>
+  <div class="actions"><a class="btn primary large" href="/home">进站用用看 →</a></div>
+  <p class="fine">数据默认存在本机，多设备同步需登录 · <a href="/legal">用户协议与隐私</a></p>
 </div></section>
 </main>
 
 <footer class="foot">
-  <div class="wrap"><span>雅思备考 Hub · yasihub.com</span><a href="legal.html">用户协议与隐私</a></div>
+  <div class="wrap"><span>雅思备考 Hub · yasihub.com</span><a href="/legal">用户协议与隐私</a></div>
   <div class="wrap"><p class="copyright">© 2026 雅思备考 Hub · 界面与代码为本站开发并保留相应权利；站内学习内容供个人备考练习使用。</p></div>
 </footer>
 
 <script>
 /* P1-2（11-11）：落地页右栏「先试一题」——免注册真点一下，当场判对错。
-   题目取自 data/sentences.json 的 s_c1_1（通用虚构示例，来源干净，不含真题与个人资料）。
-   纯前端判定：不写任何学习数据、不注册、不请求后端；左栏与整页其它部分一行未动。 */
+   题目取自 data/sentences.json 的 s_c1_1（通用虚构示例，不代表考试真题、不含个人资料）。
+   纯前端判定：不写任何学习数据、不注册、不请求后端；左栏与整页其它部分一行未动。
+   11-15 补轻量验收计数：只累计当前浏览器的落地页曝光、小题点击与对错，
+   数据保存在独立的 localStorage 键，不上传、不进入学习主页、不改变界面。 */
 (function(){
   var picked = null;
+  var STATS_KEY = 'landing_demo_stats';
+  function bump(field){
+    try{
+      var stats = JSON.parse(localStorage.getItem(STATS_KEY) || '{}');
+      stats[field] = (Number(stats[field]) || 0) + 1;
+      localStorage.setItem(STATS_KEY, JSON.stringify(stats));
+    }catch(e){}
+  }
   var FB = {
     a: { ok:1, html:'<b>答对了。</b>「I\'d like to + 动词原形」后面接 talk，这句能直接套到任何 P2 话题的开头 —— 站里口语句型库就是按这种「万能句 + 换主题」排的。<span class="p12-src">进站后这类开头句会按你选的话题自动换词。</span>' },
     b: { ok:0, html:'<b>差一点。</b>like to 后面要接动词原形（talk），不能说 to talking —— 这正是很多人开口第一句最容易滑的地方。<span class="p12-src">这类错句多练几遍就能避开。</span>' },
@@ -380,6 +407,8 @@
     if (picked) return;
     picked = k;
     var f = FB[k];
+    bump('clicks');
+    bump(f.ok ? 'correct' : 'wrong');
     opts.forEach(function(b){
       b.disabled = true;
       if (b.getAttribute('data-k') === k) b.className = 'p12-opt ' + (f.ok ? 'pick-ok' : 'pick-bad');
