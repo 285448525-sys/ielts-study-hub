@@ -5,7 +5,7 @@
 //   · email_code      给邮箱发 6 位验证码（Resend；60s 冷却 / 每天 5 封）
 //   · email_register  邮箱 + 验证码 + 密码 + 邀请码(选填) → PBKDF2 存哈希（绝不存明文）
 //   · login           邮箱 + 密码 → 验密码，发 30 天 session token（/api/sync 凭 X-Session 读写）
-//   · change          登录态下验旧密码 → 换新密码（session 保留，其他设备不受影响）
+//   · change          登录态下验旧密码 → 换新密码（旧登录凭证全部失效，需重新登录）
 //   · email_reset     邮箱 + 验证码 → 重设密码（忘了密码的唯一自救路）
 //   · logout          删 session
 //   已删除：老的 `action:'register'`（手机号/用户名 + 密码）与 body.phone 兼容入参。
@@ -23,6 +23,8 @@
 //   user:<acct>    —— 10/21 前手机号/用户名账号的老记录，只读保留、不再写入（见下方兼容口径）
 //   sess:<token>   { acct }                           —— TTL 30 天（30 天后需重新登录）
 //   fail:<acct>    登录失败计数（10 次锁 15 分钟，防在线爆破；TTL 自愈）
+//   authgen:<acct> 登录代次（改密/找回后 +1，旧登录凭证立即失效）
+//   ecfail:<email> 邮箱验证码失败计数（10 次锁 15 分钟；TTL 自愈）
 //   inv:<CODE>     { max, used, created, vipDays? }      —— 邀请码（注册选填；vipDays=送会员天数；无 TTL）
 //   数据键 sync:e:<email> / meta:e:<email> 归 /api/sync 管。
 //
@@ -50,6 +52,8 @@ const PBKDF2_ITER = 100000;
 const SESS_TTL = 30 * 24 * 3600;          // session 30 天
 const LOCK_TTL = 15 * 60;                 // 失败锁定 15 分钟
 const MAX_FAILS = 10;
+const CODE_FAIL_TTL = 15 * 60;            // 邮箱验证码失败锁定 15 分钟
+const MAX_CODE_FAILS = 10;
 /* 10/13 注册限流：邮箱验证码挡假邮箱；一人拿一批真邮箱仍可批量注册薅邀请 → 同 IP 每日上限 */
 const REG_PER_IP_PER_DAY = 10;
 // ⭐ 10/21 她拍板：账号只能是邮箱。手机号/用户名注册登录前后端全删，正则收窄成纯邮箱。
@@ -58,7 +62,7 @@ const REG_PER_IP_PER_DAY = 10;
    不许在别的接口里再写一份正则（历史上三处拷贝不同步 → 401 → token 被清）。 */
 export const ACCT_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
-/* ===== 邀请裂变常量与工具（10/13 她拍板）=====
+/* ===== 邀请裂变常量与工具（10/13 她拍板） ===== */
 const INVITE_REWARD_DAYS = 7;    /* 双方各得 7 天 */
 const INVITE_CAP_DAYS = 30;      /* 每人累计收益上限 30 天（≈ 最多邀 4 人） */
 
@@ -142,6 +146,21 @@ function randHex(nBytes) {
   crypto.getRandomValues(b);
   return bufToHex(b);
 }
+function secureSixDigitCode() {
+  const b = new Uint8Array(4);
+  crypto.getRandomValues(b);
+  const v = new DataView(b.buffer).getUint32(0, false);
+  return String(100000 + (v % 900000));
+}
+function hashEqual(a, b) {
+  const aa = String(a || '');
+  const bb = String(b || '');
+  let diff = aa.length ^ bb.length;
+  for (let i = 0; i < Math.max(aa.length, bb.length); i++) {
+    diff |= (aa.charCodeAt(i) || 0) ^ (bb.charCodeAt(i) || 0);
+  }
+  return diff === 0;
+}
 /* 🔴 10/5 16:45 CPU 超限保护：
    Workers 免费版 CPU 限额很小，PBKDF2 迭代一高就抛 "error code: 1101"（裸 500，前端只看到
    "Failed to load resource: 500"，完全不知道发生了什么）。
@@ -172,18 +191,57 @@ async function failLock(kv, kind, acct, fails) {
 }
 const failClear = (kv, kind, acct) => kv.delete('fail' + kind + ':' + acct).catch(() => {});
 
-/* 从 body 或 X-Session 头取 token；返回 sess 记录或 null */
-async function sessionOf(kv, request, body) {
-  const tok = String((request.headers.get('X-Session') || (body && body.token) || '')).trim();
+async function codeFailLocked(kv, email) {
+  const key = 'ecfail:' + email;
+  try { return (parseInt((await kv.get(key)) || '0', 10) || 0) >= MAX_CODE_FAILS; }
+  catch (e) { return false; }
+}
+async function codeFailAdd(kv, email) {
+  const key = 'ecfail:' + email;
+  try {
+    const n = (parseInt((await kv.get(key)) || '0', 10) || 0) + 1;
+    await kv.put(key, String(n), { expirationTtl: CODE_FAIL_TTL });
+  } catch (e) {}
+}
+const codeFailClear = (kv, email) => kv.delete('ecfail:' + email).catch(() => {});
+
+async function authGenOf(kv, acct) {
+  try { return parseInt((await kv.get('authgen:' + acct)) || '0', 10) || 0; } catch (e) { return 0; }
+}
+async function newSession(kv, acct) {
+  const gen = await authGenOf(kv, acct);
+  const token = randHex(32);
+  await kv.put('sess:' + token, JSON.stringify({ acct, gen }), { expirationTtl: SESS_TTL });
+  return token;
+}
+async function bumpAuthGen(kv, acct) {
+  const gen = await authGenOf(kv, acct);
+  await kv.put('authgen:' + acct, String(gen + 1), { expirationTtl: SESS_TTL * 2 });
+}
+
+/* 从 body、X-Session 头或 ?session= 取 token；返回 sess 记录或 null。
+   公开导出给其他 /api/* 复用：统一校验 token 格式、账号格式、显式过期与登录代次。 */
+export async function readSession(kv, request, body) {
+  let tok = String((request.headers.get('X-Session') || (body && body.token) || '')).trim();
+  if (!tok && request && request.url) {
+    try { tok = String(new URL(request.url).searchParams.get('session') || '').trim(); } catch (e) {}
+  }
   if (!tok || !/^[0-9a-f]{32,128}$/.test(tok)) return null;
   try {
     const raw = await kv.get('sess:' + tok);
     if (!raw) return null;
     const s = JSON.parse(raw);
     const acct = String((s && s.acct) || '').trim().toLowerCase();
-    return (acct && ACCT_RE.test(acct)) ? { acct, tok } : null;
+    if (!acct || !ACCT_RE.test(acct)) return null;
+    if (s && s.exp != null && Number(s.exp) > 0 && Date.now() > Number(s.exp)) return null;
+    const gen = await authGenOf(kv, acct);
+    const sessGen = parseInt((s && s.gen) || '0', 10) || 0;
+    if (sessGen !== gen) return null;
+    return { acct, tok };
   } catch (e) { return null; }
 }
+
+const sessionOf = readSession;
 
 /* 🔴 10/5 16:45 全局兜底：任何未捕获异常都返回人话 JSON，不再抛裸 500。
    背景：Workers 免费版 CPU 超限时抛 `error code: 1101`，浏览器只看到
@@ -282,15 +340,14 @@ async function handleRequest(context) {
       }
       /* 其他异常：放弃这把锁（TTL 只有 5 秒，损失极小），不让用户卡在 500 */
     }
-    const code = String(Math.floor(Math.random() * 900000) + 100000);
+    const code = secureSixDigitCode();
     /* 发信（Resend REST）。🔴 10/22 改顺序：**先发信、成功后才写 KV**（码/冷却/当日计数）。
        失败只删发送锁，用户可立刻重试；不再出现「没发出去却锁 60 秒」。
-       真因也带回人话 + code —— 以前只给「稍后再试」，她朋友连试三次白等，还被误导去等冷却。
+        错误原因改成人话 + code；上游原文不再回浏览器，避免把邮件服务细节带出去。
        🔴 10/16 修（线上 email_code 实测：合法邮箱稳定 502，20 秒无响应被 CF 掐断）：
        原实现 fetch **没有超时**，上游一旦不响应（额度/密钥/DNS 任一异常），Worker 会一直挂到
        被 CF 强制断开 → 返回的是 CF 自己的 502 纯文本页（不是我们的 JSON）→ 前端连错误码都拿不到，
-       邮箱注册整条路走不通，且无从定位。现在 10s 超时 + 把上游状态码与响应片段带回 detail
-       （前端只显示 msg；detail 只用于后台/探针定位真因）。 */
+        邮箱注册整条路走不通，且无从定位。现在 10s 超时 + 返回可读错误码，不回上游原文。 */
     const clearLock = async () => { if (!locked) return; try { await kv.delete(lockKey); } catch (e) {} };
     const ctrl = new AbortController();
     const _to = setTimeout(function(){ try{ ctrl.abort(); }catch(e){} }, 10000);
@@ -298,15 +355,11 @@ async function handleRequest(context) {
        这不是稍后能好的问题（不发到任何人），必须讲清楚，别让人反复干等。 */
     const mailFail = (status, text) => {
       const t = String(text || '');
-      const detail = ('HTTP ' + status + ' ' + t).slice(0, 240);
       if (status === 403 && /can only send testing emails/i.test(t)) {
         return { error: 'mail_domain_unverified', code: 'mail_domain_unverified',
-          detail,
           msg: '发件域名还没验证，现在只能发到站长本人邮箱。站长需去 resend.com/domains 验证域名后，把 MAIL_FROM 换成该域名的地址' };
       }
-      const m = /HTTP (\d{3})/.exec(detail);
-      return { error: 'mail_failed', code: 'resend_' + (m ? m[1] : (status || 'unknown')),
-        detail,
+      return { error: 'mail_failed', code: 'resend_' + (status || 'unknown'),
         msg: '验证码没发出去（邮件服务返回 ' + status + '），稍后再试' };
     };
     try {
@@ -335,7 +388,7 @@ async function handleRequest(context) {
            只看到「网络异常」，mail_domain_unverified 这些人话一条都显示不出来。
            发信失败是**业务错误**不是网关错误 → 统一用 200 + ok:false，
            让主域名也原样透传我们的 JSON（cf-cache-status: DYNAMIC 不影响 200）。 */
-        return json({ ok: false, error: f.error, code: f.code, detail: f.detail, msg: f.msg });
+        return json({ ok: false, error: f.error, code: f.code, msg: f.msg });
       }
       /* 走到这里 = 邮件服务已接收（真正发没发到由 Resend 负责，这里以 2xx 为准）。
          下面的 KV 写入才是「这封真的算发过」的记账。 */
@@ -344,10 +397,9 @@ async function handleRequest(context) {
       await clearLock();
       const abort = e && e.name === 'AbortError';
       const f = { error: 'mail_failed', code: abort ? 'resend_timeout' : 'resend_network',
-        detail: String((e && (e.name || e.message)) || e).slice(0, 160),
         msg: abort ? '验证码没发出去（邮件服务 10 秒没响应），稍后再试'
                   : '验证码没发出去（网络问题），稍后再试' };
-      return json({ ok: false, error: f.error, code: f.code, detail: f.detail, msg: f.msg });
+      return json({ ok: false, error: f.error, code: f.code, msg: f.msg });
     }
     /* 发信成功：现在才写三个键（顺序 = 码 → 冷却 → 当日计数）。
        ⚠️ 这里不能失败：码已进用户邮箱，写不进去就验不了。写入抛异常（配额满）时
@@ -383,10 +435,15 @@ async function handleRequest(context) {
     if (badPass(password)) {
       return json({ ok: false, error: 'bad_password', msg: '密码至少 6 位（最长 64 位）' }, 400);
     }
+    if (await codeFailLocked(kv, email)) {
+      return json({ ok: false, error: 'code_locked', msg: '尝试次数过多，请 15 分钟后再试' }, 429);
+    }
     const saved = await kv.get('ec:' + email);
     if (!saved || saved !== code) {
+      await codeFailAdd(kv, email);
       return json({ ok: false, error: 'bad_code', msg: '验证码不对或已过期，重新发一个试试' }, 400);
     }
+    await codeFailClear(kv, email);
     const acct = email;   /* 键名前缀由 acctKey 统一加，这里存裸邮箱 */
     /* 幂等：已注册过的邮箱直接提示去登录，不覆盖已有哈希（防重复注册把老号洗掉） */
     let exist = null;
@@ -427,8 +484,7 @@ async function handleRequest(context) {
        码 = 邮箱哈希，不可逆，所以正查一遍存下来（幂等，重复注册不覆盖）。 */
     try { await kv.put('inv2e:' + await inviteCodeOf(kv, acct), acct); } catch (e) {}
     /* 注册即登录：直接发 session，前端少一步 */
-    const token = randHex(32);
-    await kv.put('sess:' + token, JSON.stringify({ acct }), { expirationTtl: SESS_TTL });
+    const token = await newSession(kv, acct);
     return json({ ok: true, token, acct: email, isNew: true, msg: '注册成功，已自动登录' });
   }
 
@@ -442,13 +498,12 @@ async function handleRequest(context) {
     try { rec = JSON.parse((await kv.get(acctKey(acct))) || 'null'); } catch (e) {}
     if (!rec) return json({ ok: false, error: 'no_user', msg: '这个邮箱还没注册过，先注册（收一次验证码）再登录' }, 404);
     const h = await pbkdf2(password, rec.salt);
-    if (h !== rec.hash) {
+    if (!hashEqual(h, rec.hash)) {
       await failLock(kv, '', acct, true);
       return json({ ok: false, error: 'bad_credentials', msg: '账号或密码不正确' }, 401);
     }
     await failClear(kv, '', acct);
-    const token = randHex(32);
-    await kv.put('sess:' + token, JSON.stringify({ acct }), { expirationTtl: SESS_TTL });
+    const token = await newSession(kv, acct);
     /* 会员状态随登录响应下发（10/1 晚框架）：vip:<acct> 只在服务端（面板发放），
        前端只读不可改；未开通/已过期 → vip: null。 */
     let vip = null;
@@ -470,8 +525,9 @@ async function handleRequest(context) {
     try { rec = JSON.parse((await kv.get(acctKey(sess.acct))) || 'null'); } catch (e) {}
     if (!rec) return json({ ok: false, error: 'no_user', msg: '账号异常（无密码记录）' }, 404);
     const oldH = await pbkdf2(oldPassword, rec.salt);
-    if (oldH !== rec.hash) return json({ ok: false, error: 'bad_old', msg: '当前密码不正确' }, 401);
+    if (!hashEqual(oldH, rec.hash)) return json({ ok: false, error: 'bad_old', msg: '当前密码不正确' }, 401);
     const salt = randHex(16);
+    await bumpAuthGen(kv, sess.acct);
     rec.salt = salt;
     rec.hash = await pbkdf2(newPassword, salt);
     await kv.put(acctKey(sess.acct), JSON.stringify(rec));
@@ -491,10 +547,15 @@ async function handleRequest(context) {
     if (badPass(password)) {
       return json({ ok: false, error: 'bad_password', msg: '新密码至少 6 位（最长 64 位）' }, 400);
     }
+    if (await codeFailLocked(kv, email)) {
+      return json({ ok: false, error: 'code_locked', msg: '尝试次数过多，请 15 分钟后再试' }, 429);
+    }
     const saved = await kv.get('ec:' + email);
     if (!saved || saved !== code) {
+      await codeFailAdd(kv, email);
       return json({ ok: false, error: 'bad_code', msg: '验证码不对或已过期，重新发一个试试' }, 400);
     }
+    await codeFailClear(kv, email);
     const key = acctKey(email);          /* 邮箱账号 → user:e:<email> */
     let rec = null;
     try { rec = JSON.parse((await kv.get(key)) || 'null'); } catch (e) {}
@@ -502,6 +563,7 @@ async function handleRequest(context) {
       return json({ ok: false, error: 'no_user', msg: '这个邮箱还没注册过，先去注册' }, 404);
     }
     const salt = randHex(16);
+    await bumpAuthGen(kv, email);
     rec.salt = salt;
     rec.hash = await pbkdf2(password, salt);
     try { await kv.put(key, JSON.stringify(rec)); } catch (e) {
@@ -510,7 +572,7 @@ async function handleRequest(context) {
       }
       throw e;
     }
-    /* 重置后把该账号的 session 全清掉（防旧密码的登录态继续有效） */
+    /* 上面已递增登录代次：所有旧登录凭证立即失效（防旧密码的登录态继续有效） */
     try { await kv.delete('ec:' + email); } catch (e) {}
     return json({ ok: true, msg: '密码已重置，用新密码登录吧' });
   }
@@ -532,7 +594,7 @@ async function handleRequest(context) {
       const st = JSON.parse((await kv.get('invst:' + sess.acct)) || 'null');
       if (st) { invited = st.invited || 0; earnedDays = st.earnedDays || 0; }
     } catch (e) {}
-    return json({ ok: true, code, invited, earnedDays, capDays: 30, rewardDays: 7 });
+    return json({ ok: true, code, invited, earnedDays, capDays: INVITE_CAP_DAYS, rewardDays: INVITE_REWARD_DAYS });
   }
 
   /* ---------- 查询某个邀请码是否有效（注册页实时校验用，不需要登录）----------
@@ -549,10 +611,10 @@ async function handleRequest(context) {
       const st = JSON.parse((await kv.get('invst:' + acct)) || 'null');
       if (st) earnedDays = st.earnedDays || 0;
     } catch (e) {}
-    /* 字面量 30/7（与 my_invite 同口径）；战绩读不到按 0 算 —— 码有效就放行，不因统计失败卡住注册 */
-    const remaining = Math.max(0, 30 - earnedDays);
+    /* 与 my_invite 共用常量；战绩读不到按 0 算 —— 码有效就放行，不因统计失败卡住注册 */
+    const remaining = Math.max(0, INVITE_CAP_DAYS - earnedDays);
     return json({ ok: true, valid: true, remainingDays: remaining,
-      msg: remaining > 0 ? ('有效 · 对方还能再邀 ' + Math.floor(remaining / 7) + ' 人') : '对方邀请额度已用完' });
+      msg: remaining > 0 ? ('有效 · 对方还能再邀 ' + Math.floor(remaining / INVITE_REWARD_DAYS) + ' 人') : '对方邀请额度已用完' });
     } catch (e) {
       return json({ ok: false, error: 'check_failed', msg: '这个邀请码暂时查不了，稍后再试' }, 500);
     }
