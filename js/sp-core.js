@@ -2,7 +2,7 @@
    sp-core.js · 口语页「筛选与频次」工具域（T-009 S-1 从 js/speaking.js 原样搬出）
    --------------------------------------------------------------------------
    来源区块：方案 §1.2 的 C 区（原 552-613 行，现 572-633）
-   函数：populateFreqOptions / getFiltered / freqTag / refreshStateOptions
+   函数：populateFreqOptions / getFiltered / freqTag
 
    🔴 只换文件住址，函数体一个字没改（T-009 红线）。
    🔴 文件里所有顶层声明一律用 var / function 声明 —— 软导航用 window.eval 逐文件重跑，
@@ -27,7 +27,7 @@ var curType = 'ALL';   // 题库 tab 合并 P1+P2（'ALL'）；P1/P2 仅保留�
 var curFreq = 'all';
 var curCat = 'all';
 var curPart = 'all';
-var curState = 'all';   // design/88：练习状态筛选 all/new/done
+var curState = 'new';   // 默认只看没练过的题
 var curSearch = '';
 var curDetailId = null;
 
@@ -145,7 +145,7 @@ function spRandomPick(){
    放在 ready 之后（函数体内）会导致首屏 SP_FREQ_GROUPS === undefined → .filter 抛错、列表空白。 */
 var SP_FREQ_GROUPS = [
   { key:'ultra',  label:'必考题', desc:'每场必考，优先背',        icon:'cap',   freqs:['ultra'],  open:true  },
-  { key:'high',   label:'高频',   desc:'考场常见题，值得练熟',    icon:'chart', freqs:['high'],   open:true  },
+  { key:'high',   label:'高频',   desc:'考场常见题，值得练熟',    icon:'chart', freqs:['high'],   open:false },
   { key:'medium', label:'中频',   desc:'近期有考，建议过一遍',    icon:'arrow', freqs:['medium'], open:false },
   { key:'low',    label:'低频',   desc:'考场很少遇到',            icon:'arrow', freqs:['low'],    open:false },
 ];
@@ -186,25 +186,6 @@ function getFiltered(){
 function freqTag(freq){
   const label = (typeof FREQ_LABEL !== 'undefined' && FREQ_LABEL[freq]) || freq;
   return '<span class="sp-tag freq-' + freq + '">' + label + '</span>';
-}
-
-/* design/88：状态下拉选项带题数。
-   题数口径：按「当前其他筛选（类型/优先级/分类/Part）已生效后」的剩余池统计，
-   不含 curState 自身（否则选了「未练过」后列表只剩 new，done 永远显示 0 就没意义了）。
-   跟随 renderList 调用，Part/优先级/分类切换时自动刷新。 */
-function refreshStateOptions(){
-  const sel = $('#stateSelect');
-  if(!sel) return;
-  // 复刻 getFiltered 但跳过 curState 过滤
-  let pool = DATA.speaking.filter(s => (curType === 'ALL' || s.type === curType) && !s.framework && !/^sp_p[12]_\d+$/.test(s.id || ''));
-  if(curFreq !== 'all') pool = pool.filter(s => s.frequency === curFreq);
-  if(curCat !== 'all') pool = pool.filter(s => s.category === curCat);
-  if(curPart !== 'all') pool = pool.filter(s => s.type === curPart);
-  let nDone = 0, nNew = 0;
-  pool.forEach(s => { if(getPracticeCount(s) > 0) nDone++; else nNew++; });
-  const oNew = sel.querySelector('option[value="new"]'), oDone = sel.querySelector('option[value="done"]');
-  if(oNew) oNew.textContent = '未练过（' + nNew + ' 题）';
-  if(oDone) oDone.textContent = '已练过（' + nDone + ' 题）';
 }
 
 function tagsHtml(s){

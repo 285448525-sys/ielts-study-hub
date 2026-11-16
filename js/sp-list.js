@@ -9,7 +9,7 @@
    🔴 所有顶层声明一律 var / function —— 软导航用 window.eval 逐文件重跑，
       const 只活在那一次 eval 的词法作用域，到了别的文件里就是 undefined。
    依赖（全是运行时调用，文件全部载完才在 ready() 里跑，故本文件可先加载）：
-        sp-core.js  → getFiltered / refreshStateOptions / tagsHtml
+        sp-core.js  → getFiltered / tagsHtml
         sp-stats.js → getAggScore / getPracticeCount / scoreBadgeHtml / scoreLabel / scoreScopeTip
         speaking.js → 全局 var（curType/curFreq/...）、SP_FREQ_GROUPS / SP_ICONS / __clearP2Timer
         sp-detail.js / sp-story.js → openDetail / spBackToListWithFeedback / gotoNextTopic / speakQuestion
@@ -128,8 +128,6 @@ function renderSpkinfo(){
 function renderList(){
   renderCockpit();   // T-004：驾驶舱跟着筛选一起刷新（已练/进度会变）
   renderSpkinfo();   // SPK-INFO-1：折叠标里的「上次更新」跟着 META 现读
-  // design/88：状态下拉选项带题数（跟随其他筛选刷新，题数按当前其他筛选已生效后的剩余池统计）
-  refreshStateOptions();
   const list = getFiltered();
   const container = $('#spList');
   if(list.length === 0){
@@ -144,22 +142,7 @@ function renderList(){
   });
   /* W-SPCRD-1（10-25）：题卡上的「练这道题」已撤，这段 [data-drill] 绑定随之删除。
      🔴 js/coach.js 的 __coachDrill / drillById 一行未动 —— 陪练页那条链路还在用。 */
-  // 10/3 B 版分组面板：折叠头绑一下（面板用 <details>，原生展开收起不需 JS，这里只做「组内全选」入口透传）
-  container.querySelectorAll('.sp-panel-head').forEach(h => {
-    h.addEventListener('click', ev => {
-      // 点组名= 折叠/展开；点「全部开始」= 打开组内第一题（不是真的批量开始，批量学习是另的事）
-      if(ev.target.closest('.sp-panel-go')) return;
-      const d = h.parentElement;
-      const b = d.querySelector('details > summary');
-      if(b) b.open = !b.open;
-    });
-  });
-  /* W-SPCRD-1（10-25）：分组标题右侧的「全部开始」已撤，这段 [data-gstart] 绑定随之删除。
-     组标题仍可点开/收起（下面那段 .sp-panel-head 的折叠逻辑原样保留）。 */
-  /* T-004：单组兜底标题的「全部展开」→ 单组时列表本来就是全展开，按钮只做视觉反馈（刷新） */
-  container.querySelectorAll('[data-more]').forEach(b => {
-    b.addEventListener('click', ev => { ev.stopPropagation(); ev.preventDefault(); renderList(); });
-  });
+  // <details>/<summary> 本身负责展开收起，不能再叠一层 click 切换（会双触发、点了没反应）。
 }
 /* ============================================================
    10/3 B 版「双栏工作台」下方：按频次分三段折叠面板（她选的合并版= A 工具条 + B 分组）
@@ -170,36 +153,17 @@ function renderList(){
    ============================================================ */
 function renderGrouped(list){
   const used = SP_FREQ_GROUPS.filter(g => list.some(s => g.freqs.indexOf(s.frequency) >= 0));
-  if(used.length <= 1){
-    // 只有一组（或零组）时不做分组壳，省一层无意义的折叠
-    /* T-004：单组时也要有分组标题（block-h），否则题卡直接裸在页面上缺上下文。
-       标题 = 该组的 label + desc；「更多」= 展开该组全部（单组时本来就是全展开，按钮退化为刷新列表）。 */
-    if(used.length === 1){
-      const g = used[0];
-      return '<div class="sp-block-h">'
-        + '<span class="sp-panel-caret" aria-hidden="true" style="visibility:hidden">▶</span>'
-        + '<svg class="sp-panel-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + SP_ICONS[g.icon] + '</svg>'
-        + '<h3>' + g.label + '</h3>'
-        + '<span class="desc">' + list.length + ' 题 · ' + g.desc + '</span>'
-        + '<span class="spacer"></span>'
-        + '<button type="button" class="more" data-more="' + escapeHtml(g.key) + '">全部展开<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>'
-        + '</div>'
-        + list.map(s => spCardHtml(s)).join('');
-    }
-    return list.map(s => spCardHtml(s)).join('');
-  }
+  if(!used.length) return '';
   return used.map(g => {
     const items = list.filter(s => g.freqs.indexOf(s.frequency) >= 0);
     if(!items.length) return '';
-    /* T-004：面板头改成 block-h 口径（h3 标题 + desc 说明 + 右侧动作；W-SPCRD-1 起那颗已删）。
-       ⚠️ <summary> 仍是折叠触发器（原生展开收起），caret 放最左。 */
+    /* 四组始终各自成卡：组头只留色点 / 组名 / 题数 / 箭头，<summary> 原生折叠。 */
     return '<details class="sp-panel" data-gkey="' + g.key + '"' + (g.open ? ' open' : '') + '>'
       + '<summary class="sp-panel-head">'
-        + '<span class="sp-panel-caret" aria-hidden="true">▶</span>'
-        + '<svg class="sp-panel-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + SP_ICONS[g.icon] + '</svg>'
+        + '<i class="sp-panel-dot" aria-hidden="true"></i>'
         + '<h3>' + g.label + '</h3>'
-        + '<span class="sp-panel-n">' + items.length + ' 题 · ' + g.desc + '</span>'
-        + '<span class="spacer"></span>'
+        + '<span class="sp-panel-n">' + items.length + ' 题</span>'
+        + '<svg class="sp-panel-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>'
       + '</summary>'
       + '<div class="sp-panel-body">' + items.map(s => spCardHtml(s)).join('') + '</div>'
       + '</details>';

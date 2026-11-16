@@ -156,12 +156,14 @@
     var box=$('sptMockIntro');if(!box)return;
     var ms=mocks(),last=ms[0];
     box.innerHTML=''
-      +'<section class="spt-mock-hero"><div class="spt-mock-kicker">FULL SPEAKING TEST</div><h1>完整口语模考</h1><p>P1 → P2 → P3 · 约 12–15 分钟</p><button type="button" class="spt-btn primary" data-spt-start-mock'+(mockLoading?' disabled':'')+'>'+(mockLoading?'正在准备…':'开始完整模考 '+ic('arrow'))+'</button></section>'
+      +'<section class="spt-mock-shell">'
+      +'<div class="spt-mock-hero"><div class="spt-mock-kicker">FULL SPEAKING TEST</div><h1>完整口语模考</h1><p>P1 → P2 → P3 · 约 12–15 分钟</p><div class="spt-mock-clock"><b>12–15</b><span>MIN</span></div><button type="button" class="spt-btn primary" data-spt-start-mock'+(mockLoading?' disabled':'')+'>'+(mockLoading?'正在准备…':'开始完整模考 '+ic('arrow'))+'</button></div>'
       +'<div class="spt-mock-flow">'
-        +'<div class="spt-mock-part"><span>PART 1</span><b>日常问答</b><p>4–5 分钟，围绕熟悉的话题回答。</p></div>'
-        +'<div class="spt-mock-part"><span>PART 2</span><b>个人陈述</b><p>准备 1 分钟，连续陈述约 2 分钟。</p></div>'
-        +'<div class="spt-mock-part"><span>PART 3</span><b>深入讨论</b><p>4–5 分钟，围绕 P2 话题继续追问。</p></div>'
+        +'<div class="spt-mock-part" data-n="01"><span>PART 1</span><b>日常问答</b><p>4–5 分钟，围绕熟悉的话题回答。</p></div>'
+        +'<div class="spt-mock-part" data-n="02"><span>PART 2</span><b>个人陈述</b><p>准备 1 分钟，连续陈述约 2 分钟。</p></div>'
+        +'<div class="spt-mock-part" data-n="03"><span>PART 3</span><b>深入讨论</b><p>4–5 分钟，围绕 P2 话题继续追问。</p></div>'
       +'</div>'
+      +'</section>'
       +'<div class="spt-mock-note">'+ic('clock')+'中途退出或刷新，可以继续本场考试。</div>'
       +(last?'<div class="spt-mock-recent"><h2>最近一次</h2><div class="spt-record-row"><span class="spt-record-score">'+one(last.overall)+'</span><span class="spt-record-main"><b>完整口语模考</b><small>'+esc(last.date||dateOf(last.ts))+' · AI 预估</small></span><span class="spt-record-actions"><button type="button" data-spt-record="mock">查看报告</button></span></div></div>':'');
   }
@@ -265,7 +267,8 @@
     if(m&&q&&shown.indexOf(m)<0){m=shown[0]||null;materialKey=m?materialId(m,list.indexOf(m)):''}
     var toolbar='<div class="spt-mat-toolbar"><label class="spt-mat-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="sptMatSearch" type="search" placeholder="搜索素材" value="'+esc(materialSearch)+'"></label><button type="button" class="spt-btn" data-spt-mat-new>生成素材</button><button type="button" class="spt-btn" data-spt-mat-import>导入素材</button>'+(list.length>1?'<button type="button" class="spt-btn" data-spt-mat-manage>批量管理</button>':'')+'<span class="spt-mat-count">'+list.length+' 张素材</span></div>';
     if(!list.length){
-      shell.innerHTML=toolbar+'<div class="spt-mat-empty"><div><b>还没有素材</b><p>写下自己的经历，生成能反复套用的口语素材。</p><button type="button" class="spt-btn primary" data-spt-mat-new>生成我的素材</button></div></div>';
+      // 没有任何素材时不再显示空态，直接复用现成的生成引导页（有旧进度则回旧问卷）。
+      openMaterialLegacy();
       return;
     }
     if(!shown.length){

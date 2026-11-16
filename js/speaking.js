@@ -41,13 +41,13 @@ ready(function(){
 
 /* ===== SPK-CORE-FALLBACK-1（11-01）=====
    她报过的形态：脚本没下下来时页面只剩空壳、点哪都没反应，人不知道为什么。
-   js/sp-core.js 提供 populateFreqOptions / getFiltered / freqTag / refreshStateOptions 等，
+   js/sp-core.js 提供 populateFreqOptions / getFiltered / freqTag 等，
    speaking.js 的初始化链直接调它们 —— 少一个就是 ReferenceError，ready 回调当场中断，
    后面 renderList / 事件绑定一条都跑不到，题卡区一片空白（实测 h=2px）。
    这里只在**确实缺失**时接管：给一张可读的提示 + 重试钮，然后把后续初始化跳过（否则会连炸一串）。
    正常加载时 missing 为空数组 → 一个分支都不进，原链路一行不变。 */
 function spkCoreMissing(){
-  return ['populateFreqOptions', 'getFiltered', 'freqTag', 'refreshStateOptions']
+  return ['populateFreqOptions', 'getFiltered', 'freqTag']
     .filter(n => typeof window[n] !== 'function');
 }
 function spkShowCoreFail(){
@@ -107,8 +107,8 @@ ready(() => {
         const ps = $('#partSelect'); if(ps) ps.value = 'all';
         if(window.__spClearPartSeg) window.__spClearPartSeg();
         curPart = 'all';
-        // design/88：状态筛选重置（切回题库=回到全量语义）
-        curState = 'all'; const stSel = $('#stateSelect'); if(stSel) stSel.value = 'all';
+        // 切回题库仍默认只看没练过的题
+        curState = 'new'; const stSel = $('#stateSelect'); if(stSel) stSel.value = 'new';
         /* 9/19 修：切回题库时搜索框与 curSearch 一并清空。
            原先只重置三个下拉、搜索词却留着 → 列表仍被旧关键词过滤（如只剩 3 条），
            而下拉显示「全部」，用户会误以为题库只剩这几题。语义统一为「切回题库=回到全量」。 */
@@ -190,8 +190,8 @@ ready(() => {
         const ps = $('#partSelect'); if(ps) ps.value = 'all';
         if(window.__spClearPartSeg) window.__spClearPartSeg();
         curPart = 'all';
-        // design/88：状态筛选重置
-        curState = 'all'; const stSel2 = $('#stateSelect'); if(stSel2) stSel2.value = 'all';
+        // 状态筛选重置为默认「未练过」
+        curState = 'new'; const stSel2 = $('#stateSelect'); if(stSel2) stSel2.value = 'new';
         if(window.__spSyncFselLabels) window.__spSyncFselLabels();
         $('#listView').hidden = false;
         renderList();
