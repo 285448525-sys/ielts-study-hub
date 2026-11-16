@@ -1,37 +1,28 @@
-/* M-2（10-24）：模考页搜索 + 没做过/做过分组 + 展开更多
-   施工书：交接\给A2窗口-模考页四批-2026-10-24.md §M-2
-   「627 篇题只有一根滚动条 —— 桌面最实的痛点」。
-
-   🔴 数据源就是现有的本地记录（hub_bank_last_<id>），**零新增字段、零口径变化**。
-   🔴 不许碰判分、SRS、hub_bank_last_* —— 本文件只做「展示层」：
-       读 localStorage → 分组 → 首屏 N 条 → 展开更多。一个字节都不写回去。
-
-   ⚠️ 与既有实现的边界：
-     · 阅读侧 = js/bank.js 的 renderList() / listHtml()
-     · 听力侧 = js/bank.js 的 renderListenList() / listHtml()
-     · 写作侧 = js/writing.js 的 renderExamList()（数据源 WRITING_PROMPTS，无做过记录）
-     · 搜索输入框直接复用站内 initListSearch() 的契约（data-search-input + data-search-target），
-       但它只做「显隐」，和分组/分页会打架 → 本文件自己实现过滤（见 searchBankList）。
-
-   实现方式 = 在 listHtml() 外面包一层 .bk-groups（两组），每组：
-     · 组头：组名 + 计数 + （可选）展开箭头
-     · 组体：首屏 PAGE 条 + 「展开更多」按钮
-   这样原有 .bank-items 的 CSS 与点击逻辑一行不用改。 */
-
+/* M-2（10-24）：搜索 + 没做过/做过分组 + 展开更多。
+   2026-11-16：仅增强目录展示。原 listHtml 行、hub_bank_last_*、分页键与点击委托不变；
+   来源取 bank/manifest.json，题型按需读当前已渲染的真题 JSON，失败时安静留空。 */
 (function () {
-  var PAGE = 20;                                    /* 每组首屏条数 / 展开步长 */
-  var shown = {};                                   /* 每组已渲染条数 {listId|grp:n} */
-  var _channel = '';
-var groups = {};                                  /* 当前快照 {listId:{todo:[],done:[]}} */
-  var renderFns = {};                               /* bank.js 传进来的 listHtml {listId:fn} */
+  'use strict';
+  var PAGE = 20;
+  var shown = {};
+  var groups = {};
+  var renderFns = {};
+  var channels = {};
+  var allUnits = {};
+  var sources = { reading: '', listening: '' };
+  var sourceNames = { reading: [], listening: [] };
+  var manifestP = null;
+  var meta = {};
+  var typeCache = {};
+  var queue = [], active = 0;
+  var MAX_Q = 4;
+  var QT = { fill: '填空题', single: '单选题', multi: '多选题', match: '匹配题', head: 'Heading 题', para: '段落匹配题', map: '地图题' };
 
   function esc(s) {
     return String(s == null ? '' : s)
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
-
-  /* 读一条本地记录（只读；口径与 listHtml 里那段一字不差） */
   function lastRec(id) {
     try {
       var raw = localStorage.getItem('hub_bank_last_' + id);
@@ -40,8 +31,6 @@ var groups = {};                                  /* 当前快照 {listId:{todo:
       return (r && typeof r === 'object') ? r : null;
     } catch (e) { return null; }
   }
-
-  /* 按「没做过 / 做过」分两组。做过 = localStorage 里有 hub_bank_last_<id> */
   function split(units) {
     var todo = [], done = [];
     (units || []).forEach(function (u) {
@@ -49,109 +38,276 @@ var groups = {};                                  /* 当前快照 {listId:{todo:
     });
     return { todo: todo, done: done };
   }
-
-  /* 组头 + 首屏 + 「展开更多」。返回整段 HTML（含外层 .bk-groups）。
-     ⚠️ listHtml 是 bank.js 的内部函数，此处通过 html() 传进来；单条 DOM 全部由它生成。 */
-  function groupsHtml(listId, g) {
-    var listHtml = renderFns[listId];
-    function slice(key) {
-      var n = shown[listId + '|' + key] || 0;
-      return (g[key] || []).slice(0, n);
-    }
-    function rest(key) {
-      var n = shown[listId + '|' + key] || 0;
-      return Math.max(0, (g[key] || []).length - n);
-    }
+  function rowsHtml(units, channel) {
+    var fn = renderFns[channels[channel]] || renderFns.bankList;
+    var inner = fn ? fn(units, channel) : '';
+    var m = /<ul[^>]*>([\s\S]*)<\/ul>/.exec(inner);
+    return m ? m[1] : '';
+  }
+  function groupsHtml(listId, g, channel) {
     function bodyHtml(key, emptyTxt) {
-      var items = slice(key);
-      var rest_n = rest(key);
-      var h = '';
-      if (!items.length) {
-        return '<li class="bk-grp-empty">' + esc(emptyTxt) + '</li>';
-      }
-      /* 🔴 单条 DOM 完全交给 bank.js 的 listHtml —— 结构零偏差。
-         它返回的是 `<ul class="bank-items">…</ul>`，这里只要里面的 li。 */
-      var inner = listHtml ? listHtml(items, _channel) : '';
-      var m = /<ul[^>]*>([\s\S]*)<\/ul>/.exec(inner);
-      h += m ? m[1] : '';
-      if (rest_n > 0) {
-        h += '<li class="bk-grp-more"><button type="button" class="bk-more" '
-          + 'data-more="' + esc(listId) + '|' + key + '">展开更多（还有 ' + rest_n + ' 篇）</button></li>';
-      }
+      var n = shown[listId + '|' + key] || 0;
+      var items = (g[key] || []).slice(0, n);
+      var rest = Math.max(0, (g[key] || []).length - n);
+      if (!items.length) return '<li class="bk-grp-empty">' + esc(emptyTxt) + '</li>';
+      var h = rowsHtml(items, channel);
+      if (rest > 0) h += '<li class="bk-grp-more"><button type="button" class="bk-more" data-more="'
+        + esc(listId) + '|' + key + '">展开更多（还有 ' + rest + ' 篇）</button></li>';
       return h;
     }
-    return ''
-      + '<div class="bk-groups">'
-      +   '<div class="bk-grp" data-grp="todo">'
-      +     '<div class="bk-grp-h"><b>没做过</b><span class="bk-grp-n">' + (g.todo || []).length + ' 篇</span></div>'
-      +     '<ul class="bank-items">' + bodyHtml('todo', '这一类都做完了') + '</ul>'
-      +   '</div>'
-      +   '<div class="bk-grp" data-grp="done">'
-      +     '<div class="bk-grp-h"><b>做过</b><span class="bk-grp-n">' + (g.done || []).length + ' 篇</span></div>'
-      +     '<ul class="bank-items">' + bodyHtml('done', '还没有做过任何一篇') + '</ul>'
-      +   '</div>'
-      + '</div>';
+    return '<div class="bk-groups">'
+      + '<div class="bk-grp" data-grp="todo"><div class="bk-grp-h"><b>还没练过</b><span class="bk-grp-n">' + g.todo.length + ' 篇</span></div>'
+      + '<ul class="bank-items">' + bodyHtml('todo', '这一组都练过了，做过记录收在下方。') + '</ul></div>'
+      + '<div class="bk-grp" data-grp="done"><div class="bk-grp-h"><b>最近练过</b><span class="bk-grp-n">' + g.done.length + ' 篇</span></div>'
+      + '<ul class="bank-items">' + bodyHtml('done', '练过的篇目和上次成绩会收在这里。') + '</ul></div></div>';
   }
-
-  /* 供 bank.js 调用：把一组 units 渲染成「分组 + 首屏」的完整 HTML。
-     bank.js 只需在原来 host.innerHTML = listHtml(units, channel) 的地方改成：
-       host.innerHTML = window.BankGroups.html(listId, units, channel, listHtml);
-     第四个参数是 bank.js 自己的 listHtml —— 单条 DOM 全用它生成，本文件一行都不重写
-     （否则两处各写一份 .bank-item，改一处忘一处必然漂移）。 */
+  function selected(listId) {
+    return sources[channels[listId]] || '';
+  }
   function html(listId, units, channel, listHtml) {
-    _channel = channel;                 /* 10-24 B 验收修复：bodyHtml 要拿它传给 listHtml */
-    var g = split(units);
+    channels[listId] = channel;
+    renderFns[listId] = listHtml;
+    allUnits[listId] = (units || []).slice();
+    var filtered = allUnits[listId].filter(function (u) {
+      var m = meta[String(u.id)];
+      return !selected(listId) || (m && m.source === selected(listId));
+    });
+    var g = split(filtered);
     groups[listId] = g;
     shown[listId + '|todo'] = Math.min(PAGE, g.todo.length);
     shown[listId + '|done'] = Math.min(PAGE, g.done.length);
-    renderFns[listId] = listHtml;                 /* 供 expand() 追加下一页时用 */
-    return groupsHtml(listId, g);
+    ensureManifest();
+    scheduleEnhance(listId);
+    if (!filtered.length && allUnits[listId].length) {
+      return '<div class="bank-empty"><p>当前筛选下没有篇目。</p><p>可以换关键词、Part 或来源再试。</p></div>';
+    }
+    return groupsHtml(listId, g, channel);
   }
-
-  /* 「展开更多」：追加下一页（保留已渲染的 DOM，不重建 —— 避免滚动位置丢失） */
   function expand(key) {
-    var parts = key.split('|');
-    var listId = parts[0], grp = parts[1];
-    var g = groups[listId];
-    var listHtml = renderFns[listId];
+    var parts = key.split('|'), listId = parts[0], grp = parts[1];
+    var g = groups[listId], listHtml = renderFns[listId];
     if (!g || !listHtml) return;
-    var all = g[grp] || [];
-    var n = shown[key] || 0;
+    var all = g[grp] || [], n = shown[key] || 0;
     var next = all.slice(n, n + PAGE);
     if (!next.length) return;
-    shown[key] = n + next.length;
     var host = document.getElementById(listId);
-    if (!host) return;
-    var wrap = host.querySelector('.bk-grp[data-grp="' + grp + '"] .bank-items');
+    var wrap = host && host.querySelector('.bk-grp[data-grp="' + grp + '"] .bank-items');
     if (!wrap) return;
-    /* 🔴 追加的单条也走 bank.js 的 listHtml —— 与首屏完全同一套 DOM。 */
-    var inner = listHtml(next, _channel);   /* 10-24: same fix as bodyHtml */
-    var m = /<ul[^>]*>([\s\S]*)<\/ul>/.exec(inner);
-    var frag = m ? m[1] : '';
+    shown[key] = n + next.length;
     var moreLi = wrap.querySelector('.bk-grp-more');
+    var frag = rowsHtml(next, channels[listId]);
     if (moreLi) moreLi.insertAdjacentHTML('beforebegin', frag);
     else wrap.insertAdjacentHTML('beforeend', frag);
     var rest = all.length - shown[key];
-    if (rest > 0) {
-      if (moreLi) {
-        var b = moreLi.querySelector('.bk-more');
-        if (b) b.textContent = '展开更多（还有 ' + rest + ' 篇）';
-      }
-    } else if (moreLi) {
-      moreLi.remove();
+    if (moreLi) {
+      if (rest > 0) moreLi.querySelector('.bk-more').textContent = '展开更多（还有 ' + rest + ' 篇）';
+      else moreLi.remove();
+    }
+    scheduleEnhance(listId);
+  }
+
+  /* 目录元数据只请求一次。album.name 是真实来源，不从标题或 Part 猜难度。 */
+  function ensureManifest() {
+    if (manifestP) return manifestP;
+    manifestP = fetch('bank/manifest.json').then(function (r) {
+      if (!r.ok) throw new Error('manifest');
+      return r.json();
+    }).then(function (m) {
+      var seen = { reading: {}, listening: {} };
+      ((m && m.albums) || []).forEach(function (a) {
+        var ch = a.channel;
+        if (!seen[ch]) seen[ch] = {};
+        var name = String(a.name || '题库收录');
+        if (sourceNames[ch].indexOf(name) < 0) sourceNames[ch].push(name);
+        (a.units || []).forEach(function (u) {
+          meta[String(u.id)] = {
+            source: name, part: String(u.partNum || 'Part 1'), file: String(u.file || ''),
+            qCount: Number(u.qCount) || 0, channel: ch
+          };
+        });
+      });
+      updateSources();
+      paintSummary();
+      Object.keys(channels).forEach(scheduleEnhance);
+      Object.keys(sources).forEach(function (ch) {
+        if (sources[ch]) refreshChannel(ch);
+      });
+      return meta;
+    }).catch(function () {
+      updateSources();
+      paintSummary();
+      return meta;
+    });
+    return manifestP;
+  }
+  function refreshChannel(ch) {
+    var sel = ch === 'listening' ? '#listenPartTabs .pill-tab.active' : '#partTabs .pill-tab.active';
+    var b = document.querySelector(sel);
+    if (b) b.click();
+  }
+  function updateSources() {
+    var select = document.getElementById('bkSourceSelect');
+    if (!select) return;
+    var root = document.getElementById('bankRoot');
+    var ch = root && root.getAttribute('data-mock-tab') === 'listening' ? 'listening' : 'reading';
+    var names = sourceNames[ch] || [];
+    if (sources[ch] && names.indexOf(sources[ch]) < 0) sources[ch] = '';
+    select.innerHTML = '<option value="">全部来源</option>' + names.map(function (name) {
+      return '<option value="' + esc(name) + '"' + (sources[ch] === name ? ' selected' : '') + '>' + esc(name) + '</option>';
+    }).join('');
+    select.disabled = !names.length;
+    select.setAttribute('aria-label', ch === 'listening' ? '按听力题库来源筛选' : '按阅读题库来源筛选');
+  }
+  function channelUnits(ch) {
+    return Object.keys(meta).map(function (id) { return meta[id]; }).filter(function (m) { return m.channel === ch; });
+  }
+  function paintSummary() {
+    var host = document.getElementById('bkRailSummary');
+    if (!host) return;
+    var root = document.getElementById('bankRoot');
+    var ch = root && root.getAttribute('data-mock-tab') === 'listening' ? 'listening' : 'reading';
+    var all = channelUnits(ch);
+    /* 完成数直接读本地键对应的真实目录，而不是读首屏 20 行。 */
+    var done = 0;
+    Object.keys(meta).forEach(function (id) {
+      if (meta[id].channel === ch && lastRec(id)) done++;
+    });
+    var qs = all.reduce(function (n, m) { return n + (m.qCount || 0); }, 0);
+    var sourceCount = sourceNames[ch].length;
+    var label = ch === 'listening' ? '听力' : '阅读';
+    host.innerHTML = '<div class="bk-sum"><b>' + all.length + '<small> 篇</small></b><span>' + label + '题库</span></div>'
+      + '<div class="bk-sum"><b>' + qs + '<small> 题</small></b><span>目录题量</span></div>'
+      + '<div class="bk-sum"><b>' + done + '<small> 篇</small></b><span>本机练过</span></div>'
+      + '<div class="bk-sum"><b>' + sourceCount + '<small> 个</small></b><span>收录来源</span></div>'
+      + (done ? '' : '<p class="bk-rail-note">还没有' + label + '练习记录。做完一篇后，上次成绩会显示在对应篇目右侧。</p>');
+    updateSources();
+  }
+  function currentChannel() {
+    var root = document.getElementById('bankRoot');
+    return root && root.getAttribute('data-mock-tab') === 'listening' ? 'listening' : 'reading';
+  }
+  function syncRail() {
+    updateSources();
+    paintSummary();
+    var root = document.getElementById('bankRoot');
+    var rail = document.getElementById('bkRail');
+    if (rail && root) rail.setAttribute('aria-label', currentChannel() === 'listening' ? '听力题库筛选与练习概况' : '阅读题库筛选与练习概况');
+  }
+
+  /* 题型与 bank.js qtypeCode() 同口径。cache 只在内存，绝不写学习记录。 */
+  function qtypeCode(g, ch) {
+    if (!g) return '';
+    var t = g.type, qs = g.questions || [];
+    if (t === 'fill-in-the-blank') return 'fill';
+    if (t === 'matching') {
+      var opts = (g.options && g.options.length) ? g.options : ((qs[0] && qs[0].options) || []);
+      var isHead = opts.length && /^[ivx]+$/i.test(String(opts[0].optionNum || ''));
+      return isHead ? 'head' : 'match';
+    }
+    if (t === 'map') return ch === 'reading' ? 'para' : 'map';
+    if (t === 'multiple-choice') return 'multi';
+    if (t === 'single-choice') return 'single';
+    return '';
+  }
+  function getTypes(id) {
+    var m = meta[id];
+    if (!m || !m.file) return Promise.resolve([]);
+    if (typeCache[id]) return typeCache[id];
+    typeCache[id] = fetch('bank/' + m.file).then(function (r) {
+      if (!r.ok) throw new Error('unit');
+      return r.json();
+    }).then(function (data) {
+      var names = [], seen = {};
+      ((data && data.parts) || []).forEach(function (p) {
+        (p.groups || []).forEach(function (g) {
+          var c = qtypeCode(g, m.channel), name = QT[c];
+          if (name && !seen[name]) { seen[name] = true; names.push(name); }
+        });
+      });
+      return names;
+    }).catch(function () { return []; });
+    return typeCache[id];
+  }
+  function pump() {
+    while (active < MAX_Q && queue.length) {
+      var job = queue.shift();
+      if (!job.row.isConnected || job.row.getAttribute('data-unit') !== job.id) continue;
+      active++;
+      getTypes(job.id).then(function (names) {
+        active--;
+        if (this.row.isConnected && this.row.getAttribute('data-unit') === this.id) {
+          var host = this.row.querySelector('.bi-chips');
+          if (host) host.innerHTML = baseMeta(this.id) + names.map(function (name) {
+            return '<span class="bi-ch">' + esc(name) + '</span>';
+          }).join('');
+        }
+        pump();
+      }.bind(job));
     }
   }
-
-  /* 事件委托：软导航重跑本文件也不叠加（document 级只绑一次，用 flag） */
-  if (!window.__bankGroupsBound) {
-    window.__bankGroupsBound = true;
-    document.addEventListener('click', function (ev) {
-      var t = ev.target;
-      if (!t || !t.closest) return;
-      var btn = t.closest('.bk-more');
-      if (btn && btn.dataset.more) { ev.preventDefault(); expand(btn.dataset.more); }
-    });
+  function baseMeta(id) {
+    var m = meta[id];
+    return m ? '<span class="bi-meta">' + esc(m.part) + '</span><span class="bi-meta">' + m.qCount + ' 题</span>' : '';
   }
+  function scheduleEnhance(listId) {
+    var token = (scheduleEnhance.tokens[listId] = (scheduleEnhance.tokens[listId] || 0) + 1);
+    setTimeout(function () {
+      if (scheduleEnhance.tokens[listId] !== token) return;
+      var host = document.getElementById(listId);
+      if (!host) return;
+      host.querySelectorAll('.bank-item[data-unit]').forEach(function (row) {
+        var id = String(row.getAttribute('data-unit')), m = meta[id];
+        if (!m) return;
+        var chips = row.querySelector('.bi-chips');
+        if (chips && !chips.querySelector('.bi-meta,.bi-ch')) chips.innerHTML = baseMeta(id);
+        var title = row.querySelector('.bi-tt');
+        if (title && !row.querySelector('.bi-source')) {
+          title.insertAdjacentHTML('afterend', '<span class="bi-source"><span class="bi-source-label">来源</span><span>' + esc(m.source) + '</span></span>');
+        }
+        row.setAttribute('aria-label', (row.querySelector('.bi-tt b') || {}).textContent + '，' + m.part + '，' + m.qCount + ' 题，来源 ' + m.source);
+        queue.push({ row: row, id: id });
+      });
+      pump();
+      if (listId === (currentChannel() === 'listening' ? 'listenList' : 'bankList')) paintSummary();
+    }, 0);
+  }
+  scheduleEnhance.tokens = {};
 
-  window.BankGroups = { html: html, expand: expand, PAGE: PAGE };
+  function onDocClick(ev) {
+    var t = ev.target;
+    if (!t || !t.closest) return;
+    var btn = t.closest('.bk-more');
+    if (btn && btn.dataset.more) { ev.preventDefault(); expand(btn.dataset.more); return; }
+    var tab = t.closest('#mockTabs [data-mtab]');
+    if (tab) setTimeout(syncRail, 0);
+  }
+  function onSourceChange(ev) {
+    var select = ev.target;
+    if (!select || select.id !== 'bkSourceSelect') return;
+    var ch = currentChannel();
+    sources[ch] = select.value || '';
+    refreshChannel(ch);
+    paintSummary();
+  }
+  /* 软导航会重新 eval：先解掉旧闭包持有的事件和旧 root 观察器。 */
+  if (window.__bankGroupsCleanup) { try { window.__bankGroupsCleanup(); } catch (e) {} }
+  var railObserver = null;
+  if (typeof MutationObserver !== 'undefined') {
+    var root = document.getElementById('bankRoot');
+    if (root) {
+      railObserver = new MutationObserver(syncRail);
+      railObserver.observe(root, { attributes: true, attributeFilter: ['data-mock-tab'] });
+    }
+  }
+  document.addEventListener('click', onDocClick);
+  document.addEventListener('change', onSourceChange);
+  window.__bankGroupsCleanup = function () {
+    document.removeEventListener('click', onDocClick);
+    document.removeEventListener('change', onSourceChange);
+    if (railObserver) railObserver.disconnect();
+  };
+  window.__bankGroupsBound = true;
+  ensureManifest();
+  syncRail();
+  window.BankGroups = { html: html, expand: expand, PAGE: PAGE, syncRail: syncRail };
 })();

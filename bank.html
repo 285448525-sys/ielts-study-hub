@@ -17,11 +17,11 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
-<title>模考 · 雅思备考 Hub</title>
+<title>机经 · 雅思备考 Hub</title>
 <link rel="preload" as="script" href="js/bank.js?v=20261108a" /> <!-- W1-PRELOAD-1 (373KB)：与下方 defer 同串防双下载 -->
 <link rel="preload" as="script" href="js/common-shell.js?v=20261116a" /> <!-- W1-PRELOAD-1 (113KB)：与下方 defer 同串防双下载 -->
 <link rel="stylesheet" href="css/common.css?v=20261116a" />
-<link rel="stylesheet" href="css/p/bank.css?v=20261116a" />
+<link rel="stylesheet" href="css/p/bank.css?v=20261116i" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -30,7 +30,7 @@
 <meta name="theme-color" content="#3a9a93" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
-<meta name="description" content="四科机考模考：阅读、听力、写作、口语，按真实考试的形式练。" />
+<meta name="description" content="雅思阅读、听力机经：按来源和题型选一篇，或随机练一套，做完自动留下记录。" />
 <style>
 /* ===== 模考页样式（页面内联，不动 common.css → 免全站 bump）===== */
 /* 10-22 换顶栏第 5 批：本页接入共享顶栏壳（body data-shell="top"）。
@@ -2449,35 +2449,39 @@ main.container:has(> .hub-shell){
 .hub-side-div{height:1px;background:var(--line,#eef2f3);margin:10px 18px 0;flex:none}
 
 /* 今天 */
-.hub-td-head{padding:0 18px 5px;flex:none}
-.hub-td-head b{font-size:12px;font-weight:700;color:var(--ink-2,#3f464d);letter-spacing:.04em}
-.hub-td-prog{margin:0 14px 8px;padding:10px 12px;border-radius:12px;
-  background:var(--surface-2,#fafcfc);border:1px solid var(--line,#eef2f3);flex:none}
-.hub-td-prog b{font-size:19px;font-weight:750;color:var(--primary-700,#2f7d76);font-variant-numeric:tabular-nums}
-.hub-td-prog b em{font-size:12px;font-style:normal;color:var(--muted,#71767e);font-weight:500}
-.hub-td-bar{height:6px;border-radius:6px;background:var(--line,#e6e9ea);margin-top:9px;overflow:hidden}
-.hub-td-bar i{display:block;height:100%;border-radius:6px;
-  background:linear-gradient(90deg,var(--primary-700,#2f7d76),var(--primary,#5cb3ab));transition:width .25s}
-.hub-td-group{padding:0 10px;flex:none}
-.hub-td-gh{font-size:11px;color:var(--muted,#9aa1a8);padding:4px 8px;display:flex;gap:6px;align-items:center}
-.hub-td-gh i{width:5px;height:5px;border-radius:50%;background:currentColor}
-.hub-task{display:flex;align-items:flex-start;gap:9px;width:100%;min-height:44px;padding:5px 8px;
-  border-radius:10px;border:none;background:transparent;font:inherit;color:inherit;text-align:left;cursor:pointer}
-.hub-task:hover{background:var(--surface-2,#fafcfc)}
-.hub-tick{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--line,#e6e9ea);
-  flex:none;margin-top:2px;display:grid;place-items:center;background:#fff;transition:.16s}
-.hub-tick svg{width:12px;height:12px;opacity:0}
-.hub-task.done .hub-tick{background:var(--primary,#5cb3ab);border-color:var(--primary,#5cb3ab)}
+/* 今日任务卡（11-16 定版，样稿 design/UI-SURVEY-1115/统一骨架-1116.html）
+   位置在左栏分栏下面，勾选口径与计划页一致（DATA.plans 当天 items）。 */
+.hub-td{margin:12px 18px 0;padding:11px 12px 9px;border:1px solid var(--line,#e6e9ea);
+  border-radius:12px;background:var(--surface-2,#fafbfc);flex:none}
+.hub-td-head{display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:0 2px;margin-bottom:3px}
+.hub-td-head b{font-size:11.5px;font-weight:750;color:var(--ink,#24272c)}
+.hub-td-count{padding:1px 7px;border:1px solid var(--line,#e6e9ea);border-radius:999px;
+  background:var(--surface,#fff);font-size:10px;font-weight:700;color:var(--muted,#71767e);
+  font-variant-numeric:tabular-nums;line-height:1.5}
+.hub-task{display:flex;align-items:flex-start;gap:7px;width:100%;padding:7px 2px;
+  border:none;border-radius:8px;background:transparent;font:inherit;color:inherit;
+  text-align:left;cursor:pointer}
+.hub-task:hover{background:var(--n-100,#f5f6f8)}
+.hub-tick{width:17px;height:17px;margin-top:1px;border-radius:5px;
+  border:1.5px solid var(--n-400,#d4d7dc);flex:none;display:grid;place-items:center;
+  background:var(--surface,#fff);transition:border-color .15s,background .15s}
+.hub-tick svg{width:11px;height:11px;opacity:0}
+.hub-task.done .hub-tick{background:var(--primary,#3a9a93);border-color:var(--primary,#3a9a93)}
 .hub-task.done .hub-tick svg{opacity:1}
-.hub-tx{min-width:0;flex:1;font-size:12.5px;font-weight:550;color:var(--ink,#1f2328);line-height:1.45;
-  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.hub-task.done .hub-tx{color:var(--muted,#9aa1a8);text-decoration:line-through}
-.hub-td-empty{padding:6px 18px 2px;font-size:12.5px;color:var(--muted,#9aa1a8);flex:none}
-.hub-side-foot{margin-top:auto;padding:8px 18px 14px;flex:none}
-.hub-side-foot a{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;min-height:44px;
-  border:1px dashed #cddedb;border-radius:11px;color:var(--primary-700,#2f7d76);
-  font-size:12.5px;font-weight:600;background:var(--primary-50,#e8f3f1);text-decoration:none}
-.hub-side-foot a:hover{background:#d5ebe7}
+.hub-tx{min-width:0;flex:1}
+.hub-tx b{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+  font-size:12px;font-weight:600;line-height:1.55;color:var(--ink,#24272c);overflow-wrap:anywhere}
+.hub-tx small{display:block;margin-top:1px;font-size:10px;line-height:1.5;color:var(--muted,#71767e)}
+.hub-task.done .hub-tx b{color:var(--muted,#71767e);text-decoration:line-through}
+.hub-task.done .hub-tx small{color:var(--muted,#9aa1a8)}
+.hub-td-empty{padding:4px 2px 6px;font-size:11.5px;color:var(--muted,#71767e);flex:none}
+.hub-td-more{display:flex;align-items:center;justify-content:space-between;margin-top:5px;
+  padding:7px 2px 2px;border-top:1px solid var(--line,#e6e9ea);font-size:10.5px;
+  font-weight:650;color:var(--primary-700,#2c7873);text-decoration:none}
+.hub-td-more:hover{color:var(--primary,#3a9a93)}
+.hub-td-more svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round}
 
 @media(max-width:1180px){ .hub-shell{grid-template-columns:232px minmax(0,1fr)} }
 @media(max-width:860px){
@@ -2495,11 +2499,8 @@ main.container:has(> .hub-shell){
   .hub-sub{min-height:44px;padding:6px 9px}
   .hub-sub-ic{width:30px;height:30px}
   .hub-side-div{margin:8px 14px 0}
-  .hub-td-head{padding:0 14px 4px}
-  .hub-td-prog{margin:0 12px 6px;padding:8px 10px}
-  .hub-td-prog b{font-size:16px}
-  .hub-td-bar{margin-top:6px}
-  .hub-task{padding:4px 8px}
+  .hub-td{margin:10px 14px 0;padding:9px 10px 7px}
+  .hub-task{padding:5px 2px}
 }
 
 </style>
@@ -2817,12 +2818,12 @@ main.container:has(> .hub-shell){
       <div class="hub-side-scroll">
         <div class="hub-subs" id="hubSubs"></div>
         <div class="hub-side-div"></div>
-        <div class="hub-td-head"><b>今天</b></div>
-        <div class="hub-td-prog" id="hubTdProg"></div>
-        <div class="hub-td-group" id="hubTdPending"></div>
-        <div class="hub-td-group" id="hubTdDone"></div>
-        <div class="hub-td-empty" id="hubTdEmpty" hidden>今天还没有任务</div>
-        <div class="hub-side-foot"><a href="plans.html">去计划页查看全部 ›</a></div>
+        <section class="hub-td" id="hubTd" aria-label="今日任务">
+          <div class="hub-td-head"><b>今日任务</b><span class="hub-td-count" id="hubTdCount" hidden>0/0</span></div>
+          <div class="hub-td-list" id="hubTdList"></div>
+          <div class="hub-td-empty" id="hubTdEmpty" hidden>今天还没有任务</div>
+          <a class="hub-td-more" href="plans.html">去计划页查看全部<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></a>
+        </section>
       </div>
     </aside>
     <div class="hub-main">
@@ -2848,15 +2849,6 @@ main.container:has(> .hub-shell){
          🔴 以后真更新题库：只需改下面 .bank-upd-date 那一行 + 括号里一句，别的都不用动。
          🔴 放在这里 = 阅读/听力两个列表页签共用一处（切换科目不掉）；收起态只占一行，不撑高首屏。
          ⚠️ 纯静态 HTML，不进 js/bank.js（判分域红线）。 -->
-    <details class="bank-info">
-      <summary>题库说明</summary>
-      <div class="bank-info-body">
-        题库共 <b>627</b> 篇 · <b>7202</b> 题；有新题就补充，不定期更新。<br>
-        内容全部为<b>真经</b>——都是考场上出过的原题，考试时有可能再遇到同一篇。<br>
-        上次更新：<b class="bank-upd-date">2026-10-23</b>（听力精听模式上线；此前 10-19 补全部答案）。
-      </div>
-    </details>
-
     <section class="mock-pane" id="pane-reading">
       <!-- 10/17 性能批 · CLS 修复：完整模考入口卡改为**静态渲染**。
            原先这里是空 div，靠 JS 在 manifest 到达后注入一张深绿大卡（当时约 242px 高），
@@ -2870,8 +2862,8 @@ main.container:has(> .hub-shell){
       <div id="fullEntry">
         <div class="full-card">
           <span class="bk-tag">整套</span>
-          <div class="bk-m"><b>完整阅读模考</b><span>3 篇 · 40 题 · 60 分钟 · 随机组卷</span></div>
-          <button class="btn-primary" type="button" data-fullstart disabled>开始一套 ›</button>
+          <div class="bk-m"><b>练一套 · 完整阅读模考</b><span>3 篇 · 40 题 · 60 分钟 · 随机组卷</span></div>
+          <button class="btn-primary" type="button" data-fullstart disabled>开始一套<span aria-hidden="true"> ›</span></button>
           <!-- 10/18 列表页留痕：上次完整模考成绩（JS 填 paintFullLast）。静态占位 = 首帧即有高度，不抖 -->
           <div class="fc-last" data-full-last="reading"></div>
         </div>
@@ -2890,7 +2882,7 @@ main.container:has(> .hub-shell){
         <div class="bk-search">
           <label class="ui-field-search" for="bankSearch">
             <svg class="ui-field-search-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-            <input class="ui-field-search-in" type="search" id="bankSearch" placeholder="搜篇名或题型…" aria-label="搜索篇目" autocomplete="off" />
+            <input class="ui-field-search-in" type="search" id="bankSearch" placeholder="搜索篇名…" aria-label="搜索篇目" autocomplete="off" />
             <button type="button" class="ui-field-clear" hidden aria-label="清空搜索">✕</button>
           </label>
         </div>
@@ -2911,8 +2903,8 @@ main.container:has(> .hub-shell){
       <div id="listenFullEntry">
         <div class="full-card">
           <span class="bk-tag">整套</span>
-          <div class="bk-m"><b>完整听力模考</b><span>4 篇 · 40 题 · 30 分钟 · 随机组卷</span></div>
-          <button class="btn-primary" type="button" data-lfullstart disabled>开始一套 ›</button>
+          <div class="bk-m"><b>练一套 · 完整听力模考</b><span>4 篇 · 40 题 · 30 分钟 · 随机组卷</span></div>
+          <button class="btn-primary" type="button" data-lfullstart disabled>开始一套<span aria-hidden="true"> ›</span></button>
           <div class="fc-last" data-full-last="listening"></div>
         </div>
       </div>
@@ -2928,7 +2920,7 @@ main.container:has(> .hub-shell){
         <div class="bk-search">
           <label class="ui-field-search" for="listenSearch">
             <svg class="ui-field-search-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-            <input class="ui-field-search-in" type="search" id="listenSearch" placeholder="搜篇名或题型…" aria-label="搜索听力篇目" autocomplete="off" />
+            <input class="ui-field-search-in" type="search" id="listenSearch" placeholder="搜索篇名…" aria-label="搜索听力篇目" autocomplete="off" />
             <button type="button" class="ui-field-clear" hidden aria-label="清空搜索">✕</button>
           </label>
         </div>
@@ -2941,6 +2933,25 @@ main.container:has(> .hub-shell){
          机经这里删掉这两个 pane，只剩阅读、听力。js/bank.js 的 loadWritingScripts
          因找不到 #pane-writing 会空操作（保留不删，避免动判分域）；老深链
          ?sub=writing / ?sub=speaking 已由 tbApplySub 白名单收窄挡掉，落默认阅读页，不白屏。 -->
+
+    <aside class="bk-rail" id="bkRail" aria-label="题库筛选与练习概况">
+      <div class="bk-rail-in">
+        <div class="bk-rail-label">按来源筛选</div>
+        <select id="bkSourceSelect" class="bk-source-select" aria-label="按题库来源筛选">
+          <option value="">全部来源</option>
+        </select>
+        <div class="bk-rail-summary" id="bkRailSummary" aria-live="polite"></div>
+        <button class="bk-rail-link" type="button" data-bk-go="records">看本科目练习记录<span aria-hidden="true">›</span></button>
+        <details class="bank-info">
+          <summary>题库说明<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></summary>
+          <div class="bank-info-body">
+            题库共 <b>627</b> 篇 · <b>7202</b> 题；有新题就补充，不定期更新。<br>
+            内容全部为<b>真经</b>——都是考场上出过的原题，考试时有可能再遇到同一篇。<br>
+            上次更新：<b class="bank-upd-date">2026-10-23</b>（听力精听模式上线；此前 10-19 补全部答案）。
+          </div>
+        </details>
+      </div>
+    </aside>
 
   </div>
     </div><!-- /.hub-main -->
@@ -2959,7 +2970,7 @@ main.container:has(> .hub-shell){
 <script defer src="js/common.js?v=20261116a"></script>
 <script defer src="js/common-ai.js?v=20261116a"></script>
 <script defer src="js/common-sync.js?v=20261116a"></script>
-<script defer src="js/common-merge.js?v=20261116a"></script>
+<script defer src="js/common-merge.js?v=20261116b"></script>
 <script defer src="js/common-cloud.js?v=20261116a"></script>
 <script defer src="js/common-shell.js?v=20261116a"></script>
 <script defer src="js/common-pwa.js?v=20261116a"></script>
@@ -2971,15 +2982,15 @@ main.container:has(> .hub-shell){
      ⚠️ 本文件只做展示层（读 hub_bank_last_* 分组 + 首屏 20 条），判分/SRS/本地记录一律不碰；
         单条 DOM 由 js/bank.js 的 listHtml() 生成（当参数传进来），结构零改动。
      ⚠️ 必须带 ?v= 声明 —— 否则 common.js 只能拿裸 URL，等于向浏览器缓存要任意年代的旧副本。 -->
-<script defer src="js/bank-groups.js?v=20261024a"></script>
+<script defer src="js/bank-groups.js?v=20261116c"></script>
 <!-- HUB-SIDE-SHELL-1：左栏壳的填充与事件（DOM/CSS 静态写在本页，见上方 <style>）。
      ⚠️ 放在业务脚本之后：软导航 runPageScript 按 HTML 声明顺序 eval，本文件最后跑，
         此时 #mockTabs / DATA / todayKey 都已就绪。 -->
-<script defer src="js/hub-side-shell.js?v=20261106b"></script>
+<script defer src="js/bank-side.js?v=20261116a"></script>
 <!-- 11-13 BANK-EXTEND-1 第 1 期：题目记录 / 错题集 / 正确率统计三板块。
      独立模块自带可见 5 个 tab、纯读 DATA.mockRecords[].detail，不碰判分、不改既有两科 DOM。
      放在业务脚本之后：软导航按 HTML 声明顺序 eval，此时 bank.js / DATA / manifest 都已就位。 -->
-<script defer src="js/bank-records.js?v=20261113b"></script>
+<script defer src="js/bank-records.js?v=20261116g"></script>
 <style id="rvCaInFix">
 .ex-ca-in{display:inline-block;font:inherit;color:#1f7a5c;line-height:1.4;vertical-align:middle;flex:none}
 </style>

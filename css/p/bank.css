@@ -1,3 +1,485 @@
 /* 10/17 拆分：只属于 bank.html 的样式块（tests/_split_css_1017.cjs 生成）*/
-
 .bubble{max-width:85%;padding:10px 14px;border-radius:14px;font-size:14px;line-height:1.6;word-break:break-word}
+
+/* 2026-11-16 题库工作面。只覆盖目录与机经扩展；#examRoot 的考场样式不在此层。
+   原有 .bank-item、#mockTabs、#partTabs 与全部 data-* 仍由 bank.js 驱动。 */
+/* 11-16 定版：左栏恢复（与计划/句子/练习/写作同一套 264 侧栏），工作面按标准主区留白。 */
+body:has(> main > .hub-shell > .hub-main > #bankRoot) .hub-main{min-height:0;overflow:auto;padding:24px 28px 40px}
+/* 板上那排五入口与左栏重复：桌面收掉（手机左栏不可见，仍用这排） */
+@media(min-width:861px){ .hub-main>#brTabs{display:none!important} }
+.hub-main:has(> #bankRoot){display:flex;flex-direction:column;position:relative}
+
+/* 一套五入口，位置不随题库、记录或统计切换。 */
+.hub-main .br-tabs{flex:0 0 auto;display:flex;align-items:center;justify-content:center;gap:4px;padding:12px 20px;overflow:visible;position:relative;z-index:5;background:var(--bg);border:0;box-shadow:none}
+.hub-main .br-tab{border:1px solid transparent;border-radius:999px;padding:8px 15px;min-height:36px;font-size:13px;font-weight:600;line-height:1.4;color:var(--muted);background:transparent;cursor:pointer;transition:background .14s,color .14s,border-color .14s}
+.hub-main .br-tab:hover{background:var(--surface);color:var(--ink)}
+.hub-main .br-tab.active{color:var(--primary-700);background:var(--surface);border-color:var(--line);box-shadow:0 1px 2px rgba(20,35,40,.04);font-weight:700}
+.hub-main .br-tab.active::after{display:none}
+.hub-main .br-tabs::-webkit-scrollbar{display:none}
+.hub-main .br-tab-narrow{display:none}
+.hub-main #bankRoot{display:grid;grid-template-columns:minmax(0,1fr) 272px;grid-template-rows:minmax(0,1fr);gap:0;flex:1 1 auto;min-height:0;width:100%;max-width:none;margin:0;border-top:1px solid var(--line);overflow:hidden}
+.hub-main #bankRoot[hidden]{display:none!important}
+.hub-main #bankRoot > .mock-pane{display:flex!important;flex-direction:column;grid-column:1;grid-row:1;min-width:0;min-height:0;padding:24px 28px 0;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable}
+.hub-main #bankRoot > .mock-pane[hidden]{display:none!important}
+.hub-main #bankRoot > #mockTabs{display:none!important}
+.hub-main #bankRoot .partbar{order:0;flex:0 0 auto;display:flex;align-items:center;flex-wrap:wrap;gap:16px;margin:0 0 20px;padding:0;border:0}
+.hub-main #bankRoot .partbar .pill-tabs{display:flex;flex-wrap:wrap;gap:4px;padding:4px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2)}
+.hub-main #bankRoot .partbar .pill-tab{padding:6px 10px;border:0;border-radius:6px;background:transparent;box-shadow:none;color:var(--muted);font-size:12px;line-height:1.4;white-space:nowrap}
+.hub-main #bankRoot .partbar .pill-tab.active{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(20,35,40,.08);font-weight:700}
+.hub-main #bankRoot .partbar .pill-tab.active::after{display:none}
+.hub-main #bankRoot .partbar .pt-n{margin-left:5px;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.hub-main #bankRoot .partmeta{display:none}
+.hub-main #bankRoot .bk-search{flex:1 1 180px;min-width:150px;max-width:290px;margin-left:auto}
+.hub-main #bankRoot .bk-search .ui-field-search{height:38px;background:var(--surface);border:1px solid var(--line);border-radius:9px;box-shadow:none}
+.hub-main #bankRoot .bk-search .ui-field-search:focus-within{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-50)}
+.hub-main #bankRoot .bk-search .ui-field-search-in{font-size:12.5px;color:var(--ink)}
+.hub-main #bankRoot #fullEntry,.hub-main #bankRoot #listenFullEntry{order:1;flex:0 0 auto}
+.hub-main #bankRoot #bankList,.hub-main #bankRoot #listenList{order:2;flex:1 0 auto;min-height:320px;padding-bottom:28px}
+
+/* 完整模考是安静的一行操作，不与题库列表争夺层级。 */
+.hub-main #bankRoot .full-card{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:5px 20px;min-height:74px;padding:14px 18px;margin:0 0 22px;border:1px solid var(--line);border-radius:12px;background:var(--surface);box-shadow:0 2px 8px rgba(20,35,40,.025)}
+.hub-main #bankRoot .full-card .bk-tag{display:none}
+.hub-main #bankRoot .full-card .bk-m{display:flex;flex-direction:column;align-items:flex-start;gap:5px;min-width:0;grid-column:1;grid-row:1}
+.hub-main #bankRoot .full-card .bk-m b{font-size:13.5px;font-weight:700;line-height:1.4;color:var(--ink);white-space:normal}
+.hub-main #bankRoot .full-card .bk-m > span{font-size:11.5px;color:var(--muted);line-height:1.5}
+.hub-main #bankRoot .full-card .btn-primary{grid-column:2;grid-row:1 / span 2;margin:0;min-height:36px;padding:0 14px;border-radius:8px;font-size:12px;white-space:nowrap}
+.hub-main #bankRoot .full-card .btn-primary span{font-size:14px}
+.hub-main #bankRoot .full-card .fc-last{grid-column:1;grid-row:2;margin:0;padding:0;font-size:11px;color:var(--muted);line-height:1.5}
+.hub-main #bankRoot .full-card .fc-last:empty,.hub-main #bankRoot .full-card .fc-last.is-none{display:none}
+.hub-main #bankRoot .full-card .fc-last b{color:var(--ink)}
+
+/* 未做在前，做过在后；同一信息轴，无彩色左条、无巨型序号与箭头。 */
+.hub-main #bankRoot .bk-groups{display:flex;flex-direction:column;gap:26px;margin:0}
+.hub-main #bankRoot .bk-grp{min-width:0}
+.hub-main #bankRoot .bk-grp-h{display:flex;align-items:center;gap:8px;margin:0 0 8px;padding:0 2px;border:0;border-radius:0;background:transparent;box-shadow:none}
+.hub-main #bankRoot .bk-grp-h b{font-size:12px;color:var(--ink-2);font-weight:700;line-height:1.5}
+.hub-main #bankRoot .bk-grp-n{margin-left:auto;color:var(--muted);font-size:11px;font-variant-numeric:tabular-nums}
+.hub-main #bankRoot .bank-items{list-style:none;margin:0;padding:0;border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden}
+.hub-main #bankRoot .bank-item{display:grid;grid-template-columns:minmax(0,1fr) 86px;grid-template-areas:'title status' 'meta status' 'source status';column-gap:16px;align-items:center;min-height:112px;padding:15px 18px;border:0;border-bottom:1px solid var(--line);background:var(--surface);box-shadow:none!important;cursor:pointer;transition:background .12s}
+.hub-main #bankRoot .bank-item:last-child{border-bottom:0}
+.hub-main #bankRoot .bank-item:hover,.hub-main #bankRoot .bank-item:focus-within{background:var(--surface-2)}
+.hub-main #bankRoot .bi-no{display:none}
+.hub-main #bankRoot .bi-tt{grid-area:title;display:flex;align-items:baseline;gap:9px;min-width:0;overflow:hidden}
+.hub-main #bankRoot .bi-tt b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;font-weight:650;letter-spacing:0;line-height:1.45;color:var(--ink)}
+.hub-main #bankRoot .bi-tt i{flex:0 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11.5px;font-style:normal;color:var(--muted);line-height:1.45}
+.hub-main #bankRoot .bank-item:hover .bi-tt b{color:var(--ink)}
+.hub-main #bankRoot .bi-chips{grid-area:meta;display:flex;align-items:center;gap:7px;min-width:0;min-height:20px;margin-top:8px;overflow:hidden}
+.hub-main #bankRoot .bi-ch,.hub-main #bankRoot .bi-meta{display:inline-flex;align-items:center;flex:none;min-height:20px;padding:2px 7px;border:1px solid var(--line);border-radius:5px;background:var(--surface-2);color:var(--muted);font-size:10.5px;font-weight:500;line-height:1.4;white-space:nowrap}
+.hub-main #bankRoot .bi-ch{color:var(--ink-2);background:transparent}
+.hub-main #bankRoot .bi-source{grid-area:source;display:flex;align-items:center;gap:6px;min-width:0;margin-top:8px;color:var(--muted);font-size:10.5px;line-height:1.4}
+.hub-main #bankRoot .bi-source span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hub-main #bankRoot .bi-source .bi-source-label{flex:none;color:var(--muted)}
+.hub-main #bankRoot .bi-st{grid-area:status;align-self:center;justify-self:stretch;display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:5px;width:auto;min-height:38px;text-align:right;font-size:11px;line-height:1.45;color:var(--muted);font-weight:500;font-variant-numeric:tabular-nums}
+.hub-main #bankRoot .bi-st b{display:block;font-size:13px;font-weight:700;line-height:1.4;color:var(--ink)}
+.hub-main #bankRoot .bi-st.ok{color:var(--muted);font-weight:500}
+.hub-main #bankRoot .bi-st.ok b{color:var(--primary-700)}
+.hub-main #bankRoot .bi-st .bi-when{display:block;margin:0;font-size:10.5px;font-style:normal;line-height:1.45;color:var(--muted);font-weight:400}
+.hub-main #bankRoot .bi-st:not(.ok)::after{content:'开始练习';font-size:11px;color:var(--primary-700)}
+.hub-main #bankRoot .bi-st.ok::after{content:'查看 / 重做';font-size:10.5px;color:var(--muted)}
+.hub-main #bankRoot .bi-chev{display:none}
+.hub-main #bankRoot .bk-grp-empty{padding:26px 20px;list-style:none;color:var(--muted);font-size:12px;line-height:1.7;text-align:center}
+.hub-main #bankRoot .bk-grp-more{list-style:none;padding:0;border-bottom:0;text-align:center;background:var(--surface)}
+.hub-main #bankRoot .bk-more{display:block;width:100%;min-height:42px;padding:10px 16px;border:0;border-radius:0;background:transparent;color:var(--primary-700);box-shadow:none;font-size:12px;font-weight:600}
+.hub-main #bankRoot .bk-more:hover{background:var(--surface-2)}
+.hub-main #bankRoot .bank-empty,.hub-main #bankRoot .bank-loading{margin:0;padding:64px 24px;border:1px dashed var(--line);border-radius:12px;background:var(--surface);font-size:13px;line-height:1.8;text-align:center;color:var(--muted)}
+.hub-main #bankRoot .bank-empty p{margin:0}
+
+/* 来源与本频道练习概况；只写 manifest 和真实记录能支持的数字。 */
+.hub-main #bkRail{grid-column:2;grid-row:1;min-width:0;min-height:0;padding:24px 22px;border-left:1px solid var(--line);background:var(--surface);overflow-y:auto;overscroll-behavior:contain}
+.hub-main .bk-rail-in{display:flex;flex-direction:column;gap:0;min-height:100%}
+.hub-main .bk-rail-label{margin:0 0 10px;font-size:11px;font-weight:650;color:var(--muted)}
+.hub-main .bk-source-select{appearance:auto;display:block;width:100%;min-width:0;height:40px;padding:0 9px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);font:inherit;font-size:12px;cursor:pointer}
+.hub-main .bk-source-select:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.hub-main .bk-rail-summary{display:grid;grid-template-columns:1fr 1fr;gap:16px 12px;margin:24px 0 20px;padding:0 0 20px;border-bottom:1px solid var(--line)}
+.hub-main .bk-sum{min-width:0}
+.hub-main .bk-sum b{display:block;overflow-wrap:anywhere;font-size:20px;line-height:1.3;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.02em;color:var(--ink)}
+.hub-main .bk-sum span{display:block;margin-top:4px;color:var(--muted);font-size:10.5px;line-height:1.5}
+.hub-main .bk-sum small{font-size:11px;font-weight:500;color:var(--muted)}
+.hub-main .bk-rail-note{grid-column:1/-1;margin:0;color:var(--muted);font-size:11px;line-height:1.75}
+.hub-main .bk-rail-link{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;padding:0 0 20px;border:0;background:transparent;color:var(--primary-700);font:inherit;font-size:12px;font-weight:650;text-align:left;cursor:pointer}
+.hub-main .bk-rail-link span{font-size:14px;color:var(--muted)}
+.hub-main .bk-rail-link:hover{color:var(--primary-900)}
+.hub-main #bkRail .bank-info{margin:auto 0 0;padding:16px 0 0;border:0;border-top:1px solid var(--line);border-radius:0;background:transparent}
+.hub-main #bkRail .bank-info summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0;font-size:11.5px;font-weight:600;color:var(--muted);list-style:none}
+.hub-main #bkRail .bank-info summary::-webkit-details-marker{display:none}
+.hub-main #bkRail .bank-info summary::before{display:none}
+.hub-main #bkRail .bank-info summary svg{flex:none;width:14px;height:14px;transition:transform .15s}
+.hub-main #bkRail .bank-info[open] summary svg{transform:rotate(90deg)}
+.hub-main #bkRail .bank-info-body{padding:12px 0 0;font-size:11px;color:var(--muted);line-height:1.85}
+.hub-main #bkRail .bank-info-body b{color:var(--ink-2)}
+
+/* 三扩展板块共用同一工作面，不再出现第二套顶部条。 */
+.hub-main .br-panels{flex:1 1 auto;min-height:0;padding:0;border-top:1px solid var(--line);overflow:hidden;background:var(--bg)}
+.hub-main .br-panels[hidden],.hub-main .br-panel[hidden]{display:none!important}
+.hub-main .br-panel{height:100%;min-height:0;padding:26px 28px 36px;overflow-y:auto;overscroll-behavior:contain}
+.hub-main .br-page{max-width:1080px;margin:0 auto}
+.hub-main .br-page-head{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;margin:0 0 24px}
+.hub-main .br-page-head h2{margin:0;color:var(--ink);font-size:19px;font-weight:700;line-height:1.4;letter-spacing:-.02em}
+.hub-main .br-page-head p{margin:6px 0 0;color:var(--muted);font-size:12px;line-height:1.7}
+.hub-main .br-band{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;margin:0 0 24px;padding:22px 0;border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:visible}
+.hub-main .br-cell{min-width:0;padding:0 22px;border-right:1px solid var(--line)}
+.hub-main .br-cell:last-child{border-right:0}
+.hub-main .br-cell .k{margin:0 0 8px;color:var(--muted);font-size:11px;line-height:1.4}
+.hub-main .br-cell .v,.hub-main .br-cell.lead .v{order:initial;color:var(--ink);font-size:25px;line-height:1.2;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.hub-main .br-cell .v small{margin-left:3px;color:var(--muted);font-size:11px;font-weight:500}
+.hub-main .br-cell .v.date{font-size:16px;line-height:1.85;white-space:nowrap}
+.hub-main .br-tools{display:flex;align-items:center;flex-wrap:wrap;gap:16px;margin:0 0 14px;padding:0;border:0}
+.hub-main .br-tg{display:flex;align-items:center;gap:4px}
+.hub-main .br-tg .lab{margin-right:8px;color:var(--muted);font-size:11px}
+.hub-main .br-chip{min-height:32px;padding:5px 11px;border:1px solid transparent;border-radius:7px;background:transparent;color:var(--muted);font:inherit;font-size:12px;box-shadow:none;cursor:pointer}
+.hub-main .br-chip:hover{background:var(--surface);color:var(--ink)}
+.hub-main .br-chip.on{border-color:var(--line);background:var(--surface);color:var(--ink);box-shadow:none;font-weight:650}
+.hub-main .br-hint{margin-left:auto;color:var(--muted);font-size:11px;line-height:1.7}
+.hub-main .br-jump{padding:4px 8px;border-radius:5px;background:var(--primary-50);color:var(--primary-700);font-size:11px}
+.hub-main .br-jump button{padding:0 0 0 5px;border:0;background:transparent;color:inherit;cursor:pointer}
+.hub-main .br-more{position:relative}
+.hub-main .br-more > summary{padding:5px 10px;min-height:32px;border:1px solid var(--line);border-radius:7px;background:var(--surface);color:var(--muted);font-size:12px;line-height:20px;list-style:none;cursor:pointer}
+.hub-main .br-more > summary::-webkit-details-marker{display:none}
+.hub-main .br-more-box{left:0;top:calc(100% + 8px);z-index:10;min-width:250px;padding:14px;gap:12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);box-shadow:var(--shadow)}
+.hub-main .br-table{border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden}
+.hub-main .br-thead,.hub-main .br-sess{display:grid;grid-template-columns:100px minmax(0,1fr) 78px 86px 18px;gap:16px;align-items:center}
+.hub-main .br-thead{padding:11px 18px;border-bottom:1px solid var(--line);background:var(--surface-2);color:var(--muted);font-size:10.5px}
+.hub-main .br-thead .r{text-align:right}
+.hub-main .br-sw{border-bottom:1px solid var(--line)}
+.hub-main .br-sw:last-child{border-bottom:0}
+.hub-main .br-sess{position:relative;width:100%;padding:16px 18px;border:0;border-radius:0;background:transparent;color:inherit;text-align:left;cursor:pointer}
+.hub-main .br-sess:hover,.hub-main .br-sess.open{background:var(--surface-2)}
+.hub-main .br-sess.open::before,.hub-main .br-wrow.sel::before{display:none}
+.hub-main .br-sess .dt{color:var(--muted);font-size:11.5px}
+.hub-main .br-sess .src{min-width:0}
+.hub-main .br-sess .src b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);font-size:13px;font-weight:650}
+.hub-main .br-sess .src span{display:block;margin-top:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:11px}
+.hub-main .br-sess .score{text-align:right;color:var(--ink);font-size:13px;font-weight:700}
+.hub-main .br-sess .tm{text-align:right;color:var(--muted);font-size:11.5px}
+.hub-main .br-sess .arw{color:var(--muted);font-size:14px;text-align:right}
+.hub-main .br-detail{padding:18px;border-top:1px solid var(--line);background:var(--surface-2)}
+.hub-main .br-dtop p{margin:0 0 12px;color:var(--muted);font-size:11px}
+.hub-main .br-qgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:7px}
+.hub-main .br-qc{padding:8px;border:1px solid var(--line);border-radius:7px;background:var(--surface)}
+.hub-main .br-qc .qn{display:flex;justify-content:space-between;color:var(--muted);font-size:10px}
+.hub-main .br-qc .qv{display:block;margin-top:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:650}
+.hub-main .br-qc .qt{display:block;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:10px}
+.hub-main .br-qc.hit{background:var(--ok-soft);border-color:var(--line)}
+.hub-main .br-qc.miss{background:var(--err-soft);border-color:var(--line)}
+.hub-main .br-legend{margin:12px 0 0;color:var(--muted);font-size:11px}
+.hub-main .br-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:300px;padding:52px 24px;border:1px dashed var(--line);border-radius:12px;background:var(--surface);text-align:center}
+.hub-main .br-empty[hidden]{display:none!important}
+.hub-main .br-empty b{margin:0 0 8px;color:var(--ink);font-size:15px;font-weight:650}
+.hub-main .br-empty p{max-width:380px;margin:0;color:var(--muted);font-size:12px;line-height:1.85}
+.hub-main .br-empty .br-empty-act{display:inline-flex;align-items:center;justify-content:center;min-height:36px;margin-top:20px;padding:0 14px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--primary-700);font:inherit;font-size:12px;font-weight:650;cursor:pointer}
+.hub-main .br-empty .br-empty-act:hover{background:var(--surface-2);border-color:var(--primary-100)}
+
+/* 错题与统计沿用相同边框、行高与空白，不画不存在的 0% 数据。 */
+.hub-main .br-wrong-wrap{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px;align-items:start}
+.hub-main .br-wlist{border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden}
+.hub-main .br-wrow{position:relative;display:flex;align-items:center;gap:14px;width:100%;padding:16px;border:0;border-bottom:1px solid var(--line);border-radius:0;background:transparent;color:inherit;text-align:left;cursor:pointer}
+.hub-main .br-wrow:last-child{border-bottom:0}
+.hub-main .br-wrow:hover,.hub-main .br-wrow.sel{background:var(--surface-2)}
+.hub-main .br-wrow.sel .br-wm b{color:var(--primary-700)}
+.hub-main .br-wqn{flex:none;width:34px;height:34px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--ink-2);font-size:12px;font-weight:700}
+.hub-main .br-wm{flex:1;min-width:0}
+.hub-main .br-wm b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);font-size:12.5px;font-weight:650}
+.hub-main .br-wm span{display:block;margin-top:5px;color:var(--muted);font-size:11px;line-height:1.5}
+.hub-main .br-wcnt{flex:none;padding:2px 6px;border-radius:5px;background:var(--err-soft);color:var(--err-text);font-size:10.5px}
+.hub-main .br-npanel{padding:22px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.hub-main .br-npanel h3{margin:0 0 8px;color:var(--ink);font-size:14px;font-weight:700;line-height:1.5}
+.hub-main .br-where{margin:0 0 16px;color:var(--muted);font-size:11.5px;line-height:1.8}
+.hub-main .br-kv{display:grid;grid-template-columns:72px minmax(0,1fr);gap:12px;margin:16px 0;padding:16px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);font-size:12px}
+.hub-main .br-kv dt{color:var(--muted);font-size:11px}
+.hub-main .br-kv dd{margin:0;overflow-wrap:anywhere;color:var(--ink-2)}
+.hub-main .br-brief{color:var(--muted);font-size:11px;line-height:1.8}
+.hub-main .br-link{padding:5px 0;border:0;background:transparent;color:var(--primary-700);font:inherit;font-size:12px;cursor:pointer}
+.hub-main .br-stat-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.hub-main .br-sbox{padding:20px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.hub-main .br-sbox h3{margin:0;color:var(--ink);font-size:14px;font-weight:700}
+.hub-main .br-sbox .sub{margin:7px 0 18px;color:var(--muted);font-size:11px;line-height:1.8}
+.hub-main .br-bar{display:grid;grid-template-columns:110px minmax(0,1fr) 88px;gap:12px;align-items:center;width:100%;padding:12px 4px;border:0;border-bottom:1px solid var(--line);border-radius:0;background:transparent;color:inherit;text-align:left;cursor:pointer}
+.hub-main .br-bar:last-child{border-bottom:0}
+.hub-main .br-bar:hover{background:var(--surface-2)}
+.hub-main .br-bar .lb{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink-2);font-size:11.5px}
+.hub-main .br-bar .lb em{margin-left:6px;padding:1px 5px;border-radius:4px;background:var(--err-soft);color:var(--err-text);font-size:10px;font-style:normal}
+.hub-main .br-track{height:5px;border-radius:3px;background:var(--surface-2);overflow:hidden}
+.hub-main .br-track i{display:block;height:100%;border-radius:3px;background:var(--primary)}
+.hub-main .br-bar.weak .br-track i{background:var(--err-text)}
+.hub-main .br-bar .vv{text-align:right;white-space:nowrap;color:var(--muted);font-size:10.5px}
+.hub-main .br-bar .vv b{color:var(--ink);font-size:12px}
+.hub-main .br-none{margin:0;padding:32px 0;color:var(--muted);font-size:12px;line-height:1.8}
+.hub-main .br-callout{margin:20px 0 0;padding:16px 18px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink-2);font-size:12px;line-height:1.8}
+.hub-main .br-callout b{color:var(--ink)}
+.hub-main .br-scope{margin:12px 0 0;color:var(--muted);font-size:11px;line-height:1.8}
+
+.hub-main .br-tab:focus-visible,.hub-main .br-chip:focus-visible,.hub-main .br-sess:focus-visible,.hub-main .br-bar:focus-visible,.hub-main .br-wrow:focus-visible,.hub-main .br-link:focus-visible,.hub-main .br-empty-act:focus-visible,.hub-main .bk-rail-link:focus-visible,.hub-main #bankRoot .bank-item:focus-visible{outline:2px solid var(--primary);outline-offset:-2px}
+
+@media(min-width:861px){
+  body:has(> main > .hub-shell > .hub-main > #bankRoot) main.container > .hub-shell{min-height:0}
+  .hub-main .br-tabs{padding-top:14px;padding-bottom:14px}
+}
+@media(min-width:1280px){
+  .hub-main #bankRoot{grid-template-columns:minmax(0,1fr) 288px}
+  .hub-main #bankRoot > .mock-pane{padding:28px 36px 0}
+  .hub-main #bkRail{padding:28px 24px}
+  .hub-main .br-panel{padding:28px 36px 40px}
+}
+@media(max-width:1100px) and (min-width:861px){
+  .hub-main #bankRoot{grid-template-columns:minmax(0,1fr) 240px}
+  .hub-main #bankRoot > .mock-pane{padding:22px 20px 0}
+  .hub-main #bkRail{padding:22px 18px}
+  .hub-main #bankRoot .partbar{gap:16px}
+  .hub-main #bankRoot .bk-search{flex:1 0 100%;max-width:none;margin-left:0}
+  .hub-main #bankRoot .bi-tt i{display:none}
+  .hub-main .br-panel{padding:24px 22px 32px}
+  .hub-main .br-cell{padding:0 16px}
+}
+@media(max-width:860px){
+  body:has(> main > .hub-shell > .hub-main > #bankRoot) .hub-main{overflow:visible;padding:8px 0 0}
+  .hub-main:has(> #bankRoot){display:block}
+  .hub-main .br-tabs{justify-content:flex-start;gap:3px;padding:0 0 10px;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;mask-image:none!important;-webkit-mask-image:none!important}
+  .hub-main .br-tab{flex:0 0 auto;min-height:36px;padding:7px 10px;font-size:12px}
+  .hub-main .br-tab-wide{display:none}
+  .hub-main .br-tab-narrow{display:inline}
+  .hub-main > #bankRoot{display:flex;flex-direction:column;min-height:0;overflow:visible;border-top:0}
+  /* 手机把 pane 也拍平：否则来源筛选被锁在 pane 内部，列表再长它也只会排在最后。
+     本页内联仍有 `#bankRoot > .mock-pane:not([hidden]){display:contents}`，但同文件上方的
+     `.hub-main #bankRoot > .mock-pane{display:flex!important}` 特异度更高，必须在这里显式压回。 */
+  .hub-main > #bankRoot > .mock-pane:not([hidden]){display:contents!important;padding:0;overflow:visible;scrollbar-gutter:auto}
+  .hub-main #bankRoot .partbar{display:flex;gap:16px;margin-bottom:16px}
+  .hub-main #bankRoot .partbar .pill-tabs{flex:0 0 auto;max-width:100%;overflow-x:auto;flex-wrap:nowrap;gap:2px}
+  .hub-main #bankRoot .partbar .pill-tab{padding:6px 9px;font-size:11.5px}
+  .hub-main #bankRoot .bk-search{order:2;flex:1 0 100%;min-width:0;max-width:none;margin:0}
+  .hub-main #bankRoot .full-card{min-height:72px;padding:13px 14px;gap:6px 12px;margin-bottom:20px}
+  .hub-main #bankRoot .full-card .bk-m b{font-size:12.5px}
+  .hub-main #bankRoot .full-card .bk-m > span{font-size:10.5px}
+  .hub-main #bankRoot .full-card .btn-primary{min-height:36px;padding:0 11px;font-size:11.5px}
+  .hub-main > #bankRoot #fullEntry,.hub-main > #bankRoot #listenFullEntry{order:2}
+  .hub-main > #bankRoot #bankList,.hub-main > #bankRoot #listenList{order:3;min-height:280px;padding-bottom:8px}
+  .hub-main #bankRoot .bk-groups{gap:22px}
+  .hub-main #bankRoot .bank-item{grid-template-columns:minmax(0,1fr) 64px;column-gap:12px;min-height:116px;padding:15px 13px}
+  .hub-main #bankRoot .bi-tt{display:block}
+  .hub-main #bankRoot .bi-tt b{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;white-space:normal;overflow:hidden;font-size:13px;line-height:1.5}
+  .hub-main #bankRoot .bi-tt i{display:block;margin-top:3px;font-size:10.5px}
+  .hub-main #bankRoot .bi-chips{gap:5px;margin-top:8px}
+  .hub-main #bankRoot .bi-ch,.hub-main #bankRoot .bi-meta{padding:2px 5px;font-size:10px}
+  .hub-main #bankRoot .bi-source{margin-top:7px;font-size:10px}
+  .hub-main #bankRoot .bi-st{font-size:10.5px}
+  .hub-main #bankRoot .bi-st b{font-size:12px}
+  .hub-main #bankRoot .bi-st:not(.ok)::after{font-size:10.5px}
+  .hub-main #bankRoot .bi-st.ok::after{font-size:10px}
+  .hub-main > #bankRoot > #bkRail{display:contents;order:initial;margin:0;padding:0;border:0;overflow:visible}
+  .hub-main .bk-rail-in{display:contents}
+  .hub-main .bk-rail-label{display:none}
+  .hub-main .bk-source-select{order:1;height:40px;margin:0 0 18px;background:var(--surface)}
+  .hub-main .bk-rail-summary{order:4;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:20px 0 16px;padding:18px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .hub-main .bk-sum b{font-size:18px}
+  .hub-main .bk-sum span{font-size:10px}
+  .hub-main .bk-rail-note{grid-column:1/-1;margin-top:4px}
+  .hub-main .bk-rail-link{order:5;padding:0 0 18px}
+  .hub-main #bkRail .bank-info{order:6;margin:0;padding-top:16px}
+  .hub-main .br-panels{overflow:visible;border-top:0}
+  .hub-main .br-panel{height:auto;padding:16px 0 28px;overflow:visible}
+  .hub-main .br-page-head{margin-bottom:20px}
+  .hub-main .br-page-head h2{font-size:18px}
+  .hub-main .br-page-head p{font-size:11px}
+  .hub-main .br-band{grid-template-columns:1fr 1fr;margin-bottom:20px;padding:0}
+  .hub-main .br-cell{padding:18px 16px;border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .hub-main .br-cell:nth-child(2n){border-right:0}
+  .hub-main .br-cell:nth-last-child(-n+2){border-bottom:0}
+  .hub-main .br-cell .v,.hub-main .br-cell.lead .v{font-size:23px}
+  .hub-main .br-cell .v.date{font-size:15px}
+  .hub-main .br-tools{gap:12px 16px}
+  .hub-main .br-hint{width:100%;margin-left:0}
+  .hub-main .br-thead{display:none}
+  .hub-main .br-sess{grid-template-columns:minmax(0,1fr) 60px 16px;gap:8px 12px;padding:15px 13px}
+  .hub-main .br-sess .dt{grid-column:1/-1;font-size:10.5px}
+  .hub-main .br-sess .src{grid-column:1}
+  .hub-main .br-sess .score{grid-column:2}
+  .hub-main .br-sess .arw{grid-column:3}
+  .hub-main .br-sess .tm{display:none}
+  .hub-main .br-detail{padding:14px 12px}
+  .hub-main .br-wrong-wrap{grid-template-columns:minmax(0,1fr);gap:16px}
+  .hub-main .br-stat-grid{grid-template-columns:minmax(0,1fr);gap:16px}
+  .hub-main .br-sbox{padding:18px 14px}
+  .hub-main .br-bar{grid-template-columns:100px minmax(0,1fr) 82px;gap:9px}
+  .hub-main .br-empty{min-height:260px;padding:42px 20px}
+}
+@media(max-width:390px){
+  .hub-main #bankRoot .bank-item{grid-template-columns:minmax(0,1fr) 58px;column-gap:10px;padding-left:11px;padding-right:11px}
+  .hub-main #bankRoot .full-card{column-gap:9px}
+  .hub-main #bankRoot .full-card .bk-m > span{max-width:210px}
+  .hub-main .bk-rail-summary{gap:8px}
+  .hub-main .bk-sum b{font-size:17px}
+}
+@media(prefers-reduced-motion:reduce){
+  .hub-main .br-tab,.hub-main #bankRoot .bank-item,.hub-main #bkRail .bank-info summary svg{transition:none}
+}
+
+/* BANK-FINAL-1（11-16 她点头成品稿 design/UI-SURVEY-1115/机经-成品框架-1116.html）。
+   只收展示：题库只显篇名；侧栏四格由 js/bank-side.js 负责。判分、数据、委托零改动。 */
+body:has(> main > .hub-shell > .hub-main > #bankRoot) .hub-main{padding:16px 22px 40px}
+.hub-main>#brTabs{display:none!important}
+.hub-main #bankRoot{border-top:0}
+.hub-main #bankRoot > .mock-pane{padding:0 0 0;overflow-y:visible;scrollbar-gutter:auto}
+.hub-main #bankRoot > #mockTabs{display:flex!important;width:max-content;max-width:100%;gap:0;align-self:flex-start;margin:0 0 14px;padding:3px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2)}
+.hub-main #bankRoot > #mockTabs .pill-tab{padding:6px 16px;border:0;border-radius:7px;background:transparent;box-shadow:none;color:var(--muted);font-size:12.5px;font-weight:650;line-height:1.4}
+.hub-main #bankRoot > #mockTabs .pill-tab.active{background:var(--surface);color:var(--primary-700);box-shadow:0 1px 2px rgba(20,35,40,.08)}
+.hub-main #bankRoot > #mockTabs .pill-tab.active::after{display:none}
+.hub-main #bankRoot > #mockTabs .mt-n{display:none}
+.hub-main #bankRoot .partbar{order:2;display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px;padding:0}
+.hub-main #bankRoot .partbar .pill-tabs{display:flex;gap:6px;flex-wrap:wrap;padding:0;border:0;background:transparent;border-radius:0}
+.hub-main #bankRoot .partbar .pill-tab{height:30px;padding:0 12px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--muted);font-size:11.5px;font-weight:600;box-shadow:none;line-height:1.4}
+.hub-main #bankRoot .partbar .pill-tab.active{border-color:#b9ddd8;background:var(--primary-50);color:var(--primary-700);box-shadow:none;font-weight:600}
+.hub-main #bankRoot .partbar .pt-n{display:none}
+.hub-main #bankRoot .bk-search{order:1;flex:0 0 240px;min-width:0;max-width:240px;margin:0 0 14px auto}
+.hub-main #bankRoot .bk-search .ui-field-search{height:36px;border:1px solid var(--line);border-radius:10px;background:var(--surface);box-shadow:none}
+.hub-main #bankRoot #fullEntry,.hub-main #bankRoot #listenFullEntry{order:3;margin:0 0 14px}
+.hub-main #bankRoot .full-card{display:flex;align-items:center;gap:16px;min-height:0;padding:16px 20px;border:1px solid #d9e9e4;border-radius:15px;background:linear-gradient(120deg,#eef8f5,#fbfdfc 58%,#e8f3ef);box-shadow:0 1px 2px rgba(28,55,48,.035)}
+.hub-main #bankRoot .full-card .bk-m{flex:1;gap:2px;order:1}
+.hub-main #bankRoot .full-card .bk-m b{font-size:16px;letter-spacing:-.01em}
+.hub-main #bankRoot .full-card .bk-m > span{font-size:11.5px;color:var(--muted)}
+.hub-main #bankRoot .full-card .fc-last{order:2;margin:0;font-size:10.5px;text-align:right;line-height:1.45}
+.hub-main #bankRoot .full-card .fc-last b{display:block;font-size:15px;color:var(--ink)}
+.hub-main #bankRoot .full-card .btn-primary{order:3;margin:0;min-height:38px;padding:0 14px;border-radius:10px;font-size:12.5px;box-shadow:0 7px 16px -10px rgba(58,154,147,.8)}
+.hub-main #bankRoot #bankList,.hub-main #bankRoot #listenList{order:4;min-height:0;padding-bottom:24px}
+.hub-main #bankRoot .bank-item{display:flex;align-items:center;gap:12px;min-height:54px;padding:11px 18px}
+.hub-main #bankRoot .bi-tt{flex:1;min-width:0;display:block}
+.hub-main #bankRoot .bi-tt b{display:block;white-space:normal;font-size:13.5px;font-weight:620;line-height:1.55;overflow-wrap:anywhere}
+.hub-main #bankRoot .bi-tt i{display:none}
+.hub-main #bankRoot .bi-chips,.hub-main #bankRoot .bi-source{display:none}
+.hub-main #bankRoot .bi-st{flex:none;width:auto;min-height:0;align-items:flex-end;gap:1px;font-size:10px}
+.hub-main #bankRoot .bi-st b{font-size:12px}
+.hub-main #bankRoot .bi-st:not(.ok){font-size:0}
+.hub-main #bankRoot .bi-st:not(.ok)::after{content:'开始 ›';font-size:11.5px;color:var(--primary-700);font-weight:700}
+.hub-main #bankRoot .bi-st.ok::after{content:'';display:none}
+.hub-main #bankRoot .bi-st .bi-when{font-size:10px}
+.hub-main #bankRoot .bk-groups{gap:22px}
+.hub-main #bankRoot .bk-grp-h{margin-bottom:8px}
+.hub-main #bankRoot .bk-grp-h b{font-size:11.5px}
+
+/* 右侧筛选栏退场：来源进题库页顶，练习概况不再常驻；题库说明留页尾。 */
+.hub-main #bkRail{display:block;grid-column:1;grid-row:2;padding:0;border:0;background:transparent;overflow:visible}
+.hub-main #bankRoot{display:flex;flex-direction:column;grid-template-columns:none;grid-template-rows:none}
+.hub-main #bankRoot > .mock-pane:not([hidden]){display:contents}
+.hub-main .bk-rail-in{display:block;min-height:0}
+.hub-main .bk-rail-label{display:none}
+.hub-main .bk-source-select{position:absolute;top:16px;right:22px;width:132px;height:36px;padding:0 28px 0 10px;border-radius:9px;font-size:11.5px;z-index:2}
+.hub-main #bkRail .bk-rail-summary,.hub-main #bkRail .bk-rail-link{display:none}
+.hub-main #bkRail .bank-info{margin:4px 0 0;padding:12px 0 0;border-top:1px solid var(--line)}
+.hub-main #bkRail .bank-info summary{font-size:11px}
+
+/* 记录 / 错题 / 统计：去掉解释性页头，直接进内容；外观与成品稿同口径。 */
+.hub-main .br-panels{border-top:0;background:transparent;overflow:visible}
+.hub-main .br-panel{padding:0;overflow:visible;height:auto}
+.hub-main .br-page{max-width:none;margin:0}
+.hub-main .br-page-head{display:none}
+.hub-main .br-band{margin:0 0 12px;padding:0;border-radius:14px;gap:1px;background:var(--line-soft)}
+.hub-main .br-cell{padding:13px 16px;background:var(--surface)}
+.hub-main .br-cell .k{margin:0 0 4px;font-size:10.5px}
+.hub-main .br-cell .v,.hub-main .br-cell.lead .v{font-size:24px;letter-spacing:-.03em;line-height:1.25}
+.hub-main .br-cell.lead .v{color:var(--primary-700)}
+.hub-main .br-cell .v.date{font-size:15px;padding-top:5px}
+.hub-main .br-tools{gap:12px;margin:0 0 12px}
+.hub-main .br-tg{gap:2px;padding:3px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2)}
+.hub-main .br-chip{min-height:30px;padding:5px 12px;border:0;border-radius:7px;font-size:12px}
+.hub-main .br-chip.on{background:var(--surface);color:var(--primary-700);box-shadow:0 1px 2px rgba(20,35,40,.08)}
+.hub-main .br-more > summary{min-height:32px;border-radius:9px;font-size:11.5px;line-height:20px}
+.hub-main .br-thead{display:none}
+.hub-main .br-sess{grid-template-columns:78px minmax(0,1fr) 68px 58px 20px;gap:12px;padding:13px 17px}
+.hub-main .br-sess .dt{font-size:11px}
+.hub-main .br-sess .src b{font-size:12.5px}
+.hub-main .br-sess .src span{margin-top:2px;font-size:10.5px}
+.hub-main .br-sess .score{color:var(--primary-700);font-size:14px;font-weight:750}
+.hub-main .br-sess .tm{font-size:11px}
+.hub-main .br-sess .arw{transition:transform .16s}
+.hub-main .br-sess.open .arw{transform:rotate(90deg)}
+.hub-main .br-detail{padding:14px 17px 17px}
+.hub-main .br-dtop p{font-size:11px;margin-bottom:12px}
+.hub-main .br-qgrid{grid-template-columns:repeat(10,minmax(0,1fr));gap:5px}
+.hub-main .br-qc{padding:6px 4px;border-radius:6px;min-height:30px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.hub-main .br-qc .qn{display:flex;gap:4px;font-size:9.5px}
+.hub-main .br-qc .qv{margin-top:3px;font-size:11px}
+.hub-main .br-qc .qt{margin-top:3px;font-size:9px}
+.hub-main .br-wrong-wrap{grid-template-columns:minmax(0,1fr) 330px;gap:14px}
+.hub-main .br-wrow{padding:13px 16px;gap:12px}
+.hub-main .br-wqn{width:34px;height:34px;border-radius:9px;border-color:#f0d6d3;background:#fdf3f2;color:#a24f49;display:grid;place-items:center;font-size:11.5px}
+.hub-main .br-wm b{font-size:12.5px}
+.hub-main .br-wm span{margin-top:2px;font-size:10.5px}
+.hub-main .br-wcnt{background:transparent;padding:0;font-size:10.5px}
+.hub-main .br-npanel{position:sticky;top:14px;padding:20px;border-radius:15px}
+.hub-main .br-npanel h3{font-size:14px}
+.hub-main .br-kv{gap:12px;font-size:12px}
+.hub-main .br-kv dd.u{font-size:21px;font-weight:750;color:#a24f49}
+.hub-main .br-kv dd.r{font-size:21px;font-weight:750;color:var(--primary-700)}
+.hub-main .br-link{display:flex;align-items:center;justify-content:center;width:100%;min-height:38px;padding:0 14px;border:1px solid var(--line);border-radius:10px;font-size:12px;font-weight:650}
+.hub-main .br-link:hover{background:var(--surface-2)}
+.hub-main .br-stat-grid{gap:14px}
+.hub-main .br-sbox{padding:18px 20px;border-radius:15px}
+.hub-main .br-sbox h3{font-size:13px}
+.hub-main .br-sbox .sub{margin:7px 0 14px;font-size:10px}
+.hub-main .br-bar{grid-template-columns:92px minmax(0,1fr) 74px;gap:10px;min-height:34px;padding:0;border-bottom:0}
+.hub-main .br-bar .lb{font-size:11.5px}
+.hub-main .br-track{height:7px;border-radius:99px;background:#eef2f1}
+.hub-main .br-track i{border-radius:99px;background:linear-gradient(90deg,#6dbfb6,#3a9a93)}
+.hub-main .br-bar.weak .br-track i{background:linear-gradient(90deg,#e3b875,#c98b3b)}
+.hub-main .br-bar .lb em{font-size:9px;padding:1px 4px;border-radius:4px}
+.hub-main .br-bar .vv b{font-size:12.5px}
+.hub-main .br-callout{margin:14px 0 0;padding:14px 18px;border-radius:13px;font-size:12px}
+.hub-main .br-scope{font-size:10px;margin-top:10px}
+.hub-main .br-empty{min-height:260px}
+
+@media(max-width:1180px){
+  .hub-main .br-wrong-wrap{grid-template-columns:minmax(0,1fr) 300px}
+  .hub-main #bankRoot .bk-search{flex-basis:200px;max-width:200px}
+}
+@media(max-width:980px){
+  .hub-main .br-stat-grid{grid-template-columns:1fr}
+  .hub-main .br-wrong-wrap{grid-template-columns:1fr}
+  .hub-main .br-npanel{position:static}
+}
+@media(max-width:860px){
+  body:has(> main > .hub-shell > .hub-main > #bankRoot) .hub-main{padding:12px 12px 32px}
+  .hub-main>#brTabs{display:flex!important;justify-content:space-around;gap:4px;margin:0 0 12px;padding:0 0 10px;border-bottom:1px solid var(--line);background:transparent;overflow:visible}
+  .hub-main>#brTabs .br-tab{flex:1 1 0;min-height:38px;padding:7px 10px;border:0;border-radius:9px;color:var(--muted);background:transparent;font-size:12.5px}
+  .hub-main>#brTabs .br-tab.active{color:var(--primary-700);background:var(--primary-50);box-shadow:none}
+  .hub-main>#brTabs .br-tab[data-brtab="listening"]{display:none!important}
+  .hub-main>#brTabs .br-tab-wide{display:none}
+  .hub-main>#brTabs .br-tab-narrow{display:inline}
+  .hub-main > #bankRoot{display:flex;flex-direction:column}
+  .hub-main #bankRoot > #mockTabs{order:1;align-self:flex-start;margin:0 0 10px}
+  .hub-main #bankRoot > .mock-pane:not([hidden]){display:contents!important}
+  .hub-main #bankRoot .partbar{order:3;display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+  .hub-main #bankRoot .partbar .pill-tabs{flex-wrap:wrap;gap:6px;overflow:visible;max-width:none}
+  .hub-main #bankRoot .bk-search{order:2;flex:1 1 auto;min-width:130px;max-width:none;margin:0 0 12px}
+  .hub-main #bankRoot #fullEntry,.hub-main #bankRoot #listenFullEntry{order:4;margin:0 0 14px}
+  .hub-main #bankRoot #bankList,.hub-main #bankRoot #listenList{order:5;padding-bottom:8px}
+  .hub-main #bankRoot .bank-item{min-height:58px;padding:12px 14px;gap:10px}
+  .hub-main #bankRoot .bi-tt b{font-size:13px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .hub-main #bankRoot .bi-st:not(.ok)::after{font-size:11px}
+  .hub-main #bankRoot .full-card{flex-wrap:wrap;align-items:flex-start;gap:10px;padding:14px 15px}
+  .hub-main #bankRoot .full-card .bk-m b{font-size:14.5px}
+  .hub-main #bankRoot .full-card .fc-last{text-align:left}
+  .hub-main #bankRoot .full-card .btn-primary{min-height:36px;font-size:11.5px}
+  .hub-main #bankRoot .bk-source-select{position:static;order:2;flex:0 0 auto;align-self:flex-end;width:118px;margin:0 0 12px;height:36px}
+  .hub-main > #bankRoot > #bkRail{display:contents!important}
+  .hub-main > #bankRoot > #bkRail .bk-rail-in{display:contents!important}
+  .hub-main #bkRail .bank-info{display:block;order:6;margin:0;padding:12px 0 0}
+  .hub-main .br-panel{padding:0}
+  .hub-main .br-band{grid-template-columns:1fr 1fr;margin-bottom:12px}
+  .hub-main .br-cell{padding:11px 13px}
+  .hub-main .br-cell .v,.hub-main .br-cell.lead .v{font-size:21px}
+  .hub-main .br-cell .v.date{font-size:15px;padding-top:4px}
+  .hub-main .br-sess{grid-template-columns:minmax(0,1fr) 58px 18px;gap:8px;padding:12px 14px}
+  .hub-main .br-sess .dt{grid-column:1/-1;font-size:10px}
+  .hub-main .br-sess .tm{display:none}
+  .hub-main .br-detail{padding:12px 14px 15px}
+  .hub-main .br-qgrid{grid-template-columns:repeat(8,minmax(0,1fr))}
+  .hub-main .br-npanel{padding:16px}
+  .hub-main .br-sbox{padding:15px 14px}
+  .hub-main .br-bar{grid-template-columns:82px minmax(0,1fr) 64px;gap:8px}
+  .hub-main .br-callout{font-size:11.5px}
+}
+@media(max-width:520px){
+  .hub-main .br-qgrid{grid-template-columns:repeat(6,minmax(0,1fr))}
+  .hub-main #bankRoot .full-card .fc-last{width:100%;order:3}
+  .hub-main #bankRoot .full-card .btn-primary{order:4;width:100%}
+  .hub-main #bankRoot .bk-source-select{width:108px}
+  .hub-main .br-bar{grid-template-columns:78px minmax(0,1fr) 60px}
+}
