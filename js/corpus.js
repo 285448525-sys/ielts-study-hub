@@ -987,7 +987,7 @@ function render(){
     if(inner) inner.innerHTML = known.map(cardHtml).join('');
     kw.hidden = known.length === 0;
     const sum = kw.querySelector('summary');
-    if(sum) sum.textContent = `已掌握（${known.length}）`;
+    if(sum) sum.textContent = '已掌握';
     if(!open.length && known.length) kw.open = true;
   }
   $('#empty').hidden = (open.length + known.length) > 0;

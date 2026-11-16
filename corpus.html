@@ -33,6 +33,7 @@
 <title>句子 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css?v=20261116a" />
 <link rel="stylesheet" href="css/p/corpus.css?v=20261116a" />
+<link rel="stylesheet" href="css/p/corpus-main.css?v=20261116a" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -51,7 +52,7 @@
   <script defer src="js/common-shell.js?v=20261116a"></script>
   <script defer src="js/common-pwa.js?v=20261116a"></script>
   <script defer src="js/feedback.js?v=20261111b"></script>
-  <script src="js/corpus.js?v=20261112d" defer></script>
+  <script src="js/corpus.js?v=20261116a" defer></script>
 <style>
   /* 长难句 / 错题本 样式（原 errorbook.html 内联） */
   .eb-input{width:100%;min-height:190px;padding:14px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;font-size:14.5px;line-height:1.75;background:var(--bg);color:var(--ink);resize:vertical}
@@ -304,36 +305,34 @@ body.exam-fullscreen .cp2-pane{display:none!important}
   <div class="hub-shell">
     <aside class="hub-side">
       <div class="hub-side-scroll">
-        <div class="hub-subs" id="hubSubs"></div>
-        <div class="hub-subs" id="cpNav"></div>
+        <div class="hub-subs" id="cpNav" aria-label="句子栏目">
+          <button class="hub-sub on" type="button" data-cp-tab="parse" aria-pressed="true">
+            <span class="hub-sub-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6.5h16M4 11.5h16M4 16.5h9"/></svg></span>
+            <span class="hub-sub-nm">拆解</span>
+          </button>
+          <button class="hub-sub" type="button" data-cp-tab="errors" aria-pressed="false">
+            <span class="hub-sub-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20L12 3z"/><path d="M12 9v5M12 17h.01"/></svg></span>
+            <span class="hub-sub-nm">错题</span>
+          </button>
+          <button class="hub-sub" type="button" data-cp-tab="drill" aria-pressed="false">
+            <span class="hub-sub-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 16 12-12 4 4L8 20H4v-4z"/><path d="m14 6 4 4"/></svg></span>
+            <span class="hub-sub-nm">练习</span>
+          </button>
+        </div>
         <div class="hub-side-div"></div>
-        <div class="hub-td-head"><b>今天</b></div>
-        <div class="hub-td-prog" id="hubTdProg"></div>
-        <div class="hub-td-group" id="hubTdPending"></div>
-        <div class="hub-td-group" id="hubTdDone"></div>
-        <div class="hub-td-empty" id="hubTdEmpty" hidden>今天还没有任务</div>
-        <div class="hub-side-foot"><a href="plans.html">去计划页查看全部 ›</a></div>
+        <section class="hub-td" id="hubTd" aria-label="今日任务">
+          <div class="hub-td-head"><b>今日任务</b><span class="hub-td-count" id="hubTdCount" hidden>0/0</span></div>
+          <div class="hub-td-list" id="hubTdList"></div>
+          <div class="hub-td-empty" id="hubTdEmpty" hidden>今天还没有任务</div>
+          <a class="hub-td-more" href="plans.html">去计划页查看全部<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></a>
+        </section>
       </div>
     </aside>
     <div class="hub-main">
-      <div class="cp2-mobile-tabs" id="cpMobileTabs"></div>
-      <div class="cp2-pane" data-cp-pane="home" id="cpPaneHome" hidden>
-        <div class="cp2-vhead">
-          <div><h1>总览</h1><span class="hint">拆得懂、默得出，错过的能找回来</span></div>
-          <div class="right">
-            <select class="cp2-range" data-range aria-label="时间范围">
-              <option value="30">近 30 天</option>
-              <option value="90">近 90 天</option>
-              <option value="all">全部时间</option>
-            </select>
-            <button type="button" class="cp2-btn sm primary" data-cp-go="long">拆解长难句</button>
-          </div>
-        </div>
-        <div id="cpHomeBody"></div>
-      </div>
-      <div class="cp2-pane cp2-vhead" id="cpViewHead" hidden>
-        <div><h1 id="cpViewTitle"></h1><span class="hint" id="cpViewHint"></span></div>
-        <div class="right"><span class="cp2-pill key" id="cpViewStat"></span></div>
+      <div class="cp-mobile-tabs" id="cpMobileTabs" aria-label="句子栏目">
+        <button type="button" data-cp-tab="parse" class="on" aria-pressed="true">拆解</button>
+        <button type="button" data-cp-tab="errors" aria-pressed="false">错题</button>
+        <button type="button" data-cp-tab="drill" aria-pressed="false">练习</button>
       </div>
 <!-- ═══ KIMI-P2-2（10-26）· 句子页按 Kimi 样子稿 1:1 重排 ═══
 结构原文 design/kimi-visual-upgrade-2026-10-25/_KC-corpus_结构原文.html（前缀 kc-）
@@ -352,35 +351,43 @@ importCorpus · importHint · aiImportBox · aiImportBtn · aiImportHint · dict
 <button type="button" data-sub="eb" class="" aria-pressed="false">错题</button>
 <button type="button" data-sub="dict" class="" aria-pressed="false">听写</button>
 </nav>
-<div id="lsView" class="kc-view-section">
-<!-- CORPUS-PANEL-REDESIGN-1（10/29）：长难句面板按她点头终稿重排
-     （design/ssr-corpus-panel-2026-10-28.html）。功能零删减：拆解/同传/复制全文/词汇收录/记录查看删除全在，
-     改的是「形态与展示顺序」——结果从平铺网格改成 1→6 编号分区（主干→成分→逻辑→译文→考点词→命题人视角）。
-     ⚠️ id 一个没改（sentInput/sentStatus/analyzeBtn/copyBtn/origSent/resultBody/resultCard/histCard/histCount/histList/lsModeSeg），
-        js/corpus.js 的取值与绑定零改动风险。 -->
+<div id="lsView" class="kc-view-section cp-pane" data-cp-pane="parse">
 <section class="lsr-composer">
-<div class="lsr-composer-head"><h1>粘贴长难句</h1><div class="lsr-segment" id="lsModeSeg" role="group" aria-label="拆解模式"><button type="button" data-lsmode="struct" class="on" aria-pressed="true">结构拆解</button><button type="button" data-lsmode="si" aria-pressed="false">同传对照</button></div></div>
-<p class="lsr-intro">看不懂的长难句贴进来，AI 帮你拆开：<b>结构拆解</b>看主干、修饰成分、逻辑信号和考点词；<b>同传对照</b>给逐句顺译，练边读边懂。拆过的句子会存到下面，随时回看。</p>
-<div class="lsr-input-wrap"><textarea id="sentInput" aria-label="长难句原文" placeholder="在此粘贴长难句，例如：The theory suggests the decline is a deeper imbalance."></textarea></div>
-<div class="lsr-composer-foot"><div class="lsr-foot-l"><span class="lsr-hint">回车拆解 · 换行用 Shift + Enter</span><span id="sentStatus" class="lsr-status" aria-live="polite"></span></div><button class="lsr-btn lsr-btn-primary" id="analyzeBtn" type="button">拆解分析</button></div>
+<div class="lsr-input-wrap"><textarea id="sentInput" aria-label="长难句原文" placeholder="把看不懂的长难句贴进来"></textarea></div>
+<div class="lsr-composer-foot">
+  <div class="lsr-segment" id="lsModeSeg" role="group" aria-label="拆解模式"><button type="button" data-lsmode="struct" class="on" aria-pressed="true">结构拆解</button><button type="button" data-lsmode="si" aria-pressed="false">同传对照</button></div>
+  <div class="lsr-foot-l"><span id="sentStatus" class="lsr-status" aria-live="polite"></span></div>
+  <button class="lsr-btn lsr-btn-primary" id="analyzeBtn" type="button">拆解</button>
+</div>
 </section>
 <div id="resultCard" hidden>
-<div class="lsr-result-head"><h2>拆解结果</h2><button class="lsr-btn lsr-btn-sm" id="copyBtn" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg>复制全文</button></div>
+<div class="lsr-result-head"><button class="lsr-btn lsr-btn-sm" id="copyBtn" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg>复制</button></div>
 <blockquote class="lsr-original" id="origSent"></blockquote>
 <div class="lsr-answer" id="resultBody"></div>
 </div>
 <section class="lsr-history" id="histCard" hidden><div class="lsr-history-head"><h2>我的拆解记录 <span id="histCount">0</span></h2></div><div class="lsr-history-list" id="histList"></div></section>
 </div>
-<div id="ebView" class="kc-view-section" hidden>
-<section class="kc-card"><h2 style="margin-bottom:14px">错题</h2><textarea class="kc-eb-input" id="ebInput" aria-label="错题原文" placeholder="把这道题相关的东西整段贴进来：题目、题干、你的答案、正确答案、解析…不用整理格式"></textarea><div class="kc-eb-bar"><button class="kc-btn kc-btn-primary" id="ebAnalyze" type="button">AI 收录错题</button><button class="kc-btn" id="ebRaw" type="button" title="不走 AI，先存原文，之后可补分析">只存原文</button></div><div id="ebLoading" class="kc-eb-loading" hidden></div></section>
-<section class="kc-card"><h2 class="kc-count-title">未掌握 <span id="count">0</span> 条 · 已掌握 <span id="knownCount">0</span> 条</h2><div id="list"></div><details id="knownWrap" hidden><summary>已掌握（0）</summary><div id="knownList"></div></details><div id="empty" class="kc-cc-empty">还没有记录。把错题整段贴到上面那个框，点「AI 收录错题」。</div></section>
+<div id="ebView" class="kc-view-section cp-pane" data-cp-pane="errors" hidden>
+<section class="kc-card"><textarea class="kc-eb-input" id="ebInput" aria-label="错题原文" placeholder="把题目、你的答案、正确答案、解析整段贴进来"></textarea><div class="kc-eb-bar"><button class="kc-btn" id="ebRaw" type="button" title="不走 AI，先存原文，之后可补分析">只存原文</button><button class="kc-btn kc-btn-primary" id="ebAnalyze" type="button">AI 收录</button></div><div id="ebLoading" class="kc-eb-loading" hidden></div></section>
+<section class="kc-card"><h2 class="kc-count-title cp-sr">未掌握 <span id="count">0</span> 条 · 已掌握 <span id="knownCount">0</span> 条</h2><div id="list"></div><details id="knownWrap" hidden><summary>已掌握</summary><div id="knownList"></div></details><div id="empty" class="kc-cc-empty">还没有错题。把错题整段贴到上面，收录后在这里逐条过。</div></section>
 </div>
-<div id="dictView" class="kc-view-section" hidden>
-<!-- CORPUS-TABS-1（11-08）：设计稿「句子库从原听写页里独立成页 / 材料归句子库」。
-     这里只把原有两块包成 #cpDictExercise（练法两卡 + #dictArea）与 #cpBankSection（句子库），
-     由 js/corpus-tabs.js 的 splitDictView() 按 tab 显隐；DOM 与全部 id 一个没删、没改，
-     js/corpus.js 的 renderList/openAddPanel/startWrite/startDict 全部照常按 id 取值。 -->
-<div id="cpDictExercise">
+<div id="dictView" class="kc-view-section cp-pane" data-cp-pane="drill" hidden>
+<!-- 练习暂未开放：磨砂示意底稿 + 居中「即将上线」罩层，所有交互都被遮住。 -->
+<div class="cp-coming">
+  <div class="cp-coming-demo" aria-hidden="true">
+    <div class="cp-demo-bar"><div class="cp-demo-seg"><span>看中文默写</span><span>听英文听写</span></div><span class="cp-demo-select">每批 10 句</span></div>
+    <div class="cp-demo-main"><b>24 句可练</b><span>看中文写英文，写完即时核对。</span><i>开始练习</i></div>
+  </div>
+  <div class="cp-coming-veil"></div>
+  <div class="cp-coming-card">
+    <span class="cp-coming-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+    <b>句子练习即将上线</b>
+    <p>默写与听写正在准备中。<br>现在可以先拆解长难句、整理错题。</p>
+  </div>
+</div>
+<!-- 旧句子库 / 默写 DOM 全部保留但隐藏：js/corpus.js 的 renderList 仍按原 id 取值，
+     以后练习上线时直接恢复，不需要重写数据层。 -->
+<div id="cpDictExercise" hidden>
 <div class="kc-dict-modes"><section class="kc-card kc-dm-card"><div class="kc-dm-body"><b>逐句默写</b><span>看中文提示，把英文默出来，AI 逐句判分挑错</span></div><button class="kc-btn kc-btn-primary" id="startWrite" type="button">开始默写</button></section><section class="kc-card kc-dm-card"><div class="kc-dm-body"><b>听写</b><span>播放英文整句，写下听到的，再逐词核对（语速可调）</span></div><button class="kc-btn" id="startDict" type="button">开始听写</button></section></div>
 <div id="dictArea"></div>
 </div>
@@ -401,7 +408,7 @@ importCorpus · importHint · aiImportBox · aiImportBtn · aiImportHint · dict
 
 <link rel="stylesheet" href="css/p/hub-shell.css?v=20261116a" />
 <script defer src="js/hub-side-shell.js?v=20261106b"></script>
-<script defer src="js/corpus-tabs.js?v=20261109a"></script>
+<script defer src="js/corpus-main.js?v=20261116a"></script>
   <script defer src="js/es-b.js?v=20261112c"></script>
 </body>
 </html>
