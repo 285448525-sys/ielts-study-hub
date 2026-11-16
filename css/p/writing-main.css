@@ -76,7 +76,7 @@ body[data-shell="top"]:not(.exam-fullscreen) main.container>.hub-shell>.hub-main
 #bankPanel>section.card>.form-row{display:flex;flex-wrap:wrap;gap:10px;margin:0;padding:10px 14px;align-items:center;border-bottom:1px solid var(--line)}
 #bankPanel>section.card>.form-row>.wr-field-search{flex:1 1 240px;order:0;max-width:none;width:auto}
 #bankPanel>section.card>.form-row>#bankFilter{order:1;flex:0 0 110px;min-width:0;width:110px;height:40px;min-height:40px;box-sizing:border-box;align-self:center;border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--ink-2);font:inherit;font-size:12px;padding:0 10px}
-#bankPanel>section.card>.form-row>#bankAddBtn{order:2;flex:0 0 auto;min-width:0;width:auto;height:40px;min-height:40px;box-sizing:border-box;align-self:center;white-space:nowrap;font-size:12px;margin:0}
+#bankPanel>section.card>.form-row>#bankAddBtn{order:2;flex:0 0 auto;min-width:0;width:auto;height:40px;min-height:40px;box-sizing:border-box;align-self:center;white-space:nowrap;font-size:12px;margin:0 6px 0 0}
 #bankPanel #bankList{margin:0!important}
 #bankPanel .bank-table{border-collapse:collapse;width:100%;font-size:13px}
 #bankPanel .bank-table th{display:none}
@@ -159,7 +159,8 @@ body:not(.exam-fullscreen):not(.mock-immerse):not(.word-fullscreen):not(.hub-exa
   .wr-seg{order:0}
   .wr-own{order:1;margin-left:auto;min-height:40px}
   .wr-qsearch{order:2;flex-basis:100%;height:40px}
-  .wr-qsubs{padding:10px 12px}
+  .wr-qsubs{gap:2px;padding:10px 12px}
+  .wr-qsubs button{padding:0 8px;font-size:11.5px}
   .wr-qrow{min-height:82px;padding:10px 14px;gap:10px;align-items:center}
   .wr-qrow-en{font-size:11.5px;line-height:1.45;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
   .wr-qrow-cn{font-size:10.5px;line-height:1.4}
@@ -176,7 +177,7 @@ body:not(.exam-fullscreen):not(.mock-immerse):not(.word-fullscreen):not(.hub-exa
   #bankPanel>section.card>.form-row{display:flex!important;flex-wrap:wrap;padding:10px 12px;gap:8px}
   #bankPanel>section.card>.form-row>.wr-field-search{display:flex;flex:1 1 100%;order:0;width:100%;margin:0}
   #bankPanel>section.card>.form-row>#bankFilter{order:1;flex:1 1 100px;width:auto;margin:0}
-  #bankPanel>section.card>.form-row>#bankAddBtn{order:2;flex:0 0 auto;width:auto;height:40px;min-height:40px;margin:0}
+  #bankPanel>section.card>.form-row>#bankAddBtn{order:2;flex:0 0 auto;width:auto;height:40px;min-height:40px;margin:0 10px 0 0}
   #bankPanel .bank-table,#bankPanel .bank-table tbody,#bankPanel .bank-table tr,#bankPanel .bank-table td{display:block;width:100%}
   #bankPanel .bank-table tr{position:relative;padding:10px 42px 10px 14px;border-bottom:1px solid var(--line)}
   #bankPanel .bank-table td{padding:0;border:0;background:transparent}

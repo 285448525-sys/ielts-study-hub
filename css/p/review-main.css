@@ -106,6 +106,7 @@ body{background:var(--rva-bg)}
 .rva-chart-empty .rva-empty-ic{width:38px;height:38px;border-radius:11px;margin-bottom:9px}
 .rva-chart-empty b{font-size:13px;font-weight:700;color:var(--rva-ink)}
 .rva-chart-empty p{margin:4px 0 0;font-size:11.5px;color:var(--rva-muted)}
+.rva-chart-empty .rva-primary{margin-top:16px}
 .rva-mini-panel{margin-top:14px}
 .rva-chart-foot{display:flex;justify-content:space-between;gap:12px;padding:0 18px 10px;font-size:10.5px;color:var(--rva-muted-2)}
 

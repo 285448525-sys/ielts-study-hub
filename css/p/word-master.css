@@ -3,6 +3,12 @@
 #studyView:not(.wd-exam){flex:none!important;height:auto!important}
 #studyView:not(.wd-exam) #preStart .empty-state{grid-column:1 / -1}
 #studyView:not(.wd-exam) #preStart{display:grid;grid-template-columns:minmax(0,1.58fr) minmax(280px,.92fr);gap:14px;height:clamp(500px,calc(100dvh - 92px),680px)}
+/* 没选词书时只留一张空态卡：原来的两列网格会把侧栏卡丢到左列，右半屏整块空掉。 */
+#studyView:not(.wd-exam) #preStart:has(#wdEmptyState:not([hidden])){grid-template-columns:1fr;grid-template-rows:1fr}
+#studyView:not(.wd-exam) #preStart:has(#wdEmptyState:not([hidden])) .wv-study-side{display:none}
+#studyView:not(.wd-exam) #preStart:has(#wdEmptyState:not([hidden])) #wdEmptyState{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%
+}
 #studyView #wdGoShelf,#studyView #wdSkipHint{display:none}
 #studyView:not(.wd-exam) .wd-today-card{display:grid;grid-template-columns:minmax(0,1.06fr) minmax(250px,.94fr);grid-template-rows:auto auto 1fr auto;position:relative;min-height:0;margin:0;padding:30px 30px 26px;border:1px solid #e0e8e4;border-radius:16px;background:linear-gradient(120deg,#f7faf8,#fff);box-shadow:0 1px 2px rgba(28,55,48,.035);overflow:hidden}
 .wv-kicker{display:block;font-size:11px;font-weight:650;color:#89938f;letter-spacing:.08em}

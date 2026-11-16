@@ -184,7 +184,11 @@
     for(var i=statRange-1;i>=0;i--){var key=addDays(today,-i),n=dayWords(key);sum+=n;if(n>max)max=n;days.push({key:key,n:n});}
     setText('wbStatTotal',sum);setText('wbStatAverage','近 '+statRange+' 天 · 日均 '+Math.round(sum/statRange)+' 词');
     $('wbStatBars').innerHTML=days.map(function(d,index){var h=d.n?Math.max(7,Math.round(d.n/max*100)):0;return '<div class="wv-stat-bar'+(index===days.length-1?' today':'')+'" title="'+d.key+' · '+d.n+' 词"><em>'+(d.n||'')+'</em><i style="height:'+h+'%"></i><span>'+(index===days.length-1?'今天':(statRange===7||index%5===0?d.key.slice(5):''))+'</span></div>';}).join('');
-    var c=counts(active()), pct=c.t?Math.round(c.m/c.t*100):0, circle=Math.round(283*pct/100);
+    /* 环图口径 = 全部词书合计，和下方「每本进度」是同一张总账；
+       只算当前词书会让人误以为换书后掌握量清零。 */
+    var c={m:0,l:0,n:0,t:0};
+    books().forEach(function(b){var bc=counts(b.id);c.m+=bc.m;c.l+=bc.l;c.n+=bc.n;c.t+=bc.t;});
+    var pct=c.t?Math.round(c.m/c.t*100):0, circle=Math.round(283*pct/100);
     setText('wbStatPct',pct+'%');setText('wbStatM',c.m);setText('wbStatL',c.l);setText('wbStatN',c.n);
     $('wbStatRing').style.strokeDasharray=circle+' 283';
     $('wbStatProg').innerHTML=books().map(function(b){var bc=counts(b.id),p=bc.t?Math.round(bc.m/bc.t*100):0;return '<div class="wv-stat-prow"><span>'+esc(b.nm)+'</span><i><b style="width:'+p+'%"></b></i><span>'+p+'%</span></div>';}).join('');

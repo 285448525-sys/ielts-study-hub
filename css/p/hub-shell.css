@@ -29,13 +29,13 @@ main.container:has(> .hub-shell){
      又把 #vMall 的 height:100% 压掉，书架塌成内容高、底部一大片空（v808 实测 828 高 / v809 只剩 694）。
      这里重建：.hub-main 满高 flex 列、#bankView 恢复 flex 列撑满、#vMall 继续 height:100%。
      用 :has(#vMall:not([hidden])) 限定书架/学习两态；词书详情态（vMall hidden）保持普通滚动。 */
-  main.container:has(> .hub-shell):has(#vMall:not([hidden])) .hub-main{
+  main.container:has(> .hub-shell):has(#bankView:not([hidden])):has(#vMall:not([hidden])) .hub-main{
     padding:0;min-height:0;display:flex;flex-direction:column;
   }
-  main.container:has(> .hub-shell):has(#vMall:not([hidden])) #bankView{
+  main.container:has(> .hub-shell):has(#bankView:not([hidden])):has(#vMall:not([hidden])) #bankView{
     flex:1 1 auto;min-height:0;display:flex;flex-direction:column;
   }
-  main.container:has(> .hub-shell):has(#vMall:not([hidden])) #studyView{
+  main.container:has(> .hub-shell):has(#bankView:not([hidden])):has(#vMall:not([hidden])) #studyView{
     flex:1 1 auto;min-height:0;
   }
   /* 全屏沉浸：别被共用壳的 height:auto + overflow:hidden 压成半屏灰带 */

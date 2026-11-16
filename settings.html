@@ -125,6 +125,7 @@ setTimeout(__rvRescue,2500);
   .set-row-c input:not([type=checkbox]):not([type=radio]):not([type=file]){width:100%}
   .set-row-c--band input:not([type=checkbox]):not([type=radio]):not([type=file]){width:100%}
   .set-row-c--band{flex-wrap:wrap}
+  .set-band-item{flex:1 1 0;min-width:0}
   .set-ro{text-align:left}
 }
 /* 🔴 10-23 T-002 步4：危险区独立卡片（方案 §六：1px 红边 + 红浅底 + 圆角 12）。
@@ -143,6 +144,10 @@ setTimeout(__rvRescue,2500);
 .set-row-c--band{gap:6px}
 .set-row-c--band input:not([type=checkbox]):not([type=radio]):not([type=file]){width:66px;text-align:center;padding:0 4px}
 .set-row-c--band input::placeholder{color:var(--muted);font-size:12px}
+/* 口语自评：输入框下挂常驻标签。没有这条时 .set-band-item 是裸 div，
+   手机端 input width:100% 会环回父级内容宽度，把两个框压成小方块。 */
+.set-band-item{display:flex;flex-direction:column;align-items:center;gap:4px;flex:0 0 auto}
+.set-band-lab{font-size:11px;line-height:1.35;color:var(--muted);white-space:nowrap}
 /* 只读值（同步状态 / 版本号）：不是输入框，就是一段文字 */
 .set-ro{font-size:13px;color:var(--ink-2);text-align:right;line-height:1.5}
 /* 🔴 10-24 17:5x 修「版本号整列中文竖排」（她截图报）：#setVerText 的内容是 20+ 个
@@ -367,7 +372,7 @@ setTimeout(__rvRescue,2500);
   <script defer src="js/common.js?v=20261116a"></script>
   <script defer src="js/common-ai.js?v=20261116a"></script>
   <script defer src="js/common-sync.js?v=20261116a"></script>
-  <script defer src="js/common-merge.js?v=20261116a"></script>
+  <script defer src="js/common-merge.js?v=20261116b"></script>
   <script defer src="js/common-cloud.js?v=20261116a"></script>
   <script defer src="js/common-shell.js?v=20261116a"></script>
   <script defer src="js/common-pwa.js?v=20261116a"></script>
@@ -528,11 +533,11 @@ setTimeout(__rvRescue,2500);
           <!-- SET-LAB-1（10-27）：标签只挂 placeholder，框一填值就消失（她截图填 5.5/6 时看不出哪边是哪边）
                → 每框包 .set-band-item，框下挂常驻小字。id/读写路径/aria 一个没动。 -->
           <div class="set-band-item">
-            <input id="sFlu" type="number" min="0" max="9" step="0.5" aria-label="固定流利度分" placeholder="流利度" />
+            <input id="sFlu" type="number" min="0" max="9" step="0.5" aria-label="固定流利度分" />
             <span class="set-band-lab">流利度</span>
           </div>
           <div class="set-band-item">
-            <input id="sPron" type="number" min="0" max="9" step="0.5" aria-label="固定发音分" placeholder="发音" />
+            <input id="sPron" type="number" min="0" max="9" step="0.5" aria-label="固定发音分" />
             <span class="set-band-lab">发音</span>
           </div>
         </div>
