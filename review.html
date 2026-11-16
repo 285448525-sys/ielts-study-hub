@@ -7,9 +7,9 @@
 (function autoCleanOldBank(){try{var key='ielts_study_hub_v1',raw=localStorage.getItem(key);if(!raw)return;var parsed=JSON.parse(raw);if(!parsed||!Array.isArray(parsed.speaking))return;var dirtyIds=['sb_p2_travel','sb_p2_earlymorning'],before=parsed.speaking.length,kept=parsed.speaking.filter(function(s){return !(s&&dirtyIds.indexOf(s.id)>=0)});if(kept.length!==before){parsed.speaking=kept;localStorage.setItem(key,JSON.stringify(parsed))}}catch(e){}})();
 </script>
 <title>回顾 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261115a"><link rel="stylesheet" href="css/p/review.css?v=20261115a"><link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7"><link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7"><link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7"><link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png?v=7"><link rel="manifest" href="/manifest.json"><meta name="theme-color" content="#3a9a93">
-<script defer src="js/data.js?v=20261113d"></script><script defer src="js/common.js?v=20261115a"></script><script defer src="js/common-ai.js?v=20261115a"></script><script defer src="js/common-sync.js?v=20261115a"></script><script defer src="js/common-merge.js?v=20261115a"></script><script defer src="js/common-cloud.js?v=20261115a"></script><script defer src="js/common-shell.js?v=20261115a"></script><script defer src="js/common-pwa.js?v=20261115a"></script>
-<script defer src="js/feedback.js?v=20261111b"></script><script defer src="js/scores.js?v=20261103a"></script><script defer src="js/history.js?v=20261112a"></script><script defer src="js/rv-record.js?v=20261028a"></script><script defer src="js/mock-report.js?v=20261006a"></script><script defer src="js/mock-history.js?v=20261006b"></script><script defer src="js/rec-all.js?v=20261109a"></script><script defer src="js/mock-summary.js?v=20261001f"></script><script defer src="js/speaking-practice.js?v=20261006a"></script><script defer src="js/progress.js?v=20261024a"></script><script defer src="js/rvx-data.js?v=20261109a"></script><script defer src="js/review.js?v=20261023a"></script><script defer src="js/sprint.js?v=20261002a"></script>
+<link rel="stylesheet" href="css/common.css?v=20261116a"><link rel="stylesheet" href="css/p/review.css?v=20261116a"><link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7"><link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7"><link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7"><link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png?v=7"><link rel="manifest" href="/manifest.json"><meta name="theme-color" content="#3a9a93">
+<script defer src="js/data.js?v=20261113d"></script><script defer src="js/common.js?v=20261116a"></script><script defer src="js/common-ai.js?v=20261116a"></script><script defer src="js/common-sync.js?v=20261116a"></script><script defer src="js/common-merge.js?v=20261116a"></script><script defer src="js/common-cloud.js?v=20261116a"></script><script defer src="js/common-shell.js?v=20261116a"></script><script defer src="js/common-pwa.js?v=20261116a"></script>
+<script defer src="js/feedback.js?v=20261111b"></script><script defer src="js/scores.js?v=20261103a"></script><script defer src="js/history.js?v=20261112a"></script><script defer src="js/rv-record.js?v=20261028a"></script><script defer src="js/mock-report.js?v=20261006a"></script><script defer src="js/mock-history.js?v=20261006b"></script><script defer src="js/rec-all.js?v=20261109a"></script><script defer src="js/mock-summary.js?v=20261116a"></script><script defer src="js/speaking-practice.js?v=20261006a"></script><script defer src="js/progress.js?v=20261024a"></script><script defer src="js/rvx-data.js?v=20261109a"></script><script defer src="js/review.js?v=20261023a"></script><script defer src="js/sprint.js?v=20261002a"></script>
 <style id="bootLoaderStyle">#bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:var(--bg);transition:opacity .18s}#bootLoader.hide{opacity:0;pointer-events:none}</style>
 <meta name="description" content="回顾：成绩趋势、学习记录与分项练习表现。"><link rel="canonical" href="https://yasihub.com/review"><meta property="og:type" content="website"><meta property="og:title" content="回顾 · 雅思备考 Hub"><meta property="og:description" content="回顾：成绩趋势、学习记录与分项练习表现。"><meta property="og:url" content="https://yasihub.com/review"><meta name="twitter:card" content="summary">
 <style>
@@ -362,6 +362,350 @@ return {hero:hero,inline:inline,ic:ic};
 }
 @media(prefers-reduced-motion:reduce){.re-fold>summary .chev{transition:none}}
 </style>
+
+<style id="reviewUnified4">
+/* REVIEW-UNIFIED-4（11-16）：按她点头的《回顾-重设计-1115》1:1 落地。
+   三页共用一张固定 board：页头 76px、左栏工具栏 56px、右栏 320px 固定，
+   切页只换左栏内容，板高与右栏位置不变；手机端三页工具栏统一 122px。
+   既有 ID、data-rv2-*、折叠与弹窗全部保留，JS 照常写原落点。 */
+@media(min-width:861px){
+  body .hub-main{padding:24px 28px 40px;overflow:auto}
+}
+/* 三页共用一张 board 后，左栏子 tab 与页头切换重复；整页只留顶部这个切换键 */
+body .hub-shell{grid-template-columns:minmax(0,1fr)}
+body .hub-main{grid-column:1/-1}
+.hub-side{display:none!important}
+.rv-board{
+  max-width:1180px;margin:0 auto;height:560px;display:grid;
+  grid-template-columns:minmax(0,1fr) 320px;grid-template-rows:76px minmax(0,1fr);
+  border:1px solid var(--line);border-radius:16px;background:var(--surface);
+  box-shadow:var(--shadow);overflow:hidden
+}
+.rv-board-head{
+  grid-column:1/-1;grid-row:1;display:flex;align-items:center;gap:20px;
+  padding:0 24px;border-bottom:1px solid var(--line-2);min-width:0
+}
+.rv-board-head-txt{min-width:0}
+.rv-board-head h2{margin:0;font-size:15px;font-weight:750;letter-spacing:.01em;color:var(--ink)}
+.rv-board-head p{margin:4px 0 0;font-size:11.5px;line-height:1.5;color:var(--muted)}
+#rvMobileTabs{
+  margin-left:auto;display:inline-flex;align-items:center;gap:4px;padding:4px;
+  border:1px solid var(--line);border-radius:999px;background:var(--surface-2);flex:none
+}
+#rvMobileTabs button{
+  min-height:32px;padding:0 14px;border:0;border-radius:999px;background:transparent;
+  color:var(--muted);font:inherit;font-size:12px;font-weight:650;cursor:pointer;white-space:nowrap
+}
+#rvMobileTabs button.on{
+  background:var(--surface);color:var(--teal-700);font-weight:750;
+  box-shadow:0 1px 3px rgba(24,40,48,.10)
+}
+.rv-board-add{
+  margin-left:0;display:inline-flex;align-items:center;justify-content:center;gap:8px;flex:none;
+  min-height:40px;padding:0 16px;border:0;border-radius:10px;background:var(--teal);
+  color:#fff;font:inherit;font-size:13px;font-weight:700;cursor:pointer
+}
+.rv-board-add:hover{background:var(--teal-d)}
+.rv-board-add svg{width:16px;height:16px;max-width:16px;max-height:16px;flex:0 0 16px}
+.rv-board-body{
+  grid-column:1/-1;grid-row:2;display:grid;grid-template-columns:minmax(0,1fr) 320px;
+  min-width:0;min-height:0
+}
+.rv-board-left{min-width:0;min-height:0;display:flex;flex-direction:column}
+.rv-page{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+.rv-page[hidden]{display:none!important}
+.rv-toolbar{
+  flex:0 0 56px;min-height:56px;display:flex;align-items:center;gap:24px;
+  flex-wrap:wrap;align-content:center;padding:12px 24px;
+  border-bottom:1px solid var(--line-2);min-width:0;box-sizing:border-box
+}
+.rv-toolbar-note{font-size:12px;line-height:1.6;color:var(--muted);min-width:0}
+.rv-badge{
+  display:inline-flex;align-items:center;gap:6px;flex:none;padding:4px 10px;border-radius:999px;
+  background:var(--teal-50);color:var(--teal-700);font-size:11px;font-weight:800;letter-spacing:.02em
+}
+.rv-badge svg{width:13px;height:13px;max-width:13px;max-height:13px;flex:0 0 13px}
+.rv-badge-empty{display:none}
+.hub-main:has(#rv2Summary > .es-box) .rv-badge-empty,
+.hub-main:has(#rv2Summary > .rv2-empty) .rv-badge-empty{display:inline-flex}
+.hub-main:has(#rv2Summary > .es-box) .rv-badge-data,
+.hub-main:has(#rv2Summary > .rv2-empty) .rv-badge-data{display:none}
+.rv-canvas{
+  flex:1 1 auto;min-height:0;overflow:auto;padding:20px 24px;scrollbar-gutter:stable;
+  scrollbar-width:thin;scrollbar-color:var(--line) transparent
+}
+.rv-canvas::-webkit-scrollbar{width:8px;height:8px}
+.rv-canvas::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px}
+.rv-canvas::-webkit-scrollbar-track{background:transparent}
+.rv-canvas-home{display:flex;flex-direction:column;gap:14px}
+.rv-canvas-label{font-size:11.5px;color:var(--muted);margin:0 0 6px}
+.rv-board-rail{
+  grid-column:2;grid-row:1;min-height:0;overflow:auto;
+  background:var(--surface-2);border-left:1px solid var(--line-2);padding:0
+}
+.rv-rail-in{padding:26px 24px}
+.rv-rail-sum{display:none}
+@media(min-width:861px){
+  .rv-rail-fold>summary{display:none}
+  .rv-rail-fold>.rv-rail-in{display:block!important}
+}
+
+/* 861–1024 的窄桌面：把工具栏控件收一档，保证三页都只占一行、板高不变 */
+@media(min-width:861px) and (max-width:1024px){
+  .rv-toolbar{gap:14px;padding:12px 18px}
+  .rv-toolbar .rv2-segment button{padding:0 9px;font-size:11.5px}
+  .rv-toolbar .rv-select{padding:0 26px 0 10px}
+  .rv-toolbar-note{font-size:11px}
+  .rv-canvas{padding:18px}
+  .rv-rail-in{padding:22px 18px}
+}
+
+/* 工具栏控件：统一胶囊分段 + 圆角下拉，筛选与下拉之间留 24px */
+.rv-toolbar .rv2-segment{
+  display:inline-flex;align-items:center;gap:4px;padding:4px;flex-wrap:nowrap;
+  border:1px solid var(--line);border-radius:999px;background:var(--surface-2)
+}
+.rv-toolbar .rv2-segment button{
+  min-height:30px;padding:0 12px;border:0;border-radius:999px;background:transparent;
+  color:var(--muted);font:inherit;font-size:12px;font-weight:650;white-space:nowrap
+}
+.rv-toolbar .rv2-segment button.active{
+  background:var(--surface);color:var(--teal-700);font-weight:750;
+  box-shadow:0 1px 3px rgba(24,40,48,.10)
+}
+.rv-toolbar .rv-select{
+  min-height:36px;width:auto;max-width:none;padding:0 30px 0 12px;
+  border:1px solid var(--line);border-radius:10px;background-color:var(--surface);
+  color:var(--ink);font:inherit;font-size:12px;font-weight:600;cursor:pointer;
+  appearance:none;-webkit-appearance:none;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2371767e' stroke-width='2.4' stroke-linecap='round'><path d='M6 9l6 6 6-6'/></svg>");
+  background-repeat:no-repeat;background-position:right 10px center
+}
+
+/* 空账号：首屏只留一句价值 + 插图；B 卡留在 DOM 但不再重复占位 */
+.hub-main #rv2Summary > .es-box{display:none!important}
+.hub-main:has(#rv2Summary > .es-box) #rv2Summary,
+.hub-main:has(#rv2Summary > .rv2-empty) #rv2Summary{display:none!important}
+.rv-home-empty{display:none;width:100%;max-width:420px;margin:auto;text-align:center}
+.hub-main:has(#rv2Summary > .es-box) .rv-home-empty,
+.hub-main:has(#rv2Summary > .rv2-empty) .rv-home-empty{display:block}
+.hub-main:has(#rv2Summary > .es-box) .rv-canvas-home,
+.hub-main:has(#rv2Summary > .rv2-empty) .rv-canvas-home{justify-content:center;align-items:center;overflow:hidden}
+.hub-main:has(#rv2Summary > .es-box) .rv-home-extra,
+.hub-main:has(#rv2Summary > .rv2-empty) .rv-home-extra{display:none!important}
+.rv-home-empty .rv-empty-ic{
+  width:52px;height:52px;margin:0 auto 18px;border-radius:14px;
+  background:var(--teal-50);color:var(--teal);display:grid;place-items:center
+}
+.rv-home-empty .rv-empty-ic svg{width:24px;height:24px;max-width:24px;max-height:24px}
+.rv-home-empty h3{margin:0 0 10px;font-size:20px;font-weight:750;line-height:1.4;color:var(--ink)}
+.rv-home-empty p{margin:0;font-size:12.5px;line-height:1.8;color:var(--muted)}
+
+/* 空态控件按稿子保留：趋势两个分段、记录下拉都显示；表现统计仍收起 */
+.hub-main:has(#rv2Summary > .es-box) .rv-page[data-rv-pane="trend"] #rvxTrendView,
+.hub-main:has(#rv2Summary > .es-box) .rv-page[data-rv-pane="trend"] #rvxTrendChips,
+.hub-main:has(#rv2Summary > .rv2-empty) .rv-page[data-rv-pane="trend"] #rvxTrendView,
+.hub-main:has(#rv2Summary > .rv2-empty) .rv-page[data-rv-pane="trend"] #rvxTrendChips{display:inline-flex!important}
+.hub-main:has(#rv2Summary > .es-box) .rv-page[data-rv-pane="records"] #recordFilter,
+.hub-main:has(#rv2Summary > .rv2-empty) .rv-page[data-rv-pane="records"] #recordFilter{display:inline-block!important}
+.hub-main:has(#rv2Summary > .es-box) .rv-page[data-rv-pane="trend"] .rv2-chart-foot,
+.hub-main:has(#rv2Summary > .rv2-empty) .rv-page[data-rv-pane="trend"] .rv2-chart-foot{display:flex!important}
+.hub-main:has(#rv2Summary > .es-box) .rv-page[data-rv-pane="trend"] #rvTrendStats,
+.hub-main:has(#rv2Summary > .rv2-empty) .rv-page[data-rv-pane="trend"] #rvTrendStats{display:none!important}
+.hub-main:has(#rv2Summary > .es-box) .rv-canvas-label,
+.hub-main:has(#rv2Summary > .rv2-empty) .rv-canvas-label{display:none!important}
+
+/* 空态内联卡（趋势/记录）按稿子放大、居中，不再像一张小提示条 */
+.hub-main #rv2TrendCanvas:has(> .rve),
+.hub-main #recAll:has(> .rve){display:flex;align-items:center;justify-content:center;min-height:280px;padding:0}
+.hub-main #rv2TrendCanvas > .rve--inline,
+.hub-main #recAll > .rve--inline{
+  width:100%;max-width:420px;margin:0 auto;padding:0;text-align:center
+}
+.hub-main #rv2TrendCanvas > .rve--inline .rve-ic,
+.hub-main #recAll > .rve--inline .rve-ic{
+  width:52px;height:52px;border-radius:14px;margin-bottom:18px
+}
+.hub-main #rv2TrendCanvas > .rve--inline .rve-ic svg,
+.hub-main #recAll > .rve--inline .rve-ic svg{width:24px;height:24px}
+.hub-main #rv2TrendCanvas > .rve--inline .rve-title,
+.hub-main #recAll > .rve--inline .rve-title{font-size:20px;font-weight:750;line-height:1.4;color:var(--ink)}
+.hub-main #rv2TrendCanvas > .rve--inline .rve-desc,
+.hub-main #recAll > .rve--inline .rve-desc{max-width:420px;margin-top:10px;font-size:12.5px;line-height:1.8}
+.hub-main #rv2TrendCanvas > .rve--inline .rve-foot,
+.hub-main #recAll > .rve--inline .rve-foot{margin-top:14px;font-size:11.5px}
+.hub-main .rv-page[data-rv-pane="trend"] .rv2-card:has(#rv2TrendCanvas > .rve),
+.hub-main .rv-page[data-rv-pane="records"] .rv2-records:has(#recAll > .rve){
+  border:0;background:transparent;box-shadow:none;margin:0;overflow:visible
+}
+.hub-main .rv-page[data-rv-pane="trend"] .rv2-card:has(#rv2TrendCanvas > .rve) .rv-card-body,
+.hub-main .rv-page[data-rv-pane="records"] .rv2-records:has(#recAll > .rve) .rv-card-body{padding:0}
+
+/* 数据态：首页摘要与下钻保持原数据，只换统一容器 */
+.rv-page[data-rv-pane="home"] #rvHomeStats,
+.rv-page[data-rv-pane="home"] #rvRuler,
+.rv-page[data-rv-pane="home"] #rvCallout,
+.rv-page[data-rv-pane="home"] .rv-home-extra > .rv-pane-block{display:none!important}
+.rv-home-extra{display:flex;flex-direction:column;gap:14px;min-width:0}
+.rv-page[data-rv-pane="home"] .rv2-summary:has(.rv2-latest){
+  display:grid;grid-template-columns:minmax(0,.92fr) minmax(0,1.35fr);gap:14px;
+  padding:0;border:0;box-shadow:none;background:transparent;margin:0
+}
+.rv-page[data-rv-pane="home"] .rv2-summary:has(.rv2-latest) .rv2-latest{
+  min-height:176px;border:1px solid var(--line);border-radius:14px;background:var(--surface);
+  padding:20px 22px;box-shadow:none
+}
+.rv-page[data-rv-pane="home"] .rv2-summary:has(.rv2-latest) .rv2-subjects{
+  border:1px solid var(--line);border-radius:14px;background:var(--surface);
+  padding:6px 14px;box-shadow:none
+}
+.rv-page[data-rv-pane="home"] .rv2-summary .rv2-latest .rv2-score{font-size:56px;color:var(--ink)}
+.rv-page[data-rv-pane="home"] .rv2-summary .rv2-latest .rv2-score small{font-size:15px}
+.rv-page[data-rv-pane="home"] .rv2-summary .rv2-subjects>.rv2-subject>b{font-size:24px}
+.rv-home-extra .rv-pane-block{margin:0}
+.rv-home-extra .rv-two-col{margin:0}
+.rv-home-extra .rv-stat-grid{margin-bottom:0}
+.rv-home-extra #rvCallout .rv-callout{margin:0}
+
+/* 趋势与记录：卡片融入画布，不再套第二层大边 */
+.rv-page[data-rv-pane="trend"] .rv-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr));margin:0 0 14px}
+.rv-page[data-rv-pane="trend"] .rv-stat-grid .rv-stat:nth-child(n+3){display:none}
+.rv-page[data-rv-pane="trend"] .rv2-card,
+.rv-page[data-rv-pane="records"] .rv2-card{
+  margin:0;border:1px solid var(--line);border-radius:14px;box-shadow:none;overflow:hidden;background:var(--surface)
+}
+.rv-card-body{padding:14px 18px}
+.rv-page[data-rv-pane="trend"] .rv-canvas-label{display:none!important}
+.rv-page[data-rv-pane="trend"] .rv2-chart{height:200px}
+.rv-page[data-rv-pane="trend"] .rv2-chart-foot{padding:8px 0 0;margin-top:0}
+.rv-page[data-rv-pane="records"] .rv2-records .rv-card-body{padding:0}
+.rv-page[data-rv-pane="records"] #recAll{padding:4px 18px}
+.rv-page[data-rv-pane="records"] .rv2-rec-row{grid-template-columns:116px minmax(0,1fr) 82px auto 58px;gap:12px;padding:14px 2px}
+.rv-page[data-rv-pane="records"] .rv2-rec-row:first-child{border-top:0}
+.rv-page[data-rv-pane="records"] #reRecFold{margin:14px 0 0}
+.rv-page[data-rv-pane="records"] #reRecFold .rv2-card{border:0;border-top:1px solid var(--line);border-radius:0;box-shadow:none}
+.rv-page[data-rv-pane="records"] #reRecFold .rv2-card:first-child{border-top:0}
+
+/* 窄桌面（861–1024）：记录行改成两列，避免日期/标题/分数挤在一起换行 */
+@media(min-width:861px) and (max-width:1024px){
+  .rv-page[data-rv-pane="records"] .rv2-rec-row{grid-template-columns:minmax(0,1fr) auto;gap:6px 12px}
+  .rv-page[data-rv-pane="records"] .rv2-rec-date{grid-column:1;grid-row:1}
+  .rv-page[data-rv-pane="records"] .rv2-rec-main{grid-column:1/-1;grid-row:2}
+  .rv-page[data-rv-pane="records"] .rv2-rec-score{grid-column:2;grid-row:1;text-align:right}
+  .rv-page[data-rv-pane="records"] .rv2-detail{grid-column:2;grid-row:2;align-self:start}
+  .rv-page[data-rv-pane="records"] .rv2-rec-acts{grid-column:1/-1;grid-row:3}
+}
+
+/* 右栏：空账号给预告，存了成绩就换成真实洞察；三页始终同一位置同一内容 */
+.rv-rail-empty{display:none}
+.hub-main:has(#rv2Summary > .es-box) .rv-rail-empty,
+.hub-main:has(#rv2Summary > .rv2-empty) .rv-rail-empty{display:block}
+.hub-main:has(#rv2Summary > .es-box) #rv2Insight,
+.hub-main:has(#rv2Summary > .rv2-empty) #rv2Insight{display:none!important}
+.rv-rail-h{margin:0 0 14px;font-size:12px;font-weight:750;color:var(--ink)}
+.rv-rail-row{padding:14px 0;border-bottom:1px solid var(--line-2)}
+.rv-rail-row:last-child{border-bottom:0}
+.rv-rail-row span{display:block;font-size:11.5px;color:var(--muted)}
+.rv-rail-row b{display:block;margin-top:5px;font-size:13.5px;font-weight:700;color:var(--ink)}
+.rv-board-rail .rv2-insight{
+  margin:0;padding:0;border:0;border-radius:0;box-shadow:none;background:transparent;
+  display:block;overflow:visible
+}
+.rv-board-rail .rv2-weak{
+  padding:0;border:0;border-radius:0;background:transparent
+}
+.rv-board-rail .rv2-weak>span{display:block;font-size:11.5px;font-weight:650;color:var(--muted)}
+.rv-board-rail .rv2-weak h2{margin:6px 0 6px;font-size:22px;font-weight:800;letter-spacing:-.02em;color:var(--ink)}
+.rv-board-rail .rv2-weak p{margin:0;font-size:11.5px;line-height:1.75;color:var(--muted)}
+.rv-board-rail .rv2-weak .rv2-primary{width:auto;margin-top:14px;min-height:36px;padding:0 14px;font-size:12px}
+.rv-board-rail .rv2-facts{display:flex;flex-direction:column;gap:0;margin:8px 0 0;padding:0}
+.rv-board-rail .rv2-facts>div{
+  display:flex;align-items:baseline;justify-content:space-between;gap:12px;
+  padding:14px 0;border:0;border-top:1px solid var(--line-2);border-radius:0;background:transparent
+}
+.rv-board-rail .rv2-facts b{font-size:19px;font-weight:800;color:var(--ink);order:2;text-align:right}
+.rv-board-rail .rv2-facts span{font-size:11.5px;color:var(--muted)}
+.rv-board-rail .rv2-note{
+  margin:0;padding:14px 0 0;border:0;border-top:1px solid var(--line-2);
+  font-size:11px;line-height:1.7;color:var(--muted-2)
+}
+
+/* 折叠箭头统一 14px；页头「更多」也收小 */
+summary .chev,details > summary svg,.chev,.tb-more-btn svg{
+  width:14px!important;height:14px!important;max-width:14px!important;max-height:14px!important;flex:0 0 14px
+}
+.re-fold>summary{padding:13px 16px}
+
+@media(max-width:860px){
+  .hub-main{padding:0 0 24px;overflow:visible}
+  .rv-board{
+    margin:0;height:max(760px,calc(100dvh - 76px));display:grid;
+    grid-template-columns:minmax(0,1fr);grid-template-rows:112px minmax(0,1fr)
+  }
+  .rv-board-head{
+    grid-column:1;grid-row:1;display:grid;grid-template-columns:minmax(0,1fr) auto;
+    grid-template-rows:44px 48px;align-content:center;gap:6px 10px;padding:8px 16px 10px
+  }
+  .rv-board-head-txt{grid-column:1;grid-row:1}
+  .rv-board-head h2{font-size:14px}
+  .rv-board-head p{font-size:11px;line-height:1.4}
+  #rvMobileTabs{
+    grid-column:1/-1;grid-row:2;justify-self:stretch;display:flex;margin:0;
+    padding:3px;background:var(--surface-2)
+  }
+  #rvMobileTabs button{flex:1;min-height:36px;padding:0 8px;font-size:12px}
+  .rv-board-add{grid-column:2;grid-row:1;margin-left:0;min-height:38px;padding:0 13px;font-size:12.5px;gap:6px}
+  .rv-board-add svg{width:14px;height:14px;max-width:14px;max-height:14px;flex-basis:14px}
+  .rv-board-body{grid-column:1;grid-row:2;grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto;min-height:0}
+  .rv-board-left{grid-column:1;grid-row:1;min-height:0}
+  .rv-toolbar{
+    flex:0 0 122px;height:122px;min-height:122px;padding:12px 16px;
+    gap:14px;row-gap:12px;align-content:flex-start;align-items:center;overflow:hidden
+  }
+  .rv-toolbar-note{flex:1 1 100%;width:100%;font-size:11.5px;line-height:1.6}
+  .rv-toolbar .rv-select{flex:0 0 100%;width:100%;max-width:none}
+  .rv-toolbar .rv2-segment{max-width:100%}
+  .rv-toolbar .rv2-segment button{padding:0 10px;font-size:11.5px}
+  .rv-canvas{padding:18px 16px 14px}
+  .rv-board-rail{
+    grid-column:1;grid-row:2;border-left:0;border-top:1px solid var(--line-2);
+    padding:0;overflow:visible
+  }
+  .rv-rail-fold{display:block}
+  .rv-rail-sum{
+    display:flex;align-items:center;gap:10px;padding:13px 18px;
+    font-size:12px;font-weight:750;color:var(--ink);cursor:pointer;
+    list-style:none;user-select:none
+  }
+  .rv-rail-sum::-webkit-details-marker{display:none}
+  .rv-rail-sum-hint{
+    margin-left:auto;font-size:11px;font-weight:500;color:var(--muted);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+  }
+  .rv-rail-sum .chev{color:var(--muted);transition:transform .18s}
+  .rv-rail-fold[open] .rv-rail-sum .chev{transform:rotate(90deg)}
+  .re-fold>summary .re-fold-tag{display:none}
+  .re-fold>summary{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rv-rail-in{padding:0 18px 16px}
+  .rv-rail-h{margin-bottom:6px}
+  .rv-rail-row{padding:9px 0}
+  .rv-rail-row span{font-size:11px}
+  .rv-rail-row b{margin-top:3px;font-size:12.5px}
+  .rv-board-rail .rv2-weak h2{font-size:19px}
+  .rv-board-rail .rv2-facts>div{padding:10px 0}
+  .rv-page[data-rv-pane="home"] .rv2-summary:has(.rv2-latest){grid-template-columns:1fr}
+  .rv-page[data-rv-pane="home"] .rv2-summary:has(.rv2-latest) .rv2-latest{min-height:132px}
+  .rv-page[data-rv-pane="home"] .rv2-summary .rv2-latest .rv2-score{font-size:48px}
+  .rv-page[data-rv-pane="trend"] .rv2-chart{height:220px}
+  .rv-page[data-rv-pane="records"] .rv2-rec-row{grid-template-columns:1fr auto;gap:6px 12px}
+  .rv-home-empty h3{font-size:18px}
+  .hub-main #rv2TrendCanvas:has(> .rve),
+  .hub-main #recAll:has(> .rve){min-height:220px}
+  .hub-main #rv2TrendCanvas > .rve--inline .rve-title,
+  .hub-main #recAll > .rve--inline .rve-title{font-size:18px}
+}
+@media(prefers-reduced-motion:reduce){.rv-board *{scroll-behavior:auto!important;transition:none!important}}
+</style>
 </head>
 <body data-shell="top">
 <div id="bootLoader" class="hub-loader show" aria-hidden="true"><div class="ui-loader" role="status" aria-label="Loading"><span class="ui-loader-dot"></span><span class="ui-loader-dot m2"></span><span class="ui-loader-dot m3"></span></div></div>
@@ -382,7 +726,6 @@ return {hero:hero,inline:inline,ic:ic};
       </div>
     </aside>
     <div class="hub-main">
-<div class="rv-mobile-tabs" id="rvMobileTabs"></div>
 <dialog id="rv2AddDialog" class="rv2-dialog"><form method="dialog" class="rv2-dialog-shell" id="rv2DialogForm"><div class="rv2-dialog-head"><div><h2>录入成绩</h2><span class="rv2-hint">选择记录类型，保存后立刻回到页面显示</span></div><button value="cancel" class="rv2-close" aria-label="关闭">×</button></div><div class="rv2-segment rv2-kind"><button type="button" class="active" data-kind="whole">整套真题</button><button type="button" data-kind="part">单项练习</button></div>
  <div id="scAddWrap" class="rv2-form"><div class="rv2-form-grid"><label>模考日期<input type="date" id="scoreDate"></label><label>听力<input type="number" id="scL" step="0.5" min="0" max="9" placeholder="0–9"></label><label>阅读<input type="number" id="scR" step="0.5" min="0" max="9" placeholder="0–9"></label><label>写作<input type="number" id="scW" step="0.5" min="0" max="9" placeholder="0–9"></label><label>口语<input type="number" id="scS" step="0.5" min="0" max="9" placeholder="0–9"></label><label>备注（可选）<input id="scNote" placeholder="备注"></label></div><button type="button" class="rv2-primary" id="addScore">保存成绩</button></div>
  <div id="mkAddWrap" class="rv2-form" hidden><div class="rv2-form-grid"><label>粒度<select id="mkGran"><option value="part">单项</option><option value="whole">整卷</option></select></label><label>科目<select id="mkType"><option value="listening">听力</option><option value="reading">阅读</option><option value="speaking">口语</option><option value="writing">写作</option></select></label><label>日期<input type="date" id="mkDate"></label></div><div id="mkPartPick"><label>选择 Part<select id="mkPart"></select></label></div><div id="mkPartInputWrap"><label for="mkPartInput" id="mkPartInputLabel">答对题数</label><input type="number" id="mkPartInput" min="0" placeholder="0"></div><div id="mkParts" hidden></div><button type="button" class="rv2-primary" id="mkAdd">保存分项</button></div>
@@ -399,30 +742,86 @@ return {hero:hero,inline:inline,ic:ic};
       · 空账号时 js/rvx-data.js:18 会把 #rv2Summary 整块重写成 .rv2-empty（自带一枚同样的
         data-rv2-add 按钮）。那种情况下这枚定位到空的概览卡上会悬空 —— CSS 用
         `.rv2-head:has(+ .rv2-summary > .rv2-empty)` 在空态把它收掉，功能由空态卡里那枚承担。 -->
- <div class="rv2-head" data-rv-pane="home"><div><h1>回顾</h1><p>看清进步，也知道下一步练什么。</p></div><button class="rv2-primary" data-rv2-add>录入成绩</button></div>
- <section class="rv2-summary" aria-label="最近一次成绩" id="rv2Summary" data-rv-pane="home">
-  <div class="rv2-latest"><div><div class="rv2-muted" id="rvxLeadLab">最近一次</div><div class="rv2-score"><span id="rvxNumAll">—</span><small> / 9</small></div></div><div class="rv2-target" id="rvxSubAll">还没有成绩</div></div>
-  <div class="rv2-subjects">
-   <div class="rv2-subject" id="rvxCellL"><span>听力</span><b id="rvxNumL">—</b><small id="rvxSubL">—</small></div>
-   <div class="rv2-subject" id="rvxCellR"><span>阅读</span><b id="rvxNumR">—</b><small id="rvxSubR">—</small></div>
-   <div class="rv2-subject" id="rvxCellW"><span>写作</span><b id="rvxNumW">—</b><small id="rvxSubW">—</small></div>
-   <div class="rv2-subject" id="rvxCellS"><span>口语</span><b id="rvxNumS">—</b><small id="rvxSubS">—</small></div>
+ <section class="rv-board" id="rvBoard" aria-label="总览">
+  <header class="rv-board-head">
+   <div class="rv-board-head-txt"><h2 id="rvBoardTitle">总览</h2><p id="rvBoardSub">看清进步，也知道下一步练什么。</p></div>
+   <div class="rv-mobile-tabs" id="rvMobileTabs"></div>
+   <button class="rv-board-add" type="button" data-rv2-add>录入成绩<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg></button>
+  </header>
+  <div class="rv-board-body">
+   <div class="rv-board-left">
+    <section class="rv-page" data-rv-pane="home">
+     <div class="rv-toolbar">
+      <span class="rv-badge rv-badge-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19V5M4 19h16"/><path d="M7 15l4-4 3 2 5-6"/></svg>首次使用</span>
+      <span class="rv-badge rv-badge-data"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>成绩概览</span>
+      <span class="rv-toolbar-note">真题、模考和手动录入都会计入，按日期排好，后面不用再整理。</span>
+     </div>
+     <div class="rv-canvas rv-canvas-home">
+      <div class="rv-home-empty">
+       <div class="rv-empty-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="m6 15 4-5 3 3 5-7"/></svg></div>
+       <h3>从最近一次分数开始记</h3>
+       <p>录一次真题或模考成绩，趋势线、四科强弱、学习天数会慢慢长出来；不用补齐历史。</p>
+      </div>
+      <section class="rv2-summary" aria-label="最近一次成绩" id="rv2Summary">
+       <div class="rv2-latest"><div><div class="rv2-muted" id="rvxLeadLab">最近一次</div><div class="rv2-score"><span id="rvxNumAll">—</span><small> / 9</small></div></div><div class="rv2-target" id="rvxSubAll">还没有成绩</div></div>
+       <div class="rv2-subjects">
+        <div class="rv2-subject" id="rvxCellL"><span>听力</span><b id="rvxNumL">—</b><small id="rvxSubL">—</small></div>
+        <div class="rv2-subject" id="rvxCellR"><span>阅读</span><b id="rvxNumR">—</b><small id="rvxSubR">—</small></div>
+        <div class="rv2-subject" id="rvxCellW"><span>写作</span><b id="rvxNumW">—</b><small id="rvxSubW">—</small></div>
+        <div class="rv2-subject" id="rvxCellS"><span>口语</span><b id="rvxNumS">—</b><small id="rvxSubS">—</small></div>
+       </div>
+      </section>
+      <div class="rv-home-extra">
+       <div class="rv-pane-block"><div class="rv-stat-grid" id="rvHomeStats"></div><div id="rvRuler"></div><div id="rvCallout"></div><div class="rv-two-col"><div id="rvHomeSpark"></div><div id="rvHomeRecent"></div></div></div>
+       <details class="re-fold" id="reHomeFold"><summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>这段时间的学习投入<span class="re-fold-tag">四科轮廓 / 连胜 / 日历 · 默认收起</span></summary>
+        <div class="rv-pane-block"><div class="rv-two-col"><div id="rvSubjBars"></div><div id="rvRadar"></div></div></div>
+        <div class="rv-pane-block"><div class="rv-stat-grid" id="rvEffortStats"></div><div class="rv-two-col"><div id="rvHeat"></div><div id="rvBars"></div></div></div>
+       </details>
+      </div>
+     </div>
+    </section>
+    <section class="rv-page" data-rv-pane="trend" hidden>
+     <div class="rv-toolbar">
+      <div class="rv2-segment" id="rvxTrendView"><button class="active" data-view="score">按分数</button><button data-view="count">按对题个数</button></div>
+      <div class="rv2-segment" id="rvxTrendChips"><button class="active" data-k="overall">总分</button><button data-k="listening">听力</button><button data-k="reading">阅读</button><button data-k="writing">写作</button><button data-k="speaking">口语</button></div>
+     </div>
+     <div class="rv-canvas">
+      <div class="rv-canvas-label" id="rvxTrendLab">按日期看变化</div>
+      <div class="rv-stat-grid" id="rvTrendStats"></div>
+      <section class="rv2-card">
+       <div class="rv-card-body"><div id="rv2TrendCanvas" class="rv2-chart"></div><div class="rv2-chart-foot"><span id="rv2RangeText">真题与平时模考都会计入</span><span id="rv2GoalText"></span></div></div>
+      </section>
+     </div>
+    </section>
+    <section class="rv-page" data-rv-pane="records" hidden>
+     <div class="rv-toolbar">
+      <div class="rv2-segment" id="recAllChips" role="group" aria-label="按类型筛选记录"><button type="button" class="active" data-k="all">全部</button><button type="button" data-k="whole">整卷</button><button type="button" data-k="part">分项</button><button type="button" data-k="speaking">口语模考</button></div>
+      <select class="rv-select" id="recordFilter" aria-label="筛选成绩记录"><option value="recent">最近三次</option><option value="all">全部记录</option></select>
+     </div>
+     <div class="rv-canvas">
+      <section class="rv2-card rv2-records"><div class="rv-card-body"><div id="recAll"></div><span id="recAllCount" hidden></span></div></section>
+      <details class="re-fold" id="reRecFold"><summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>表现统计与题型 / Part 明细<span class="re-fold-tag">低频下钻 · 默认收起</span></summary>
+       <section class="rv2-card rv2-performance"><div class="rv2-card-head"><div><h2>表现统计</h2><span class="rv2-hint">听力、阅读看正确率；写作、口语看练习量，不重复真题分数</span></div><select id="rv2StatRange" aria-label="表现统计范围"><option value="recent">近 30 天</option><option value="all">全部时间</option></select></div><div class="rv2-perf-grid" id="rv2PerfGrid"></div><details class="rv2-more"><summary>看题型与 Part 明细</summary><div id="mkTypeStats"></div><div id="mkPartStats"></div><div id="mkQtStats"></div></details><select id="mkFilter" hidden><option value="all">全部</option><option value="recent">近十天</option></select></section>
+      </details>
+     </div>
+    </section>
+   </div>
+   <aside class="rv-board-rail" aria-label="学习概况">
+    <details class="rv-rail-fold" id="rvRailFold" open>
+     <summary class="rv-rail-sum"><span>学习概况</span><span class="rv-rail-sum-hint">最近一次 · 四科 · 趋势</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></summary>
+     <div class="rv-rail-in">
+      <div class="rv-rail-empty">
+       <div class="rv-rail-h">之后这里会出现</div>
+       <div class="rv-rail-row"><span>最近一次</span><b>总分 / 四科</b></div>
+       <div class="rv-rail-row"><span>两次以后</span><b>成绩趋势线</b></div>
+       <div class="rv-rail-row"><span>每天</span><b>学习投入自动累计</b></div>
+      </div>
+      <aside class="rv2-card rv2-insight" id="rv2Insight"><div class="rv2-weak"><span>当前最值得补</span><h2 id="rvxWeak">还没有成绩</h2><p id="rv2WeakText">先录入一次成绩，再决定下一步重点。</p><button class="rv2-primary" id="rvxWeakGo">去练习</button></div><div class="rv2-facts"><div><b id="rvxRecN">0</b><span>已记录真题</span></div><div><b id="rvxCdVal">未设置</b><span id="rvxCdLab">考试日期</span></div></div><p class="rv2-note" id="rv2ProgressNote">真实数据只来自你的学习记录。</p><span id="rvxCdUnit" hidden></span><span id="rvxWeakWrap" hidden></span><span id="rvxStreakN" hidden>0</span><span id="rvxActN" hidden>0</span><span id="rvxFocusN" hidden>0</span><span id="rvxTodayTag" hidden></span></aside>
+     </div>
+    </details>
+   </aside>
   </div>
  </section>
- <div class="rv-pane-block" data-rv-pane="home"><div class="rv-stat-grid" id="rvHomeStats"></div><div id="rvRuler"></div><div id="rvCallout"></div><div class="rv-two-col"><div id="rvHomeSpark"></div><div id="rvHomeRecent"></div></div></div>
-<details class="re-fold" id="reHomeFold" data-rv-pane="home"><summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>这段时间的学习投入<span class="re-fold-tag">四科轮廓 / 连胜 / 日历 · 默认收起</span></summary>
- <div class="rv-pane-block"><div class="rv-two-col"><div id="rvSubjBars"></div><div id="rvRadar"></div></div></div>
- <div class="rv-pane-block"><div class="rv-stat-grid" id="rvEffortStats"></div><div class="rv-two-col"><div id="rvHeat"></div><div id="rvBars"></div></div></div>
-</details>
- <div class="rv-pane-block" data-rv-pane="trend"><div class="rv-stat-grid" id="rvTrendStats"></div></div>
- <div class="rv2-content">
-  <section class="rv2-card" data-rv-pane="trend"><div class="rv2-card-head"><div><h2>成绩趋势</h2><span class="rv2-hint" id="rvxTrendLab">按日期看变化</span></div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><div class="rv2-segment" id="rvxTrendView"><button class="active" data-view="score">按分数</button><button data-view="count">按对题个数</button></div><div class="rv2-segment" id="rvxTrendChips"><button class="active" data-k="overall">总分</button><button data-k="listening">听力</button><button data-k="reading">阅读</button><button data-k="writing">写作</button><button data-k="speaking">口语</button></div></div></div><div id="rv2TrendCanvas" class="rv2-chart"></div><div class="rv2-chart-foot"><span id="rv2RangeText">真题与平时模考都会计入</span><span id="rv2GoalText"></span></div></section>
- </div>
- <section class="rv2-card rv2-records" data-rv-pane="records"><div class="rv2-card-head"><div><h2>成绩记录</h2><span class="rv2-hint">真题、分项与口语模考按日期排列</span></div><div class="rv2-head-tools"><div class="rv2-segment" id="recAllChips" role="group" aria-label="按类型筛选记录"><button type="button" class="active" data-k="all">全部</button><button type="button" data-k="whole">整卷</button><button type="button" data-k="part">分项</button><button type="button" data-k="speaking">口语模考</button></div><select id="recordFilter" aria-label="筛选成绩记录"><option value="recent">最近三次</option><option value="all">全部记录</option></select></div></div><div id="recAll"></div><span id="recAllCount" hidden></span></section>
-<details class="re-fold" id="reRecFold" data-rv-pane="records"><summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>表现统计与题型 / Part 明细<span class="re-fold-tag">低频下钻 · 默认收起</span></summary>
-  <aside class="rv2-card rv2-insight" id="rv2Insight"><div class="rv2-weak"><span>当前最值得补</span><h2 id="rvxWeak">还没有成绩</h2><p id="rv2WeakText">先录入一次成绩，再决定下一步重点。</p><button class="rv2-primary" id="rvxWeakGo">去练习</button></div><div class="rv2-facts"><div><b id="rvxRecN">0</b><span>已记录真题</span></div><div><b id="rvxCdVal">未设置</b><span id="rvxCdLab">考试日期</span></div></div><p class="rv2-note" id="rv2ProgressNote">真实数据只来自你的学习记录。</p><span id="rvxCdUnit" hidden></span><span id="rvxWeakWrap" hidden></span><span id="rvxStreakN" hidden>0</span><span id="rvxActN" hidden>0</span><span id="rvxFocusN" hidden>0</span><span id="rvxTodayTag" hidden></span></aside>
- <section class="rv2-card rv2-performance"><div class="rv2-card-head"><div><h2>表现统计</h2><span class="rv2-hint">听力、阅读看正确率；写作、口语看练习量，不重复真题分数</span></div><select id="rv2StatRange" aria-label="表现统计范围"><option value="recent">近 30 天</option><option value="all">全部时间</option></select></div><div class="rv2-perf-grid" id="rv2PerfGrid"></div><details class="rv2-more"><summary>看题型与 Part 明细</summary><div id="mkTypeStats"></div><div id="mkPartStats"></div><div id="mkQtStats"></div></details><select id="mkFilter" hidden><option value="all">全部</option><option value="recent">近十天</option></select></section>
-</details>
     </div><!-- /.hub-main -->
   </div><!-- /.hub-shell -->
 </main>
@@ -435,9 +834,9 @@ return {hero:hero,inline:inline,ic:ic};
  <select id="mkListType"><option value="all"></option><option value="listening"></option><option value="reading"></option><option value="speaking"></option><option value="writing"></option></select><select id="mkListGran"><option value="all"></option><option value="whole"></option><option value="part"></option></select>
  </div>
 </div>
-<link rel="stylesheet" href="css/p/hub-shell.css?v=20261115a" />
+<link rel="stylesheet" href="css/p/hub-shell.css?v=20261116a" />
 <script defer src="js/hub-side-shell.js?v=20261106b"></script>
-<script defer src="js/rv-tabs.js?v=20261114a"></script>
+<script defer src="js/rv-tabs.js?v=20261116b"></script>
   <script defer src="js/es-b.js?v=20261112c"></script>
 </body></html>
 

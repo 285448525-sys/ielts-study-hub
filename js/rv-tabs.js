@@ -24,6 +24,12 @@
     {id:'trend',nm:'趋势',ic:'line'},
     {id:'records',nm:'记录',ic:'table'}
   ];
+  /* REVIEW-UNIFIED-4（11-16）：三页共用一张固定 board，切页只换页头文案与左栏内容。 */
+  var META={
+    home:{t:'总览',s:'看清进步，也知道下一步练什么。'},
+    trend:{t:'成绩趋势',s:'录入成绩后开始记录变化'},
+    records:{t:'成绩记录',s:'真题、分项与口语模考按日期排列'}
+  };
   var ICON={
     grid:'<rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>',
     line:'<path d="M3 3v18h18"/><path d="m6 15 4-5 3 3 5-7"/>',
@@ -201,6 +207,11 @@
     syncActive();
   }
   function syncActive(){ var cur=window.__rvCur||'home'; document.querySelectorAll('[data-rv-tab]').forEach(function(b){ b.classList.toggle('on',b.getAttribute('data-rv-tab')===cur) }) }
+  function renderChrome(id){
+    var m=META[id]||META.home,h=$('rvBoardTitle'),p=$('rvBoardSub'),b=$('rvBoard');
+    if(h)h.textContent=m.t;if(p)p.textContent=m.s;if(b)b.setAttribute('aria-label',m.t);
+    document.querySelectorAll('.rv-canvas').forEach(function(c){c.scrollTop=0});
+  }
   function valid(id){ return TABS.some(function(t){return t.id===id}) }
   function renderPane(id){
     renderNav();
@@ -216,6 +227,7 @@
     document.querySelectorAll('.hub-main [data-rv-pane]').forEach(function(p){ p.hidden=p.getAttribute('data-rv-pane')!==id });
     var rc=document.querySelector('.rv2-content');
     if(rc){ var vis=rc.querySelectorAll('[data-rv-pane]:not([hidden])').length; rc.hidden=(vis===0); rc.classList.toggle('rv-one-col',vis===1); }
+    renderChrome(id);
     syncActive();
     renderPane(id);
     try{ var hm=document.querySelector('.hub-main');if(hm)hm.scrollTop=0; var main=document.querySelector('main.container');if(main)main.scrollTop=0 }catch(e){}
@@ -240,7 +252,11 @@
     if(window.__rvHash){try{window.removeEventListener('hashchange',window.__rvHash)}catch(e){}}
     window.__rvHash=function(){var id=hashId();if(id&&id!==window.__rvCur)show(id,{silent:true})};window.addEventListener('hashchange',window.__rvHash);
   }
-  function boot(){ renderNav();bind();show(hashId()||subId()||'home',{silent:true}) }
+  function boot(){
+    /* 手机端右栏默认收成一行「学习概况」，把高度让给主内容；桌面端始终展开。 */
+    var rf=$('rvRailFold');if(rf&&window.matchMedia('(max-width:860px)').matches)rf.removeAttribute('open');
+    renderNav();bind();show(hashId()||subId()||'home',{silent:true})
+  }
   window.__rvTabs={show:show,renderNav:renderNav,renderPane:renderPane,cur:function(){return window.__rvCur}};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
 })();
