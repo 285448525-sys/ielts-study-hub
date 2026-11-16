@@ -349,7 +349,9 @@
     var meta = document.getElementById('partMeta');
     if(!_manifest){ paintLoading(host, meta); return; }
     part = part || currentPart();
-    var units = unitsOf(channel).filter(function(u){ return (u.partNum || 'Part 1') === part; });
+    /* BANK-V2：目录页新增「全部」。只影响列表筛选，不碰判分与作答。 */
+    var units = unitsOf(channel);
+    if(part !== 'all') units = units.filter(function(u){ return (u.partNum || 'Part 1') === part; });
     /* M-2：搜索过滤（无搜索词时原样返回，零影响） */
     units = filterUnits(units);
     if(meta){
@@ -362,7 +364,7 @@
       var allR = unitsOf('reading');
       ptHost.querySelectorAll('.pill-tab').forEach(function(b){
         var p = b.getAttribute('data-part');
-        var n = allR.filter(function(u){ return (u.partNum || 'Part 1') === p; }).length;
+        var n = (p === 'all') ? allR.length : allR.filter(function(u){ return (u.partNum || 'Part 1') === p; }).length;
         var badge = b.querySelector('.pt-n');
         if(badge) badge.textContent = n;
         else b.innerHTML = esc(p) + '<span class="pt-n">' + n + '</span>';
@@ -393,7 +395,7 @@
     var all = unitsOf('listening');
     host.querySelectorAll('.pill-tab').forEach(function(b){
       var p = b.getAttribute('data-lpart');
-      var n = all.filter(function(u){ return (u.partNum || 'Part 1') === p; }).length;
+      var n = (p === 'all') ? all.length : all.filter(function(u){ return (u.partNum || 'Part 1') === p; }).length;
       /* M-1：只填 .pt-n 里的数字，不再整块重写 innerHTML（否则会抹掉 HTML 里静态的
          Part 标签结构；而且这里改的是文本，不需要重建 DOM）。 */
       var badge = b.querySelector('.pt-n');
@@ -493,7 +495,8 @@
     /* 同上：加载中说加载中。⚠️ 原先这里是清空（把 HTML 里静态的「目录加载中…」也抹掉了 → 一片空白） */
     if(!_manifest){ paintLoading(host, meta); return; }
     part = part || currentListenPart();
-    var units = unitsOf('listening').filter(function(u){ return (u.partNum || 'Part 1') === part; });
+    var units = unitsOf('listening');
+    if(part !== 'all') units = units.filter(function(u){ return (u.partNum || 'Part 1') === part; });
     /* M-2：搜索过滤（与阅读侧同一条路径） */
     units = filterUnits(units);
     if(meta){

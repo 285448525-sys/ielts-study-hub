@@ -18,7 +18,7 @@
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
 <title>机经 · 雅思备考 Hub</title>
-<link rel="preload" as="script" href="js/bank.js?v=20261108a" /> <!-- W1-PRELOAD-1 (373KB)：与下方 defer 同串防双下载 -->
+<link rel="preload" as="script" href="js/bank.js?v=20261116a" /> <!-- W1-PRELOAD-1 (373KB)：与下方 defer 同串防双下载 -->
 <link rel="preload" as="script" href="js/common-shell.js?v=20261116a" /> <!-- W1-PRELOAD-1 (113KB)：与下方 defer 同串防双下载 -->
 <link rel="stylesheet" href="css/common.css?v=20261116a" />
 <link rel="stylesheet" href="css/p/bank.css?v=20261116i" />
@@ -2806,6 +2806,237 @@ main.container:has(> .hub-shell){
 }
 @media(prefers-reduced-motion:reduce){#bankRoot .bank-item,#bankRoot .partbar .pill-tab,#bankRoot .bk-more{transition:none}}
 </style>
+<style id="bankV2">
+/* BANK-V2（11-16 定版）：机经五格「阅读 / 听力 / 记录 / 错题 / 统计」。
+   本块只服务 bank.html，放在所有旧样式之后，用同层后写的顺序压过旧版工作面。
+   判分、答案、考场样式一行不动；错题页本轮只出「即将上线」罩衫。 */
+body:has(> main > .hub-shell > .hub-main > #bankRoot) .hub-main{padding:16px 22px 40px}
+.hub-main #bankRoot{display:flex!important;flex:0 0 auto;flex-direction:column;grid-template-columns:none;grid-template-rows:none;border-top:0;height:auto;min-height:0;overflow:visible;width:100%;max-width:none;margin:0}
+.hub-main #bankRoot > #mockTabs{display:none!important}
+.hub-main #bankRoot > .mock-pane{display:flex!important;flex-direction:column;grid-column:auto;grid-row:auto;min-width:0;min-height:0;padding:0;overflow:visible;scrollbar-gutter:auto}
+.hub-main #bankRoot > .mock-pane[hidden]{display:none!important}
+.hub-main #bkRail{display:none!important}
+
+/* 手机顶部五入口 */
+.bk2-mobile{display:none}
+@media(max-width:860px){
+  .bk2-mobile{display:grid;grid-template-columns:repeat(5,1fr);gap:2px;position:sticky;top:0;z-index:30;margin:0 0 10px;padding:6px 4px;background:rgba(255,255,255,.96);border-bottom:1px solid var(--line);backdrop-filter:blur(18px)}
+  .bk2-mobile button{height:36px;padding:0 2px;border:0;border-radius:8px;background:transparent;color:var(--muted);font:inherit;font-size:11.5px;font-weight:650;cursor:pointer}
+  .bk2-mobile button.on{background:var(--primary-50);color:var(--primary-700)}
+  body:has(> main > .hub-shell > .hub-main > #bankRoot) .hub-main{padding:12px 12px 32px}
+}
+html[data-theme="dark"] .bk2-mobile{background:rgba(24,28,30,.96)}
+
+/* 整套模考：安静一张浅绿卡，不和列表抢层级 */
+.hub-main #bankRoot .full-card{display:flex;align-items:center;gap:16px;min-height:0;padding:15px 20px;margin:0 0 14px;border:1px solid var(--primary-100);border-radius:15px;background:linear-gradient(120deg,var(--primary-50),var(--surface) 58%,var(--surface-2));box-shadow:0 1px 2px rgba(28,55,48,.035);color:var(--ink)}
+.hub-main #bankRoot .full-card .bk-tag{display:none}
+.hub-main #bankRoot .full-card .bk-m{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:2px;order:1}
+.hub-main #bankRoot .full-card .bk2-kicker{display:block;font-size:9.5px;font-weight:800;letter-spacing:.12em;color:var(--primary-700);line-height:1.4}
+.hub-main #bankRoot .full-card .bk-m b{font-size:15.5px;font-weight:750;letter-spacing:-.01em;line-height:1.35;white-space:normal}
+.hub-main #bankRoot .full-card .bk-m > span{font-size:11.5px;color:var(--muted);line-height:1.55}
+.hub-main #bankRoot .full-card .fc-last{order:2;flex:none;margin:0;font-size:10.5px;color:var(--muted);text-align:right;line-height:1.45;font-variant-numeric:tabular-nums}
+.hub-main #bankRoot .full-card .fc-last b{display:block;font-size:15px;font-weight:750;color:var(--ink)}
+.hub-main #bankRoot .full-card .fc-last.is-none{display:none!important}
+.hub-main #bankRoot .full-card .btn-primary{order:3;flex:none;margin:0;min-height:38px;padding:0 14px;border:1px solid var(--primary);border-radius:10px;background:var(--primary);color:#fff;font-size:12.5px;font-weight:700;box-shadow:0 7px 16px -10px rgba(58,154,147,.8);white-space:nowrap}
+.hub-main #bankRoot .full-card .btn-primary:hover{background:var(--primary-600);border-color:var(--primary-600)}
+
+/* Part 筛选与搜索同一行 */
+.hub-main #bankRoot .partbar{order:0;flex:0 0 auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 10px;padding:0;border:0}
+.hub-main #bankRoot .partbar .pill-tabs{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:0;border:0;border-radius:0;background:transparent}
+.hub-main #bankRoot .partbar .pill-tab{height:30px;padding:0 12px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--muted);font-size:11.5px;font-weight:600;line-height:1;box-shadow:none;white-space:nowrap}
+.hub-main #bankRoot .partbar .pill-tab:hover{border-color:var(--primary-100);color:var(--primary-700)}
+.hub-main #bankRoot .partbar .pill-tab.active{border-color:var(--primary-100);background:var(--primary-50);color:var(--primary-700);box-shadow:none;font-weight:650}
+.hub-main #bankRoot .partbar .pill-tab.active::after{display:none}
+.hub-main #bankRoot .partbar .pt-n{display:none}
+.hub-main #bankRoot .partmeta{display:none}
+.hub-main #bankRoot .bk-search{flex:0 0 240px;min-width:0;max-width:240px;margin-left:auto}
+.hub-main #bankRoot .bk-search .ui-field-search{height:36px;border:1px solid var(--line);border-radius:10px;background:var(--surface);box-shadow:none}
+.hub-main #bankRoot .bk-search .ui-field-search:focus-within{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-50)}
+.hub-main #bankRoot .bk-search .ui-field-search-in{font-size:12.5px;color:var(--ink)}
+
+/* 目录：一张白卡，英文主行、中文副行，行高约 52 */
+.hub-main #bankRoot #fullEntry,.hub-main #bankRoot #listenFullEntry{order:auto;flex:0 0 auto;margin:0}
+.hub-main #bankRoot #bankList,.hub-main #bankRoot #listenList{order:auto;flex:1 0 auto;min-height:0;padding:0 0 8px}
+.hub-main #bankRoot .bk-groups{display:block;margin:0}
+.hub-main #bankRoot .bk-grp{min-width:0}
+.hub-main #bankRoot .bk-grp-h{display:none!important}
+.hub-main #bankRoot .bank-items{list-style:none;margin:0;padding:0;border:1px solid var(--line);border-radius:15px;background:var(--surface);overflow:hidden;box-shadow:0 1px 2px rgba(28,55,48,.035)}
+.hub-main #bankRoot .bank-item{display:flex;align-items:center;gap:12px;min-height:52px;padding:8px 18px;border:0;border-bottom:1px solid var(--line-soft);background:var(--surface);box-shadow:none!important;cursor:pointer;transition:background .14s}
+.hub-main #bankRoot .bank-item:last-child{border-bottom:0}
+.hub-main #bankRoot .bank-item:hover,.hub-main #bankRoot .bank-item:focus-within{background:var(--surface-2)}
+.hub-main #bankRoot .bi-no,.hub-main #bankRoot .bi-chips,.hub-main #bankRoot .bi-source,.hub-main #bankRoot .bi-st,.hub-main #bankRoot .bi-chev{display:none!important}
+.hub-main #bankRoot .bi-tt{flex:1;min-width:0;display:block;overflow:visible}
+.hub-main #bankRoot .bi-tt b{display:block;font-size:12.5px;font-weight:650;line-height:1.3;letter-spacing:0;color:var(--ink);white-space:normal;overflow:visible;overflow-wrap:anywhere}
+.hub-main #bankRoot .bi-tt i{display:block;margin-top:3px;font-size:10.5px;font-style:normal;color:var(--muted);line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hub-main #bankRoot .bank-item:hover .bi-tt b{color:var(--primary-700)}
+.hub-main #bankRoot .bank-item::after{content:'开始 ›';flex:none;font-size:11.5px;font-weight:700;color:var(--primary-700);opacity:0;transform:translateX(-4px);transition:opacity .16s,transform .16s}
+.hub-main #bankRoot .bank-item:hover::after,.hub-main #bankRoot .bank-item:focus-within::after{opacity:1;transform:none}
+.hub-main #bankRoot .bk2-list-foot{display:flex;align-items:center;justify-content:center;padding:14px 0 0}
+.hub-main #bankRoot .bk2-list-foot[hidden]{display:none!important}
+.hub-main #bankRoot .bk-more{display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:0 12px;border:0;border-radius:8px;background:transparent;color:var(--primary-700);font:inherit;font-size:12px;font-weight:650;box-shadow:none;cursor:pointer}
+.hub-main #bankRoot .bk-more:hover{background:var(--primary-50)}
+.hub-main #bankRoot .bank-empty,.hub-main #bankRoot .bank-loading{margin:0;padding:48px 20px;border:1px solid var(--line);border-radius:15px;background:var(--surface);font-size:12.5px;line-height:1.8;text-align:center;color:var(--muted)}
+.hub-main #bankRoot .bank-empty p{margin:0}
+
+/* 记录 / 错题 / 统计三页共用 */
+.hub-main #bk2Panels{display:flex;flex:0 0 auto;flex-direction:column;min-height:0}
+.hub-main #bk2Panels[hidden]{display:none!important}
+.bk2-pane{display:flex;flex-direction:column;min-height:0}
+.bk2-pane[hidden]{display:none!important}
+.bk2-page{display:flex;flex-direction:column;min-height:0;gap:0}
+.bk2-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-height:38px;margin:0 0 14px}
+.bk2-spacer{flex:1;min-width:8px}
+.bk2-seg{display:inline-flex;align-items:center;gap:2px;padding:3px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2)}
+.bk2-seg button{min-height:30px;padding:0 12px;border:0;border-radius:7px;background:transparent;color:var(--muted);font:inherit;font-size:12px;font-weight:650;cursor:pointer;white-space:nowrap}
+.bk2-seg button:hover{color:var(--ink)}
+.bk2-seg button.on{background:var(--surface);color:var(--primary-700);box-shadow:0 1px 2px rgba(16,24,40,.08)}
+.bk2-btn-sm{display:inline-flex;align-items:center;justify-content:center;min-height:32px;padding:0 11px;border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--ink-2);font:inherit;font-size:11.5px;font-weight:650;cursor:pointer}
+.bk2-btn-sm:hover{border-color:var(--primary-100);color:var(--primary-700);background:var(--primary-50)}
+.bk2-hint{font-size:11px;color:var(--muted)}
+.bk2-extra{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:10px 14px;margin:0 0 12px;border:1px solid var(--line);border-radius:11px;background:var(--surface-2)}
+.bk2-extra[hidden]{display:none!important}
+.bk2-extra .lab{font-size:10.5px;color:var(--muted);margin-right:5px}
+.bk2-chip{height:27px;padding:0 10px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--muted);font:inherit;font-size:11px;font-weight:600;cursor:pointer}
+.bk2-chip:hover{border-color:var(--primary-100);color:var(--primary-700)}
+.bk2-chip.on{border-color:var(--primary-100);background:var(--primary-50);color:var(--primary-700)}
+.bk2-jump{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 8px 0 11px;border:1px solid var(--primary-100);border-radius:999px;background:var(--primary-50);color:var(--primary-700);font-size:11px;font-weight:650}
+.bk2-jump button{border:0;background:transparent;color:inherit;font:inherit;font-size:15px;line-height:1;padding:0 2px;cursor:pointer}
+
+/* 记录：四指标 + 场次列表 */
+.bk2-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;margin:0 0 12px;border:1px solid var(--line);border-radius:14px;background:var(--line-soft);overflow:hidden}
+.bk2-sum{min-width:0;padding:13px 16px;background:var(--surface)}
+.bk2-sum .k{font-size:10.5px;color:var(--muted)}
+.bk2-sum .v{font-size:24px;font-weight:750;letter-spacing:-.03em;line-height:1.25;font-variant-numeric:tabular-nums;color:var(--ink)}
+.bk2-sum .v small{font-size:11px;font-weight:600;color:var(--muted);margin-left:2px}
+.bk2-sum.lead .v{color:var(--primary-700)}
+.bk2-sum .v.date{font-size:15px;padding-top:5px;letter-spacing:0}
+.bk2-sessions{border:1px solid var(--line);border-radius:15px;background:var(--surface);overflow:hidden;box-shadow:0 1px 2px rgba(28,55,48,.035)}
+.bk2-sess{border-bottom:1px solid var(--line-soft)}
+.bk2-sess:last-child{border-bottom:0}
+.bk2-srow{display:grid;grid-template-columns:78px minmax(0,1fr) 68px 58px 20px;align-items:center;gap:12px;width:100%;padding:13px 17px;border:0;background:var(--surface);text-align:left;color:inherit;cursor:pointer;transition:background .14s}
+.bk2-srow:hover{background:var(--surface-2)}
+.bk2-sdate{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.bk2-smain{min-width:0}
+.bk2-smain b{display:block;font-size:12.5px;font-weight:650;color:var(--ink)}
+.bk2-smain small{display:block;font-size:10.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bk2-sscore{font-size:14px;font-weight:750;color:var(--primary-700);text-align:right;font-variant-numeric:tabular-nums}
+.bk2-stime{font-size:11px;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+.bk2-schev{display:flex;align-items:center;justify-content:center;color:var(--muted);transition:transform .16s,color .16s}
+.bk2-schev svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.bk2-srow[aria-expanded="true"] .bk2-schev{transform:rotate(90deg);color:var(--primary-700)}
+.bk2-sdetail{padding:14px 17px 17px;border-top:1px solid var(--line-soft);background:var(--surface-2)}
+.bk2-qgrid{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:5px}
+.bk2-qcell{min-height:30px;padding:3px 2px;border:1px solid var(--line);border-radius:6px;background:var(--surface);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:9.5px;line-height:1.25;color:var(--muted)}
+.bk2-qcell b{font-size:9.5px;font-weight:700;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.bk2-qcell.hit{border-color:var(--primary-100);background:var(--ok-soft);color:var(--ok-text)}
+.bk2-qcell.hit b{color:var(--ok-text)}
+.bk2-qcell.miss{border-color:var(--err-soft);background:var(--err-soft);color:var(--err-text)}
+.bk2-qcell.miss b{color:var(--err-text)}
+.bk2-qlegend{display:flex;gap:14px;margin-top:10px;font-size:10px;color:var(--muted)}
+.bk2-qlegend i{display:inline-block;width:7px;height:7px;border-radius:2px;margin-right:4px;vertical-align:0}
+.bk2-qlegend .ok{background:#8ecfc3}
+.bk2-qlegend .bad{background:#e0a39e}
+.bk2-list-empty{padding:44px 20px;text-align:center;color:var(--muted);font-size:12px}
+
+/* 空态：每页一张自己的小图，不铺无意义空白 */
+.bk2-empty{--ec:var(--primary-700);--ec-bg:var(--primary-50);--ec-line:var(--primary-100);position:relative;isolation:isolate;overflow:hidden;width:min(100%,720px);min-height:302px;margin:0 auto;padding:36px 28px 32px;border:1px solid var(--ec-line);border-radius:18px;background:linear-gradient(145deg,var(--ec-bg),var(--surface) 58%,var(--surface-2));display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;box-shadow:0 1px 2px rgba(28,55,48,.035)}
+.bk2-empty:before{content:'';position:absolute;z-index:-1;right:-84px;top:-105px;width:240px;height:240px;border-radius:50%;background:var(--ec-bg);opacity:.62}
+.bk2-empty:after{content:'';position:absolute;z-index:-1;left:-58px;bottom:-108px;width:180px;height:180px;border-radius:50%;border:1px solid var(--ec-line);opacity:.7}
+.bk2-empty.stats{--ec:var(--warn);--ec-bg:var(--warn-soft);--ec-line:var(--line)}
+.bk2-empty-visual{width:82px;height:68px;margin:0 0 17px;border:1px solid var(--ec-line);border-radius:20px;background:var(--surface);display:grid;place-items:center;color:var(--ec);box-shadow:0 12px 26px -22px rgba(28,55,48,.45)}
+.bk2-empty-visual svg{width:48px;height:40px;fill:none;stroke:currentColor;stroke-width:1.55;stroke-linecap:round;stroke-linejoin:round}
+.bk2-empty b{font-size:17px;font-weight:760;letter-spacing:-.015em;color:var(--ink)}
+.bk2-empty p{max-width:390px;margin:7px 0 19px;color:var(--muted);font-size:12px;line-height:1.75}
+.bk2-empty .bk2-empty-act{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:128px;min-height:34px;padding:0 14px;border:1px solid var(--primary);border-radius:9px;background:var(--primary);color:#fff;font:inherit;font-size:12px;font-weight:650;cursor:pointer}
+.bk2-empty .bk2-empty-act:hover{background:var(--primary-600);border-color:var(--primary-600)}
+.bk2-empty .bk2-empty-act svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* 错题：本轮只出罩衫 */
+.bk2-soon{position:relative;isolation:isolate;overflow:hidden;display:flex;flex:1 1 auto;flex-direction:column;align-items:center;justify-content:center;min-height:min(520px,calc(100dvh - 190px));padding:48px 24px;border:1px solid var(--line);border-radius:20px;background:linear-gradient(145deg,var(--primary-50),var(--surface) 55%,var(--surface-2));box-shadow:0 1px 2px rgba(28,55,48,.035);text-align:center}
+.bk2-soon:before{content:'';position:absolute;z-index:-1;right:-120px;top:-140px;width:340px;height:340px;border-radius:50%;background:var(--primary-50);opacity:.72}
+.bk2-soon:after{content:'';position:absolute;z-index:-1;left:-90px;bottom:-150px;width:260px;height:260px;border-radius:50%;border:1px solid var(--primary-100);opacity:.8}
+.bk2-soon-icon{width:86px;height:86px;margin:0 0 20px;border:1px solid var(--primary-100);border-radius:24px;background:var(--surface);display:grid;place-items:center;color:var(--primary-700);box-shadow:0 16px 34px -26px rgba(28,55,48,.5)}
+.bk2-soon-icon svg{width:46px;height:46px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.bk2-soon b{font-size:22px;font-weight:760;letter-spacing:-.02em;color:var(--ink)}
+
+/* 统计 */
+.bk2-callout{display:flex;align-items:center;gap:14px;padding:14px 18px;margin:0 0 14px;border:1px solid var(--line);border-radius:13px;background:var(--warn-soft)}
+.bk2-callout .cir{flex:none;width:36px;height:36px;border-radius:10px;background:var(--surface);color:var(--warn);display:grid;place-items:center}
+.bk2-callout .cir svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.bk2-callout b{display:block;font-size:13px;color:var(--ink)}
+.bk2-callout span{display:block;font-size:11px;color:var(--muted)}
+.bk2-callout .bk2-btn-sm{margin-left:auto;flex:none}
+.bk2-stat-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.bk2-panel{min-width:0;padding:18px 20px;border:1px solid var(--line);border-radius:15px;background:var(--surface);box-shadow:0 1px 2px rgba(28,55,48,.035)}
+.bk2-panel-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:0 0 14px}
+.bk2-panel-head h2{margin:0;font-size:13px;font-weight:750;color:var(--ink)}
+.bk2-panel-head span{font-size:10px;color:var(--muted)}
+.bk2-bar{display:grid;grid-template-columns:112px minmax(0,1fr) 74px;align-items:center;gap:10px;width:100%;min-height:34px;padding:0;border:0;background:transparent;text-align:left;color:inherit;cursor:pointer}
+.bk2-bar:hover .bk2-bar-label{color:var(--primary-700)}
+.bk2-bar-label{font-size:11.5px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bk2-bar-label em{font-style:normal;font-size:9px;color:var(--warn);background:var(--warn-soft);border:1px solid var(--line);border-radius:4px;padding:1px 4px;margin-left:4px;vertical-align:1px}
+.bk2-bar-track{height:7px;border-radius:99px;background:var(--surface-2);overflow:hidden}
+.bk2-bar-track i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#6dbfb6,#3a9a93)}
+.bk2-bar.weak .bk2-bar-track i{background:linear-gradient(90deg,#e3b875,#c98b3b)}
+.bk2-bar-val{font-size:11px;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.bk2-bar-val b{font-size:12.5px;font-weight:750;color:var(--ink)}
+.bk2-bar-val small{display:block;font-size:9.5px;color:var(--muted);line-height:1.25}
+
+/* 页底「机经是什么？」小标 */
+.bk2-help{display:flex;justify-content:flex-start;width:min(100%,720px);margin:0 auto;padding:20px 2px 2px}
+.bk2-help button{display:inline-flex;align-items:center;gap:5px;padding:2px 0;border:0;background:transparent;color:var(--muted);font:inherit;font-size:10.5px;line-height:1.5;cursor:pointer}
+.bk2-help button:hover{color:var(--primary-700)}
+.bk2-help .q{width:16px;height:16px;border:1px solid var(--line);border-radius:50%;display:grid;place-items:center;font-size:9px;font-weight:800;line-height:1}
+.bk2-help-dialog{width:min(420px,calc(100vw - 32px));padding:0;border:1px solid var(--line);border-radius:17px;background:var(--surface);color:var(--ink);box-shadow:0 24px 80px -24px rgba(20,40,35,.45)}
+.bk2-help-dialog::backdrop{background:rgba(28,38,35,.28);backdrop-filter:blur(2px)}
+.bk2-help-body{padding:24px 24px 20px}
+.bk2-help-body .kicker{font-size:10px;font-weight:800;letter-spacing:.12em;color:var(--primary-700)}
+.bk2-help-body h2{margin:5px 0 9px;font-size:19px;letter-spacing:-.02em;color:var(--ink)}
+.bk2-help-body p{margin:0;color:var(--ink-2);font-size:12.5px;line-height:1.85}
+.bk2-help-foot{display:flex;justify-content:flex-end;padding:0 24px 22px}
+.bk2-help-foot button{min-height:32px;padding:0 14px;border:1px solid var(--primary);border-radius:8px;background:var(--primary);color:#fff;font:inherit;font-size:11.5px;font-weight:650;cursor:pointer}
+.bk2-help-foot button:hover{background:var(--primary-600)}
+
+@media(max-width:1180px){
+  .hub-main #bankRoot .bk-search{flex-basis:200px;max-width:200px}
+}
+@media(max-width:980px){
+  .bk2-stat-grid{grid-template-columns:1fr}
+}
+@media(max-width:860px){
+  .hub-main #bankRoot .full-card{flex-wrap:wrap;gap:10px;padding:14px 15px}
+  .hub-main #bankRoot .full-card .bk-m{flex:1 1 60%}
+  .hub-main #bankRoot .full-card .fc-last{display:none!important}
+  .hub-main #bankRoot .full-card .btn-primary{width:auto;margin-left:auto}
+  .hub-main #bankRoot .partbar .pill-tabs{flex:1 1 100%}
+  .hub-main #bankRoot .bk-search{flex:1 1 100%;max-width:none;margin-left:0}
+  .hub-main #bankRoot .bank-item{min-height:54px;padding:7px 14px}
+  .hub-main #bankRoot .bank-item::after{opacity:1;transform:none}
+  .bk2-summary{grid-template-columns:1fr 1fr}
+  .bk2-sum{padding:11px 13px}
+  .bk2-sum .v{font-size:21px}
+  .bk2-srow{grid-template-columns:minmax(0,1fr) 58px 18px;gap:8px;padding:12px 14px}
+  .bk2-sdate{grid-column:1/-1;font-size:10px}
+  .bk2-stime{display:none}
+  .bk2-sdetail{padding:12px 14px 15px}
+  .bk2-qgrid{grid-template-columns:repeat(8,minmax(0,1fr))}
+  .bk2-callout{align-items:flex-start;flex-wrap:wrap}
+  .bk2-callout .bk2-btn-sm{margin-left:0;width:100%}
+  .bk2-bar{grid-template-columns:106px minmax(0,1fr) 64px;gap:8px}
+}
+@media(max-width:520px){
+  .hub-main #bankRoot .full-card .bk2-kicker{font-size:9px}
+  .hub-main #bankRoot .full-card .bk-m b{font-size:14.5px}
+  .bk2-qgrid{grid-template-columns:repeat(6,minmax(0,1fr))}
+  .bk2-panel{padding:15px 14px}
+  .bk2-bar{grid-template-columns:78px minmax(0,1fr) 60px}
+  .bk2-empty{min-height:280px;padding:32px 20px}
+  .bk2-soon{min-height:380px;padding:38px 20px}
+}
+@media(prefers-reduced-motion:reduce){
+  .hub-main #bankRoot .bank-item,.hub-main #bankRoot .bk-more,.bk2-srow,.bk2-schev{transition:none}
+}
+</style>
 </head>
 <body data-shell="top">
 <div id="bootLoader" class="hub-loader show" aria-hidden="true"><div class="ui-loader" role="status" aria-label="Loading"><span class="ui-loader-dot"></span><span class="ui-loader-dot m2"></span><span class="ui-loader-dot m3"></span><span class="ui-loader-shadow"></span><span class="ui-loader-shadow m2"></span><span class="ui-loader-shadow m3"></span></div></div>
@@ -2827,8 +3058,9 @@ main.container:has(> .hub-shell){
       </div>
     </aside>
     <div class="hub-main">
+      <div class="bk2-mobile" id="bk2MobileNav" role="tablist" aria-label="机经板块"></div>
       <!-- 🔴 软导航契约：功能容器必须在 <main> 之内 -->
-      <div class="mock-wrap" id="bankRoot" data-mock-tab="reading" data-mock-part="Part 1">
+      <div class="mock-wrap" id="bankRoot" data-mock-tab="reading" data-mock-part="all" data-bank-page="reading">
     <!-- M-1（10-24）：科目 tab 改「文字 + 篇数计数 + 上划线」。计数由 js/bank.js 的
          renderMockTabCounts() 在 manifest 到达后填（写作/口语的数字在各自脚本就位后填）。
          桌面 861+ 已改回可见（原先 display:none 是 10-23 2-1d 的旧结论，见下方样式段注释）。 -->
@@ -2862,7 +3094,7 @@ main.container:has(> .hub-shell){
       <div id="fullEntry">
         <div class="full-card">
           <span class="bk-tag">整套</span>
-          <div class="bk-m"><b>练一套 · 完整阅读模考</b><span>3 篇 · 40 题 · 60 分钟 · 随机组卷</span></div>
+          <div class="bk-m"><span class="bk2-kicker">整套模考</span><b>阅读整套</b><span>3 篇 · 40 题 · 60 分钟 · 随机组卷</span></div>
           <button class="btn-primary" type="button" data-fullstart disabled>开始一套<span aria-hidden="true"> ›</span></button>
           <!-- 10/18 列表页留痕：上次完整模考成绩（JS 填 paintFullLast）。静态占位 = 首帧即有高度，不抖 -->
           <div class="fc-last" data-full-last="reading"></div>
@@ -2870,7 +3102,8 @@ main.container:has(> .hub-shell){
       </div>
       <div class="partbar">
         <div class="pill-tabs" id="partTabs">
-          <button class="pill-tab active" type="button" data-part="Part 1">Part 1<span class="pt-n" data-pn="Part 1"></span></button>
+          <button class="pill-tab active" type="button" data-part="all">全部<span class="pt-n" data-pn="all"></span></button>
+          <button class="pill-tab" type="button" data-part="Part 1">Part 1<span class="pt-n" data-pn="Part 1"></span></button>
           <button class="pill-tab" type="button" data-part="Part 2">Part 2<span class="pt-n" data-pn="Part 2"></span></button>
           <button class="pill-tab" type="button" data-part="Part 3">Part 3<span class="pt-n" data-pn="Part 3"></span></button>
         </div>
@@ -2903,14 +3136,15 @@ main.container:has(> .hub-shell){
       <div id="listenFullEntry">
         <div class="full-card">
           <span class="bk-tag">整套</span>
-          <div class="bk-m"><b>练一套 · 完整听力模考</b><span>4 篇 · 40 题 · 30 分钟 · 随机组卷</span></div>
+          <div class="bk-m"><span class="bk2-kicker">整套模考</span><b>听力整套</b><span>4 篇 · 40 题 · 30 分钟 · 随机组卷</span></div>
           <button class="btn-primary" type="button" data-lfullstart disabled>开始一套<span aria-hidden="true"> ›</span></button>
           <div class="fc-last" data-full-last="listening"></div>
         </div>
       </div>
       <div class="partbar">
         <div class="pill-tabs" id="listenPartTabs">
-          <button class="pill-tab active" type="button" data-lpart="Part 1">Part 1<span class="pt-n" data-pn="Part 1"></span></button>
+          <button class="pill-tab active" type="button" data-lpart="all">全部<span class="pt-n" data-pn="all"></span></button>
+          <button class="pill-tab" type="button" data-lpart="Part 1">Part 1<span class="pt-n" data-pn="Part 1"></span></button>
           <button class="pill-tab" type="button" data-lpart="Part 2">Part 2<span class="pt-n" data-pn="Part 2"></span></button>
           <button class="pill-tab" type="button" data-lpart="Part 3">Part 3<span class="pt-n" data-pn="Part 3"></span></button>
           <button class="pill-tab" type="button" data-lpart="Part 4">Part 4<span class="pt-n" data-pn="Part 4"></span></button>
@@ -2934,28 +3168,24 @@ main.container:has(> .hub-shell){
          因找不到 #pane-writing 会空操作（保留不删，避免动判分域）；老深链
          ?sub=writing / ?sub=speaking 已由 tbApplySub 白名单收窄挡掉，落默认阅读页，不白屏。 -->
 
-    <aside class="bk-rail" id="bkRail" aria-label="题库筛选与练习概况">
-      <div class="bk-rail-in">
-        <div class="bk-rail-label">按来源筛选</div>
-        <select id="bkSourceSelect" class="bk-source-select" aria-label="按题库来源筛选">
-          <option value="">全部来源</option>
-        </select>
-        <div class="bk-rail-summary" id="bkRailSummary" aria-live="polite"></div>
-        <button class="bk-rail-link" type="button" data-bk-go="records">看本科目练习记录<span aria-hidden="true">›</span></button>
-        <details class="bank-info">
-          <summary>题库说明<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></summary>
-          <div class="bank-info-body">
-            题库共 <b>627</b> 篇 · <b>7202</b> 题；有新题就补充，不定期更新。<br>
-            内容全部为<b>真经</b>——都是考场上出过的原题，考试时有可能再遇到同一篇。<br>
-            上次更新：<b class="bank-upd-date">2026-10-23</b>（听力精听模式上线；此前 10-19 补全部答案）。
-          </div>
-        </details>
-      </div>
-    </aside>
-
   </div>
+      <div id="bk2Panels" hidden>
+        <section class="bk2-pane" data-bkpanel="records" id="bk2Rec"></section>
+        <section class="bk2-pane" data-bkpanel="wrong" id="bk2Wrong"></section>
+        <section class="bk2-pane" data-bkpanel="stats" id="bk2Stats"></section>
+      </div>
+      <div class="bk2-help"><button type="button" id="bk2HelpBtn"><span class="q">?</span>机经是什么？</button></div>
     </div><!-- /.hub-main -->
   </div><!-- /.hub-shell -->
+
+  <dialog class="bk2-help-dialog" id="bk2HelpDialog">
+    <div class="bk2-help-body">
+      <span class="kicker">关于机经</span>
+      <h2>机经是什么？</h2>
+      <p>机经是考场上真实出现过、之后还可能继续出现的真题回忆。练机经，重点不是背答案，而是熟悉真实篇目、题型和出题方式。</p>
+    </div>
+    <div class="bk2-help-foot"><button type="button" id="bk2HelpClose">知道了</button></div>
+  </dialog>
 
   <!-- 做题页（全屏覆盖，仍挂在 main 内以满足软导航契约；position:fixed 不受壳的 overflow 裁剪） -->
   <div id="examRoot" hidden></div>
@@ -2975,22 +3205,22 @@ main.container:has(> .hub-shell){
 <script defer src="js/common-shell.js?v=20261116a"></script>
 <script defer src="js/common-pwa.js?v=20261116a"></script>
 <script defer src="js/exam-timer.js?v=20261102c"></script>
-<script defer src="js/bank.js?v=20261108a"></script>
+<script defer src="js/bank.js?v=20261116a"></script>
 <!-- RV-FIX5-10/11（11-03 合流修正）：bank.js 内容改了但引用串此前漏 bump（串还是 g，与上一版撞）——
      按 11-02 判据「bump 不覆盖页面 js 引用串」人工改 h；bank.css 保持 g（本笔未再动它）。 -->
 <!-- M-2（10-24）：模考页「没做过/做过」分组 + 展开更多。
      ⚠️ 本文件只做展示层（读 hub_bank_last_* 分组 + 首屏 20 条），判分/SRS/本地记录一律不碰；
         单条 DOM 由 js/bank.js 的 listHtml() 生成（当参数传进来），结构零改动。
      ⚠️ 必须带 ?v= 声明 —— 否则 common.js 只能拿裸 URL，等于向浏览器缓存要任意年代的旧副本。 -->
-<script defer src="js/bank-groups.js?v=20261116c"></script>
+<script defer src="js/bank-groups.js?v=20261116d"></script>
 <!-- HUB-SIDE-SHELL-1：左栏壳的填充与事件（DOM/CSS 静态写在本页，见上方 <style>）。
      ⚠️ 放在业务脚本之后：软导航 runPageScript 按 HTML 声明顺序 eval，本文件最后跑，
         此时 #mockTabs / DATA / todayKey 都已就绪。 -->
-<script defer src="js/bank-side.js?v=20261116a"></script>
+<script defer src="js/bank-side.js?v=20261116b"></script>
 <!-- 11-13 BANK-EXTEND-1 第 1 期：题目记录 / 错题集 / 正确率统计三板块。
      独立模块自带可见 5 个 tab、纯读 DATA.mockRecords[].detail，不碰判分、不改既有两科 DOM。
      放在业务脚本之后：软导航按 HTML 声明顺序 eval，此时 bank.js / DATA / manifest 都已就位。 -->
-<script defer src="js/bank-records.js?v=20261116g"></script>
+<script defer src="js/bank-records.js?v=20261116h"></script>
 <style id="rvCaInFix">
 .ex-ca-in{display:inline-block;font:inherit;color:#1f7a5c;line-height:1.4;vertical-align:middle;flex:none}
 </style>
