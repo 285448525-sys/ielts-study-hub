@@ -1,262 +1,481 @@
 (function(){
   'use strict';
-  /* REVIEW-TABS-1（11-07，她「回顾页面我看了做的很好可以直接做进去了」）
-     把 design/REVIEW-TABS-1-回顾页侧栏各页UI样子稿-2026-11-07.html 的 5 个左栏 tab 落进真页面。
-     做法沿用单词页已验证的那套：页面专属脚本 + 按 data-rv-pane 分组显隐，
-       · 不动 7 页共用的 js/hub-side-shell.js（动它要 7 页串号）；
-       · 既有真实模块一个不删、ID 一个不改（rvx-data.js / rec-all.js / scores.js 照常写它们）；
-       · 左栏 5 tab 用属性 data-rv-tab（不是共用脚本的 data-hub-sub，避开 syncActive/onClick 误伤）；
-       · 数字全部现场算真字段，稿子里的示意数字一个不用，算不出就留空态、不编百分比。
-     真字段：DATA.scores（rvx-data.js scores()）、DATA.settings.targets（targets()）、
-       overall()/scores.js、examCountdown()/common.js、calcStreak()/common.js、
-       DATA.sessions、DATA.mockRecords、RecAll.collect()。
-     软导航契约：本文件会随每轮 window.eval 重跑，监听必须先 remove 再 add（bind()）。
-     // 已定（11-14 口径落定，原「待确认」两处收口）：设计稿的「录入」复用站内既有 #rv2AddDialog 弹窗
-       （rvx-data.js:221 的 data-rv2-add 委托）；导出 PDF/CSV 她没点头，不做。
-       设计稿「分项 40 题答对数」不另落库，考试记录页直接复用既有 #recAll（RecAll.collect()），
-       不另造表、不编数字。
-     REVIEW-POLISH-1（11-08 v821）：她「还是觉得设计稿的比较好看，再扣扣细节」。
-     补齐设计稿标志性细节：结论条加 38px 图标 + 右侧按钮、总览两列（迷你走势 + 最近三次），
-     数字仍全部现场算真字段。旧 .rv2-* 卡片皮肤统一由 review.html 页内 CSS 重皮，本文件不动 DOM/ID。 */
-  var SUBJ=[{k:'listening',n:'听力'},{k:'reading',n:'阅读'},{k:'writing',n:'写作'},{k:'speaking',n:'口语'}];
-  var TABS=[
-    {id:'home',nm:'总览',ic:'grid'},
-    {id:'trend',nm:'趋势',ic:'line'},
-    {id:'records',nm:'记录',ic:'table'}
+  /* 回顾 · 成品框架 1116
+     三页只展示当前动作需要的内容：总览看最近结果，趋势看变化，记录按类型与范围回看。
+     录入继续复用 #rv2AddDialog / scores.js，删除继续转发原列表按钮，不改存储口径。 */
+  var $=function(id){return document.getElementById(id)};
+  var $$=function(sel,root){return Array.prototype.slice.call((root||document).querySelectorAll(sel))};
+  var SUBS=[
+    {k:'listening',n:'听力',num:'rvxNumL',sub:'rvxSubL'},
+    {k:'reading',n:'阅读',num:'rvxNumR',sub:'rvxSubR'},
+    {k:'writing',n:'写作',num:'rvxNumW',sub:'rvxSubW'},
+    {k:'speaking',n:'口语',num:'rvxNumS',sub:'rvxSubS'}
   ];
-  /* REVIEW-UNIFIED-4（11-16）：三页共用一张固定 board，切页只换页头文案与左栏内容。 */
-  var META={
-    home:{t:'总览',s:'看清进步，也知道下一步练什么。'},
-    trend:{t:'成绩趋势',s:'录入成绩后开始记录变化'},
-    records:{t:'成绩记录',s:'真题、分项与口语模考按日期排列'}
-  };
-  var ICON={
-    grid:'<rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>',
-    line:'<path d="M3 3v18h18"/><path d="m6 15 4-5 3 3 5-7"/>',
-    layers:'<path d="M12 2 3 7l9 5 9-5z"/><path d="M3 12l9 5 9-5"/><path d="M3 17l9 5 9-5"/>',
-    table:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 9v11M15 9v11"/>',
-    cal:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>'
-  };
-  function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
-  function $(id){return document.getElementById(id)}
-  function ic(k){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(ICON[k]||ICON.grid)+'</svg>'}
-  function num(v){var n=Number(v);return isFinite(n)?n:null}
-  function one(v){var n=Number(v);return isFinite(n)?(Math.round(n*2)/2).toFixed(1):'—'}
-  function pad2(n){return String(n).length<2?('0'+n):String(n)}
-  function dayAdd(d,n){ if(typeof window.addDays==='function'){try{return window.addDays(d,n)}catch(e){}} var dt=new Date(d+'T00:00:00');dt.setDate(dt.getDate()+n);return dt.getFullYear()+'-'+pad2(dt.getMonth()+1)+'-'+pad2(dt.getDate()) }
-  function today(){ if(typeof window.todayKey==='function'){try{return window.todayKey()}catch(e){}} var d=new Date();return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate()) }
-  function sc(){ if(typeof window.scores==='function'){try{return window.scores()}catch(e){}} var a=(typeof DATA!=='undefined'&&Array.isArray(DATA.scores))?DATA.scores.slice():[];return a.sort(function(x,y){return String(x&&x.date||'').localeCompare(String(y&&y.date||''))}) }
-  function tg(){ if(typeof window.targets==='function'){try{return window.targets()}catch(e){}} return (typeof DATA!=='undefined'&&DATA.settings&&DATA.settings.targets)||{} }
-  function ov(r){ var l=num(r.listening),rr=num(r.reading),w=num(r.writing),s=num(r.speaking); if(l==null||rr==null||w==null||s==null)return null; if(typeof window.overall==='function'){try{return window.overall(l,rr,w,s)}catch(e){}} return Math.round(((l+rr+w+s)/4)*2)/2 }
-  function cd(){ if(typeof window.examCountdown==='function'){try{return window.examCountdown()}catch(e){}} return {hasExam:false,daysLeft:null,md:'',label:''} }
-  function streak(){ if(typeof window.calcStreak==='function'){try{return window.calcStreak()}catch(e){}} return 0 }
-  function recCount(){ try{ if(typeof RecAll!=='undefined'&&RecAll.collect) return RecAll.collect().length }catch(e){} var m=(typeof DATA!=='undefined'&&Array.isArray(DATA.mockRecords))?DATA.mockRecords.length:0; return sc().length+m }
-  function byDay(){ var m={}; try{ var a=(typeof DATA!=='undefined'&&Array.isArray(DATA.sessions))?DATA.sessions:[]; a.forEach(function(x){var d=String(x&&x.date||'').slice(0,10); if(!d)return; m[d]=(m[d]||0)+(num(x&&x.durationSec)||0)}) }catch(e){} return m }
+  var TABS=[{id:'home',n:'总览'},{id:'trend',n:'趋势'},{id:'records',n:'记录'}];
+  var COLORS={teal:'#3a9a93',tealD:'#2f7d76',amber:'#b3792c',line:'#e6e9ea',lineSoft:'#eef1f2',muted:'#71767e',ink:'#1f2328',surface:'#fff'};
+  var state=window.__rvFinalState||(window.__rvFinalState={pane:'home',homeRange:'five',subject:'overall',metric:'score',recType:'all',recRange:'five'});
+  var fallbackTasks=false;
+  var addCounts={whole:null,part:null};
 
-  function statHtml(cards){
-    return cards.map(function(c){
-      return '<div class="rv-stat'+(c.ok?' ok':'')+'">'
-        +'<div class="k">'+esc(c.k)+'</div>'
-        +'<div class="v'+(c.tone?' '+c.tone:'')+'">'+c.v+(c.unit?'<small>'+esc(c.unit)+'</small>':'')+'</div>'
-        +'<div class="d">'+esc(c.d||'')+'</div></div>';
-    }).join('');
+  function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+  function pad(n){return n<10?'0'+n:''+n}
+  function today(){var d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+  function dayOffset(n){var d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()+n);return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+  function md(s){s=String(s||'');return s.length>=10?s.slice(5,10):s}
+  function num(v){v=Number(v);return isFinite(v)?v:null}
+  function fmt(v){v=num(v);return v==null?'—':(Math.round(v*2)/2).toFixed(1)}
+  function overall(x){var a=num(x&&x.listening),b=num(x&&x.reading),c=num(x&&x.writing),d=num(x&&x.speaking);return a==null||b==null||c==null||d==null?null:Math.round((a+b+c+d)/4*2)/2}
+  function targets(){var t=(typeof DATA!=='undefined'&&DATA&&DATA.settings&&DATA.settings.targets)||{};return t}
+  function scores(){
+    if(typeof DATA==='undefined'||!DATA||!Array.isArray(DATA.scores))return [];
+    return DATA.scores.filter(function(x){return x&&overall(x)!=null}).slice().sort(function(a,b){
+      return String(a.date||'').localeCompare(String(b.date||''))||String(a.id||'').localeCompare(String(b.id||''));
+    });
   }
-  function panelHead(title,hint){ return '<div class="rv-panel-h"><b>'+esc(title)+'</b>'+(hint?'<span>'+esc(hint)+'</span>':'')+'</div>' }
-
-  /* 总览：4 数卡 + 水平标尺（不是百分比环）+ 结论条，全部现算 */
-  function renderHome(){
-    var s=sc(),t=tg(),last=s[s.length-1];
-    var st=$('rvHomeStats'),ru=$('rvRuler'),ca=$('rvCallout');
-    if(!last){ if(st)st.innerHTML=''; if(ru)ru.hidden=true; if(ca)ca.hidden=true;
-      var sp0=$('rvHomeSpark'),rc0=$('rvHomeRecent');
-      if(sp0)sp0.innerHTML='<div class="rv-panel">'+panelHead('总分走势','近几次')+window.RVE.inline({ic:'line',title:'两次成绩后就有趋势线',desc:'真题、模考和手动录入都会计入。'})+'</div>';
-      if(rc0)rc0.innerHTML='<div class="rv-panel">'+panelHead('最近三次','整套与模考')+window.RVE.inline({ic:'table',title:'还没有记录',desc:'整套真题与模考会按日期排在这里。'})+'</div>';
-      return }
-    var all=ov(last),tv=num(t.overall)||0;
-    var weak=SUBJ.filter(function(x){var g=num(t[x.k])||0;return g>0&&num(last[x.k])!=null&&num(last[x.k])<g});
-    var c=cd();
-    if(st)st.innerHTML=statHtml([
-      {k:'最近一次总分',v:one(all),unit:'/ 9',d:String(last.date||'').slice(5)+' · 按四科平均进位',ok:true,tone:'teal'},
-      {k:'距目标分'+(tv?' '+one(tv):''),v:tv?((all>=tv)?'已达标':'差 '+one(tv-all)):'未设目标',d:tv?'四科平均按官方进位':'去设置里填目标分',tone:tv?(all>=tv?'teal':'warn'):''},
-      {k:'还没到目标分的科',v:String(weak.length),unit:'科',d:weak.length?weak.map(function(x){return x.n}).join('、'):'四科均已达标',tone:weak.length?'warn':''},
-      {k:c.hasExam?'距 '+(c.md||'考试'):'考试日期',v:(c.hasExam&&c.daysLeft!=null)?String(c.daysLeft):'未设置',unit:(c.hasExam&&c.daysLeft!=null)?'天':'',d:c.hasExam?'按已设考试日':'去设置里填考试日期'}
-    ]);
-    if(ru){ ru.hidden=false;
-      var gp=tv>0?Math.min(100,Math.round(tv/9*100)):null;
-      var cp=Math.min(100,Math.round((all||0)/9*100));
-      ru.innerHTML='<div class="rv-panel"><div class="rv-ruler-head"><b>总分与目标</b><span>水平标尺，不是完成度百分比</span></div>'
-        +'<div class="rv-ruler-track"><i style="width:'+cp+'%"></i>'
-        +(gp!=null?'<span class="rv-ruler-goal" style="left:'+gp+'%"></span>':'')
-        +'<span class="rv-ruler-cur" style="left:'+cp+'%"></span></div>'
-        +'<div class="rv-ruler-ticks"><span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span></div></div>';
-    }
-    if(ca){ ca.hidden=false;
-      var ico='<span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg></span>';
-      if(weak.length){ var mx=0;weak.forEach(function(x){var g=Math.round((((num(t[x.k])||0)-(num(last[x.k])||0)))*2)/2;if(g>mx)mx=g});
-        ca.innerHTML='<div class="rv-callout">'+ico+'<span class="tx"><b>'+esc(weak.map(function(x){return x.n}).join('、'))+' 还差 '+one(mx)+' 分到目标</b><span>已到目标分的科目先稳住，再做整套练习。</span></span><button type="button" class="btn" data-rv-jump="'+esc(weak[0].k)+'">去练'+esc(weak[0].n)+'</button></div>';
-      }else{ ca.innerHTML='<div class="rv-callout">'+ico+'<span class="tx"><b>'+(tv?'四科都到了目标分':'还没设目标分')+'</b><span>'+(tv?'按自己的节奏继续。':'去设置里填好四科目标，这里会告诉你先补哪一科。')+'</span></span></div>' }
-    }
-    renderHomeTwo(s,t);
+  function mockRecords(){return (typeof DATA!=='undefined'&&DATA&&Array.isArray(DATA.mockRecords))?DATA.mockRecords.slice():[]}
+  function isSpeaking(r){return !!r&&(r.kind==='speaking'||(!Array.isArray(r.parts)&&r.p1))}
+  function dayRecords(){var m={};(typeof DATA!=='undefined'&&DATA&&Array.isArray(DATA.mockRecords)?DATA.mockRecords:[]).forEach(function(r){
+    if(!r||!Array.isArray(r.parts)||(r.type!=='listening'&&r.type!=='reading')||r.granularity==='whole')return;
+    var d=String(r.date||'').slice(0,10),c=0,t=0;
+    r.parts.forEach(function(p){c+=Number(p.correct)||0;t+=Number(p.total)||0});
+    if(!d||!t)return;if(!m[r.type])m[r.type]={};if(!m[r.type][d])m[r.type][d]={date:d,c:0,t:0};
+    m[r.type][d].c+=c;m[r.type][d].t+=t;
+  });return m}
+  function recItems(){
+    try{if(typeof RecAll!=='undefined'&&RecAll&&typeof RecAll.collect==='function')return RecAll.collect()}catch(e){}
+    return [];
   }
-
-  /* 设计稿总览两列：迷你走势 + 最近三次，全部从 sc() 现场算（不编数字） */
-  function renderHomeTwo(s,t){
-    var sp=$('rvHomeSpark'),rc=$('rvHomeRecent');
-    if(!sp||!rc)return;
-    var pts=s.map(function(r){return ov(r)}).filter(function(v){return v!=null});
-    if(!s.length){ sp.innerHTML='';rc.innerHTML='';return }
-    var n=Math.min(pts.length,8),vals=pts.slice(-n),W=280,H=76;
-    var lo=Math.min.apply(null,vals),hi=Math.max.apply(null,vals);if(hi===lo){lo=lo-0.5;hi=hi+0.5}
-    var xy=vals.map(function(v,i){var x=8+(W-16)*(n===1?0:i/(n-1));var y=64-(H-20)*((v-lo)/(hi-lo));return [x,y]});
-    var poly=xy.map(function(p){return p[0].toFixed(1)+','+p[1].toFixed(1)}).join(' ');
-    var dots=xy.map(function(p){return '<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="3.4" class="rv-line-dot"/>'}).join('');
-    var first=s[s.length-n],lastR=s[s.length-1];
-    sp.innerHTML='<div class="rv-panel"><div class="rv-panel-h"><b>总分走势</b><span>近 '+n+' 次</span><span class="right"><a class="rv-link" data-rv-jump="trend">看全部 ›</a></span></div>'
-      +'<div class="rv-spark"><svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" aria-label="总分迷你走势"><line x1="0" y1="52" x2="'+W+'" y2="52" class="rv-line-grid"/>'
-      +'<polyline points="'+poly+'" fill="none" stroke="var(--teal)" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>'+dots+'</svg>'
-      +'<div class="rv-spark-foot"><span>'+esc(String(first&&first.date||'').slice(5))+' · '+one(ov(first))+'</span><span>'+esc(String(lastR&&lastR.date||'').slice(5))+' · '+one(ov(lastR))+'</span></div></div></div>';
-    var tv=num(t.overall)||0;
-    var rows=s.slice(-3).reverse().map(function(r){var v=ov(r);var pillCls=tv&&v!=null?(v>=tv?'key':'warn'):'';
-      return '<div class="rv-mini-row"><div class="grow"><div class="t">'+esc(String(r.date||'').slice(5))+' · 整套真题</div><div class="d">听 '+one(r.listening)+' · 读 '+one(r.reading)+' · 写 '+one(r.writing)+' · 口 '+one(r.speaking)+'</div></div><span class="rv-mini-pill '+pillCls+'">'+one(v)+'</span></div>'}).join('');
-    rc.innerHTML='<div class="rv-panel"><div class="rv-panel-h"><b>最近三次</b><span>整套与模考</span><span class="right"><a class="rv-link" data-rv-jump="records">全部记录 ›</a></span></div>'+rows+'</div>';
-  }
-
-  /* 成绩趋势页：既有真实折线（.rv2-content）保留，这里补 4 数卡 */
-  function renderTrend(){
-    var el=$('rvTrendStats');if(!el)return;
-    var vals=sc().map(ov).filter(function(v){return v!=null});
-    if(!vals.length){el.innerHTML=[['最高一次','整套真题'],['近 3 次均值','±0.5 参考带'],['连续达标','未设目标分'],['已记录','整套真题']].map(function(x,i){return '<div class="rv-stat rve-stat'+(i===1?' ok':'')+'"><div class="k">'+x[0]+'</div><div class="v">—</div><div class="d">'+x[1]+'</div></div>'}).join('');return}
-    var tv=num(tg().overall)||0;
-    var max=Math.max.apply(null,vals),l3=vals.slice(-3),avg=l3.reduce(function(a,b){return a+b},0)/l3.length;
-    var cons=0;if(tv){for(var i=vals.length-1;i>=0;i--){if(vals[i]>=tv)cons++;else break}}
-    el.innerHTML=statHtml([
-      {k:'最高一次',v:one(max),d:'近 '+vals.length+' 次记录',ok:true,tone:'teal'},
-      {k:'近 3 次均值',v:one(avg),d:'±0.5 参考带'},
-      {k:'连续达标',v:tv?String(cons):'—',unit:tv?'次':'',d:tv?('总分 ≥ '+one(tv)):'未设目标分'},
-      {k:'已记录',v:String(vals.length),unit:'次',d:'整套真题'}
-    ]);
-  }
-
-  /* 四科表现：横条（目标竖线）+ 四轴雷达（最近一次 vs 首次），真分数 */
-  function renderSubjects(){
-    var s=sc(),t=tg(),last=s[s.length-1],first=s[0];
-    var bars=$('rvSubjBars'),radar=$('rvRadar');
-    if(!last){
-      if(bars)bars.innerHTML='<div class="rv-panel">'+panelHead('四科与目标','竖线 = 目标分')+window.RVE.inline({ic:'grid',title:'四科轮廓还没画出来',desc:'录入一次成绩，这里会显示每科离目标分还差多少。',roomy:true})+'</div>';
-      if(radar)radar.innerHTML='<div class="rv-panel">'+panelHead('当前最值得补','按目标分算')+window.RVE.inline({ic:'target',title:'先设一个目标分',desc:'填好四科目标后，这里会告诉你最值得先补哪一科。',roomy:true})+'</div>';
-      return }
-    if(bars){
-      var rows=SUBJ.map(function(x){var v=num(last[x.k]),tv=num(t[x.k])||0;var wp=v!=null?Math.min(100,Math.round(v/9*100)):0;var gp=tv>0?Math.min(100,Math.round(tv/9*100)):null;var weak=tv>0&&v!=null&&v<tv;
-        return '<div class="rv-subj-row"><span class="rv-subj-n">'+esc(x.n)+'</span>'
-          +'<span class="rv-subj-track"><i class="rv-fill'+(weak?' weak':'')+'" style="width:'+wp+'%"></i>'+(gp!=null?'<i class="rv-goal" style="left:'+gp+'%"></i>':'')+'</span>'
-          +'<span class="rv-subj-v">'+one(v)+' <small>'+(tv>0?(weak?'差 '+one(tv-v):'达标'):'—')+'</small></span></div>'}).join('');
-      bars.innerHTML='<div class="rv-panel">'+panelHead('四科与目标','竖线 = 目标分，黄条 = 还没到')+rows+'</div>';
-    }
-    if(radar){
-      function poly(rec){ return SUBJ.map(function(x,i){var v=num(rec&&rec[x.k]);var r=v!=null?110*v/9:0;if(i===0)return '160,'+(150-r);if(i===1)return (160+r)+',150';if(i===2)return '160,'+(150+r);return (160-r)+',150'}).join(' ') }
-      var g='';[1,0.66,0.33].forEach(function(f){ g+='<polygon points="'+[[160,150-110*f],[160+110*f,150],[160,150+110*f],[160-110*f,150]].map(function(p){return p.join(',')}).join(' ')+'" fill="none" stroke="var(--rv2-line,#e8ebec)" stroke-width="1"/>' });
-      var hasFirst=first&&first!==last;
-      var fp=hasFirst?'<polygon points="'+poly(first)+'" fill="none" stroke="var(--rv2-muted,#7a8580)" stroke-width="1.8" stroke-dasharray="5 4"/>':'';
-      var lp='<polygon points="'+poly(last)+'" fill="var(--primary,#5cb3ab)" fill-opacity=".16" stroke="var(--primary,#5cb3ab)" stroke-width="2.2"/>';
-      radar.innerHTML='<div class="rv-panel">'+panelHead('四科轮廓','最近一次'+(hasFirst?' vs 首次':''))+'<div class="rv-radar-box"><svg viewBox="0 0 320 300">'+g+fp+lp
-        +'<text x="160" y="28" text-anchor="middle" class="rv-radar-lab">听力</text><text x="292" y="154" text-anchor="start" class="rv-radar-lab">阅读</text>'
-        +'<text x="160" y="292" text-anchor="middle" class="rv-radar-lab">写作</text><text x="28" y="154" text-anchor="end" class="rv-radar-lab">口语</text></svg>'
-        +'<div class="rv-radar-legend"><span><i></i>最近一次</span>'+(hasFirst?'<span><i class="first"></i>首次</span>':'')+'</div></div></div>';
-    }
-  }
-
-  /* 学习投入：连胜/日均/累计 数卡 + 学习日历热力图 + 近 14 天时长柱，全部读 DATA.sessions */
-  function renderEffort(){
-    var m=byDay(),dates=Object.keys(m).sort();
-    var st=$('rvEffortStats'),heat=$('rvHeat'),bars=$('rvBars');
-    if(!dates.length){
-      if(st)st.innerHTML='';
-      if(heat)heat.innerHTML='<div class="rv-panel">'+panelHead('学习日历','近 12 周')+window.RVE.inline({ic:'cal',title:'还没有学习记录',desc:'开始一次学习并结算后，这里会累计天数与时长。',roomy:true})+'</div>';
-      if(bars)bars.innerHTML='<div class="rv-panel">'+panelHead('近 14 天学习时长','按天')+window.RVE.inline({ic:'bars',title:'还没有可画的记录',desc:'有学习记录后，这里按天显示时长。',roomy:true})+'</div>';
-      return }
-    var total=dates.reduce(function(a,d){return a+m[d]},0);
-    var maxRun=1,run=1;for(var i=1;i<dates.length;i++){if(dates[i]===dayAdd(dates[i-1],1)){run++;if(run>maxRun)maxRun=run}else run=1}
-    var tk=today(),cut=dayAdd(tk,-29),recent=dates.filter(function(d){return d>=cut});
-    var rsec=recent.reduce(function(a,d){return a+m[d]},0);
-    var avgH=recent.length?(rsec/3600/recent.length):0;
-    if(st)st.innerHTML=statHtml([
-      {k:'连续学习',v:String(streak()),unit:'天',d:'当前连胜',ok:true,tone:'teal'},
-      {k:'最长连续',v:String(maxRun),unit:'天',d:'历史最好'},
-      {k:'日均学习',v:avgH.toFixed(1),unit:'小时',d:'近 30 天'},
-      {k:'累计学习',v:(total/3600).toFixed(1),unit:'小时',d:'共 '+dates.length+' 天有记录'}
-    ]);
-    if(heat){ var cells='';for(var j=83;j>=0;j--){var d=dayAdd(tk,-j),h=m[d]||0;var lv=h<=0?0:h<1800?1:h<3600?2:h<7200?3:4;
-        cells+='<i class="'+(lv?'l'+lv:'')+'" title="'+esc(d.slice(5))+' · '+(h?(h/3600).toFixed(1)+' 小时':'没学')+'"></i>' }
-      heat.innerHTML='<div class="rv-panel">'+panelHead('学习日历','近 12 周 · 深浅 = 当天学习时长，悬停看数字')
-        +'<div class="rv-heat-box"><div class="rv-heat">'+cells+'</div><div class="rv-heat-legend"><span>少</span>'
-        +'<i style="background:#eef2f2"></i><i style="background:#dcefeb"></i><i style="background:#b8ded7"></i><i style="background:#86c7bd"></i><i style="background:var(--primary,#5cb3ab)"></i><span>多</span></div></div></div>';
-    }
-    if(bars){ var arr=[],mh=0;for(var k=13;k>=0;k--){var d2=dayAdd(tk,-k),h2=(m[d2]||0)/3600;arr.push([d2,h2]);if(h2>mh)mh=h2}if(mh<=0)mh=1;
-      var hh='',ll='';arr.forEach(function(p,idx){hh+='<div class="rv-bar'+(idx===arr.length-1?' today':'')+'"><em>'+(p[1]?p[1].toFixed(1):'')+'</em><i style="height:'+Math.round(p[1]/mh*100)+'%"></i></div>';ll+='<span>'+(idx%2===0?p[0].slice(5):'')+'</span>'});
-      bars.innerHTML='<div class="rv-panel">'+panelHead('近 14 天学习时长','单位：小时')+'<div class="rv-chart"><div class="rv-bars">'+hh+'</div><div class="rv-bar-labels">'+ll+'</div></div></div>';
-    }
+  function icon(kind){
+    var p=kind==='ok'?'<path d="M20 6 9 17l-5-5"/>':'<path d="M12 8v5M12 17h.01"/><circle cx="12" cy="12" r="9"/>';
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+p+'</svg>';
   }
 
   function renderNav(){
-    var box=$('rvNav');if(!box)return;
-    var badges={trend:sc().length,records:recCount(),effort:streak()};
-    box.innerHTML=TABS.map(function(t){var n=badges[t.id];
-      return '<button class="hub-sub" type="button" data-rv-tab="'+t.id+'"><span class="hub-sub-ic">'+ic(t.ic)+'</span>'
-        +'<span class="hub-sub-nm">'+esc(t.nm)+'</span>'+(n?'<span class="hub-sub-n">'+esc(n)+'</span>':'')+'</button>'}).join('');
-    var m=$('rvMobileTabs');if(m)m.innerHTML=TABS.map(function(t){return '<button type="button" data-rv-tab="'+t.id+'">'+esc(t.nm)+'</button>'}).join('');
-    syncActive();
+    var nav=$('rvNav');
+    if(nav)nav.innerHTML=TABS.map(function(t){
+      return '<button class="hub-sub'+(state.pane===t.id?' on':'')+'" type="button" data-rv-tab="'+t.id+'">'
+        +'<span class="hub-sub-ic">'+navIcon(t.id)+'</span><span class="hub-sub-nm">'+t.n+'</span></button>';
+    }).join('');
+    var mob=$('rvMobileTabs');
+    if(mob)mob.innerHTML=TABS.map(function(t){
+      return '<button type="button" role="tab" data-rv-tab="'+t.id+'" class="'+(state.pane===t.id?'on':'')+'" aria-selected="'+(state.pane===t.id?'true':'false')+'">'+t.n+'</button>';
+    }).join('');
   }
-  function syncActive(){ var cur=window.__rvCur||'home'; document.querySelectorAll('[data-rv-tab]').forEach(function(b){ b.classList.toggle('on',b.getAttribute('data-rv-tab')===cur) }) }
-  function renderChrome(id){
-    var m=META[id]||META.home,h=$('rvBoardTitle'),p=$('rvBoardSub'),b=$('rvBoard');
-    if(h)h.textContent=m.t;if(p)p.textContent=m.s;if(b)b.setAttribute('aria-label',m.t);
-    document.querySelectorAll('.rv-canvas').forEach(function(c){c.scrollTop=0});
+  function navIcon(id){
+    var p=id==='home'
+      ?'<rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>'
+      :id==='trend'?'<path d="M3 3v18h18"/><path d="m6 15 4-5 3 3 5-7"/>'
+      :'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 9v11M15 9v11"/>';
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+p+'</svg>';
   }
-  function valid(id){ return TABS.some(function(t){return t.id===id}) }
-  function renderPane(id){
-    renderNav();
-    if(id==='home'){renderHome();try{renderSubjects();renderEffort()}catch(e){}}
-    else if(id==='trend')renderTrend();
-    else if(id==='subjects')renderSubjects();
-    else if(id==='effort')renderEffort();
-    /* records 页用既有 #recAll（rec-all.js / rvx-data.js 渲染），不另造表 */
+
+  function renderHome(){
+    var list=scores(),has=list.length>0;
+    $('rvaHomeEmpty').hidden=has;
+    $('rvaHomeData').hidden=!has;
+    if(!has)return;
+    var last=list[list.length-1],lo=overall(last),t=targets(),to=num(t.overall);
+    $('rvxNumAll').textContent=fmt(lo);
+    $('rvaLatestDate').textContent=last.date+(last.note?' · '+last.note:'');
+    var targetEl=$('rvxSubAll');
+    targetEl.classList.toggle('is-weak',to!=null&&lo<to);
+    targetEl.textContent=to==null?'目标未设':'目标 '+fmt(to)+(lo>=to?' · 已达标':' · 差 '+fmt(to-lo));
+
+    var weak=[];
+    SUBS.forEach(function(s){
+      var card=document.querySelector('[data-subject-card="'+s.k+'"]'),v=num(last[s.k]),tg=num(t[s.k]);
+      var val=$(s.num),sub=$(s.sub);
+      if(val)val.textContent=fmt(v);if(sub)sub.textContent=tg==null?'目标未设':(v>=tg?'已达标':'目标 '+fmt(tg));
+      if(card){
+        var isWeak=tg!=null&&v<tg;card.classList.toggle('is-weak',isWeak);
+        var bar=card.querySelector('.rva-bar i'),mark=card.querySelector('.rva-bar em');
+        if(bar)bar.style.width=Math.max(0,Math.min(100,(v||0)/9*100))+'%';
+        if(mark){if(tg==null)mark.hidden=true;else{mark.hidden=false;mark.style.left=Math.min(100,tg/9*100)+'%'}}
+      }
+      if(tg!=null&&v<tg)weak.push({k:s.k,n:s.n,gap:tg-v});
+    });
+    weak.sort(function(a,b){return b.gap-a.gap});
+    var ins=$('rvaInsight');
+    if(to==null&&!Object.keys(t).length){
+      ins.innerHTML='<span class="rva-insight-ic">'+icon('warn')+'</span><b>先设四科目标，后面就能直接看差距</b><button class="rva-btn-sm" type="button" data-rv-jump="settings">去设目标</button>';
+    }else if(weak.length){
+      var w=weak[0];
+      ins.innerHTML='<span class="rva-insight-ic">'+icon('warn')+'</span><b>'+w.n+'还差 '+fmt(w.gap)+' 分，先补这一科</b><button class="rva-btn-sm" type="button" data-rv-jump="'+w.k+'">去练'+w.n+'</button>';
+    }else{
+      ins.innerHTML='<span class="rva-insight-ic is-ok">'+icon('ok')+'</span><b>四科都已达到目标</b><button class="rva-btn-sm" type="button" data-rv-jump="bank">继续练习</button>';
+    }
+    renderMini();
   }
-  function show(id,opts){
-    if(!valid(id))return;
-    window.__rvCur=id;
-    document.querySelectorAll('.hub-main [data-rv-pane]').forEach(function(p){ p.hidden=p.getAttribute('data-rv-pane')!==id });
-    var rc=document.querySelector('.rv2-content');
-    if(rc){ var vis=rc.querySelectorAll('[data-rv-pane]:not([hidden])').length; rc.hidden=(vis===0); rc.classList.toggle('rv-one-col',vis===1); }
-    renderChrome(id);
-    syncActive();
-    renderPane(id);
-    try{ var hm=document.querySelector('.hub-main');if(hm)hm.scrollTop=0; var main=document.querySelector('main.container');if(main)main.scrollTop=0 }catch(e){}
-    try{ if(typeof window.hubResetPageScroll==='function')window.hubResetPageScroll(); if(typeof window.hubFitPageScroll==='function')window.hubFitPageScroll() }catch(e){}
-    if(!(opts&&opts.silent)){ try{ history.replaceState(null,'','#rv='+id) }catch(e){} }
-    try{ document.dispatchEvent(new CustomEvent('rv:tab',{detail:{id:id}})) }catch(e){}
+
+  function renderMini(){
+    var list=scores(),pts;
+    if(state.homeRange==='days'){
+      var from=dayOffset(-10);
+      pts=list.filter(function(x){return x.date>=from}).map(function(x){return {date:x.date,value:overall(x)}});
+    }else pts=list.slice(-5).map(function(x){return {date:x.date,value:overall(x)}});
+    var c=$('rvaMini'),empty=$('rvaMiniEmpty'),foot=$('rvaMiniFoot');
+    if(pts.length<2){c.style.visibility='hidden';empty.hidden=false;foot.hidden=true;return}
+    c.style.visibility='visible';empty.hidden=true;foot.hidden=false;
+    var t=targets();
+    foot.innerHTML='<span>'+md(pts[0].date)+' · '+fmt(pts[0].value)+'</span><span>'+(num(t.overall)!=null?'目标 '+fmt(t.overall):'目标未设')+'</span><span>'+md(pts[pts.length-1].date)+' · '+fmt(pts[pts.length-1].value)+'</span>';
+    drawChart(c,{points:pts,target:num(t.overall),compact:true,tip:$('rvaMiniTip')});
   }
-  function hashId(){ var h=(location.hash||'').replace('#','');if(h.indexOf('rv=')===0)h=h.slice(3);if(h==='subjects'||h==='effort')h='home';return valid(h)?h:null }
-  function subId(){ try{var p=new URLSearchParams(location.search),q=p.get('sub')||'';if(p.get('rec'))return 'records';if(q==='record'||q==='trajectory'||q==='history')return 'records';if(q)return 'home'}catch(e){} return null }
-  function onClick(e){ var t=e.target;if(!t||!t.closest)return;
-    var jp=t.closest('[data-rv-jump]');
-    if(jp){ var k=jp.getAttribute('data-rv-jump');
-      if(k==='trend'||k==='records'){ show(k);return }
-      var map={listening:'bank.html',reading:'bank.html',writing:'writing.html',speaking:'speaking.html'};
-      if(map[k]){ try{ location.href=map[k] }catch(e2){} } return }
-    var b=t.closest('[data-rv-tab]');if(b){e.preventDefault();show(b.getAttribute('data-rv-tab'))} }
+
+  function subjectPoints(subject){
+    var per={};
+    scores().forEach(function(r){
+      var v=subject==='overall'?overall(r):num(r[subject]);
+      if(v!=null)per[r.date]={date:r.date,value:v};
+    });
+    if(subject!=='overall'){
+      mockRecords().forEach(function(r){
+        if(!r||!r.date)return;
+        var v=null;
+        if(subject==='speaking'&&isSpeaking(r))v=num(r.overall);
+        if(subject!=='speaking'&&subject===r.type&&!isSpeaking(r)&&Array.isArray(r.parts)){
+          var score=0,weight=0,c=0,total=0;
+          r.parts.forEach(function(p){
+            if(num(p.score)!=null){var w=num(p.weight);score+=num(p.score)*(w==null?1:w);weight+=(w==null?1:w)}
+            c+=Number(p.correct)||0;total+=Number(p.total)||0;
+          });
+          if(weight)v=Math.round(score/weight*2)/2;
+          else if(num(r.overall)!=null)v=num(r.overall);
+          else if(total&&typeof estimateBand==='function')v=estimateBand(r.type,c,total);
+        }
+        var d=String(r.date).slice(0,10);
+        if(v!=null&&d)per[d]={date:d,value:v};
+      });
+    }
+    return Object.keys(per).sort().map(function(d){return per[d]});
+  }
+  function countPoints(subject){
+    var cp=dayRecords()[subject]||{};
+    return Object.keys(cp).sort().map(function(d){return {date:d,value:cp[d].c,total:cp[d].t}});
+  }
+  function targetCount(subject){
+    if(typeof BAND_TABLE==='undefined'||!BAND_TABLE[subject])return null;
+    var t=num(targets()[subject]);if(t==null)return null;
+    var cp=dayRecords()[subject]||{},maxT=0;
+    Object.keys(cp).forEach(function(d){if(cp[d].t>maxT)maxT=cp[d].t});
+    if(!maxT)return null;
+    for(var i=0;i<BAND_TABLE[subject].length;i++)if(BAND_TABLE[subject][i][1]===t)return Math.round(BAND_TABLE[subject][i][0]/40*maxT);
+    return null;
+  }
+
+  function renderTrend(){
+    var sub=state.subject;
+    if(state.metric==='count'&&sub!=='listening'&&sub!=='reading')state.metric='score';
+    var pts=state.metric==='count'?countPoints(sub):subjectPoints(sub),has=pts.length>0;
+    var panel=document.querySelector('.rva-trend-panel');
+    panel.classList.toggle('is-empty',!has);
+    $('rvaTrendTools').hidden=!has;
+    $('rvaTrendSummary').hidden=!has;
+    $('rvaTrendEmpty').hidden=has;
+    $('rv2TrendCanvas').style.visibility=has?'visible':'hidden';
+    $$('#rvxTrendChips button').forEach(function(b){b.classList.toggle('active',b.dataset.k===sub)});
+    $$('#rvxTrendView button').forEach(function(b){
+      b.classList.toggle('active',b.dataset.view===state.metric);
+      b.disabled=b.dataset.view==='count'&&sub!=='listening'&&sub!=='reading';
+    });
+    if(!has){$('rvaTrendSummary').innerHTML='';$('rv2RangeText').textContent='';$('rv2GoalText').textContent='';return}
+    var last=pts[pts.length-1],vals=pts.map(function(p){return p.value}),hi=Math.max.apply(null,vals),avg=vals.reduce(function(a,b){return a+b},0)/vals.length;
+    var tg=state.metric==='count'?targetCount(sub):num(targets()[sub]);
+    var unit=state.metric==='count'?' 题':'';
+    var delta=pts.length>1?last.value-pts[pts.length-2].value:null;
+    var name=sub==='overall'?'总分':({listening:'听力',reading:'阅读',writing:'写作',speaking:'口语'}[sub]||'成绩');
+    $('rvaTrendSummary').innerHTML=[
+      ['最近',fmt(last.value)+unit,delta==null?'首条记录':(delta>=0?'较上次 +':'较上次 ')+fmt(delta)+unit],
+      ['最高',fmt(hi)+unit,'共 '+pts.length+' 次'],
+      ['平均',fmt(avg)+unit,'共 '+pts.length+' 次'],
+      ['目标',tg==null?'未设':fmt(tg)+unit,tg==null?'去设置里填写':(last.value>=tg?'已达标':'差 '+fmt(tg-last.value)+unit)]
+    ].map(function(x){return '<div><span>'+x[0]+'</span><b>'+x[1]+'</b><em>'+x[2]+'</em></div>'}).join('');
+    $('rv2RangeText').textContent=name+' · '+md(pts[0].date)+' 至 '+md(last.date);
+    $('rv2GoalText').textContent=tg==null?'目标未设':'目标 '+fmt(tg)+unit;
+    drawChart($('rv2TrendCanvas'),{points:pts,target:tg,metric:state.metric,compact:false,tip:$('rvaTrendTip')});
+  }
+
+  function drawChart(canvas,opt){
+    var wrap=canvas.parentElement,cs=getComputedStyle(wrap);
+    var w=Math.max(120,wrap.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight));
+    var h=Math.max(80,wrap.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom));
+    var dpr=window.devicePixelRatio||1;
+    canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);canvas.style.width=w+'px';canvas.style.height=h+'px';
+    var ctx=canvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);
+    var compact=!!opt.compact,points=opt.points,metric=opt.metric||'score',showY=!compact||h>=260;
+    var padL=showY?34:10,padR=compact?12:18,padT=compact?14:18,padB=compact?25:30;
+    var values=points.map(function(p){return Number(p.value)}),minY,maxY;
+    if(metric==='count'){minY=0;maxY=Math.max.apply(null,values);maxY=Math.max(10,Math.ceil(maxY/5)*5)}
+    else{
+      var lo=Math.min.apply(null,values),hi=Math.max.apply(null,values);
+      minY=Math.max(0,Math.floor((lo-.5)*2)/2);maxY=Math.min(9,Math.ceil((hi+.5)*2)/2);
+      if(opt.target!=null){minY=Math.min(minY,Math.max(0,opt.target-.5));maxY=Math.max(maxY,Math.min(9,opt.target+.5))}
+      if(maxY-minY<1.5){var mid=(minY+maxY)/2;minY=Math.max(0,mid-.75);maxY=Math.min(9,mid+.75)}
+    }
+    var plotW=w-padL-padR,plotH=h-padT-padB;
+    var X=function(i){return padL+(points.length===1?plotW/2:plotW*i/(points.length-1))};
+    var Y=function(v){return padT+plotH*(1-(v-minY)/(maxY-minY))};
+    ctx.lineWidth=1;
+    var grid=[];
+    if(metric==='count'){for(var g=0;g<=maxY+0.001;g+=maxY<=20?5:10)grid.push(g)}
+    else if(maxY-minY>=6)grid=[0,3,6,9];
+    else for(var gv=Math.ceil(minY*2)/2;gv<=maxY+0.001;gv+=.5)grid.push(Math.round(gv*2)/2);
+    grid.forEach(function(v){
+      var yy=Y(v);ctx.strokeStyle=COLORS.lineSoft;ctx.beginPath();ctx.moveTo(padL,yy);ctx.lineTo(w-padR,yy);ctx.stroke();
+      if(showY){ctx.fillStyle=COLORS.muted;ctx.font='9.5px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';ctx.textAlign='right';ctx.textBaseline='middle';ctx.fillText(v%1===0?String(v):fmt(v),padL-8,yy)}
+    });
+    if(opt.target!=null){
+      var ty=Y(opt.target);ctx.save();ctx.setLineDash([4,4]);ctx.strokeStyle='rgba(47,125,118,.55)';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(padL,ty);ctx.lineTo(w-padR,ty);ctx.stroke();ctx.restore();
+      if(!compact){
+        ctx.save();ctx.setLineDash([4,4]);ctx.strokeStyle='rgba(47,125,118,.55)';ctx.beginPath();ctx.moveTo(padL,padT+4);ctx.lineTo(padL+16,padT+4);ctx.stroke();ctx.restore();
+        ctx.fillStyle=COLORS.muted;ctx.font='9.5px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText('目标 '+fmt(opt.target),padL+22,padT+4);
+      }
+    }
+    var grad=ctx.createLinearGradient(0,padT,0,h-padB);grad.addColorStop(0,'rgba(58,154,147,.12)');grad.addColorStop(1,'rgba(58,154,147,0)');
+    ctx.beginPath();points.forEach(function(p,i){var xx=X(i),yy=Y(p.value);if(i===0)ctx.moveTo(xx,yy);else ctx.lineTo(xx,yy)});
+    ctx.lineTo(X(points.length-1),h-padB);ctx.lineTo(X(0),h-padB);ctx.closePath();ctx.fillStyle=grad;ctx.fill();
+    ctx.beginPath();points.forEach(function(p,i){var xx=X(i),yy=Y(p.value);if(i===0)ctx.moveTo(xx,yy);else ctx.lineTo(xx,yy)});
+    ctx.strokeStyle=COLORS.teal;ctx.lineWidth=2.2;ctx.lineJoin='round';ctx.lineCap='round';ctx.stroke();
+    var step=points.length>8?2:1;
+    points.forEach(function(p,i){
+      var xx=X(i),yy=Y(p.value),last=i===points.length-1;
+      ctx.beginPath();ctx.arc(xx,yy,last?4:3.2,0,Math.PI*2);ctx.fillStyle=last?COLORS.teal:COLORS.surface;ctx.fill();ctx.strokeStyle=COLORS.teal;ctx.lineWidth=1.8;ctx.stroke();
+      if(!compact&&(i%step===0||last)){
+        ctx.fillStyle=COLORS.muted;ctx.font='9.5px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';ctx.textBaseline='top';
+        ctx.textAlign=i===0?'left':(last?'right':'center');
+        ctx.fillText(md(p.date),i===0?padL:(last?w-padR:xx),h-padB+7);
+      }
+    });
+    if(!compact){
+      var lp=points[points.length-1];
+      ctx.fillStyle=COLORS.ink;ctx.font='700 11px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';ctx.textAlign='right';ctx.textBaseline='bottom';
+      ctx.fillText(metric==='count'?String(lp.value):fmt(lp.value),X(points.length-1),Math.max(padT+10,Y(lp.value)-7));
+    }
+    canvas._pts=points.map(function(p,i){return {x:X(i),y:Y(p.value),d:p.date,v:p.value}});
+    canvas._metric=metric;
+    if(opt.tip)bindTip(canvas,opt.tip);
+  }
+  function bindTip(canvas,tip){
+    if(canvas._tipBound)return;canvas._tipBound=true;
+    canvas.addEventListener('mousemove',function(e){
+      var pts=canvas._pts||[],r=canvas.getBoundingClientRect(),mx=e.clientX-r.left,best=null,bd=1e9;
+      pts.forEach(function(p){var d=Math.abs(p.x-mx);if(d<bd){bd=d;best=p}});
+      if(!best||bd>28){tip.classList.remove('on');return}
+      tip.textContent=md(best.d)+' · '+(canvas._metric==='count'?best.v:fmt(best.v));
+      tip.style.left=best.x+'px';tip.style.top=(best.y-8)+'px';tip.classList.add('on');
+    });
+    canvas.addEventListener('mouseleave',function(){tip.classList.remove('on')});
+  }
+
+  function renderRecords(){
+    var all=recItems(),typed=all.filter(function(r){return state.recType==='all'||r.kind===state.recType});
+    var list=typed;
+    if(state.recRange==='days'){var from=dayOffset(-10);list=typed.filter(function(r){return String(r.date||'')>=from})}
+    else if(state.recRange==='five')list=typed.slice(0,5);
+    $('rvaRecTools').hidden=!all.length;
+    document.querySelector('.rva-rec-head').hidden=!list.length;
+    $('rvaRecEmpty').hidden=!!list.length;
+    $$('#recAllChips button').forEach(function(b){b.classList.toggle('active',b.dataset.k===state.recType)});
+    $('recordFilter').value=state.recRange;
+    if(!list.length){
+      $('recAll').innerHTML='';
+      if(all.length){
+        $('rvaRecEmpty').querySelector('b').textContent='这一栏还没有记录';
+        $('rvaRecEmpty').querySelector('p').textContent='换个类型或范围看看。';
+        $('rvaRecEmpty').querySelector('.rva-primary').hidden=true;
+      }else{
+        $('rvaRecEmpty').querySelector('b').textContent='还没有记录';
+        $('rvaRecEmpty').querySelector('p').textContent='整卷、分项和口语模考都会汇总到这里，按日期排列。';
+        $('rvaRecEmpty').querySelector('.rva-primary').hidden=false;
+      }
+      return;
+    }
+    var labels={whole:'整卷',part:'分项',speaking:'口语'};
+    $('recAll').innerHTML=list.map(function(r){
+      return '<button class="rva-rec-row" type="button" data-rv-record="'+esc(r.id)+'" data-kind="'+esc(r.kind)+'">'
+        +'<span class="rva-rec-date">'+esc(md(r.date))+'</span>'
+        +'<span class="rva-tag '+esc(r.kind)+'">'+esc(labels[r.kind]||'记录')+'</span>'
+        +'<span class="rva-rec-title">'+esc(r.title)+'</span>'
+        +'<span class="rva-rec-score">'+esc(r.main)+'<small>'+esc(r.mainLabel)+'</small></span>'
+        +'<span class="rva-rec-arrow">›</span></button>';
+    }).join('');
+  }
+
+  function show(pane,opt){
+    if(!TABS.some(function(t){return t.id===pane}))pane='home';
+    state.pane=pane;
+    $$('.hub-main [data-rv-pane]').forEach(function(p){p.hidden=p.dataset.rvPane!==pane});
+    $$('[data-rv-tab]').forEach(function(b){
+      var on=b.dataset.rvTab===pane;b.classList.toggle('on',on);b.setAttribute('aria-selected',on?'true':'false');
+    });
+    if(pane==='home')renderHome();else if(pane==='trend')renderTrend();else renderRecords();
+    var main=document.querySelector('#reviewMain .hub-main');if(main)main.scrollTop=0;window.scrollTo(0,0);
+    if(!(opt&&opt.silent)){try{history.replaceState(null,'','#rv='+pane)}catch(e){}}
+  }
+  function renderAll(){renderNav();show(state.pane,{silent:true})}
+
+  function openDetail(id,kind){
+    var raw=null,t=targets();
+    if(kind==='whole')raw=(DATA.scores||[]).filter(function(x){return String(x.id)===String(id)})[0];
+    else raw=mockRecords().filter(function(x){return String(x.id)===String(id)})[0];
+    if(!raw)return;
+    var body=$('rv2DetailBody');
+    if(kind==='whole'){
+      var total=overall(raw);
+      body.innerHTML='<div class="rva-detail-score"><b>'+fmt(total)+'</b><span>总分 / 9</span></div>'
+        +'<div class="rva-detail-sub">'+SUBS.map(function(s){
+          var v=num(raw[s.k]),tg=num(t[s.k]),weak=tg!=null&&v<tg;
+          return '<div class="'+(weak?'is-weak':'')+'"><span>'+s.n+'</span><b>'+fmt(v)+'</b><small>'+(tg==null?'目标未设':'目标 '+fmt(tg))+'</small></div>';
+        }).join('')+'</div><div class="rva-detail-meta">'+esc(raw.date)+(raw.note?' · '+esc(raw.note):'')+'</div>';
+    }else{
+      var title=raw.note||(raw.type&&typeof MOCK_TYPES!=='undefined'&&MOCK_TYPES[raw.type]?MOCK_TYPES[raw.type].name:'练习记录');
+      var score=recItems().filter(function(x){return String(x.id)===String(id)})[0];
+      body.innerHTML='<div class="rva-detail-score"><b>'+fmt(score?score.main:raw.overall)+'</b><span>'+(score?score.mainLabel:'分数')+'</span></div>'
+        +'<div class="rva-detail-meta">'+esc(raw.date)+'<br>'+esc(title)+'</div>';
+    }
+    body.insertAdjacentHTML('beforeend','<div class="rva-detail-del"><button type="button" data-rv-delete="'+esc(id)+'" data-kind="'+esc(kind)+'">删除这条记录</button></div>');
+    var d=$('rv2DetailDialog');if(d&&!d.open)d.showModal();
+  }
+  function deleteRecord(id,kind){
+    var orig=null,safe=String(id).replace(/["\\]/g,'\\$&');
+    if(kind==='whole')orig=document.querySelector('#rvLegacy #scoreList button[data-del="'+safe+'"]');
+    else if(kind==='part')orig=document.querySelector('#rvLegacy #mkList button[data-del="'+safe+'"]');
+    else orig=document.querySelector('#rvLegacy #mockHistoryList .mock-hist-del[data-id="'+safe+'"]');
+    if(orig){orig.click();var d=$('rv2DetailDialog');if(d&&d.open)d.close();setTimeout(renderAll,120)}
+  }
+  function openAdd(){
+    var d=$('rv2AddDialog');if(!d)return;
+    addCounts={whole:scores().length,part:mockRecords().length};
+    var dt=$('scoreDate');if(dt&&!dt.value)dt.value=today();
+    var dm=$('mkDate');if(dm&&!dm.value)dm.value=today();
+    if(!d.open)d.showModal();
+  }
+  function onSaveClick(e){
+    var btn=e.target&&e.target.closest?e.target.closest('#addScore,#mkAdd'):null;
+    if(!btn||btn.disabled)return;
+    var whole=btn.id==='addScore',before=whole?addCounts.whole:addCounts.part;
+    setTimeout(function(){
+      var after=whole?scores().length:mockRecords().length;
+      if(before!=null&&after>before){
+        var d=$('rv2AddDialog');if(d&&d.open)d.close();
+        renderAll();
+      }
+    },50);
+  }
+
+  function todayItems(){
+    try{
+      if(typeof DATA==='undefined'||!DATA||!Array.isArray(DATA.plans))return [];
+      var k=typeof todayKey==='function'?todayKey():today();
+      for(var i=0;i<DATA.plans.length;i++)if(DATA.plans[i]&&DATA.plans[i].date===k)return Array.isArray(DATA.plans[i].items)?DATA.plans[i].items:[];
+    }catch(e){}
+    return [];
+  }
+  function taskMeta(it){
+    var out=[],min=Number(it&&it.min),text=String(it&&it.text||''),m=text.match(/(\d+(?:\.\d+)?)\s*分钟/);
+    if(!min&&m)min=parseFloat(m[1]);if(min)out.push(Math.round(min)+' 分钟');
+    var labels={listening:'听力',reading:'阅读',writing:'写作',speaking:'口语',mix:'综合'};
+    if(it&&labels[it.module])out.push(labels[it.module]);
+    return out.join(' · ');
+  }
+  function renderTasks(force){
+    var box=$('hubTdList');if(!box)return;
+    if(!force&&box.children.length)return;
+    fallbackTasks=true;
+    var items=todayItems().filter(Boolean),done=items.filter(function(x){return x.done}),sorted=items.filter(function(x){return !x.done}).concat(done);
+    box.innerHTML=sorted.map(function(it){
+      var meta=taskMeta(it);
+      return '<button class="hub-task'+(it.done?' done':'')+'" type="button" data-hub-todo="'+esc(it.id)+'" aria-pressed="'+(it.done?'true':'false')+'"><span class="hub-tick" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg></span><span class="hub-tx"><b>'+esc(it.text||'')+'</b>'+(meta?'<small>'+esc(meta)+'</small>':'')+'</span></button>';
+    }).join('');
+    var cnt=$('hubTdCount');if(cnt){cnt.textContent=done.length+'/'+items.length;cnt.hidden=!items.length}
+    var empty=$('hubTdEmpty');if(empty)empty.hidden=!!items.length;
+  }
+  function toggleTask(id){
+    var arr=todayItems();
+    for(var i=0;i<arr.length;i++)if(arr[i]&&String(arr[i].id)===String(id)){
+      arr[i].done=!arr[i].done;arr[i].updatedAt=Date.now();
+      try{if(typeof hubSave==='function')hubSave()}catch(e){}
+      renderTasks(true);
+      try{document.dispatchEvent(new CustomEvent('hub:plan-toggled',{detail:{id:id}}))}catch(e){}
+      return;
+    }
+  }
+
+  function onClick(e){
+    var t=e.target;if(!t||!t.closest)return;
+    var tab=t.closest('[data-rv-tab]');
+    if(tab){e.preventDefault();show(tab.dataset.rvTab);return}
+    var go=t.closest('[data-go]');
+    if(go){e.preventDefault();show(go.dataset.go);return}
+    var jump=t.closest('[data-rv-jump]');
+    if(jump){
+      e.preventDefault();var k=jump.dataset.rvJump;
+      var map={listening:'bank.html?ch=listening',reading:'bank.html?ch=reading',writing:'writing.html',speaking:'speaking.html',settings:'settings.html?pane=targets',bank:'bank.html'};
+      if(map[k])location.href=map[k];return;
+    }
+    var add=t.closest('[data-rv2-add]');
+    if(add){e.preventDefault();openAdd();return}
+    var kind=t.closest('.rv2-kind [data-kind]');
+    if(kind){
+      e.preventDefault();$$('.rv2-kind button').forEach(function(b){b.classList.toggle('active',b===kind)});
+      var w=$('scAddWrap'),p=$('mkAddWrap');if(w)w.hidden=kind.dataset.kind!=='whole';if(p)p.hidden=kind.dataset.kind!=='part';return;
+    }
+    if(t.closest('[data-close-detail]')){e.preventDefault();var dd=$('rv2DetailDialog');if(dd&&dd.open)dd.close();return}
+    var del=t.closest('[data-rv-delete]');
+    if(del){e.preventDefault();deleteRecord(del.dataset.rvDelete,del.dataset.kind);return}
+    var rec=t.closest('[data-rv-record]');
+    if(rec){e.preventDefault();openDetail(rec.dataset.rvRecord,rec.dataset.kind);return}
+    if(fallbackTasks&&!window.__hubSideClick){
+      var task=t.closest('.hub-task[data-hub-todo]');
+      if(task){e.preventDefault();toggleTask(task.dataset.hubTodo);return}
+    }
+    if(t.closest('[data-home-range] button')){
+      var r=t.closest('[data-home-range] button');state.homeRange=r.dataset.range;
+      $$('[data-home-range] button').forEach(function(b){b.classList.toggle('active',b===r)});renderMini();return;
+    }
+    if(t.closest('#rvxTrendChips button')){
+      var sb=t.closest('#rvxTrendChips button');state.subject=sb.dataset.k;
+      if(state.metric==='count'&&state.subject!=='listening'&&state.subject!=='reading')state.metric='score';
+      renderTrend();return;
+    }
+    if(t.closest('#rvxTrendView button')){
+      var mb=t.closest('#rvxTrendView button');if(mb.disabled)return;state.metric=mb.dataset.view;renderTrend();return;
+    }
+    if(t.closest('#recAllChips button')){
+      state.recType=t.closest('#recAllChips button').dataset.k;renderRecords();return;
+    }
+  }
+  function onChange(e){
+    if(e.target&&e.target.id==='recordFilter'){state.recRange=e.target.value;renderRecords()}
+  }
+  function hashPane(){
+    var h=(location.hash||'').replace('#','');if(h.indexOf('rv=')===0)h=h.slice(3);
+    return TABS.some(function(t){return t.id===h})?h:null;
+  }
+  function resize(){
+    clearTimeout(window.__rvResizeT);
+    window.__rvResizeT=setTimeout(function(){if(state.pane==='home')renderMini();else if(state.pane==='trend')renderTrend()},120);
+  }
   function bind(){
-    if(window.__rvClick){try{document.removeEventListener('click',window.__rvClick)}catch(e){}}
-    window.__rvClick=onClick;document.addEventListener('click',onClick);
-    if(window.__rvMerge){try{document.removeEventListener('hub:data-merged',window.__rvMerge)}catch(e){}}
-    window.__rvMerge=function(){renderNav();renderPane(window.__rvCur||'home')};document.addEventListener('hub:data-merged',window.__rvMerge);
-    if(window.__rvHash){try{window.removeEventListener('hashchange',window.__rvHash)}catch(e){}}
-    window.__rvHash=function(){var id=hashId();if(id&&id!==window.__rvCur)show(id,{silent:true})};window.addEventListener('hashchange',window.__rvHash);
+    if(window.__rvFinalClick)document.removeEventListener('click',window.__rvFinalClick);
+    window.__rvFinalClick=onClick;document.addEventListener('click',onClick);
+    if(window.__rvFinalChange)document.removeEventListener('change',window.__rvFinalChange);
+    window.__rvFinalChange=onChange;document.addEventListener('change',onChange);
+    if(window.__rvFinalSave)document.removeEventListener('click',window.__rvFinalSave);
+    window.__rvFinalSave=onSaveClick;document.addEventListener('click',onSaveClick);
+    if(window.__rvFinalHash)window.removeEventListener('hashchange',window.__rvFinalHash);
+    window.__rvFinalHash=function(){var p=hashPane();if(p&&p!==state.pane)show(p,{silent:true})};window.addEventListener('hashchange',window.__rvFinalHash);
+    if(window.__rvFinalMerge)document.removeEventListener('hub:data-merged',window.__rvFinalMerge);
+    window.__rvFinalMerge=function(){setTimeout(renderAll,60)};document.addEventListener('hub:data-merged',window.__rvFinalMerge);
+    if(window.__rvFinalResize)window.removeEventListener('resize',window.__rvFinalResize);
+    window.__rvFinalResize=resize;window.addEventListener('resize',resize);
   }
   function boot(){
-    /* 手机端右栏默认收成一行「学习概况」，把高度让给主内容；桌面端始终展开。 */
-    var rf=$('rvRailFold');if(rf&&window.matchMedia('(max-width:860px)').matches)rf.removeAttribute('open');
-    renderNav();bind();show(hashId()||subId()||'home',{silent:true})
+    bind();
+    renderNav();
+    renderTasks(false);
+    show(hashPane()||'home',{silent:true});
+    window.hubRepaintReviewE=renderAll;
+    window.__rvTabs={show:show,render:renderAll};
   }
-  window.__rvTabs={show:show,renderNav:renderNav,renderPane:renderPane,cur:function(){return window.__rvCur}};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
 })();

@@ -8,8 +8,8 @@
 </script>
 <title>回顾 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css?v=20261116a"><link rel="stylesheet" href="css/p/review.css?v=20261116a"><link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7"><link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7"><link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7"><link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png?v=7"><link rel="manifest" href="/manifest.json"><meta name="theme-color" content="#3a9a93">
-<script defer src="js/data.js?v=20261113d"></script><script defer src="js/common.js?v=20261116a"></script><script defer src="js/common-ai.js?v=20261116a"></script><script defer src="js/common-sync.js?v=20261116a"></script><script defer src="js/common-merge.js?v=20261116a"></script><script defer src="js/common-cloud.js?v=20261116a"></script><script defer src="js/common-shell.js?v=20261116a"></script><script defer src="js/common-pwa.js?v=20261116a"></script>
-<script defer src="js/feedback.js?v=20261111b"></script><script defer src="js/scores.js?v=20261103a"></script><script defer src="js/history.js?v=20261112a"></script><script defer src="js/rv-record.js?v=20261028a"></script><script defer src="js/mock-report.js?v=20261006a"></script><script defer src="js/mock-history.js?v=20261006b"></script><script defer src="js/rec-all.js?v=20261109a"></script><script defer src="js/mock-summary.js?v=20261116a"></script><script defer src="js/speaking-practice.js?v=20261006a"></script><script defer src="js/progress.js?v=20261024a"></script><script defer src="js/rvx-data.js?v=20261109a"></script><script defer src="js/review.js?v=20261023a"></script><script defer src="js/sprint.js?v=20261002a"></script>
+<script defer src="js/data.js?v=20261113d"></script><script defer src="js/common.js?v=20261116a"></script><script defer src="js/common-ai.js?v=20261116a"></script><script defer src="js/common-sync.js?v=20261116a"></script><script defer src="js/common-merge.js?v=20261116b"></script><script defer src="js/common-cloud.js?v=20261116a"></script><script defer src="js/common-shell.js?v=20261116a"></script><script defer src="js/common-pwa.js?v=20261116a"></script>
+<script defer src="js/feedback.js?v=20261111b"></script><script defer src="js/scores.js?v=20261103a"></script><script defer src="js/history.js?v=20261112a"></script><script defer src="js/rv-record.js?v=20261028a"></script><script defer src="js/mock-report.js?v=20261006a"></script><script defer src="js/mock-history.js?v=20261006b"></script><script defer src="js/rec-all.js?v=20261109a"></script><script defer src="js/mock-summary.js?v=20261116a"></script><script defer src="js/speaking-practice.js?v=20261006a"></script><script defer src="js/progress.js?v=20261024a"></script><script defer src="js/review.js?v=20261023a"></script><script defer src="js/sprint.js?v=20261002a"></script>
 <style id="bootLoaderStyle">#bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:var(--bg);transition:opacity .18s}#bootLoader.hide{opacity:0;pointer-events:none}</style>
 <meta name="description" content="回顾：成绩趋势、学习记录与分项练习表现。"><link rel="canonical" href="https://yasihub.com/review"><meta property="og:type" content="website"><meta property="og:title" content="回顾 · 雅思备考 Hub"><meta property="og:description" content="回顾：成绩趋势、学习记录与分项练习表现。"><meta property="og:url" content="https://yasihub.com/review"><meta name="twitter:card" content="summary">
 <style>
@@ -305,9 +305,7 @@ return {hero:hero,inline:inline,ic:ic};
 <style id="reRedesign3">
 /* REVIEW-REDESIGN-3（v870）：侧栏 3 项、重要数据放大、重复/过程量降级。
    零 DOM/id/数据落点删除，全部靠 re-* 重皮与 hidden/details；颜色只用站点 token，深浅两档自动跟随。 */
-/* 侧栏：收掉与计划页重复的「今天」任务块，只留去计划页轻链接 */
-.hub-side .hub-side-div,.hub-side .hub-td-head,.hub-side #hubTdProg,
-.hub-side #hubTdPending,.hub-side #hubTdDone,.hub-side #hubTdEmpty{display:none!important}
+/* 侧栏：11-16 她定「所有有侧栏的页面，分栏下面都列今日任务」，这里不再隐藏任务卡 */
 /* 左上角论文式标题/副标语、卡片大标题一律不摆；录入成绩按钮与卡内说明照留 */
 .hub-main .rv2-head h1,.hub-main .rv2-head p{display:none}
 .hub-main .rv2-head{justify-content:flex-end;min-height:36px;margin:0 0 12px}
@@ -371,9 +369,8 @@ return {hero:hero,inline:inline,ic:ic};
   body .hub-main{padding:24px 28px 40px;overflow:auto}
 }
 /* 三页共用一张 board 后，左栏子 tab 与页头切换重复；整页只留顶部这个切换键 */
-body .hub-shell{grid-template-columns:minmax(0,1fr)}
-body .hub-main{grid-column:1/-1}
-.hub-side{display:none!important}
+/* 11-16 定版：左栏恢复（分栏 + 今日任务卡），不再整页铺满；板上那排 tab 与左栏重复，桌面收掉 */
+@media(min-width:861px){ .hub-main #rvMobileTabs{display:none!important} }
 .rv-board{
   max-width:1180px;margin:0 auto;height:560px;display:grid;
   grid-template-columns:minmax(0,1fr) 320px;grid-template-rows:76px minmax(0,1fr);
@@ -722,12 +719,12 @@ summary .chev,details > summary svg,.chev,.tb-more-btn svg{
         <div class="hub-subs" id="hubSubs"></div>
         <div class="hub-subs" id="rvNav"></div>
         <div class="hub-side-div"></div>
-        <div class="hub-td-head"><b>今天</b></div>
-        <div class="hub-td-prog" id="hubTdProg"></div>
-        <div class="hub-td-group" id="hubTdPending"></div>
-        <div class="hub-td-group" id="hubTdDone"></div>
-        <div class="hub-td-empty" id="hubTdEmpty" hidden>今天还没有任务</div>
-        <div class="hub-side-foot"><a href="plans.html">去计划页查看全部 ›</a></div>
+        <section class="hub-td" id="hubTd" aria-label="今日任务">
+          <div class="hub-td-head"><b>今日任务</b><span class="hub-td-count" id="hubTdCount" hidden>0/0</span></div>
+          <div class="hub-td-list" id="hubTdList"></div>
+          <div class="hub-td-empty" id="hubTdEmpty" hidden>今天还没有任务</div>
+          <a class="hub-td-more" href="plans.html">去计划页查看全部<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></a>
+        </section>
       </div>
     </aside>
     <div class="hub-main">
@@ -747,86 +744,101 @@ summary .chev,details > summary svg,.chev,.tb-more-btn svg{
       · 空账号时 js/rvx-data.js:18 会把 #rv2Summary 整块重写成 .rv2-empty（自带一枚同样的
         data-rv2-add 按钮）。那种情况下这枚定位到空的概览卡上会悬空 —— CSS 用
         `.rv2-head:has(+ .rv2-summary > .rv2-empty)` 在空态把它收掉，功能由空态卡里那枚承担。 -->
- <section class="rv-board" id="rvBoard" aria-label="总览">
-  <header class="rv-board-head">
-   <div class="rv-board-head-txt"><h2 id="rvBoardTitle">总览</h2><p id="rvBoardSub">看清进步，也知道下一步练什么。</p></div>
-   <div class="rv-mobile-tabs" id="rvMobileTabs"></div>
-   <button class="rv-board-add" type="button" data-rv2-add>录入成绩<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg></button>
-  </header>
-  <div class="rv-board-body">
-   <div class="rv-board-left">
-    <section class="rv-page" data-rv-pane="home">
-     <div class="rv-toolbar">
-      <span class="rv-badge rv-badge-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19V5M4 19h16"/><path d="M7 15l4-4 3 2 5-6"/></svg>首次使用</span>
-      <span class="rv-badge rv-badge-data"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>成绩概览</span>
-      <span class="rv-toolbar-note">真题、模考和手动录入都会计入，按日期排好，后面不用再整理。</span>
-     </div>
-     <div class="rv-canvas rv-canvas-home">
-      <div class="rv-home-empty">
-       <div class="rv-empty-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="m6 15 4-5 3 3 5-7"/></svg></div>
-       <h3>从最近一次分数开始记</h3>
-       <p>录一次真题或模考成绩，趋势线、四科强弱、学习天数会慢慢长出来；不用补齐历史。</p>
-      </div>
-      <section class="rv2-summary" aria-label="最近一次成绩" id="rv2Summary">
-       <div class="rv2-latest"><div><div class="rv2-muted" id="rvxLeadLab">最近一次</div><div class="rv2-score"><span id="rvxNumAll">—</span><small> / 9</small></div></div><div class="rv2-target" id="rvxSubAll">还没有成绩</div></div>
-       <div class="rv2-subjects">
-        <div class="rv2-subject" id="rvxCellL"><span>听力</span><b id="rvxNumL">—</b><small id="rvxSubL">—</small></div>
-        <div class="rv2-subject" id="rvxCellR"><span>阅读</span><b id="rvxNumR">—</b><small id="rvxSubR">—</small></div>
-        <div class="rv2-subject" id="rvxCellW"><span>写作</span><b id="rvxNumW">—</b><small id="rvxSubW">—</small></div>
-        <div class="rv2-subject" id="rvxCellS"><span>口语</span><b id="rvxNumS">—</b><small id="rvxSubS">—</small></div>
-       </div>
+    <div class="rva-mobile-tabs" id="rvMobileTabs" role="tablist" aria-label="回顾页面"></div>
+
+    <section class="rva-page" data-rv-pane="home">
+      <section class="rva-panel rva-empty-panel" id="rvaHomeEmpty" hidden>
+        <div class="rva-empty">
+          <span class="rva-empty-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19V5M4 19h16"/><path d="M7 15l4-4 3 2 5-6"/></svg></span>
+          <b>还没有成绩</b>
+          <p>录入一次真题或模考，之后这里会显示四科与目标差。</p>
+          <button class="rva-primary" type="button" data-rv2-add>录入成绩</button>
+        </div>
       </section>
-      <div class="rv-home-extra">
-       <div class="rv-pane-block"><div class="rv-stat-grid" id="rvHomeStats"></div><div id="rvRuler"></div><div id="rvCallout"></div><div class="rv-two-col"><div id="rvHomeSpark"></div><div id="rvHomeRecent"></div></div></div>
-       <details class="re-fold" id="reHomeFold"><summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>这段时间的学习投入<span class="re-fold-tag">四科轮廓 / 连胜 / 日历 · 默认收起</span></summary>
-        <div class="rv-pane-block"><div class="rv-two-col"><div id="rvSubjBars"></div><div id="rvRadar"></div></div></div>
-        <div class="rv-pane-block"><div class="rv-stat-grid" id="rvEffortStats"></div><div class="rv-two-col"><div id="rvHeat"></div><div id="rvBars"></div></div></div>
-       </details>
+      <div id="rvaHomeData">
+        <section class="rva-panel rva-current" id="rv2Summary">
+          <div class="rva-current-top">
+            <div class="rva-latest">
+              <span class="rva-kicker">最近一次</span>
+              <div class="rva-score"><b id="rvxNumAll">—</b><small>/ 9</small></div>
+              <div class="rva-latest-date" id="rvaLatestDate">还没有成绩</div>
+              <div class="rva-latest-target" id="rvxSubAll">录入后显示目标差</div>
+            </div>
+            <div class="rva-subjects">
+              <div class="rva-subject" data-subject-card="listening"><div class="rva-subject-top"><span>听力</span><b id="rvxNumL">—</b></div><div class="rva-bar"><i></i><em hidden></em></div><div class="rva-subject-foot" id="rvxSubL">—</div></div>
+              <div class="rva-subject" data-subject-card="reading"><div class="rva-subject-top"><span>阅读</span><b id="rvxNumR">—</b></div><div class="rva-bar"><i></i><em hidden></em></div><div class="rva-subject-foot" id="rvxSubR">—</div></div>
+              <div class="rva-subject" data-subject-card="writing"><div class="rva-subject-top"><span>写作</span><b id="rvxNumW">—</b></div><div class="rva-bar"><i></i><em hidden></em></div><div class="rva-subject-foot" id="rvxSubW">—</div></div>
+              <div class="rva-subject" data-subject-card="speaking"><div class="rva-subject-top"><span>口语</span><b id="rvxNumS">—</b></div><div class="rva-bar"><i></i><em hidden></em></div><div class="rva-subject-foot" id="rvxSubS">—</div></div>
+            </div>
+          </div>
+          <div class="rva-insight" id="rvaInsight"></div>
+        </section>
+        <section class="rva-panel rva-mini-panel">
+          <div class="rva-panel-head">
+            <h2>最近变化</h2>
+            <div class="rva-seg" data-home-range role="group" aria-label="最近变化范围">
+              <button type="button" class="active" data-range="five">最近 5 次</button>
+              <button type="button" data-range="days">最近 10 天</button>
+            </div>
+            <button class="rva-link" type="button" data-go="trend">看全部 <span>›</span></button>
+          </div>
+          <div class="rva-chart-wrap rva-chart-mini">
+            <canvas id="rvaMini" role="img" aria-label="最近总分变化"></canvas>
+            <div class="rva-chart-empty" id="rvaMiniEmpty" hidden><span class="rva-empty-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m6 15 4-5 3 3 5-7"/></svg></span><b>两次成绩后就有趋势线</b><p>真题和模考成绩都会计入。</p></div>
+            <div class="rva-tip" id="rvaMiniTip"></div>
+          </div>
+          <div class="rva-mini-foot" id="rvaMiniFoot"><span></span><span></span><span></span></div>
+        </section>
       </div>
-     </div>
     </section>
-    <section class="rv-page" data-rv-pane="trend" hidden>
-     <div class="rv-toolbar">
-      <div class="rv2-segment" id="rvxTrendView"><button class="active" data-view="score">按分数</button><button data-view="count">按对题个数</button></div>
-      <div class="rv2-segment" id="rvxTrendChips"><button class="active" data-k="overall">总分</button><button data-k="listening">听力</button><button data-k="reading">阅读</button><button data-k="writing">写作</button><button data-k="speaking">口语</button></div>
-     </div>
-     <div class="rv-canvas">
-      <div class="rv-canvas-label" id="rvxTrendLab">按日期看变化</div>
-      <div class="rv-stat-grid" id="rvTrendStats"></div>
-      <section class="rv2-card">
-       <div class="rv-card-body"><div id="rv2TrendCanvas" class="rv2-chart"></div><div class="rv2-chart-foot"><span id="rv2RangeText">真题与平时模考都会计入</span><span id="rv2GoalText"></span></div></div>
+
+    <section class="rva-page" data-rv-pane="trend" hidden>
+      <div class="rva-summary" id="rvaTrendSummary"></div>
+      <section class="rva-panel rva-trend-panel">
+        <div class="rva-panel-head" id="rvaTrendTools">
+          <div class="rva-seg rva-seg-scroll" id="rvxTrendChips" role="group" aria-label="选择科目">
+            <button type="button" class="active" data-k="overall">总分</button>
+            <button type="button" data-k="listening">听力</button>
+            <button type="button" data-k="reading">阅读</button>
+            <button type="button" data-k="writing">写作</button>
+            <button type="button" data-k="speaking">口语</button>
+          </div>
+          <div class="rva-seg" id="rvxTrendView" role="group" aria-label="按分数或对题数">
+            <button type="button" class="active" data-view="score">分数</button>
+            <button type="button" data-view="count">对题数</button>
+          </div>
+        </div>
+        <div class="rva-chart-wrap rva-chart-lg">
+          <canvas id="rv2TrendCanvas" role="img" aria-label="成绩趋势图"></canvas>
+          <div class="rva-chart-empty" id="rvaTrendEmpty" hidden><span class="rva-empty-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m6 15 4-5 3 3 5-7"/></svg></span><b>两次成绩后就有趋势线</b><p>录入成绩后，这里按日期连成一条线。</p><button class="rva-primary" type="button" data-rv2-add>录入成绩</button></div>
+          <div class="rva-tip" id="rvaTrendTip"></div>
+        </div>
+        <div class="rva-chart-foot"><span id="rv2RangeText"></span><span id="rv2GoalText"></span></div>
       </section>
-     </div>
     </section>
-    <section class="rv-page" data-rv-pane="records" hidden>
-     <div class="rv-toolbar">
-      <div class="rv2-segment" id="recAllChips" role="group" aria-label="按类型筛选记录"><button type="button" class="active" data-k="all">全部</button><button type="button" data-k="whole">整卷</button><button type="button" data-k="part">分项</button><button type="button" data-k="speaking">口语模考</button></div>
-      <select class="rv-select" id="recordFilter" aria-label="筛选成绩记录"><option value="recent">最近三次</option><option value="all">全部记录</option></select>
-     </div>
-     <div class="rv-canvas">
-      <section class="rv2-card rv2-records"><div class="rv-card-body"><div id="recAll"></div><span id="recAllCount" hidden></span></div></section>
-      <details class="re-fold" id="reRecFold"><summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>表现统计与题型 / Part 明细<span class="re-fold-tag">低频下钻 · 默认收起</span></summary>
-       <section class="rv2-card rv2-performance"><div class="rv2-card-head"><div><h2>表现统计</h2><span class="rv2-hint">听力、阅读看正确率；写作、口语看练习量，不重复真题分数</span></div><select id="rv2StatRange" aria-label="表现统计范围"><option value="recent">近 30 天</option><option value="all">全部时间</option></select></div><div class="rv2-perf-grid" id="rv2PerfGrid"></div><details class="rv2-more"><summary>看题型与 Part 明细</summary><div id="mkTypeStats"></div><div id="mkPartStats"></div><div id="mkQtStats"></div></details><select id="mkFilter" hidden><option value="all">全部</option><option value="recent">近十天</option></select></section>
-      </details>
-     </div>
-    </section>
-   </div>
-   <aside class="rv-board-rail" aria-label="学习概况">
-    <details class="rv-rail-fold" id="rvRailFold" open>
-     <summary class="rv-rail-sum"><span>学习概况</span><span class="rv-rail-sum-hint">最近一次 · 四科 · 趋势</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></summary>
-     <div class="rv-rail-in">
-      <div class="rv-rail-empty">
-       <div class="rv-rail-h">之后这里会出现</div>
-       <div class="rv-rail-row"><span>最近一次</span><b>总分 / 四科</b></div>
-       <div class="rv-rail-row"><span>两次以后</span><b>成绩趋势线</b></div>
-       <div class="rv-rail-row"><span>每天</span><b>学习投入自动累计</b></div>
+
+    <section class="rva-page" data-rv-pane="records" hidden>
+      <div class="rva-rec-tools" id="rvaRecTools">
+        <div class="rva-seg rva-seg-scroll" id="recAllChips" role="group" aria-label="按类型筛选">
+          <button type="button" class="active" data-k="all">全部</button>
+          <button type="button" data-k="whole">整卷</button>
+          <button type="button" data-k="part">分项</button>
+          <button type="button" data-k="speaking">口语</button>
+        </div>
+        <label class="rva-select"><select id="recordFilter" aria-label="记录范围"><option value="five">最近 5 次</option><option value="days">最近 10 天</option><option value="all">全部</option></select></label>
+        <button class="rva-rec-add" type="button" data-rv2-add>录入成绩</button>
       </div>
-      <aside class="rv2-card rv2-insight" id="rv2Insight"><div class="rv2-weak"><span>当前最值得补</span><h2 id="rvxWeak">还没有成绩</h2><p id="rv2WeakText">先录入一次成绩，再决定下一步重点。</p><button class="rv2-primary" id="rvxWeakGo">去练习</button></div><div class="rv2-facts"><div><b id="rvxRecN">0</b><span>已记录真题</span></div><div><b id="rvxCdVal">未设置</b><span id="rvxCdLab">考试日期</span></div></div><p class="rv2-note" id="rv2ProgressNote">真实数据只来自你的学习记录。</p><span id="rvxCdUnit" hidden></span><span id="rvxWeakWrap" hidden></span><span id="rvxStreakN" hidden>0</span><span id="rvxActN" hidden>0</span><span id="rvxFocusN" hidden>0</span><span id="rvxTodayTag" hidden></span></aside>
-     </div>
-    </details>
-   </aside>
-  </div>
- </section>
+      <section class="rva-panel rva-rec-panel">
+        <div class="rva-rec-head"><span>日期</span><span>类型</span><span>内容</span><span>分数</span><span></span></div>
+        <div id="recAll"></div>
+        <div class="rva-empty rva-empty-list" id="rvaRecEmpty" hidden>
+          <span class="rva-empty-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 9v11M15 9v11"/></svg></span>
+          <b>还没有记录</b>
+          <p>整卷、分项和口语模考都会汇总到这里，按日期排列。</p>
+          <button class="rva-primary" type="button" data-rv2-add>录入成绩</button>
+        </div>
+      </section>
+    </section>
     </div><!-- /.hub-main -->
   </div><!-- /.hub-shell -->
 </main>
@@ -836,12 +848,14 @@ summary .chev,details > summary svg,.chev,.tb-more-btn svg{
  
  <div id="scoreList"></div><div id="mkList"></div><div id="mockHistoryList"></div><div id="mockHistCount"></div><div id="progressView"></div><div id="spPracticeList"></div><div id="scoreStats"></div><div id="scoreBars"></div><div id="actionTip"></div><div id="rvFocus"></div><div id="rvFocusNum"></div><div id="rvFocusUnit"></div><div id="rvFocusDate"></div><div id="rvFocusLab"></div><div id="rvFocusCdLab"></div><div id="rvFocusCdVal"></div><div id="rvFocusCount"></div><div id="trendChart"></div><div id="dashSprint"></div>
  <div id="rvRecordStats"><b id="rvStatStreak"></b><b id="rvStatActive"></b><b id="rvStatFocus"></b><b id="rvStatFocusUnit"></b><b id="rvStatCoverage"></b></div><div id="heatmap"></div><div id="heatLegend"></div><div id="dayList"></div><div id="mockSummaryBox"></div><button id="mockSummaryBtn"></button>
+ <div id="mkTypeStats"></div><div id="mkPartStats"></div><div id="mkQtStats"></div>
  <select id="mkListType"><option value="all"></option><option value="listening"></option><option value="reading"></option><option value="speaking"></option><option value="writing"></option></select><select id="mkListGran"><option value="all"></option><option value="whole"></option><option value="part"></option></select>
  </div>
 </div>
 <link rel="stylesheet" href="css/p/hub-shell.css?v=20261116a" />
+<link rel="stylesheet" href="css/p/review-main.css?v=20261116a" />
 <script defer src="js/hub-side-shell.js?v=20261106b"></script>
-<script defer src="js/rv-tabs.js?v=20261116b"></script>
+<script defer src="js/rv-tabs.js?v=20261116c"></script>
   <script defer src="js/es-b.js?v=20261112c"></script>
 </body></html>
 
