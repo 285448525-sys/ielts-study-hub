@@ -227,6 +227,20 @@ function onDailyCapChanged(){
    点这个 tab 直接落新书架。只有明确 ?sub=study 或带 ?autostart=1 的入口才进背词态。 */
 setTimeout(function(){
   try{
+    /* 11-17：深链/首屏内切页优先。wb-tabs 会先按 #wb=xxx 落到目标分栏，
+       这里原来无条件 show('study')，300ms 后又把错词 / 数据 / 词书拉回背词。
+       保留「用户已手动切走」与「URL 指定的非默认分栏」，只有确实该落背词时才切。 */
+    var _hash = '';
+    try{
+      var _m = /(?:^#|&)wb=([a-z]+)/.exec(location.hash || '');
+      _hash = _m ? _m[1] : '';
+    }catch(e){}
+    if(_hash && _hash !== 'study'){
+      if(window.__wbTabs && typeof window.__wbTabs.show === 'function') window.__wbTabs.show(_hash, {silent:true});
+      else if(_hash === 'books') switchWordTab('bank', false);
+      return;
+    }
+    if(window.__wbCur && window.__wbCur !== 'study') return;
     var _st = (typeof tbSubPending === 'function') ? tbSubPending('practice') : '';
     var _auto = /[?&]autostart=1/.test(location.search);
     if(_st === 'study' || _auto) switchWordTab('study');

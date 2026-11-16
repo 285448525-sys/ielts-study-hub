@@ -2297,7 +2297,10 @@ html[data-theme="dark"] .onb2-overlay{background:rgba(0,0,0,.62)}
    适用 = 带 dock 的页面（body.has-dock，common.js 注入）；落地页/登录页无 dock 不锁。
    沉浸态（模考 mock-immerse / 背词全屏 word-fullscreen）有自己的布局体系，不套壳。 */
 @media (max-width:860px){
-  html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+  /* 固定一屏只属于「真触屏 + 窄屏」的 dock 外壳（common.js 会加 .has-dock）。
+     电脑窄窗口 / 150% 缩放没有 dock，若也跟着锁 html/body，整页会停止滚动，
+     高内容（写作题库等）直接够不到底部。这里与外壳注入条件保持同一口径。 */
+  html:has(body.has-dock),body.has-dock{height:100%;overflow:hidden;overscroll-behavior:none}
   body.has-dock:not(.mock-immerse):not(.word-fullscreen){
     display:flex;flex-direction:column;
   }
