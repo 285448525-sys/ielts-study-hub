@@ -31,7 +31,7 @@
 })();
 </script>
 <title>单词 · 雅思备考 Hub</title>
-<link rel="preload" as="script" href="js/practice.js?v=20261110d" /> <!-- W1-PRELOAD-1 (168KB)：与下方 defer 同串防双下载 -->
+<link rel="preload" as="script" href="js/practice.js?v=20261116b" /> <!-- W1-PRELOAD-1 (168KB)：与下方 defer 同串防双下载 -->
 <link rel="preload" as="script" href="js/words.js?v=20261102c" /> <!-- W1-PRELOAD-1 (90KB)：与下方 defer 同串防双下载 -->
 <link rel="preload" as="script" href="js/common-shell.js?v=20261116a" /> <!-- W1-PRELOAD-1 (113KB)：与下方 defer 同串防双下载 -->
 <link rel="stylesheet" href="css/common.css?v=20261116a" />
@@ -55,10 +55,10 @@
   <script defer src="js/common-pwa.js?v=20261116a"></script>
   <script defer src="js/feedback.js?v=20261111b"></script>
   <!-- design/78 双词库适配层：必须在 dhp_policy.js / practice.js / words.js 之前（defer 按文档序执行） -->
-  <script defer src="js/wordbank.js?v=20261102c"></script>
+  <script defer src="js/wordbank.js?v=20261116b"></script>
   <!-- design/77 DHP+SSP-MMC 策略表：必须在 practice.js 之前（defer 按文档序执行，表未加载时 practice.js 有回退兜底） -->
   <script defer src="js/dhp_policy.js?v=20260921a"></script>
-  <script src="js/practice.js?v=20261110d" defer></script>
+  <script src="js/practice.js?v=20261116b" defer></script>
   <script src="js/words.js?v=20261102c" defer></script>
   <script src="js/wd-dict.js?v=20261104d" defer></script>
 <style>
@@ -636,6 +636,7 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
       </div>
     </aside>
     <div class="hub-main">
+  <div class="wb-mobile-tabs" id="wbMobileTabs"></div>
   <div id="studyView" class="study-view-fit wd-page">
     <!-- ════════════════════════════════════════════════════════════════
          W-WORD-1（10-25）第 1 批 · 背词态新头部（1:1 照 design/_W-word-study_结构原文）
@@ -645,11 +646,8 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
          🔴 原有答题区 #practiceArea / #practiceBody / 判题 / SRS 一行未动，
             只在外面加「开始前 / 开始后」两层壳。 -->
     <div id="preStart">
-      <div class="wd-cur-row">
-        <div>
-          <div class="wd-nm" id="wdCurName">我的词库</div>
-          <div class="wd-meta" id="wdCurMeta">—</div>
-        </div>
+      <div class="wd-cur-row" hidden>
+        <div><div class="wd-nm" id="wdCurName">我的词库</div><div class="wd-meta" id="wdCurMeta">—</div></div>
         <!-- WORD-3B（10-26，施工书 §2.4）：旧的「换词书 ›」小字链已移除 ——
              它的作用是「回商城点卡切书」（五步），现由答题态头部的「词书名即切换器」取代（一步）。
              原来的点击逻辑（switchWordTab('bank') + 回商城）不再保留。 -->
@@ -667,22 +665,29 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
           <button class="btn-primary" id="wdEmptyGo" type="button">去词库商城</button>
         </div>
       </div>
-      <div class="wd-card wd-today-card">
+      <div class="wd-card wd-today-card wv-study">
         <div class="wd-top">
-          <b id="wdGoal">—</b><span class="wd-u">个词</span>
-          <span class="wd-right">今天的目标 · 在练习设置里改</span>
+          <span class="wv-kicker">今天</span>
+          <div class="wv-today-goal">目标 <b id="wdGoal">—</b><span class="wd-u">个词</span></div>
         </div>
-        <div class="wd-bar"><i id="wdBar" style="width:0%"></i></div>
+        <div class="wd-bar wv-progress"><i id="wdBar" style="width:0%"></i></div>
         <div class="wd-tri">
-          <div class="wd-num"><em><i class="wd-i-grey"></i>今日上限</em><b id="wdCap">—</b></div>
+          <div class="wd-num" hidden><em><i class="wd-i-grey"></i>今日上限</em><b id="wdCap">—</b></div>
           <div class="wd-num"><em><i class="wd-i-mint"></i>今日已学</em><b id="wdDone">0</b></div>
           <div class="wd-num"><em><i class="wd-i-amber"></i>答错待巩固</em><b id="wdWrong">0</b></div>
         </div>
         <div class="wd-go-row">
-          <button class="wd-btn wd-btn-p wd-btn-lg" id="wdStartBtn" type="button">开始今天的练习</button>
-          <span class="wd-hint">从到期最久的词开始</span>
+          <button class="wd-btn wd-btn-p wd-btn-lg wv-primary" id="wdStartBtn" type="button">继续今天的练习</button>
         </div>
-        <div class="wd-skip-hint">遇到已经认识的词，答题时可以点「跳过」，不占今日配额、也不排进复习。</div>
+        <button class="wv-hero-card" id="wbPreviewCard" type="button">
+          <span class="wv-hero-card-top"><span>正在学</span><span>当前词书</span></span>
+          <span class="wv-hero-card-body"><span class="wv-hero-eyebrow">WORD OF THE MOMENT</span><span class="wv-hero-word" id="wbPreviewWord">—</span><span class="wv-hero-ipa" id="wbPreviewIpa"></span><span class="wv-hero-cn" id="wbPreviewCn"></span></span>
+          <span class="wv-hero-card-foot"><span id="wbPreviewMode">看词选义</span><span>点击预览 →</span></span>
+        </button>
+      </div>
+      <div class="wv-study-side">
+        <button class="wv-current" type="button" data-wb-tab="books"><span class="wv-current-top"><span>当前词书</span><b id="wbStudyPct">0%</b></span><strong id="wbStudyBook">我的词库</strong><span class="wv-current-count" id="wbStudyCount">已掌握 0 / 0</span><div class="wv-current-track"><i id="wbStudyTrack"></i></div><span class="wv-current-foot"><span><b id="wbStudyM">0</b> 已掌握</span><span><b id="wbStudyL">0</b> 学习中</span><span><b id="wbStudyN">0</b> 待学</span></span></button>
+        <section class="wv-modes"><span class="wv-kicker">练习模式</span><div class="wv-mode-grid" id="wbStudyModes"></div></section>
       </div>
     </div>
 
@@ -825,7 +830,7 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
     <!-- W-WORD-1：页面内不再有 tab 条（她 17:1x 通过的设计稿）。手机没有顶栏二级，         所以词库态顶部放一个「回学习」返回键；桌面 ≥861 隐藏，入口仍走顶栏「单词 → 学习」。 -->
     <!-- BACK-BTN-PAGES-1（10-31）：接线统一基类 .site-back。只换外观：id / 点击委托 / 桌面隐藏规则
              （css/p/practice.css:469 的 #wdBackStudy{display:none} + ≤860px 才 inline-flex）全部原样。 -->
-    <button class="site-back wd-back-m" id="wdBackStudy" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="M11 18l-6-6 6-6"/></svg><span class="site-back-txt">回到今天要背的</span></button>
+    <button class="site-back wd-back-m" id="wdBackStudy" type="button" data-wb-tab="study" hidden><span class="site-back-txt">回到今天要背的</span></button>
     <!-- ═══ W-WORD-2（10-26）· 词库商城态 ═══
          1:1 还原 design/单词功能重设计-2026-10-25.html 的 #v-mall：
          结构原文 design/_W-word-mall_结构原文.html · 精确样式 _W-word-mall_精确样式.css
@@ -835,114 +840,28 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
          🔴 商城只是「选书的橱窗」：点卡片 = 切当前词书 + 进下面 #wmLegacy 看这本的词。
             词书详情态（施工书 §四）是第 3 批 W-WORD-3，本批不做。 -->
     <!-- WORDBOOK-TABS-1（11-07 任务1）· 手机横向 tab 条（≤860 共用壳收左栏时接住 5 个入口） -->
-    <div class="wb-mobile-tabs" id="wbMobileTabs"></div>
-
     <!-- 4 个功能视图：与 #vMall 并列，全部 hidden 起步，由 js/wb-tabs.js 的 show() 切 hidden。
          任务1 只给骨架 + 只读真值 + 诚实空态；交互与联动见任务 2~5 逐页补。 -->
-    <section class="wb-pane" data-wb-pane="wrong" hidden>
-      <div class="wb-whead">
-        <h2>错词本</h2><span class="hint" id="wbWrongCount"></span>
-        <div class="right">
-          <label class="wb-mini-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="wbWrongSearch" placeholder="查一个词" aria-label="搜索错词" /></label>
-          <button type="button" class="wb-btn primary" id="wbWrongReview">重练这些词</button>
-        </div>
-      </div>
-      <div class="wb-wchips" id="wbWrongChips">
-        <button type="button" class="wb-chip on" data-wk="all">全部</button>
-        <button type="button" class="wb-chip" data-wk="wrong">答错</button>
-        <button type="button" class="wb-chip" data-wk="hard">标难</button>
-        <button type="button" class="wb-chip" data-wk="key">重点</button>
-      </div>
-      <div class="wb-empty" id="wbWrongEmpty">还没有错词</div>
-      <div id="wbWrongList" hidden></div>
+    <section class="wb-pane wb-wrong-pane" data-wb-pane="wrong" hidden>
+      <div class="wb-wrong-tools"><span id="wbWrongCount"></span><button type="button" class="wv-secondary" id="wbWrongReview">重练这些词</button></div>
+      <div class="wv-empty" id="wbWrongEmpty" hidden>还没有错词</div>
+      <div class="wv-wrong-list" id="wbWrongList" hidden></div>
     </section>
 
-    <section class="wb-pane" data-wb-pane="stat" hidden>
-      <div class="wb-whead">
-        <h2>统计</h2><span class="hint">近 7 天</span>
-        <div class="right"><button type="button" class="wb-btn" id="wbStatRange">最近 7 天</button></div>
-      </div>
-      <div class="wb-stat-cards" id="wbStatCards"></div>
-
-      <div class="wbs-panel">
-        <div class="wbs-head"><b>每天背词量</b><span>单位：词</span></div>
-        <div class="wbs-bars" id="wbStatBars"></div>
-      </div>
-
-      <div class="wbs-panel">
-        <div class="wbs-head"><b>掌握程度</b><span id="wbStatDistSub"></span></div>
-        <div class="wbs-dist-track" id="wbStatDistTrack"></div>
-        <div class="wbs-dist-legend" id="wbStatDistLegend"></div>
-      </div>
-
-      <div class="wbs-panel">
-        <div class="wbs-head"><b>各词书进度</b><span>已掌握 / 总词数</span></div>
-        <div id="wbStatProg"></div>
-      </div>
+    <section class="wb-pane wv-data" data-wb-pane="data" hidden>
+      <section class="wv-stat-panel wv-chart"><div class="wv-panel-head"><b>每天背词量</b><div class="wv-seg" id="wbStatRange"></div></div><div class="wv-stat-sum"><b id="wbStatTotal">0</b><span id="wbStatAverage"></span></div><div class="wv-stat-bars" id="wbStatBars"></div></section>
+      <section class="wv-stat-panel"><div class="wv-panel-head"><b>掌握程度</b></div><div class="wv-dist"><div class="wv-ring"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="45"/><circle id="wbStatRing" class="value" cx="50" cy="50" r="45"/></svg><b id="wbStatPct">0%</b></div><div class="wv-legend"><span><i></i>已掌握 <b id="wbStatM">0</b></span><span><i></i>学习中 <b id="wbStatL">0</b></span><span><i></i>待学 <b id="wbStatN">0</b></span></div></div></section>
+      <section class="wv-stat-panel"><div class="wv-panel-head"><b>各词书进度</b></div><div class="wv-stat-prog" id="wbStatProg"></div></section>
     </section>
 
-    <section class="wb-pane" data-wb-pane="books" hidden>
-      <div class="wb-whead">
-        <h2>词书</h2><span class="hint" id="wbBooksCount"></span>
-        <div class="right"><button type="button" class="wb-btn" id="wbBooksEdit">编辑书架</button></div>
-      </div>
-      <div id="wbBookList"></div>
-      <button type="button" class="wb-btn wb-bimport" id="wbBooksImport">导入我的词书</button>
+    <section class="wb-pane wv-books" data-wb-pane="books" hidden>
+      <div class="wv-book-list" id="wbBookList"></div>
+      <aside class="wv-book-detail"><div class="wv-book-visual"><i></i><div class="wv-book-visual-top"><span id="wbBookOverline"></span><span id="wbBookIndex"></span></div><div class="wv-book-visual-copy"><b id="wbBookSource"></b><p id="wbBookDesc"></p><span id="wbBookPriority"></span></div></div><div class="wv-book-copy"><span class="wv-kicker" id="wbBookLabel">当前词书</span><h3 id="wbBookName"></h3><div class="wv-book-number"><b id="wbBookTotal">0</b><span>词</span></div><div class="wv-book-stats"><span><b id="wbBookM">0</b>已掌握</span><span><b id="wbBookL">0</b>学习中</span><span><b id="wbBookN">0</b>待学</span></div><div class="wv-book-track"><i id="wbBookTrack"></i></div><button class="wv-primary" id="wbBookStart" type="button">继续背词</button></div></aside>
     </section>
 
     <section class="wb-pane" data-wb-pane="set" hidden>
-      <div class="wb-pane-head"><h2>设置</h2></div>
-
-      <div class="wbs-panel wbs-set">
-        <div class="wbs-head"><b>练习模式</b></div>
-        <div class="wb-modes" id="wbModeCards"></div>
-      </div>
-
-      <div class="wbs-panel">
-        <div class="wb-setrow">
-          <div class="grow"><div class="t">每天背多少词</div><div class="d">到量就收工，0 是不限</div></div>
-          <div class="wb-stepper">
-            <button type="button" id="wbCapMinus" aria-label="减少 5 个">−</button>
-            <b id="wbCapN">不限</b>
-            <button type="button" id="wbCapPlus" aria-label="增加 5 个">+</button>
-          </div>
-        </div>
-        <div class="wb-setrow">
-          <div class="grow"><div class="t">自动发音</div><div class="d">翻到新词时读一遍</div></div>
-          <button type="button" class="wb-switch" id="wbSwAuto" data-wb-sw="autoPlay" role="switch"><i></i></button>
-        </div>
-        <div class="wb-setrow">
-          <div class="grow"><div class="t">连击显示</div><div class="d">答题时显示连击反馈</div></div>
-          <button type="button" class="wb-switch" id="wbSwFx" data-wb-sw="fxFeedback" role="switch"><i></i></button>
-        </div>
-        <div class="wb-setrow">
-          <div class="grow"><div class="t">显示音标 <span class="pill-new">新</span></div><div class="d">背词卡上在单词下方标出音标，关掉就不显示</div></div>
-          <button type="button" class="wb-switch" id="wbSwIpa" data-wb-sw="showIpa" role="switch"><i></i></button>
-        </div>
-        <div class="wb-setrow">
-          <div class="grow"><div class="t">新词 : 复习 <span class="pill-new">新</span></div><div class="d">今天的量里，新词和旧词怎么配</div></div>
-          <div class="wb-ratio" id="wbRatio">
-            <button type="button" data-ratio="3:7">3:7</button>
-            <button type="button" data-ratio="5:5">5:5</button>
-            <button type="button" data-ratio="6:4">6:4</button>
-          </div>
-        </div>
-        <div class="wb-setrow">
-          <div class="grow"><div class="t">当前词书</div><div class="d">从哪本书里挑今天的词</div></div>
-          <span class="wb-bookcur" id="wbBookCur">—</span>
-          <button type="button" class="wb-linkbtn" id="wbBookGo">去词书页换 ›</button>
-        </div>
-        <div class="wb-bookhint" id="wbBookHint" hidden>换书去「词书」页，在书架或商城里挑；这里只显示当前在用哪本。</div>
-      </div>
-
-      <div class="wbs-panel">
-        <div class="wb-setrow">
-          <div class="grow"><div class="t">词库管理与导入</div><div class="d">导入自己的词表、备份与导出</div></div>
-          <button type="button" class="wb-btn" id="wbSetManage">打开</button>
-        </div>
-      </div>
+      <!-- 旧设置的结构与 id 已迁到侧栏打开的轻量面板。 -->
     </section>
-
     <div class="wm-page" id="vMall">
       <div class="wm-shell">
         <!-- 内侧栏：其余按钮功能按她话「以后一个一个加」，本轮只做首页 -->
@@ -1176,6 +1095,8 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
       </div>
     </div>
   </div>
+  <div class="wv-modal" id="wbSetDialog" hidden><div class="wv-modal-card wv-settings-card"><button class="wv-modal-close" type="button" data-wb-set-close aria-label="关闭">×</button><h2>设置</h2><div class="wv-setting-row"><span>每天背多少词</span><div class="wv-step"><button id="wbCapMinus" type="button">−</button><b id="wbCapN">不限</b><button id="wbCapPlus" type="button">＋</button></div></div><div class="wv-setting-row"><span>自动发音</span><button class="wv-switch" id="wbSwAuto" data-wb-sw="autoPlay" type="button" role="switch"><i></i></button></div><div class="wv-setting-row"><span>连击显示</span><button class="wv-switch" id="wbSwFx" data-wb-sw="fxFeedback" type="button" role="switch"><i></i></button></div><div class="wv-setting-row"><span>显示音标</span><button class="wv-switch" id="wbSwIpa" data-wb-sw="showIpa" type="button" role="switch"><i></i></button></div><div class="wv-setting-row"><span>新词 : 复习</span><div class="wv-seg" id="wbRatio"><button data-ratio="3:7" type="button">3:7</button><button data-ratio="5:5" type="button">5:5</button><button data-ratio="6:4" type="button">6:4</button></div></div><div class="wv-setting-row"><span>词库管理与导入</span><button class="wv-secondary" id="wbSetManage" type="button">打开</button></div></div></div>
+  <div class="wv-modal" id="wbWordDialog" hidden><div class="wv-modal-card wv-word-dialog"><button class="wv-modal-close" id="wbWordClose" type="button" aria-label="关闭">×</button><div class="wv-word-dialog-top"><h2 id="wbWordTitle"></h2><button class="wv-icon-btn" id="wbWordSound" type="button" aria-label="播放发音">♪</button><p id="wbWordIpa"></p></div><div class="wv-word-dialog-content"><b id="wbWordCn"></b><p id="wbWordExample"></p><p id="wbWordTranslation" hidden></p><div class="wv-dialog-actions"><button class="wv-primary" id="wbWordAgain" type="button">再背一次 →</button><button class="wv-remove-text" id="wbWordRemove" type="button">移出错词</button></div></div></div></div>
     </div><!-- /.hub-main -->
   </div><!-- /.hub-shell -->
 </main>
@@ -1303,7 +1224,7 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
     var bar = $('wdBar');
     if (bar) bar.style.width = (goal > 0 ? Math.min(100, Math.round(done / goal * 100)) : 0) + '%';
     var btn = $('wdStartBtn');
-    if (btn) btn.textContent = (cap > 0 && done >= cap) ? '今天的目标已完成 · 再练一轮' : '开始今天的练习';
+    if (btn) btn.textContent = (cap > 0 && done >= cap) ? '今天的目标已完成 · 再练一轮' : '继续今天的练习';
     syncModeTxt();
     syncFoot();
   }
@@ -1964,7 +1885,7 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
     var b = document.createElement('button');
     b.type = 'button'; b.id = 'wdGoShelf'; b.className = 'wm-shelf-back';
     b.textContent = '‹ 回书架';
-    b.addEventListener('click', function(){ try{ switchWordTab('bank'); }catch(e){} });
+    b.addEventListener('click', function(){ try{ if(window.__wbTabs)window.__wbTabs.show('books');else switchWordTab('bank'); }catch(e){} });
     host.appendChild(b);
   }
 
@@ -2246,9 +2167,11 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
     if (t.closest('#vMall')) return false;            // 书架页里的一切点击都不算开始背词
     if (t.closest('.top-nav')) return false;           // 顶栏导航（含「单词 → 学习」二级）
     if (t.closest('#hubDock')) return false;           // 手机底栏
+    if (t.closest('#wbNav') || t.closest('#wbMobileTabs')) return false;
     /* WORD-3B：原 #wdSwapBook 已移除 → 换成新的词书切换器（点它只是切书，不算「开始背词」） */
     if (t.closest('#bsSwitcher') || t.closest('#bsPop')) return false;
     if (t.closest('#cfgModal')) return false;          // 设置弹窗
+    if (t.closest('#wbSetDialog') || t.closest('#wbWordDialog')) return false;
     return true;
   }
 
@@ -2469,7 +2392,8 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
 
 <link rel="stylesheet" href="css/p/hub-shell.css?v=20261116a" />
 <script defer src="js/hub-side-shell.js?v=20261106b"></script>
-<script defer src="js/wb-tabs.js?v=20261111a"></script>
+<link rel="stylesheet" href="css/p/word-master.css?v=20261116b" />
+<script defer src="js/wb-tabs.js?v=20261116b"></script>
 </body>
 </html>
 

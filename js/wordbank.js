@@ -65,8 +65,15 @@
   // 改法：只写 state.active 那一个库；非活跃库只标 _dirty[id]，hub:data-merged / beforeunload /
   // 下次 _persist 顺路时再合并补写。对读写方完全透明（内存 rec 仍是全量）。
   var _dirty = {};   // { bankId: true } 非活跃库有未落盘的四件套变更
-  function _serializeBank(b){
-    return { prog: b.prog, session: b.session, seen: b.seen, wrong: b.wrong, dayStats: b.dayStats,
+  function _serializeBank(b, bankId){
+    var wrong = {};
+    Object.keys(b.wrong || {}).forEach(function(day){
+      var kept = (b.wrong[day] || []).filter(function(en){
+        return !(DATA.wrongRemoved && DATA.wrongRemoved[bankId + '|' + String(en).trim().toLowerCase()]);
+      });
+      if(kept.length) wrong[day] = kept;
+    });
+    return { prog: b.prog, session: b.session, seen: b.seen, wrong: wrong, dayStats: b.dayStats,
              practiced: b.practiced || { date: '', words: [] } };
   }
   function _persist(skipMirror){
@@ -81,7 +88,7 @@
       var raw = null, rawRead = false;
       for(var id in state.banks){
         if(!Object.prototype.hasOwnProperty.call(state.banks, id)) continue;
-        if(id === state.active){ out.banks[id] = _serializeBank(state.banks[id]); }
+        if(id === state.active){ out.banks[id] = _serializeBank(state.banks[id], id); }
         else if(!_dirty[id]){ // 未标脏的非活跃库，盘上就是最新的，原样带上（体积不变、只省序列化后的写入波动）
           if(!rawRead){ raw = _readStore(); rawRead = true; }
           if(raw && raw.banks && raw.banks[id]) out.banks[id] = raw.banks[id];
@@ -114,7 +121,7 @@
       var raw = _readStore() || { active: wbActive(), banks: {} };
       if(!raw.banks) raw.banks = {};
       for(var i = 0; i < dirtyIds.length; i++){
-        raw.banks[dirtyIds[i]] = _serializeBank(state.banks[dirtyIds[i]]);
+        raw.banks[dirtyIds[i]] = _serializeBank(state.banks[dirtyIds[i]], dirtyIds[i]);
         delete _dirty[dirtyIds[i]];
       }
       raw.active = wbActive();
@@ -243,6 +250,7 @@
               cn: String(w.cn || ''),
               pos: String(w.pos || ''),
               ipa: String(w.ipa || ''),
+              eg: String(w.eg || ''),
               /* 🔴 10-24 修：原来是 Math.min(10, ...) —— 把 sl 硬夹在 1~10。
                  那是为 AWL 的 10 个 sublist 写死的；题干高频词有 50 章 →
                  第 11 章之后的词全被折进第 10 组，50 章只剩 10 组。
@@ -286,7 +294,7 @@
         var _rawNow = null;
         try{ _rawNow = _readStore(); }catch(eQ){ _rawNow = null; }
         var _onDisk = (_rawNow && _rawNow.banks && _rawNow.banks[state.active]) || null;
-        if(!_onDisk || JSON.stringify(_onDisk) !== JSON.stringify(_serializeBank(_oldRec))){
+        if(!_onDisk || JSON.stringify(_onDisk) !== JSON.stringify(_serializeBank(_oldRec, state.active))){
           _dirty[state.active] = true;
         }
       }
@@ -411,6 +419,7 @@
     var t = todayKey();
     var k = String(en).toLowerCase();
     var a = wbActive();
+    if(typeof DATA !== 'undefined' && DATA.wrongRemoved) delete DATA.wrongRemoved[a + '|' + k];
     if(a === 'custom'){
       DATA.dailyWrong = DATA.dailyWrong || {};
       if(!DATA.dailyWrong[t]) DATA.dailyWrong[t] = [];
@@ -660,5 +669,42 @@
   window.wbBankMeta = wbBankMeta;
   window.wbMasteredCount = wbMasteredCount;
   window.wbResetBank = wbResetBank;
+  window.wbForgetWrong = function(en){
+    var key = wbActive() + '|' + String(en || '').trim().toLowerCase();
+    if(typeof DATA === 'undefined' || !key.split('|')[1]) return;
+    DATA.wrongRemoved = DATA.wrongRemoved || {};
+    DATA.wrongRemoved[key] = Date.now();
+    if(typeof hubSave === 'function') hubSave();
+    _persist();
+  };
+  window.wbForgetWrongIn = function(bankId, en){
+    var id = bankId || wbActive();
+    var word = String(en || '').trim().toLowerCase();
+    if(typeof DATA === 'undefined' || !word) return;
+    DATA.wrongRemoved = DATA.wrongRemoved || {};
+    DATA.wrongRemoved[id + '|' + word] = Date.now();
+    if(id === 'custom'){
+      Object.keys(DATA.dailyWrong || {}).forEach(function(day){
+        DATA.dailyWrong[day] = (DATA.dailyWrong[day] || []).filter(function(x){ return String(x).toLowerCase() !== word; });
+      });
+    }else{
+      try{
+        var raw = _readStore();
+        if(raw && raw.banks && raw.banks[id] && raw.banks[id].wrong){
+          Object.keys(raw.banks[id].wrong).forEach(function(day){
+            raw.banks[id].wrong[day] = (raw.banks[id].wrong[day] || []).filter(function(x){ return String(x).toLowerCase() !== word; });
+          });
+          localStorage.setItem(OB_KEY, JSON.stringify(raw));
+        }
+      }catch(e){}
+    }
+    if(typeof hubSave === 'function') hubSave();
+  };
+  window.wbRestoreWrong = function(en){
+    if(typeof DATA === 'undefined' || !DATA.wrongRemoved) return;
+    delete DATA.wrongRemoved[wbActive() + '|' + String(en || '').trim().toLowerCase()];
+    if(typeof hubSave === 'function') hubSave();
+    _persist();
+  };
   window.wbRenderSwitchers = wbRenderSwitchers;
 })();

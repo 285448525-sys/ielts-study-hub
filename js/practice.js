@@ -230,11 +230,12 @@ setTimeout(function(){
     var _st = (typeof tbSubPending === 'function') ? tbSubPending('practice') : '';
     var _auto = /[?&]autostart=1/.test(location.search);
     if(_st === 'study' || _auto) switchWordTab('study');
-    else switchWordTab('bank');
+    else if(window.__wbTabs && typeof window.__wbTabs.show === 'function') window.__wbTabs.show('study', {silent:true});
+    else switchWordTab('study', false);
   }catch(e){}
 }, 300);
 
-function switchWordTab(tab){
+function switchWordTab(tab, startPractice){
   const study = document.getElementById('studyView');
   const bank  = document.getElementById('bankView');
   if(!study || !bank) return;
@@ -246,7 +247,7 @@ function switchWordTab(tab){
   } else {
     bank.hidden = true;   bank.style.display = 'none';
     study.hidden = false; study.style.display = '';
-    if(!pq || !pq.queue || pq.queue.length === 0 || !$('#practiceBody').innerHTML.trim()){
+    if(startPractice !== false && (!pq || !pq.queue || pq.queue.length === 0 || !$('#practiceBody').innerHTML.trim())){
       autoStartSeeWord();
     }
   }
