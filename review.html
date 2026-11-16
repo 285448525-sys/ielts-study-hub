@@ -322,7 +322,6 @@ return {hero:hero,inline:inline,ic:ic};
 .hub-main .rv2-summary:has(.rv2-latest) .rv2-subjects{grid-template-columns:1fr 1fr;gap:0;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:8px 16px;box-shadow:var(--shadow);overflow:hidden}
 .hub-main .rv2-summary:has(.rv2-latest) .rv2-subjects>.rv2-subject{position:relative;display:flex;flex-direction:column;justify-content:center;gap:2px;padding:14px 6px 14px 16px;background:none!important;border:0!important;border-radius:0!important;box-shadow:inset 3px 0 0 var(--primary)}
 .hub-main .rv2-summary:has(.rv2-latest) .rv2-subjects>.rv2-subject.rvx-weak{box-shadow:inset 3px 0 0 var(--warn-ink)}
-.hub-main .rv2-summary:has(.rv2-latest) .rv2-subjects>.rv2-subject:nth-child(odd)::after{content:"";position:absolute;right:0;top:14px;bottom:14px;width:1px;background:var(--line)}
 .hub-main .rv2-summary:has(.rv2-latest) .rv2-subjects>.rv2-subject:nth-child(-n+2)::before{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:var(--line)}
 .hub-main .rv2-summary:has(.rv2-latest) .rv2-subjects>.rv2-subject>span{font-size:11.5px;font-weight:650;color:var(--muted)}
 .hub-main .rv2-summary:has(.rv2-latest) .rv2-subjects>.rv2-subject>b{font-size:25px;font-weight:800;letter-spacing:-.03em;line-height:1.2;color:var(--ink);font-variant-numeric:tabular-nums}
@@ -559,6 +558,10 @@ body .hub-main{grid-column:1/-1}
   border:1px solid var(--line);border-radius:14px;background:var(--surface);
   padding:6px 14px;box-shadow:none
 }
+/* 四科不再用左侧色条区分，达标与否看数字与底下那行小字 */
+.hub-main .rv2-summary:has(.rv2-latest) .rv2-subjects>.rv2-subject{
+  box-shadow:none!important;padding:14px 8px
+}
 .rv-page[data-rv-pane="home"] .rv2-summary .rv2-latest .rv2-score{font-size:56px;color:var(--ink)}
 .rv-page[data-rv-pane="home"] .rv2-summary .rv2-latest .rv2-score small{font-size:15px}
 .rv-page[data-rv-pane="home"] .rv2-summary .rv2-subjects>.rv2-subject>b{font-size:24px}
@@ -696,6 +699,7 @@ summary .chev,details > summary svg,.chev,.tb-more-btn svg{
   .rv-board-rail .rv2-facts>div{padding:10px 0}
   .rv-page[data-rv-pane="home"] .rv2-summary:has(.rv2-latest){grid-template-columns:1fr}
   .rv-page[data-rv-pane="home"] .rv2-summary:has(.rv2-latest) .rv2-latest{min-height:132px}
+  .hub-main .rv-page[data-rv-pane="home"] .rv2-summary:has(.rv2-latest) .rv2-subjects>.rv2-subject{padding:10px 8px}
   .rv-page[data-rv-pane="home"] .rv2-summary .rv2-latest .rv2-score{font-size:48px}
   .rv-page[data-rv-pane="trend"] .rv2-chart{height:220px}
   .rv-page[data-rv-pane="records"] .rv2-rec-row{grid-template-columns:1fr auto;gap:6px 12px}
