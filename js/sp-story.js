@@ -255,7 +255,9 @@ async function aiStoryLink(id){
     toast('还没有万能素材，先去「素材」页生成');
     return;
   }
-  await planChuan(s);
+  if(window.AiTask) window.AiTask.start('chuan');
+  try{ await planChuan(s); }
+  finally{ if(window.AiTask) window.AiTask.end(); }
 }
 
 /* design/87 阶段一：逐 bullet 核对素材。natural → 整段稿；adaptable → 补槽卡；unfit → 拒绝硬串卡 */
@@ -278,7 +280,7 @@ async function planChuan(s){
     s.answers = s.answers || {};
     s.answers.p2 = s.answers.p2 || {};
     // 草稿（阶段一结果 + 已补答案）实时落库：关页/切题再回来可恢复；成稿后清掉
-    s.answers.p2.linkDraft = { plan: j, supplements: {}, ts: Date.now() };
+    s.answers.p2.linkDraft = { plan: j, supplements: {}, aiTask: window.AiTask ? window.AiTask.token() : '', ts: Date.now() };
     s.updatedAt = Date.now();
     hubSave();
     renderStoryLinkV2(resultEl, j, s);
@@ -309,6 +311,7 @@ async function finalChuan(s, aiFill){
   try{
     const p2 = (s.answers && s.answers.p2) || {};
     const draft = p2.linkDraft || {};
+    if(window.AiTask && draft.aiTask) window.AiTask.resume('chuan', draft.aiTask);
     const plan = draft.plan || {};
     const sup = draft.supplements || {};
     const sys = chuanSysWithMats(chuanFillPh(SYS_CHUAN_FINAL)) + (aiFill ? chuanFillPh(CHUAN_AIFILL_SUFFIX) : '');
@@ -331,6 +334,9 @@ async function finalChuan(s, aiFill){
     s.answers = s.answers || {};
     s.answers.p2 = s.answers.p2 || {};
     s.answers.p2.aiStoryLink = out;
+    if(s.answers.p2.linkDraft && window.AiTask && window.AiTask.token()){
+      out.linkDraft = Object.assign({}, s.answers.p2.linkDraft, { plan: plan, supplements: sup, aiTask: window.AiTask.token() });
+    }
     delete s.answers.p2.linkDraft;
     s.updatedAt = Date.now();
     // v7.2 沉淀进素材碎片库：①考生自己补的细节 ②AI 代补的细节——她记过的每一句都复用到别的题
@@ -573,6 +579,7 @@ function renderChuanFinal(el, j, s, kwMode){
 async function extractStoryKeywords(el, j, s){
   const btn = el.querySelector('#storyKwBtn');
   if(btn){ btn.disabled = true; btn.textContent = '⏳ 提取中…'; }
+  if(window.AiTask && j.linkDraft && j.linkDraft.aiTask) window.AiTask.resume('chuan', j.linkDraft.aiTask);
   try{
     const sys = '从这段雅思口语 P2 讲稿提取 8~14 个按叙事顺序排列的英文关键词短语，每项 2~5 个实词，保留原文措辞。输出严格 JSON：{"keywords":["..."]}';
     const user = j.fullEn || '';

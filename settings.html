@@ -19,8 +19,8 @@ setTimeout(__rvRescue,2500);
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
 <title>设置 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261115a" />
-<link rel="stylesheet" href="css/p/settings.css?v=20261115a" />
+<link rel="stylesheet" href="css/common.css?v=20261116a" />
+<link rel="stylesheet" href="css/p/settings.css?v=20261116a" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -293,51 +293,41 @@ setTimeout(__rvRescue,2500);
   .me-edit-row input{max-width:none;flex:1 1 120px}
 }
 
-.set-layout{display:grid;grid-template-columns:200px minmax(0,1fr);gap:22px;align-items:start}
-/* 10-22 换顶栏：吸顶位置要让过 44px 顶栏（原 top:14px 是侧栏时代写的，直接留会被顶栏压住一截） */
-.set-nav{display:flex;flex-direction:column;gap:4px;position:sticky;top:calc(44px + env(safe-area-inset-top) + 14px)}
-.set-nav-item{width:100%;text-align:left;height:44px;padding:0 14px;border-radius:11px;cursor:pointer;
-  border:1px solid transparent;background:transparent;color:var(--ink);font:inherit;font-size:13.5px;font-weight:600;
-  transition:background .15s,border-color .15s,color .15s}
-/* 10-23 T-002 步2：左目录三态（方案 §0.1，她 08:9x 定的组合）
-   ① 默认 = 无背景纯文字；② 悬停 = 整行浅底 primary-50（候选 C）；③ 选中 = 胶囊 primary-100 + 圆角 11（候选 D）；
-   ④ 按下 = primary-200 最深一档 + scale(.985)（她原话「也得加一个点击的动效」）。
-   🔴 三档必须拉开（50 < 100 < 200），否则「看着像选了两行」。 */
-.set-nav-item:hover{background:var(--primary-50);border-color:transparent}
-.set-nav-item:active{background:var(--primary-200);border-color:transparent;transform:scale(.985)}
-/* 14:15 她报「交互效果也不见了」→ 选中态加重：加左侧色条 + 按下即变色，
-   移动端没有 :hover，必须给 :active 明确反馈，否则点了「像没反应」。 */
-.set-nav-item:active{background:var(--n-100);transform:scale(.985)}
-.set-nav-item.on{background:var(--primary-100);border-color:transparent;color:var(--primary-800);
-  border-radius:11px}
-/* 🔴 D-1 顺手修（10-24）：上面这行在**深色下不可读** —— `--primary-800` 是 #235e5a，
-   而深色主题**没有覆盖这个档位**（common.css 深色块只覆盖 50/100/500/700/soft，见 dark 段），
-   于是选中项在 #1a1a1c 底上是 rgba(35,94,90) → 对比度实测 **1.8**，几乎看不见。
-   浅色下它是对的（浅底 + 深青字），所以只给深色补一条覆盖。
-   用 --primary-text（深色段已覆盖为 #7ccac2），浅色不受影响。 */
+.set-layout{margin-top:18px;border:1px solid var(--line);border-radius:16px;background:var(--surface);
+  box-shadow:var(--shadow);overflow:hidden}
+.set-layout.set-shell{display:grid;grid-template-columns:264px minmax(0,1fr);gap:0;align-items:stretch;min-height:420px}
+.set-layout .hub-side{min-height:0;overflow-y:auto;overflow-x:hidden;background:var(--surface);border-right:1px solid var(--line)}
+.set-layout .hub-side-scroll{min-height:100%;display:flex;flex-direction:column}
+.set-layout .hub-subs{padding:14px 10px;flex:none;display:block}
+.set-layout .hub-main{min-width:0;overflow-y:auto;padding:18px 22px 30px}
+.set-nav{display:flex;flex-direction:column;gap:4px}
+.set-nav-item{display:flex;align-items:center;width:100%;min-height:50px;padding:8px 14px;margin-bottom:0;
+  border:1px solid transparent;border-radius:12px;background:transparent;color:var(--ink);font:inherit;
+  font-size:13.5px;font-weight:650;text-align:left;cursor:pointer;position:relative;
+  transition:background .16s,border-color .16s}
+.set-nav-item:hover{background:var(--surface-2);border-color:var(--line)}
+.set-nav-item.on{background:var(--primary-50);border-color:var(--primary-200);color:var(--primary-700)}
+.set-nav-item.on:before{content:"";position:absolute;left:0;top:12px;bottom:12px;width:3px;
+  border-radius:0 3px 3px 0;background:var(--primary)}
+.set-nav-item:active{background:var(--primary-200);transform:scale(.985)}
 [data-theme="dark"] .set-nav-item.on{color:var(--primary-text)}
 .set-nav-item:focus-visible{outline:3.5px solid var(--primary-200);outline-offset:2px}
+#setNavHit{display:none!important}
 .set-pane[hidden]{display:none}
 .set-pane .set-card{margin:0}
 .set-pane .set-card+.set-card{margin-top:18px}
 .set-pane .acct-card{margin:0}
 
 @media(max-width:860px){
-  .set-layout{grid-template-columns:1fr;gap:0}
-  /* 窄屏：目录变顶部分页标签，横向可滑，不占竖向空间 */
-  .set-nav{flex-direction:row;gap:6px;overflow-x:auto;position:sticky;top:calc(44px + env(safe-area-inset-top));z-index:20;
-    margin:0 -14px 14px;padding:8px 14px 10px;scrollbar-width:none;
-    /* 移动端没有 :hover —— 标签常驻顶部 + 底部细边，滑动时始终知道自己在哪一组 */
-    background:var(--bg);box-shadow:0 1px 0 var(--line)}
-  .set-nav::-webkit-scrollbar{display:none}
-  /* 10/4 她反馈：手机端 5 个标签要滑动 → 合并成 4 组后改为等宽铺满，不再需要滑动；
-     overflow-x 保留为极窄屏 / 大字号时的兜底 */
-  /* 10-23 T-002 步2：5 项四字（她 10-05 拍板「等宽铺满，不要滑动」）→ 字号收到 12.5px
-     才在 375 铺得下；overflow-x 仅作极窄屏 / 大字号兜底 */
-  .set-nav-item{width:auto;flex:1 1 0;min-width:0;height:44px;padding:0 4px;
-    white-space:nowrap;text-align:center;font-size:12.5px}
-  /* 窄屏下左侧色条换到顶部（横向排列时左侧色条看不见） */
-  .set-nav-item.on{box-shadow:inset 0 3px 0 var(--primary-500)}
+  .set-layout.set-shell{display:block;min-height:0}
+  .set-layout .hub-side{display:block;border-right:0;border-bottom:1px solid var(--line)}
+  .set-layout .hub-side-scroll{min-height:0}
+  .set-layout .hub-subs{display:block;padding:10px}
+  .set-nav{display:grid;grid-template-columns:1fr;gap:4px}
+  .set-layout .hub-main{overflow:visible;padding:0 12px 12px}
+  .set-nav-item{min-height:44px}
+  .set-nav-item.on{box-shadow:inset 0 3px 0 var(--primary)}
+  .set-pane .set-card{padding:4px 14px 6px}
 }
 @media(max-width:640px){
   .set-topbar{padding:11px 13px;gap:11px}
@@ -372,24 +362,19 @@ setTimeout(__rvRescue,2500);
 .set-reset-pop[hidden]{display:none}
 .set-reset-pop-f{display:flex;gap:8px;margin-top:14px}
 .set-reset-pop-f .btn{flex:1}
-/* 极窄屏（≤360，老机型）：再收一档字号与内边距，保证 4 个标签始终铺得下、不用滑动 */
-@media(max-width:360px){
-  .set-nav{gap:4px}
-  .set-nav-item{font-size:12px;padding:0 3px;height:44px}
-}
 </style>
 <script defer src="js/data.js?v=20261113d"></script>
-  <script defer src="js/common.js?v=20261115a"></script>
-  <script defer src="js/common-ai.js?v=20261115a"></script>
-  <script defer src="js/common-sync.js?v=20261115a"></script>
-  <script defer src="js/common-merge.js?v=20261115a"></script>
-  <script defer src="js/common-cloud.js?v=20261115a"></script>
-  <script defer src="js/common-shell.js?v=20261115a"></script>
-  <script defer src="js/common-pwa.js?v=20261115a"></script>
+  <script defer src="js/common.js?v=20261116a"></script>
+  <script defer src="js/common-ai.js?v=20261116a"></script>
+  <script defer src="js/common-sync.js?v=20261116a"></script>
+  <script defer src="js/common-merge.js?v=20261116a"></script>
+  <script defer src="js/common-cloud.js?v=20261116a"></script>
+  <script defer src="js/common-shell.js?v=20261116a"></script>
+  <script defer src="js/common-pwa.js?v=20261116a"></script>
   <script defer src="js/feedback.js?v=20261111b"></script>
   <!-- 10/3 头像选择（DiceBear CC0 素材；必须在 data.js/common.js 之后 —— 它读 DATA.settings.avatar） -->
   <script defer src="js/av-picker.js?v=20261107d"></script>
-  <script src="js/settings.js?v=20261031a" defer></script>
+  <script src="js/settings.js?v=20261116a" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -403,19 +388,6 @@ setTimeout(__rvRescue,2500);
    ② 标签按下时给**明确的视觉冲击**（整块变深 + 轻微缩放 + 标签下方指示条滑动），
       手指点下去立刻有反馈，不会再有「点了像没反应」。
    ③ 切组后把新面板**从上方淡入**，配合视口归位，形成「换了一屏」的明确感知。 */
-/* 10/5 删 .set-ver（那条竖排英文版本标记）—— 排查工具已完成使命，元素与样式一并移除 */
-#setNavHit{position:absolute;left:0;bottom:0;height:3px;background:var(--primary-500);border-radius:0 0 3px 3px;
-  transition:transform .24s cubic-bezier(.32,.72,.35,1),width .24s cubic-bezier(.32,.72,.35,1);
-  transform-origin:left center;pointer-events:none;z-index:1}
-/* 🔴 10/18 修（她截图报「意见反馈被选中了？」）：#setNavHit 是给**窄屏横向标签**设计的
-   （bottom:0 + translateX 沿 X 轴滑），桌面竖排目录下 bottom:0 = 永远钉在导航最底部、
-   正好落在最后一项「意见反馈」下面，与被选中的项无关 → 看起来像「意见反馈被选中」。
-   桌面已有 .on 的浅底+描边标记，指示条纯属误导 → 桌面直接不渲染。 */
-@media(min-width:861px){#setNavHit{display:none}}
-/* ⚠️ 不要在这里写 `.set-nav{position:relative}` —— 窄屏规则用 `position:sticky`（滑动时
-   始终知道自己在哪一组，16:45 那批加的），改回 relative 会把它降级掉（探针 _verify_mobile4
-   实锤抓到「sticky → relative」回归）。**sticky 本身就是 relative 的超集**，
-   指示条 #setNavHit 的 absolute 定位在 sticky 下同样成立，无需额外声明。 */
 .set-nav-item{transition:background .16s,color .16s,border-color .16s,transform .1s}
 .set-nav-item:active{background:var(--primary-700)!important;color:#fff!important;transform:scale(.94)}
 .set-pane{animation:setPaneIn .22s ease}
@@ -503,31 +475,21 @@ setTimeout(__rvRescue,2500);
 
   <!-- ② 主体：10/4 改版方向二「左目录 + 右内容」——每张卡内容一项不删，DOM 钩子全保留 -->
   <!-- 14:15 她拍板：深绿框下面「设置」标题 + 「共 4 组 · 数据只存在本机…」两行删掉（要清爽） -->
-  <div class="set-layout">
-    <nav class="set-nav" aria-label="设置分组">
-      <span id="setNavHit" aria-hidden="true"></span>
-      <!-- 10/5 14:36 她要求：① 意见反馈收进设置页做最后一个分组；② 标题字数尽量统一，别 4 字 5 字混着。
-           10-23 T-002：五组全四字 = 我的账号 / 备考目标 / 学习偏好 / 数据备份 / 反馈关于。
-           🔄 D-1（10-24）：第四组从「数据同步」改名「数据备份」—— 同步状态/同步日志两行删掉后，
-              这组剩下的就是导出/导入/清空，名字得对得上。**仍然四字**，字数统一的要求没破。
-           🔴 S-2（10-25）：**第四组「数据备份」整组删掉**（她 00:4x「叫你把数据备份页删掉啊」）
-              → 现在只有四组：我的账号 / 备考目标 / 学习偏好 / 反馈关于（仍全四字）。
-              ⚠️ 连带三处一起改，漏一处就落空页：
-                ① 本导航按钮（已删）② `<section data-pane="data">` 整个面板（已删，含数据管理卡 + 危险区卡）
-                ③ `js/common.js` 顶栏头像菜单两条 `?pane=data`（已删）
-              ⚠️ **老书签 / 分享出去的 `?pane=data` 仍会进来** → 加了别名映射
-                `PANE_ALIAS = { data:'profile', fb:'about' }`（在步 6 那段），落 profile 而非空页。
-                与 10-23 的 ?pane=fb→about 是同一套兼容做法。
-              ⚠️ 旧注释「data-goto="data" 不许改」是 D-1 时代的规矩，**本批已作废**（她亲自要删）。
-           ⚠️ data-goto 现为四值 profile/targets/prefs/about，
-              与 js/common.js 顶栏头像菜单 + Ctrl+, 的 ?pane= 是跨任务契约（T-003 按这个写）。
-           ⚠️ go() 与 moveHit() 按值匹配不写死数量，零 JS 改动。 -->
-      <button class="set-nav-item on" type="button" data-goto="targets">备考目标</button>
-      <button class="set-nav-item" type="button" data-goto="prefs">学习偏好</button>
-      <button class="set-nav-item" type="button" data-goto="about">反馈关于</button>
-    </nav>
+  <div class="set-layout set-shell">
+    <aside class="hub-side">
+      <div class="hub-side-scroll">
+        <div class="hub-subs">
+          <nav class="set-nav" aria-label="设置分组">
+            <span id="setNavHit" aria-hidden="true"></span>
+            <button class="set-nav-item on" type="button" data-goto="targets" aria-selected="true">备考目标</button>
+            <button class="set-nav-item" type="button" data-goto="prefs" aria-selected="false">学习偏好</button>
+            <button class="set-nav-item" type="button" data-goto="about" aria-selected="false">反馈关于</button>
+          </nav>
+        </div>
+      </div>
+    </aside>
 
-    <div class="set-panes">
+    <div class="set-panes hub-main">
       <!-- ===== 我的账号（T-002 步1：原「个人设置」拆开，昵称留下；深绿卡整块搬入）===== -->
       <!-- SET-1（10-26）：原「我的账号」组整组删掉 —— 昵称并进顶部身份卡（就地改名），
            改密/退出/未登录引导也一并搬进身份卡右侧。四个 DOM 钩子全部保留、只换位置。 -->
@@ -653,18 +615,18 @@ setTimeout(__rvRescue,2500);
           
           <div class="set-row">
             <div class="set-row-t"><b>写反馈</b></div>
-            <div class="set-row-c"><button class="btn btn-sm" data-fb-open type="button">写反馈</button></div>
+            <div class="set-row-c"><button class="btn btn-sm" data-fb-open type="button">打开</button></div>
           </div>
           <!-- W-UI-1（10-25）公告的第三入口（前两条 = 顶部公告条 / 消息中心）。
                成熟站口径：公告不放一级导航，但要在设置里留一行常驻入口（多邻国/扇贝同款）。 -->
           <div class="set-row">
             <div class="set-row-t"><b>更新日志</b></div>
-            <div class="set-row-c"><a class="btn btn-sm" href="announce.html">更新日志</a></div>
+            <div class="set-row-c"><a class="btn btn-sm" href="announce.html">打开</a></div>
           </div>
           <!-- W-UI-1（10-26）帮助页入口（另一条在消息中心底部） -->
           <div class="set-row">
             <div class="set-row-t"><b>帮助</b></div>
-            <div class="set-row-c"><a class="btn btn-sm" href="help.html">常见问题</a></div>
+            <div class="set-row-c"><a class="btn btn-sm" href="help.html">打开</a></div>
           </div>
           <div class="set-row">
             <div class="set-row-t"><b>版本号</b></div>

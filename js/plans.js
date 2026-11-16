@@ -2408,6 +2408,7 @@ async function diagRequestAi(st){
        是 10/6 她报「明明是 VIP 号却给我锁了」的同款病根。改成提示重试。 */
     if(isVip === null){ renderDiagAiBox('error', 'fail'); return; }
     if(!isVip){ renderDiagAiBox('locked'); return; }
+    if(window.AiTask) window.AiTask.start('diagpro');
     const r = diagBuildReport(d0);
     const raw = await callRelay('diagpro', diagProMessages(st, r), 0.3, { max_tokens:3000, json_mode:true });
     const ai = diagProApplyAi(st, aiJson(raw), r);
@@ -2426,6 +2427,8 @@ async function diagRequestAi(st){
   }catch(e){
     if(!document.getElementById('dgAi')) return;   // 她已离开：静默，下次打开给手动重试
     renderDiagAiBox('error', (e && e.code === 'AUTH_REQUIRED') ? 'login' : 'fail');
+  }finally{
+    if(window.AiTask) window.AiTask.end();
   }
 }
 
@@ -2735,6 +2738,7 @@ async function diagGenPlan(){
   if(isVip === null){ renderDiagPlanBox('error', 'fail'); return; }   // 查不到 = 提示重试，不谎报要充值
   if(!isVip){ renderDiagPlanBox('locked'); return; }
   renderDiagPlanBox('loading');
+  if(window.AiTask) window.AiTask.start('studyplan');
   try{
     const d = DATA.settings.diagnosis;
     const r = diagBuildReport(d);
@@ -2754,6 +2758,8 @@ async function diagGenPlan(){
     if(e && e.code === 'AUTH_REQUIRED') renderDiagPlanBox('error', 'login');
     else if(e && e.code === 'vip_required') renderDiagPlanBox('locked');
     else renderDiagPlanBox('error', 'fail');
+  }finally{
+    if(window.AiTask) window.AiTask.end();
   }
 }
 

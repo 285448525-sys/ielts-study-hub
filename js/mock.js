@@ -21,6 +21,7 @@
   const RESUME_KEY = 'ielts_mock_resume_v1';
   function saveResumeSnapshot(phase, index, remaining){
     if(!mockState) return;
+    if(window.AiTask) mockState.aiTask = window.AiTask.token() || mockState.aiTask || '';
     try{
       const snap = {
         v: 1, ts: Date.now(),
@@ -33,6 +34,7 @@
         notebook: mockState.notebook || '',    // 10/3 23:05：P2 准备阶段的笔记随快照存，续考/刷新不丢
         totalRemaining: mockState.totalRemaining != null ? mockState.totalRemaining : TOTAL_LIMIT,
         phase: phase,
+        aiTask: mockState.aiTask || '',
         index: index,
         remaining: (remaining == null ? 0 : remaining)
       };
@@ -135,6 +137,7 @@
     removeExitButton();
     setMockImmerse(false);          // 9/26：退出模考 → 恢复常规布局
     setP2Mode(false);               // 10/1 批3：清理两栏模式，下次开考干净入场
+    if(window.AiTask) window.AiTask.end();
     mockState = null;
     $('#mockStage').hidden = true;
     $('#mockReport').hidden = true;
@@ -158,7 +161,26 @@
     mockEntering = true;
     const snap = loadResumeSnapshot();
     if(!snap){ mockEntering = false; return; }
-    mockState = { p1Set: snap.p1Set, p2Topic: snap.p2Topic, answers: snap.answers, pronSource: snap.pronSource, p3qs: snap.p3qs || [], totalRemaining: (snap.totalRemaining != null ? snap.totalRemaining : TOTAL_LIMIT), notebook: snap.notebook || '' };
+    let vipOk = null;
+    try{ vipOk = await authVipCheck(); }catch(e){ vipOk = null; }
+    if(vipOk !== true){
+      mockEntering = false;
+      toast(vipOk === null ? '会员状态暂时没查到，稍后再试' : '口语模考是会员专属，开会员后每周可以考 10 场');
+      return;
+    }
+    if(!snap.aiTask){
+      const quotaFull = await mockQuotaFull();
+      if(quotaFull){
+        mockEntering = false;
+        toast('口语模考这周跑满 ' + quotaFull.total + ' 场啦，先让 AI 喝口水，下周满血回来');
+        return;
+      }
+    }
+    if(window.AiTask){
+      if(snap.aiTask) window.AiTask.resume('mock_exam', snap.aiTask);
+      else window.AiTask.start('mock_exam');
+    }
+    mockState = { p1Set: snap.p1Set, p2Topic: snap.p2Topic, answers: snap.answers, pronSource: snap.pronSource, p3qs: snap.p3qs || [], totalRemaining: (snap.totalRemaining != null ? snap.totalRemaining : TOTAL_LIMIT), notebook: snap.notebook || '', aiTask: snap.aiTask || '' };
     mockEntering = false;   // 10/2 修：状态已同步就位（本行在第一个 await 之前），重入改由 mockState 挡
     // 考官：优先用快照里的（续考不换人）；老快照没有该字段则现场随机补一位
     mockState.examiner = snap.examiner || pickExaminer();
@@ -361,7 +383,7 @@
       const qEl = $('#mockQ');
       if(qEl){
         if(opts.allowTts){
-          // 题目文本 + 播放按钮并排（P1/P3 给喇叭；P2 不给）。
+          // 题目文本 + 播放按钮并排（P1/P3 给喇叭；P2 不给）。
           // 🔴 MOCK-AUTOSPEAK-OFF-1：allowTts 只表示「这道题给不给喇叭按钮」，**不再表示自动朗读**。
           qEl.innerHTML = '<div class="mock-q-row">'
             + '<div class="mock-q-text">' + (opts.qHtml || '') + '</div>'
@@ -665,7 +687,7 @@
               // 逐题：把**上一题 + 你的答案**都带进去（原来只带上一题、答案是空的）
               const prevQ = i > 0 ? newlyGenerated[i-1] : null;
               const prevA = i > 0 ? ((mockState.answers.filter(x => x.part === 'P3').slice(-1)[0] || {}).transcript || '') : null;
-              q = await window.MockGenP3.genNext(topic, p2Text, i, prevQ, prevA);
+              q = await window.MockGenP3.genNext(topic, p2Text, i, prevQ, prevA, 'mock_q');
               newlyGenerated.push(q);
             }catch(e){
               toast('P3 AI 生成失败：' + e.message + '（已用预设题库）');
@@ -693,6 +715,7 @@
       clearResumeSnapshot();
       removeExitButton();
       mockState = null;               // 10/2 修：中断终态释放，允许重新开考（快照已清，再进走全新开考）
+      if(window.AiTask) window.AiTask.end();
       setMockImmerse(false);        // 9/26：中断也要恢复常规布局
       setP2Mode(false);             // 10/1 批3：中断同样清两栏模式
       $('#mockStage').hidden = true; $('#mockReport').hidden = true;
@@ -895,6 +918,7 @@
     // 模考完成：清理进度快照与「退出」按钮，下一次进入不再自动续考
     clearResumeSnapshot();
     removeExitButton();
+    if(window.AiTask) window.AiTask.end();
     mockState = null;   // 10/2 修：终态释放（报告数据上方已全部取出渲染），允许点「模考」/「再来一次」重新开考
   }
 
@@ -906,9 +930,35 @@
     if(mm) mm.hidden = false;
   }
 
+  /* 开考前先看一眼模考额度，避免答完 P1/P2 才在 P3 被额度挡住。
+     查不到就不拦（服务端仍会兜底），不把网络抖动变成“不能考试”。 */
+  async function mockQuotaFull(){
+    if(typeof authApiPost !== 'function') return null;
+    try{
+      const u = await authApiPost({ action:'ai_usage', token: (typeof authToken === 'function' ? authToken() : '') });
+      const q = u && u.heavy && u.heavy.mock_exam;
+      if(q && q.total > 0 && q.remaining <= 0) return q;
+    }catch(_){}
+    return null;
+  }
+
   async function startExam(){
     if(mockEntering || mockState) return;   // 10/2 修：注入窗口/考试进行中防并发双开（报告页「再来一次」连点同此守卫）
     mockEntering = true;
+    let vipOk = null;
+    try{ vipOk = await authVipCheck(); }catch(e){ vipOk = null; }
+    if(vipOk !== true){
+      mockEntering = false;
+      toast(vipOk === null ? '会员状态暂时没查到，稍后再试' : '口语模考是会员专属，开会员后每周可以考 10 场');
+      return;
+    }
+    const quotaFull = await mockQuotaFull();
+    if(quotaFull){
+      mockEntering = false;
+      toast('口语模考这周跑满 ' + quotaFull.total + ' 场啦，先让 AI 喝口水，下周满血回来');
+      return;
+    }
+    if(window.AiTask) window.AiTask.start('mock_exam');
     await ensureMockLib();   // 确保报告库（MockReport）就绪后再开考，避免 finishExam 渲染报告时缺库
     // 仅从纯官方题库抽题：剔除框架母本(带 framework 字段 / id 形如 sp_p[12]_*)及任何残留非题目项，杜绝抽到老题库/框架内容
     const p1 = DATA.speaking.filter(x => x.type === 'P1' && x.questions && x.questions.length && !x.framework && !/^sp_p[12]_\d+$/.test(x.id || ''));
@@ -920,7 +970,7 @@
     const pronSource = (fixed != null) ? 'fixed' : 'none';
     // 全新开考前先清掉任何旧快照，避免与上一次未完成的模考串档
     clearResumeSnapshot();
-    mockState = { p1Set: buildP1Set(p1), p2Topic: pickP2Topic(p2), answers: [], pronSource, p3qs: [], totalRemaining: TOTAL_LIMIT, examiner: pickExaminer(), notebook: '' };
+    mockState = { p1Set: buildP1Set(p1), p2Topic: pickP2Topic(p2), answers: [], pronSource, p3qs: [], totalRemaining: TOTAL_LIMIT, examiner: pickExaminer(), notebook: '', aiTask: '' };
     mockEntering = false;   // 10/2 修：状态已同步就位，此后重入由 mockState 挡（本句到 await runExam 之间全同步）
     // 真题固定开场问：每场模考第一个问题固定为姓名确认（ID 热身，不参与评分，但会出现在完整记录里）
     mockState.p1Set.unshift({ topic: 'Opening', q: 'Can you tell me your full name?', opening: true });

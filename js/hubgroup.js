@@ -44,7 +44,7 @@
       key:'me', title:'我的', tagline:'回顾、会员与设置',
       items:[
         { id:'review',   name:'回顾', desc:'模考成绩 + 学习轨迹' },
-        { id:'vip',      name:'会员', desc:'AI 无限用 + 专属权益' },
+        { id:'vip',      name:'会员', desc:'轻量不限用 + 重度额度' },
         { id:'settings', name:'设置', desc:'同步 / AI / 数据 / 账号' }
       ]
     }
@@ -429,7 +429,7 @@ function renderStats(){
         +   '<a class="go" href="' + goHref + '">' + esc(goTx) + '</a></div>';
       h += '<div class="me-vip">'
         +   '<span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 6-9 12L3 9z"/><path d="M3 9h18"/></svg></span>'
-        +   '<span class="tx"><b>会员 · AI 无限用</b><span>专属权益、无限次评分与陪练</span></span>'
+        +   '<span class="tx"><b>会员 · 轻量不限用</b><span>写作不限篇，重活按功能额度</span></span>'
         +   '<a class="go" href="vip.html">了解 &rarr;</a></div>';
       h += '<div class="sec-t"><b>常用</b><span>' + (items.length + 1) + ' 个入口</span></div>';
       h += '<div class="me-list">';

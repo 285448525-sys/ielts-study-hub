@@ -527,7 +527,7 @@ function openDetail(id){
     }
     async function genP3Step(step, prevQ, prevA){
       const p2Text = getP2TextForP3();
-      const q = await window.MockGenP3.genNext(s, p2Text, step, prevQ, prevA);
+      const q = await window.MockGenP3.genNext(s, p2Text, step, prevQ, prevA, 'p3_followup');
       const p3 = ensureP3();
       p3.questions[step] = q;
       renderP3Step(s, $('#p3List'), step);

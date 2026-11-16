@@ -14,6 +14,44 @@
 const AI_BASE = 'https://api.deepseek.com/v1';
 const AI_MODEL = 'deepseek-chat';
 const SITE_AI_URL = 'api/ai';
+var AI_TASK_ID = '';
+var AI_TASK_GROUP = '';
+var AI_TASK_GROUPS = {
+  mock_exam: /^(mock_q|mock_score|mock_summary)$/,
+  chuan: /^speaking_chuan_/,
+  material: /^(material_plan|material|material_persona|material_fixen)$/,
+  remap: /^material_remap$/,
+  studyplan: /^studyplan$/,
+  diagpro: /^diagpro$/,
+};
+window.AiTask = window.AiTask || {
+  start: function(group){ AI_TASK_GROUP = group || ''; AI_TASK_ID = ''; },
+  resume: function(group, token){ AI_TASK_GROUP = group || ''; AI_TASK_ID = String(token || ''); },
+  header: function(service){
+    var group = aiTaskGroupOf(service);
+    return (group && group === AI_TASK_GROUP) ? AI_TASK_ID : '';
+  },
+  capture: function(service, token){
+    var group = aiTaskGroupOf(service);
+    if(group && group === AI_TASK_GROUP && token) AI_TASK_ID = String(token);
+  },
+  token: function(){ return AI_TASK_ID; },
+  end: function(){ AI_TASK_GROUP = ''; AI_TASK_ID = ''; },
+};
+function aiTaskGroupOf(service){
+  for(const group in AI_TASK_GROUPS){ if(AI_TASK_GROUPS[group].test(service)) return group; }
+  return '';
+}
+function aiTaskStart(group){
+  window.AiTask.start(group);
+  return '';
+}
+function aiTaskEnd(){ AI_TASK_GROUP = ''; AI_TASK_ID = ''; }
+function aiTaskHeader(service){
+  const group = aiTaskGroupOf(service);
+  if(!group || group !== AI_TASK_GROUP) return '';
+  return AI_TASK_ID;
+}
 
 /* ===== W-5（10-24）AI 请求补底层超时 =====
    现状（读完代码确认）：上游 `callRelay` 已有 `withTimeout(…, 25000)`，所以**按钮不会永久卡死**。
@@ -48,8 +86,14 @@ async function callSiteRelay(service, messages, temperature, opts){
   const body = { service: service, messages: messages, temperature: temperature };
   if(opts && opts.max_tokens) body.max_tokens = opts.max_tokens;
   if(opts && opts.json_mode) body.json_mode = true;
+  const task = aiTaskHeader(service);
+  const taskGroup = aiTaskGroupOf(service);
+  const headers = { 'Content-Type':'application/json', 'X-Session': (typeof authToken === 'function' ? (authToken() || '') : '') };
+  if(task) headers['X-Ai-Task'] = task;
   // ⭐ 10/1 收口登录：站内 AI 必须带 session token，服务端未登录直接 401 auth_required
-  const res = await aiFetch(SITE_AI_URL, { method:'POST', headers:{ 'Content-Type':'application/json', 'X-Session': (typeof authToken === 'function' ? (authToken() || '') : '') }, body: JSON.stringify(body) });
+  const res = await aiFetch(SITE_AI_URL, { method:'POST', headers, body: JSON.stringify(body) });
+  const relayToken = res.headers && res.headers.get ? res.headers.get('X-Ai-Task') : '';
+  if(relayToken) window.AiTask.capture(service, relayToken);
   const txt = await res.text();
   let j = null; try{ j = JSON.parse(txt); }catch(_){}
   if(res.status === 501 || (j && j.error === 'relay_not_configured')){
@@ -146,7 +190,8 @@ function aiErrMsg(e){
   /* —— 额度 / 会员：再点一次也救不回来，别骗她「可重试」 —— */
   if(code === 'daily_limit') return '站内 AI 今天的次数用完了，明天再来（你填的内容还在）';
   if(code === 'ip_limit')    return '今天这台设备的 AI 次数到上限了，明天再来（你填的内容还在）';
-  if(code === 'user_limit')  return '你本周的免费 AI 额度用完了，开会员可继续用';
+  if(code === 'user_limit')  return '本周免费 AI 用光啦，让 AI 喝口水，下周满血回来；开会员可以接着用';
+  if(code === 'quota_limit') return '这波脑力用完了，先让 AI 喝口水，额度回来再继续';
   if(code === 'writing_limit' || code === 'mock_limit' || code === 'trans_limit') return '这项功能的次数用完了，开会员可继续用';
   if(code === 'vip_required') return '这是会员功能，开通后就能用';
 
@@ -184,10 +229,9 @@ async function callRelayInner(service, messages, temperature, opts){
       ea.code = 'AUTH_REQUIRED';
       throw ea;
     }
-    /* 10/1 分功能额度闸的统一前端口径：服务端返回什么文案就显示什么（limitStrip 轻条+「开会员」按钮，
-       她拍板不弹窗不自动跳）。错误码映射见 ai.js；code 原样透传给调用方自行处理。 */
-    if(siteErr && /^(user_limit|mock_limit|writing_limit|trans_limit|vip_required)$/.test(siteErr.code)){
-      limitStrip(siteErr.message || '免费额度已用完，周卡首购 ¥19 立享无限用');
+    /* 额度 / 会员闸统一走底部轻条；会员到额不再引导开会员，见 limitStrip 的 code 分支。 */
+    if(siteErr && /^(user_limit|mock_limit|writing_limit|trans_limit|quota_limit|vip_required|bad_service)$/.test(siteErr.code)){
+      if(typeof limitStrip === 'function') limitStrip(siteErr.message || '这波脑力用完了，先让 AI 喝口水，额度回来再继续', siteErr.code);
       const eu = new Error(siteErr.message || '免费额度已用完');
       eu.code = siteErr.code;
       throw eu;
@@ -353,10 +397,10 @@ function aiJson(content){
 /* 长难句拆解 */
 async function callLongsent(messages){ return callRelay('longsent', messages, 0.4); }
 
-/* ===== P3 追问生成（口语练习详情 + 模考 P3 共用）=====
+/* ===== P3 追问生成（普通详情页与整场模考分开计量）=====
    输入 P2 题面（object，含 promptEn / youShouldSay）和考生的 P2 英文回答，
    调 DeepSeek 出 3 个抽象 Part 3 追问题（社会类、对比、未来、影响等）。
-   服务 key：'mock_q'（与口语模考共用同一 service，省配额）；失败兜底返回预设 P3。 */
+    普通详情页用 p3_followup；整场模考用 mock_q 并进入同一场模考额度。 */
 const P3_PRESET = [
   'Why do you think this topic matters to people in today\'s society?',
   'How have people\'s attitudes towards this changed compared with the past?',
@@ -529,10 +573,11 @@ function sanitizeP3Question(q, step){
   return fb;
 }
 
-async function genSpeakingP3(p2, p2Text, step, prevQ, prevA){
+async function genSpeakingP3(p2, p2Text, step, prevQ, prevA, service){
   step = step || 0;
   const isFirst = !prevQ && !prevA;
   const sys = P3_GEN_SYS
+    + (service === 'mock_q' ? '\n\n[STATION_TASK:mock_exam]' : '')
     + '\n\n--- CURRENT TURN ---'
     + (isFirst
         ? "\nThis is the FIRST follow-up (Q1): base it on something SPECIFIC the candidate actually said in their Part 2 talk (a detail, a person, a place, a feeling or a reason they gave) - then widen it to a general angle. Difficulty must already match their tier: if their Part 2 was weak, Q1 must be under 12 words and elementary. ⚠️ 'widen it to a general angle' is not advice, it is a requirement: even a weak candidate gets a SOCIAL question, just in simpler words (rule 2d). The candidate's own life is never the subject."
@@ -569,7 +614,7 @@ async function genSpeakingP3(p2, p2Text, step, prevQ, prevA){
       + 'and "you" may only appear in an opinion frame ("Do you think people...?" / "In your opinion, why...?"). '
       + 'Match the difficulty to their overall performance as analysed above — simpler WORDS for weaker candidates, never a personal SUBJECT.';
   }
-  const content = await callRelay('mock_q', [
+  const content = await callRelay(service === 'p3_followup' ? 'p3_followup' : 'mock_q', [
     { role:'system', content:sys },
     { role:'user', content:user }
   ], 0.8);
@@ -599,7 +644,7 @@ async function genSpeakingP3Three(p2, p2Text){
   const out = [];
   let prevQ = null, prevA = null;
   for(let i = 0; i < 3; i++){
-    const q = await genSpeakingP3(p2, p2Text, i, prevQ, prevA);
+    const q = await genSpeakingP3(p2, p2Text, i, prevQ, prevA, 'p3_followup');
     out.push(q);
     prevQ = q; prevA = ''; // 模考无考生作答，续题靠 cue 自然追问
   }
@@ -608,4 +653,11 @@ async function genSpeakingP3Three(p2, p2Text){
 function presetSpeakingP3Three(){
   return [ P3_PRESET[0], 'Why do you think that is the case?', 'Do you think this might change in the future? Why or why not?' ];
 }
-window.MockGenP3 = { genNext: genSpeakingP3, presetNext: presetSpeakingP3, gen3: genSpeakingP3Three, preset3: presetSpeakingP3Three };
+window.MockGenP3 = {
+  genNext: function(p2, p2Text, step, prevQ, prevA, service){
+    return genSpeakingP3(p2, p2Text, step, prevQ, prevA, service || 'p3_followup');
+  },
+  presetNext: presetSpeakingP3,
+  gen3: genSpeakingP3Three,
+  preset3: presetSpeakingP3Three,
+};

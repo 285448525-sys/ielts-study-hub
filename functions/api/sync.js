@@ -109,7 +109,7 @@ async function handleRequest(context) {
   if (!env || !env.SYNC_KV) {
     return json({ ok: false, error: '云端存储未启用（请在 Cloudflare Pages 设置里绑定 SYNC_KV 命名空间）' }, 503);
   }
-  const sess = await readSession(env.SYNC_KV, request);
+  const sess = await readSession(env.SYNC_KV, request, null, true);
   let acct = sess ? sess.acct : '';
   if (!acct) {
     return json({ ok: false, error: 'unauthorized', msg: '登录已过期，请重新登录' }, 401);

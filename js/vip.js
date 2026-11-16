@@ -9,8 +9,7 @@
    让整个 vip.js 挂掉（10/12 实踩：卡片/矩阵/状态卡全不渲染，报 Identifier has already been declared）。
    要读就动态取：window.Pricing ? Pricing.FREE_AI_DESC : 回退字面量。 */
 function freeAiDesc(){
-  /* W-FREE-4（10-25）：回退字面量同步新口径 —— 写作批改已改「每月 3 次」，只剩串题素材是会员专属。 */
-  return (window.Pricing && window.Pricing.FREE_AI_DESC) || '口语模考每月 1 次 · 写作批改每月 3 次 · 其他 AI 每周 5 次（串题素材为会员专属）';
+  return (window.Pricing && window.Pricing.FREE_AI_DESC) || '写作批改每月 3 篇 · 其他 AI 每周 5 次 · 口语模考与高耗 AI 会员专属';
 }
 
 
@@ -27,7 +26,7 @@ ready(() => {
 function renderVipMatrix(){
   const box = document.getElementById('vipMatrix');
   if(!box || !window.Pricing) return;
-  Pricing.renderMatrix(box, { legacy:true });
+  Pricing.renderMatrix(box);
   /* KIMI-P5-5（10-26）：稿子把对比表叫 .kv-compare，共享层 js/pricing.js 渲染的是裸 <table>。
      这里只补一个类名让稿子的样式能挂上，不改任何样式/逻辑（表体仍由 pricing.js 渲染）。 */
   const __kvT = box.querySelector('table');
@@ -257,7 +256,7 @@ async function loadVipStatus(){
           ${VIP_ICON_GOLD}
           <div style="flex:1;min-width:200px">
             <div style="font-weight:700;font-size:16px">会员生效中 · ${escapeHtml(acct)}</div>
-            <div class="muted" style="font-size:13px;margin-top:4px">${datePart} · AI 功能无限使用</div>
+            <div class="muted" style="font-size:13px;margin-top:4px">${datePart} · 轻量 AI 不限用，重度按功能额度</div>
           </div>
           <span class="badge" style="background:var(--primary);color:var(--on-primary)">VIP</span>
         </div>
@@ -269,7 +268,7 @@ async function loadVipStatus(){
           ${VIP_ICON_GOLD}
           <div style="flex:1;min-width:200px">
             <div style="font-weight:700;font-size:16px">当前是免费版${acct ? ' · ' + escapeHtml(acct) : ''}</div>
-            <div class="muted" style="font-size:13px;margin-top:4px">全部学习功能可用；AI 免费体验：${escapeHtml(freeAiDesc())}；升级会员 AI 无限用。</div>
+            <div class="muted" style="font-size:13px;margin-top:4px">全部学习功能可用；免费体验：${escapeHtml(freeAiDesc())}；会员轻量 AI 不限用，重活按功能额度。</div>
           </div>
           <button class="btn btn-primary" id="vipGoPlans">升级会员</button>
         </div>

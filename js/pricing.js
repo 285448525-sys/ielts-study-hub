@@ -12,16 +12,15 @@ const VIP_PLANS = [
   { id:'quarter', name:'90 天卡', price:'129', orig:'',   unit:'90 天', perDay:'≈ 1.4 元/天', save:'', tag:'' },
 ];
 
-/* 免费额度口径（与 js/vip.js 原 FREE_AI_DESC、functions/api/ai.js 三处同源）：
-   口语模考每月 1 次 · 写作批改每月 3 次 · 串题素材会员专属 · 其他 AI 每周 5 次 · 云同步与导出永久免费 */
-const FREE_AI_DESC = '口语模考每月 1 次 · 写作批改每月 3 次 · 其他 AI 每周 5 次（串题素材为会员专属）';
+/* 免费额度口径：写作批改每月 3 篇 · 其他 AI 每周 5 次 · 口语模考与高耗 AI 会员专属 */
+const FREE_AI_DESC = '写作批改每月 3 篇 · 其他 AI 每周 5 次 · 口语模考与高耗 AI 会员专属';
 
 /* 对比矩阵（17 条目 = 原型 会员定价页_ielts.html L446-549 全表逐条搬入）。
    结构：cat 分类 + rows[{label, sub?, free, vip}]。
    free/vip 取值语义（renderMatrix 负责转 DOM）：
      'yes'    = ✓ 完整可用
      'lock'   = 🔒 会员专属
-     'text:x' = 直接显示文本 x（如「每月 1 次」「无限次」）
+      'text:x' = 直接显示文本 x（如「每周 10 场」「每月 5 次」）
      'dash'   = —（不适用）
    🔴 口径红线（违反=返工）：不得出现「Band」「雅思官方保证」；价格数字一律来自 VIP_PLANS 字段。 */
 const VIP_MATRIX = [
@@ -32,16 +31,17 @@ const VIP_MATRIX = [
     { label:'语料听写 / 长难句', free:'yes', vip:'yes' },
   ]},
   { cat:'AI 能力（这里才是会员的核心）', rows:[
-    { label:'口语模考', sub:'AI 出题 + 评分 + 四维报告', free:'text:每月 <b>1</b> 次', vip:'text:<b>无限次</b>' },
-    /* W-FREE-4（10-25）：她拍板「作文页免费给所有人用」—— 免费列从 🔒 改「每月 3 次」。
+    { label:'口语模考', sub:'AI 出题 + 评分 + 四维报告', free:'lock', vip:'text:每周 <b>10</b> 场' },
+    /* W-FREE-4（10-25）：她拍板「作文页免费给所有人用」—— 免费列从 🔒 改「每月 3 篇」。
        🔴 这个 3 必须与 functions/api/ai.js 的 AI_FREE_WRITING_TOTAL 默认值一致（那里也是 3）；
           她以后改环境变量，这里要跟着改，否则页面说 3 次实际给别的数。 */
-    { label:'写作批改', sub:'四项评分 + 逐句点评', free:'text:每月 <b>3</b> 次', vip:'text:<b>无限次</b>' },
+    { label:'写作批改', sub:'四项评分 + 逐句点评', free:'text:每月 <b>3</b> 篇', vip:'text:<b>不限篇</b>' },
     /* W-FREE-4：模板库已全免费（W-FREE-3 摘锁）→ 免费列与会员列都是绿对勾，不再写「解锁」。 */
     { label:'作文模板库', sub:'全部模板', free:'yes', vip:'yes' },
-    { label:'串题素材生成', sub:'P2 一稿串多题 · AI 定制', free:'lock', vip:'text:<b>无限生成</b>' },
-    { label:'完整备考计划生成', sub:'AI 排周，落地到每日清单', free:'lock', vip:'yes' },
-    { label:'其他 AI 辅助', sub:'翻译 · 长难句解析 · 智能分配 · 口语诊断 · 听写检查', free:'text:每周共享 <b>5</b> 次', vip:'text:<b>无限次</b>' },
+    { label:'串题素材生成', sub:'P2 一稿串多题 · AI 定制', free:'lock', vip:'text:每月 <b>5</b> 次' },
+    { label:'完整备考计划生成', sub:'AI 排周，落地到每日清单', free:'lock', vip:'text:每月 <b>5</b> 次' },
+    { label:'换季重映射 / 整套素材生成 / 深度诊断', sub:'比较耗算力的功能各自单独计', free:'lock', vip:'text:每项每月 <b>5</b> 次' },
+    { label:'其他 AI 辅助', sub:'翻译 · 长难句解析 · 智能分配 · 口语诊断 · 听写检查', free:'text:每周共享 <b>5</b> 次', vip:'text:<b>不限次</b>' },
   ]},
   { cat:'数据与设备', rows:[
     { label:'多设备云同步', sub:'全部学习数据，不限量、不收费', free:'text:✓ 永久免费', vip:'yes' },
@@ -65,7 +65,7 @@ function priceText(key){
     case 'weekOrig':     return '¥' + (p.orig || p.price);              // ¥39
     case 'weekFirst':    return '首购 ¥' + p.price + ' 起';              // 首购 ¥19 起
     case 'weekBtn':      return '周卡 ¥' + p.price;                     // 周卡 ¥19
-    case 'weekUnlimited':return '周卡首购 ¥' + p.price + ' 立享无限用';   // 周卡首购 ¥19 立享无限用
+    case 'weekUnlimited':return '周卡首购 ¥' + p.price + ' 轻量 AI 不限用';
     case 'month':        return '30 天卡 ¥' + (VIP_PLANS[1] || p).price;
     case 'quarter':      return '90 天卡 ¥' + (VIP_PLANS[2] || p).price;
     default:             return '¥' + p.price;
@@ -116,7 +116,7 @@ function renderPlanCards(box, opts){
       + '<div class="plan-perday muted">' + escapeHtml(p.perDay)
       + (p.save ? ' · <b class="plan-save">' + escapeHtml(p.save) + '</b>' : '') + '</div>'
       + '<ul class="plan-list muted">'
-      + '<li>AI 功能无限次</li>'
+       + '<li>轻量 AI 不限用，重活按功能额度</li>'
       + '<li>会员专属功能（上线即用）</li>'
       + '<li>跟账号走，多设备通用</li>'
       + '</ul>'
@@ -138,7 +138,7 @@ function renderPlanCards(box, opts){
    默认全量 17 行（定价页用）。free/vip 语义见 VIP_MATRIX 注释。
    ⚠️ legacy 的 free/vip 值以原静态表为准，不等同于全量版同行（原表把「作文模板库」并进了 AI 5 行里，
    故 legacy 模式 AI 类取前 5 条 = 口语模考/写作批改/串题素材/完整备考计划/其他辅助，与原表一致）。
-   ⚠️ W-FREE-4（10-25）：她拍板「作文页免费给所有人用」→ 写作批改 free 从 lock 改每月 3 次、
+    ⚠️ W-FREE-4（10-25）：她拍板「作文页免费给所有人用」→ 写作批改 free 从 lock 改每月 3 篇、
       作文模板库 free 从 lock 改 yes。legacy 那五条**不动**（它是历史对照口径）。 */
 function _cellHtml(v, col){
   if(v === 'yes')  return '<td class="' + col + ' yes"><svg aria-label="支持"><use href="#i-check"/></svg></td>';

@@ -10,18 +10,17 @@
 //   AI_DAILY_LIMIT       选填，全站每日总调用上限，默认 3000
 //   AI_IP_LIMIT          选填，单 IP 每日上限，默认 1000（10/6 由 200 上调：这道闸在会员判断之前，
 //                          站长本人也受限；20 人规模下 200 不够）
-//   AI_USER_WEEKLY_LIMIT 选填，免费账号每周 AI 兜底额度，默认 5。
-//                        10/1 下午她拍板口径：口语模考免费每月 1 次 / 写作批改免费 0 次（会员专属）/
-//                        其余辅助 AI（含翻译·长难句）每周合计 5 次；会员跳过全部免费额度闸。
-//                        （原 AI_USER_DAILY_LIMIT=10 每日兜底口径同日退役。）
-//                        🔴 W-FREE-2（10-25 她拍板）：写作批改改「免费每人每月 3 篇」——
-//                        计量键同时由终身 aiqt:<acct>:writing 改为按月 aiqmo:<acct>:<YYYY-MM>:writing。
-//   AI_FREE_MOCK_MONTHLY 选填，口语模考免费次数/自然月，默认 1
-//   AI_FREE_WRITING_TOTAL 选填，写作批改免费次数/自然月，默认 3（配 0 回到会员专属）
+//   AI_USER_WEEKLY_LIMIT 选填，免费账号每周轻量 AI 兜底额度，默认 5。
+//                        11-15 最终口径：免费写作批改每月 3 篇；口语模考与高耗 AI 会员专属；
+//                        会员轻量 AI 不设次数，写作批改不设次数，重活逐项独立额度。
+//                        （原 AI_USER_DAILY_LIMIT=10 每日兜底口径已退役。）
+//   AI_FREE_MOCK_MONTHLY 已退役：口语模考不再给免费次数，整场模考仅会员可用。
+//   AI_FREE_WRITING_TOTAL 选填，免费写作批改次数/自然月，默认 3（配 0 回到会员专属）
 //   AI_RATE_PER_MIN      选填，单账号每分钟调用上限（防脚本刷量），默认 10；会员同样受限
 // 访问规则（她 10/1 拍板「必须登录才能用 AI」）：登录闸先于一切——未登录（无/无效 X-Session）
 // 一律 401 auth_required，即使 AI_API_KEY 未配也不给未登录用户探出任何信息。
 // 未配 AI_API_KEY 时（已登录用户）返回 501 { ok:false, error:'relay_not_configured' }。
+// 会员跳过免费轻量额度闸；重活按下面的 QUOTA_LIMITS 逐项独立计数，7 天卡按四分之一配额。
 //
 // 为什么只透传白名单字段：请求体由浏览器提供，若整段转发上游，任何人都能借本站 Key
 // 调任意参数（甚至换 model 打贵模型）。因此只取 model/messages/temperature/max_tokens/
@@ -35,8 +34,10 @@
 //   aiqip:<ip>:<day>:<bucket>     单 IP 今日（TTL 48h）
 //   aiqa:<acct>:<day>:<bucket>    按账号今日（TTL 48h）—— 面板「今日 AI 次数」
 //   aiqw:<acct>:<YYYY-Www>        免费账号周兜底计数（TTL 10 天）
-//   aiqmo:<acct>:<YYYY-MM>        口语模考月额度（TTL 40 天）
-//   aiqmo:<acct>:<YYYY-MM>:writing 写作批改月额度（TTL 40 天）—— 10-25 W-FREE-2 起
+//   aiqmo:<acct>:<YYYY-MM>        ⛔ 退役：旧免费模考月键，不再读写
+//   aiqmo:<acct>:<YYYY-MM>:writing 免费写作批改月额度（TTL 40 天）
+//   aiqv2:<acct>:<group>:<period> 会员重活周期额度（TTL 40 天）
+//   aiqtask:<acct>:<group>:<period>:<token> 会员重活任务接力牌（TTL 40 天）
 //   aiqt:<acct>:writing           ⛔ 10-25 W-FREE-2 起不再读写（旧的终身写作计数，已废，别再用）
 //   aiqm:<acct>:<day>:<HHMM>      分钟风控（TTL 2 分钟自愈）
 //   aiqwv:<acct>:<YYYY-Www>       ⛔ 10/20 深夜起**不再写入**（面板已改用 aistat: 累加近 7 天，
@@ -49,14 +50,15 @@
      · 异源 → 置 'null'（浏览器直接拒绝，拦住「别的网站借用户浏览器调本站 AI」）；
      · 无 Origin（curl / 服务端脚本）→ 回 '*'，但这类请求**本来就不受 CORS 约束**，
        所以那道闸（防盗刷额度）交给 Cloudflare Edge 的 Rate Limiting，不在这里假装能挡。
-       ⚠️ 浏览器请求会带 X-Session，预检白名单必须包含它；按 Origin 变化回 Vary。 */
+       ⚠️ 浏览器请求会带 X-Session / X-Ai-Task，预检白名单必须放行；成功响应要暴露 X-Ai-Task。 */
 import { readSession } from './auth.js';
 
 function corsHeaders(env) {
   return {
     'access-control-allow-origin': (env && env.__allowOrigin) || (env && env.AI_ALLOW_ORIGIN) || '*',
     'access-control-allow-methods': 'POST, OPTIONS',
-    'access-control-allow-headers': 'Content-Type, X-Session',
+    'access-control-allow-headers': 'Content-Type, X-Session, X-Ai-Task',
+    'access-control-expose-headers': 'X-Ai-Task',
     'access-control-max-age': '86400',
     'vary': 'Origin',
   };
@@ -64,9 +66,176 @@ function corsHeaders(env) {
 
 const DEFAULT_BASE = 'https://api.deepseek.com/v1';
 const DEFAULT_MODEL = 'deepseek-chat';
-const MAX_MAX_TOKENS = 8192;
 const MAX_INPUT_CHARS = 60000;      // messages 序列化后的字符上限，防超大请求拖爆上游
 const UPSTREAM_TIMEOUT_MS = 55000;  // Pages Function 上限 60s（免费版 CPU/墙钟），留 5s 余量
+const DAY_MS = 86400000;
+const PERMANENT_VIP_EXPIRE = 9999999999999;
+const QUOTA_TTL = 3456000;
+const QUOTA_LIMITS = {
+  mock_exam: { limit: 10, period: 'week', label: '口语模考' },
+  chuan: { limit: 5, period: 'month', label: '串题' },
+  material: { limit: 5, period: 'month', label: '整套素材生成' },
+  remap: { limit: 5, period: 'month', label: '换季重映射' },
+  studyplan: { limit: 5, period: 'month', label: '完整备考计划' },
+  diagpro: { limit: 5, period: 'month', label: '深度诊断' },
+};
+const SERVICE_PRIORITY = {
+  p3_followup: 5,
+  writing_score: 10,
+  material_plan: 20,
+  material: 20,
+  material_persona: 20,
+  material_fixen: 20,
+  material_remap: 20,
+  speaking_chuan_plan: 20,
+  speaking_chuan_final: 20,
+  studyplan: 20,
+  diagpro: 20,
+  mock_q: 20,
+  mock_score: 20,
+  mock_summary: 20,
+};
+const SERVICE_RULES = {
+  diag: { max: 4096 },
+  rebalance: { max: 1500 },
+  daily: { max: 4096 },
+  weekly: { max: 4096 },
+  words: { max: 256 },
+  longsent: { max: 4096 },
+  translate: { max: 4096 },
+  trans: { max: 4096 },
+  dictation_check: { max: 4096 },
+  errorbook: { max: 4096 },
+  gpt: { max: 4000 },
+  pattern_judge: { max: 150 },
+  sentence_check: { max: 600 },
+  speaking_aihelper: { max: 4096 },
+  speaking_coach: { max: 1400 },
+  speaking_diagnose: { max: 4096 },
+  p3_aihelper: { max: 4096 },
+  p3_review: { max: 4096 },
+  p3_followup: { max: 4096 },
+  writing_hint: { max: 4096 },
+  writing_bank: { max: 4096 },
+  writing_score: { max: 8192 },
+  mock_q: { max: 4096, quota: 'mock_exam' },
+  mock_score: { max: 4096, quota: 'mock_exam' },
+  mock_summary: { max: 4096 },
+  speaking_chuan_plan: { max: 4096, quota: 'chuan' },
+  speaking_chuan_final: { max: 4096, quota: 'chuan' },
+  /* 出问卷是整套素材的前置步骤，只验额度不扣次数：否则一次完整流程会吃掉 2 次，
+     与「整套素材生成每月 5 次」的口径不符。 */
+  material_plan: { max: 8192, quota: 'material', gateOnly: true },
+  material: { max: 8192, quota: 'material' },
+  material_persona: { max: 4096, quota: 'material' },
+  material_fixen: { max: 4096, quota: 'material' },
+  material_remap: { max: 8192, quota: 'remap' },
+  studyplan: { max: 4000, quota: 'studyplan' },
+  diagpro: { max: 3000, quota: 'diagpro' },
+};
+
+function quotaSuffix(period, now) {
+  return period === 'week' ? isoWeekKey(now) : monthKey(now);
+}
+
+function quotaKey(acct, group, period, now) {
+  return 'aiqv2:' + acct + ':' + group + ':' + quotaSuffix(period, now);
+}
+
+function quotaTaskPrefixKey(acct, group, period, now) {
+  return 'aiqtask:' + acct + ':' + group + ':' + quotaSuffix(period, now) + ':';
+}
+
+function shortPlanQuota(vip, now) {
+  if (!vip || !vip.expire || vip.expire >= PERMANENT_VIP_EXPIRE) return false;
+  /* fullUntil = 已付费的全额配额期结束点。过了这个点还没到期，说明只剩短卡尾巴 → 1/4。
+     老记录没有 fullUntil 时退回档位判断（30/90 天档仍按全额，不误伤最后一周）。 */
+  const fullUntil = Number(vip.fullUntil || 0);
+  if (fullUntil > 0) return (now || Date.now()) >= fullUntil;
+  const planDays = vipTierDays(vip);
+  if (planDays > 0) return planDays <= 7;
+  if (vip.plan === 'week' || vip.plan === '7d') return true;
+  if (vip.plan === 'month' || vip.plan === 'quarter' || vip.plan === 'permanent') return false;
+  /* 没有可靠档位信息时放行：宁可让老会员多用，也不把续费中的老用户误降成 1/4。 */
+  return false;
+}
+
+/* 档位只记“买过的最大档”，不能拿总到期天数推：7 天卡续两次仍是 7 天档。 */
+function vipTierDays(vip) {
+  if (!vip || typeof vip !== 'object') return 0;
+  const explicit = Number(vip.planDays || vip.grantedDays || 0);
+  if (explicit > 0) return explicit;
+  const plan = String(vip.plan || '').toLowerCase();
+  if (plan === 'week' || plan === '7d') return 7;
+  if (plan === 'month' || plan === '30d') return 30;
+  if (plan === 'quarter' || plan === '90d') return 90;
+  if (plan === 'permanent') return 3650;
+  if (vip.grantedAt && vip.expire && vip.expire > vip.grantedAt) {
+    const inferredDays = Math.round((vip.expire - vip.grantedAt) / DAY_MS);
+    if (inferredDays > 0 && inferredDays <= 14) return 7;
+    if (inferredDays >= 29 && inferredDays <= 92) return inferredDays <= 31 ? 30 : 90;
+  }
+  return 0;
+}
+
+function limitOf(group, vip) {
+  const def = QUOTA_LIMITS[group];
+  if (!vip.quarter) return def.limit;
+  return Math.max(1, Math.floor(def.limit / 4));
+}
+
+function quotaMessage(group, vip) {
+  const def = QUOTA_LIMITS[group];
+  const total = limitOf(group, vip);
+  if (def.period === 'week') return `${def.label}这周跑满 ${total} 场啦，先让 AI 喝口水，下周满血回来`;
+  return `${def.label}这个月跑满 ${total} 次啦，先让 AI 喝口水，下月再接着忙`;
+}
+
+function readNumber(kv, key) {
+  return kv.get(key).then(v => parseInt(v || '0', 10) || 0).catch(() => 0);
+}
+
+function makeTaskToken() {
+  try {
+    const c = globalThis.crypto;
+    if (c && typeof c.randomUUID === 'function') return c.randomUUID().replace(/-/g, '');
+    if (c && typeof c.getRandomValues === 'function') {
+      const bytes = c.getRandomValues(new Uint8Array(12));
+      return Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+    }
+  } catch (e) {}
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+}
+
+function validTaskToken(token) {
+  return /^[A-Za-z0-9_-]{8,64}$/.test(token);
+}
+
+function normalizeService(rawService, clean) {
+  const known = Object.prototype.hasOwnProperty.call(SERVICE_RULES, rawService);
+  if (!known) return { service: rawService, valid: false };
+  const sys = clean.filter(m => m.role === 'system').map(m => String(m.content || '')).join('\n');
+  const text = sys.slice(0, 12000);
+  let detected = null;
+  if (/\[STATION_TASK:mock_exam\]/.test(text)) detected = 'mock_q';
+  else if (/你是雅思写作考官|官方评分原话短语表/.test(text)) detected = 'writing_score';
+  else if (/生成从今天到考试日的完整每日任务计划/.test(text)) detected = 'studyplan';
+  else if (/你是一位雅思写作与口语主讲老师/.test(text)) detected = 'diagpro';
+  else if (/你是雅思口语 P2 串题规划师|你是雅思口语 P2 串题成稿助手|从这段雅思口语 P2 讲稿提取/.test(text)) detected = 'speaking_chuan_final';
+  else if (/你是雅思口语串题覆盖挖掘助手/.test(text)) detected = 'material_remap';
+  else if (/你是雅思口语素材规划师/.test(text)) detected = 'material_plan';
+  else if (/你是雅思口语人设分析师/.test(text)) detected = 'material_persona';
+  else if (/你是英语润色助手/.test(text)) detected = 'material_fixen';
+  else if (/你是雅思口语「串题素材」整理教练|【P2 题库对照清单】/.test(text)) detected = 'material';
+  else if (/You are an IELTS Speaking Part 3 follow-up question generator/.test(text)) detected = 'p3_followup';
+  else if (/You are an IELTS speaking examiner/.test(text)) detected = 'mock_score';
+  else if (/You are an IELTS speaking error analyst/.test(text)) detected = 'mock_summary';
+  if (!detected) return { service: rawService, valid: true };
+  const rawPriority = SERVICE_PRIORITY[rawService] || 0;
+  const detectedPriority = SERVICE_PRIORITY[detected] || 0;
+  const service = detectedPriority > rawPriority ? detected : rawService;
+  return { service: service, valid: true, corrected: service !== rawService };
+}
 
 function json(obj, status, env) {
   return new Response(JSON.stringify(obj), {
@@ -83,7 +252,7 @@ function dayKey(d) {
   return d.getUTCFullYear() + p(d.getUTCMonth() + 1) + p(d.getUTCDate());
 }
 
-/* 自然月键（UTC）：口语模考「每月 1 次」按自然月清零，键里带月份故 TTL 只防残留。 */
+/* 自然月键（UTC）：写作批改与重活月额度按自然月清零，键里带月份故 TTL 只防残留。 */
 function monthKey(d) {
   const p = n => String(n).padStart(2, '0');
   return d.getUTCFullYear() + '-' + p(d.getUTCMonth() + 1);
@@ -186,8 +355,14 @@ export async function onRequest(context) {
     return json({ ok: false, error: '输入过长（上限 ' + MAX_INPUT_CHARS + ' 字符）' }, 413, env);
   }
 
-  // service 在所有配额闸之前就要用（diag 免费豁免周兜底，见下）
-  const service = String((body && body.service) || '').trim();
+  // service 先白名单 + 提示词指纹校正：防浏览器把重活改名成便宜功能绕开额度。
+  const rawService = String((body && body.service) || '').trim();
+  const resolved = normalizeService(rawService, clean);
+  if (!resolved.valid) {
+    return json({ ok: false, error: 'bad_service', msg: '这个 AI 功能没有登记，刷新页面再试一次吧' }, 400, env);
+  }
+  const service = resolved.service;
+  const rule = SERVICE_RULES[service];
 
   /* ---- 配额：全站每日 + 单 IP 每日 ---- */
   const now = new Date();
@@ -216,80 +391,67 @@ export async function onRequest(context) {
   /* 会员身份（10/1 晚框架先搭好）：vip:<acct>.expire 未过期 = 会员。
      会员不受 AI_USER_DAILY_LIMIT 限制（权益口径先按豆包方案「会员无限 AI」实现，
      她拍板改口径时只动这里）。vip 键只在服务端，绝不进 DATA 云同步（客户端可篡改）。 */
-  let isVip = false;
+  let vipRecord = null;
   try {
     const v = JSON.parse((await env.SYNC_KV.get('vip:' + acct)) || 'null');
-    isVip = !!(v && v.expire && v.expire > Date.now());
+    if (v && v.expire && v.expire > Date.now()) vipRecord = v;
   } catch (e) {}
+  const isVip = !!vipRecord;
+  const vipQuota = { quarter: shortPlanQuota(vipRecord, now) };
 
-  /* 按账号每周兜底额度（免费/会员分层）：AI_USER_WEEKLY_LIMIT 环境变量，默认 5。
-     ⚠️ 10/1 下午她拍板：原「每日 10 次」口径取消，改为每周 5 次兜底（口语模考/写作批改/
-     串题在下面对应功能闸先行；其余辅助 AI 全部走这里）。会员跳过。
-     10/2 拍板「备考诊断免费」：service='diag' 不占这 5 次（转化钩子要无门槛）；
-     同日「每日重排 rebalance 也免费」（留存命脉：让用户每天回来，成本极低）；
-     diag/rebalance 仍受上面全站日闸 / IP 闸与下面分钟风控约束，盗刷照样拦。 */
+  /* 免费账号每周 5 次只套轻量 AI；写作批改单独按月 3 篇，重活一律会员专属。
+     diag 与 rebalance 继续免费且不计入周额度；会员轻量 AI 与写作批改均不限次。 */
   const week = isoWeekKey(now);
   const weekLimit = parseInt((env && env.AI_USER_WEEKLY_LIMIT) != null ? env.AI_USER_WEEKLY_LIMIT : '5', 10) || 0;
-  // ⚠️ 豁免名单只放「本就免费」的服务；diagpro 是会员项，绝不能加进来（10/6 加闸时特意核过这一行）
-  if (weekLimit > 0 && !isVip && service !== 'diag' && service !== 'rebalance') {
+  const freeWeeklyService = !isVip && !rule.quota && service !== 'writing_score'
+    && service !== 'diag' && service !== 'rebalance';
+  if (weekLimit > 0 && freeWeeklyService) {
     let usedWeek = 0;
     try { usedWeek = parseInt((await env.SYNC_KV.get('aiqw:' + acct + ':' + week)) || '0', 10) || 0; } catch (e) {}
     if (usedWeek >= weekLimit) {
-      return json({ ok: false, error: 'user_limit', msg: '你本周的免费 AI 额度（' + weekLimit + ' 次）已用完，周卡首购 ¥19 立享无限用' }, 429, env);
+      return json({ ok: false, error: 'user_limit', msg: '本周 ' + weekLimit + ' 次免费 AI 用光啦，让 AI 喝口水，下周满血回来；开会员可以接着用' }, 429, env);
     }
   }
 
-  /* ---- 分功能差异化额度（10/1 下午她拍板新口径）----
-     ① 口语模考 mock_q：免费每月 1 次（自然月 UTC 清零；开考出题时闸+计，评分/总结属同场不重复计）
-     ② 写作批改 writing_score：免费每人每月 3 篇（10-25 W-FREE-2 她拍板；env AI_FREE_WRITING_TOTAL
-        配 0 则回到会员专属。老口径「免费 0 次 = 会员专属」已作废）
-     ③ 串题素材 material_* / speaking_chuan_*：会员专属（免费 403 vip_required）
-     ④ 翻译/长难句不再单独设组，并入上面每周 5 次兜底（原 aiqd 每日键口径退役）
-     计量键：aiqmo:<acct>:<YYYY-MM>（口语模考月）/ aiqmo:<acct>:<YYYY-MM>:writing（写作月，10-25 起）。
-     默认阈值改这里要同步：auth.js ai_usage + vip.html 对比表（三处口径一致）。 */
+  /* ---- 分功能额度：免费写作每月 3 篇；会员重活每项独立计数 ----
+     会员重活以服务端签发的任务接力牌合并同一次任务内的多次模型调用；
+     任务牌不能伪造，且只在 2xx 成功后落库，失败不吃额度。 */
   const month = monthKey(now);
+  const period = rule.quota ? QUOTA_LIMITS[rule.quota].period : null;
+  const quotaPeriodKey = rule.quota ? quotaKey(acct, rule.quota, period, now) : null;
+  const quotaUsed = rule.quota ? await readNumber(env.SYNC_KV, quotaPeriodKey) : 0;
+  const quotaTaskHeader = rule.quota ? String((request.headers.get('X-Ai-Task') || '')).trim() : '';
+  const taskPrefix = rule.quota ? quotaTaskPrefixKey(acct, rule.quota, period, now) : '';
+  let quotaTaskKey = null;
+  let quotaTaskUsed = 0;
+  let quotaTaskValid = false;
+  if (rule.quota && validTaskToken(quotaTaskHeader)) {
+    quotaTaskKey = taskPrefix + quotaTaskHeader;
+    quotaTaskUsed = await readNumber(env.SYNC_KV, quotaTaskKey);
+    quotaTaskValid = quotaTaskUsed > 0;
+  }
+  const quotaTotal = rule.quota ? limitOf(rule.quota, vipQuota) : 0;
+  const quotaHit = !!(rule.quota && quotaUsed >= quotaTotal && !quotaTaskValid);
+  const quotaTaskToken = rule.quota ? (quotaTaskValid ? quotaTaskHeader : makeTaskToken()) : '';
+  const quotaTaskFinalKey = rule.quota ? taskPrefix + quotaTaskToken : '';
   if (!isVip) {
-    // ③ 串题素材会员专属
-    if (/^(material_|speaking_chuan_)/.test(service)) {
-      return json({ ok: false, error: 'vip_required', msg: '串题素材是会员专属功能，周卡首购 ¥19 起开通' }, 403, env);
+    if (rule.quota) {
+      return json({ ok: false, error: 'vip_required', msg: '这个功能比较费算力，先给会员开放；普通账号的其他学习功能照常用' }, 403, env);
     }
-    // ③c 深度版诊断会员专属（10/6 10:50 她拍板：免费版评定全部收回，非会员只保留本地诚实底座）
-    //     ⚠️ 必须**后端也拦**：只锁前端的话，API 裸奔等于没收费。照 studyplan 的写法。
-    if (service === 'diagpro') {
-      return json({ ok: false, error: 'vip_required', msg: '深度版诊断是会员专属功能，周卡首购 ¥19 起开通' }, 403, env);
-    }
-    // ③b 完整备考计划会员专属（10/2 拍板：diag 诊断免费，studyplan 生成完整 N 天计划收费；rebalance 每日重排免费）
-    if (service === 'studyplan') {
-      return json({ ok: false, error: 'vip_required', msg: '生成完整备考计划是会员专属功能，周卡首购 ¥19 起开通' }, 403, env);
-    }
-    /* ② 写作批改：免费每月 3 篇（她 2026-10-25 03:0x 拍板「就按每月 3 篇」「作文页也得是免费给所有人用的」）
-       ⚠️ 计量键同时改成按月（aiqmo:<acct>:<YYYY-MM>:writing）—— 读侧这里与写侧 :400 一带**必须一起改**：
-          只改读侧 → 永远读到 0 等于无限；只改写侧 → 闸永远看旧值等于没改。
-       ⚠️ 键名带 :writing 后缀，**不复用** aiqmo:<acct>:<YYYY-MM>（那是口语模考的计数器，共用会互相吃额度）。
-       ⚠️ 老键 aiqt:<acct>:writing 不清理：wt<=0 时代没人能用，它已成孤儿键，不影响任何逻辑。 */
     if (service === 'writing_score') {
       const wt = parseInt((env && env.AI_FREE_WRITING_TOTAL) != null ? env.AI_FREE_WRITING_TOTAL : '3', 10) || 0;
       if (wt <= 0) {
-        /* 兜底仍在：环境变量若被配成 0，写作批改重新回到会员专属（错误码名不动，前端靠它匹配） */
         return json({ ok: false, error: 'vip_required', msg: '写作批改是会员专属功能' }, 403, env);
       }
       let wUsed = 0;
       try { wUsed = parseInt((await env.SYNC_KV.get('aiqmo:' + acct + ':' + month + ':writing')) || '0', 10) || 0; } catch (e) {}
       if (wUsed >= wt) {
         return json({ ok: false, error: 'writing_limit',
-          msg: '本月 ' + wt + ' 次免费用完了，下月 1 日重置；会员可以无限改' }, 429, env);
+          msg: '本月 ' + wt + ' 篇免费批改用光啦，AI 先去喝口水，下月再来；会员不限篇' }, 429, env);
       }
     }
-    // ① 口语模考：每月 1 次
-    if (service === 'mock_q') {
-      const mLimit = parseInt((env && env.AI_FREE_MOCK_MONTHLY) != null ? env.AI_FREE_MOCK_MONTHLY : '1', 10) || 0;
-      let mUsed = 0;
-      try { mUsed = parseInt((await env.SYNC_KV.get('aiqmo:' + acct + ':' + month)) || '0', 10) || 0; } catch (e) {}
-      if (mLimit > 0 && mUsed >= mLimit) {
-        return json({ ok: false, error: 'mock_limit',
-          msg: '口语模考免费额度已用完（每月 ' + mLimit + ' 次），下月再来，或周卡首购 ¥19 无限练' }, 429, env);
-      }
-    }
+  } else if (quotaHit) {
+    return json({ ok: false, error: 'quota_limit', msg: quotaMessage(rule.quota, vipQuota) }, 429, env);
   }
 
   /* 分钟级风控（防脚本刷量，豆包 10/1 方案采纳；会员同样受限——防的是盗刷站内 Key）：
@@ -307,11 +469,10 @@ export async function onRequest(context) {
   const base = ((env && env.AI_BASE_URL) || DEFAULT_BASE).replace(/\/+$/, '');
   const model = (env && env.AI_MODEL) || DEFAULT_MODEL;
   let maxTokens = parseInt(body && body.max_tokens, 10);
-  if (!maxTokens || isNaN(maxTokens) || maxTokens <= 0) maxTokens = 4096;
+  if (!maxTokens || isNaN(maxTokens) || maxTokens <= 0) maxTokens = rule.max;
   /* SS-DICT-LOCAL-1（11-04）：查词是微内容（一个词最多四个短字段），4096 的默认窗口纯浪费生成时间。
      只对 service==='words' 且前端没显式传 max_tokens 时兜底 256；其它 service 一字不动。 */
-  if (service === 'words' && !(body && body.max_tokens)) maxTokens = 256;
-  if (maxTokens > MAX_MAX_TOKENS) maxTokens = MAX_MAX_TOKENS;
+  if (maxTokens > rule.max) maxTokens = rule.max;
   let temperature = Number(body && body.temperature);
   if (isNaN(temperature) || temperature < 0) temperature = 0.7;
   if (temperature > 2) temperature = 2;
@@ -374,32 +535,30 @@ export async function onRequest(context) {
       bumpCount(env.SYNC_KV, 'aiqa:' + acct, day, bucket),   // 按账号计量（会员也计数：面板「今日 AI 次数」要看得到会员用量，只是会员不受额度闸限制）
     ];
 
-    /* ② 10/1 下午新口径分功能计量（只对免费用户累计；会员无限用不必计）：
-       月度模考 aiqmo:<acct>:<YYYY-MM> / 写作月额度 aiqmo:<acct>:<YYYY-MM>:writing（都 TTL 40 天防残留）
-       / 周兜底 aiqw:<acct>:<YYYY-Www>（TTL 10 天防残留）。 */
+    /* 免费写作月额度 / 周兜底 / 会员重活周期额度与任务牌。 */
+    if (isVip && rule.quota && !rule.gateOnly) {
+      jobs.push((async () => {
+        try {
+          if (!quotaTaskValid) {
+            await env.SYNC_KV.put(quotaTaskFinalKey, String(quotaTaskUsed + 1), { expirationTtl: QUOTA_TTL });
+            const cur = await readNumber(env.SYNC_KV, quotaPeriodKey);
+            await env.SYNC_KV.put(quotaPeriodKey, String(cur + 1), { expirationTtl: QUOTA_TTL });
+          }
+        } catch (e) {}
+      })());
+    }
+
     if (!isVip) {
-      if (service === 'mock_q') {
-        jobs.push((async () => {
-          try {
-            const mk = 'aiqmo:' + acct + ':' + month;
-            const cur = parseInt((await env.SYNC_KV.get(mk)) || '0', 10) || 0;
-            await env.SYNC_KV.put(mk, String(cur + 1), { expirationTtl: 3456000 });
-          } catch (e) {}
-        })());
-      }
       if (service === 'writing_score') {
         jobs.push((async () => {
           try {
-            /* W-FREE-2：写作计数改按月（与上面闸门的读侧同一键名，缺一不可）。
-               TTL 40 天 = 与 aiqmo（口语模考月键）同一套「防残留」口径。 */
             const lk = 'aiqmo:' + acct + ':' + month + ':writing';
             const cur = parseInt((await env.SYNC_KV.get(lk)) || '0', 10) || 0;
             await env.SYNC_KV.put(lk, String(cur + 1), { expirationTtl: 3456000 });
           } catch (e) {}
         })());
       }
-      // diag/rebalance 免费：不占每周兜底计数（闸已在上面豁免，这里也要跳过，否则会把额度越攒越满）
-      if (service !== 'diag' && service !== 'rebalance') {
+      if (freeWeeklyService) {
         jobs.push((async () => {
           try {
             const wk = 'aiqw:' + acct + ':' + week;
@@ -505,6 +664,7 @@ export async function onRequest(context) {
       'content-type': 'application/json; charset=utf-8',
       'cache-control': 'no-store',
       'x-ai-model': model,
+      ...(quotaTaskToken ? { 'x-ai-task': quotaTaskToken } : {}),
     }, corsHeaders(env)),
   });
 }

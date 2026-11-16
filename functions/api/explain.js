@@ -46,7 +46,7 @@ function json(obj, status) {
    任何异常一律当作「无付费权限」（fail closed），绝不因为报错而放行。 */
 async function paidAllowed(env, request) {
   try {
-    const sess = await readSession(env.SYNC_KV, request);
+    const sess = await readSession(env.SYNC_KV, request, null, false);
     if (!sess) return false;
     const v = JSON.parse((await env.SYNC_KV.get('vip:' + sess.acct)) || 'null');
     return !!(v && v.expire && v.expire > Date.now());

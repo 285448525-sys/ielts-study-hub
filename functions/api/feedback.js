@@ -190,7 +190,7 @@ export async function onRequest(context) {
   /* 限频计数：当前桶 +1（不是「当天总数」——那会指数膨胀；桶值单调递增，sumBuckets 才能正确累加） */
   const bKey = 'fbr:' + ip + ':' + day + ':' + bucketOf(now);
   const cur = parseInt((await kv.get(bKey)) || '0', 10) || 0;
-  await kv.put(bKey, String(cur + 1));
+  await kv.put(bKey, String(cur + 1), { expirationTtl: 172800 });
 
   return json({ ok: true, id: id, ts: rec.ts });
 }

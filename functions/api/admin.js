@@ -40,6 +40,25 @@
 //                                          { user:{14 键 bool}, teacher:{14 键 bool} }，root 不进配置
 
 import { PERM_DEFAULTS, loadPermCfg } from './roles.js';   // 11-14 第三批：权限默认矩阵与配置校验唯一权威来源
+import { rotateAuthGen } from './auth.js';
+
+/* 会员档位只升不降：30 天会员续 7 天仍是月卡档，7 天卡续两次仍是周卡档。 */
+function vipTierDays(vip) {
+  if (!vip || typeof vip !== 'object') return 0;
+  const explicit = Number(vip.planDays || vip.grantedDays || 0);
+  if (explicit > 0) return explicit;
+  const plan = String(vip.plan || '').toLowerCase();
+  if (plan === 'week' || plan === '7d') return 7;
+  if (plan === 'month' || plan === '30d') return 30;
+  if (plan === 'quarter' || plan === '90d') return 90;
+  if (plan === 'permanent') return 3650;
+  if (vip.grantedAt && vip.expire && vip.expire > vip.grantedAt) {
+    const inferredDays = Math.round((vip.expire - vip.grantedAt) / 86400000);
+    if (inferredDays > 0 && inferredDays <= 14) return 7;
+    if (inferredDays >= 29 && inferredDays <= 92) return inferredDays <= 31 ? 30 : 90;
+  }
+  return 0;
+}
 
 const CORS = {
   'access-control-allow-origin': '*',
@@ -446,12 +465,17 @@ export async function onRequest(context) {
         if (wantUsage) aiToday += 0; else aiToday = parseInt(v.n, 10) || 0;
       }
     }
-    let tokWeek = 0, tokMonth = 0, tokWeekPt = 0, tokWeekCt = 0, tokMonthPt = 0, tokMonthCt = 0;
+    let tokWeek = 0, tokMonth = 0, tokWeekPt = 0, tokWeekCt = 0, tokWeekPch = 0;
+    let tokMonthPt = 0, tokMonthCt = 0, tokMonthPch = 0;
     for (const ds in statByDay) {
       const t = statByDay[ds].tok;
       if (!t) continue;
-      if (weekOfDayKey(ds) === week) { tokWeek += t; tokWeekPt += statByDay[ds].pt; tokWeekCt += statByDay[ds].ct; }
-      if (ds.slice(0, 6) === month.replace('-', '')) { tokMonth += t; tokMonthPt += statByDay[ds].pt; tokMonthCt += statByDay[ds].ct; }
+      if (weekOfDayKey(ds) === week) {
+        tokWeek += t; tokWeekPt += statByDay[ds].pt; tokWeekCt += statByDay[ds].ct; tokWeekPch += statByDay[ds].pch;
+      }
+      if (ds.slice(0, 6) === month.replace('-', '')) {
+        tokMonth += t; tokMonthPt += statByDay[ds].pt; tokMonthCt += statByDay[ds].ct; tokMonthPch += statByDay[ds].pch;
+      }
     }
     const tokByAcct = {};          // 合并键不带账号 → 恒空（前端已兜底为「—」）
 
@@ -469,7 +493,7 @@ export async function onRequest(context) {
       .filter(d => statByDay[d] && statByDay[d].n > 0)
       .map(d => ({ day: d, calls: statByDay[d].n, tok: statByDay[d].tok,
         pt: statByDay[d].pt, ct: statByDay[d].ct,
-        cost: yuanOf(statByDay[d].pt, statByDay[d].ct) }));
+        cost: yuanOf(statByDay[d].pt, statByDay[d].ct, statByDay[d].pch) }));
     const trendTotals = { calls: 0, tok: 0, cost: 0 };
     for (const t of trend) { trendTotals.calls += t.calls; trendTotals.tok += t.tok; trendTotals.cost += t.cost; }
     /* 本周调用 = 最近 7 个自然日的 aistat 日数据累加（替代从不写入的 aiqwv:，零新增写量） */
@@ -501,8 +525,8 @@ export async function onRequest(context) {
       .reduce((s, u) => s + (usageMonth[u.acct] || 0), 0);
     /* ⚠️ 诚实口径：分账号的 pt/ct 已放弃（10/5 P3 键合并时明确弃用，5 倍写量不值），
        只有合计 token → 真人的成本**无法精确拆分**，这里按「全站均值单价」折算，标注为估算。 */
-    const costMonthReal = users.filter(u => u.verdict === 'real')
-      .reduce((s, u) => s + (priceOk ? (tokByAcct[u.acct] || 0) / 1e6 * ((priceIn + priceOut) / 2) : 0), 0);
+    const costMonth = yuanOf(tokMonthPt, tokMonthCt, tokMonthPch);
+    const costMonthReal = aiMonth > 0 ? costMonth * aiMonthReal / aiMonth : 0;
 
     /* 10/5 P3 · 操作审计（谁何时给谁开了会员 —— 内测多人时唯一可查的地方） */
     const auditKeys = await listAll(kv, 'audit:');
@@ -573,7 +597,7 @@ export async function onRequest(context) {
       /* 10/5 P3：成本 + 分功能 */
       priceOk: priceOk, priceIn: priceOk ? priceIn : 0, priceOut: priceOk ? priceOut : 0, priceSource: priceSource,
       tokToday: tokToday, tokWeek: tokWeek, tokMonth: tokMonth, tokByAcct: tokByAcct,
-      costToday: yuanOf(tokTodayPt, tokTodayCt, tokTodayPch), costWeek: yuanOf(tokWeekPt, tokWeekCt, 0), costMonth: yuanOf(tokMonthPt, tokMonthCt, 0),
+      costToday: yuanOf(tokTodayPt, tokTodayCt, tokTodayPch), costWeek: yuanOf(tokWeekPt, tokWeekCt, tokWeekPch), costMonth: costMonth,
       costMonthReal: costMonthReal, byService: svcSorted,
       /* 10/5 P3 · 用量趋势（近 30 天，无数据日不返回） */
       trend: trend, trendTotals: trendTotals, trendDays: TREND_DAYS,
@@ -617,10 +641,11 @@ export async function onRequest(context) {
     if (!code) code = randInviteCode();
     if (code.length < 4 || code.length > 16) return json({ ok: false, error: 'bad_code', msg: '自定义邀请码须 4-16 位字母数字' }, 400);
     if (await kv.get('inv:' + code)) return json({ ok: false, error: 'invite_exists', msg: '该邀请码已存在' }, 409);
+    if (await kv.get('inv2e:' + code)) return json({ ok: false, error: 'invite_exists', msg: '该邀请码已被用户邀请码占用' }, 409);
     /* vipDays（她 10/1 内测码语义）：>0 = 用此码注册自动开会员 N 天；0/留空 = 纯注册码不送会员 */
     const vipDays = parseInt(body.vipDays, 10);
     const rec = { max: max, used: 0, created: Date.now() };
-    if (Number.isFinite(vipDays) && vipDays > 0) rec.vipDays = Math.min(vipDays, 3650);
+    rec.vipDays = Number.isFinite(vipDays) && vipDays > 0 ? Math.min(vipDays, 3650) : 0;
     await kv.put('inv:' + code, JSON.stringify(rec));
     await audit(kv, 'invite_mint', { code: code, max: max, vipDays: rec.vipDays || 0 });
     return json({ ok: true, code: code, max: max, vipDays: rec.vipDays || 0 });
@@ -646,11 +671,26 @@ export async function onRequest(context) {
     try { cur = JSON.parse((await kv.get('vip:' + acct)) || 'null'); } catch (e) {}
     /* 未过期则从现到期日顺延（续费不吃亏），已过期/新开从现在起算；永久=直接覆盖成超大值 */
     const VIP_PERMANENT_EXPIRE = 9999999999999;   // = 2286-11-20，够「永久」；date(0) 时代之上任意巨大值均可
-    const base = (!permanent && cur && cur.expire > Date.now() && cur.expire < VIP_PERMANENT_EXPIRE) ? cur.expire : Date.now();
+    const now = Date.now();
+    const prevExpire = (cur && cur.expire) || 0;
+    const active = !permanent && prevExpire > now && prevExpire < VIP_PERMANENT_EXPIRE;
+    const base = active ? prevExpire : now;
+    const prevTierDays = active ? vipTierDays(cur) : 0;
+    const planDays = permanent ? 0 : Math.max(days, prevTierDays);
+    const plan = permanent ? 'permanent' : (planDays <= 7 ? 'week' : (planDays <= 30 ? 'month' : 'quarter'));
+    /* fullUntil = 全额配额期结束点：续 7 天不新增全额期，过期后再买 7 天也不会沿用小档。 */
+    let prevFullUntil = Number((cur && cur.fullUntil) || 0);
+    if (!prevFullUntil && active && prevTierDays > 7) {
+      prevFullUntil = Math.min(prevExpire, now + prevTierDays * 86400000);
+    }
+    const fullUntil = permanent ? 0 : (days > 7 ? (base + days * 86400000) : prevFullUntil);
     const rec = {
       type: 'base',                                        // 单档会员（她拍板：免费版→基础会员，无复杂分级）
       expire: permanent ? VIP_PERMANENT_EXPIRE : base + days * 86400000,
-      grantedAt: Date.now(),
+      plan: plan,
+      planDays: planDays,
+      fullUntil: fullUntil,
+      grantedAt: (cur && cur.grantedAt) || now,
       note: permanent ? (String(body.note || '').slice(0, 90) + ' [永久]').slice(0, 100) : String(body.note || '').slice(0, 100),
     };
     await kv.put('vip:' + acct, JSON.stringify(rec));
@@ -727,16 +767,52 @@ export async function onRequest(context) {
     const set = {};
     batch.forEach(a => { set[a] = 1; });
     let deleted = 0, keys = 0;
+    let inviteKeys = [], feedbackKeys = [];
+    try { inviteKeys = await listAll(kv, 'inv2e:'); } catch (e) {}
+    try { feedbackKeys = await listAll(kv, 'fb:'); } catch (e) {}
     for (const a of batch) {
-      for (const k of [userKeyOf(a), 'vip:' + a, 'manual:' + a, 'fb:' + a, 'fbimg:' + a]) {
+      for (const k of [userKeyOf(a), 'vip:' + a, 'manual:' + a, 'role:' + a, 'bind:' + a,
+                       'invst:' + a, 'fail:' + a, 'ecfail:' + a, 'ec:' + a,
+                       'ec_cd:' + a, 'ec_lock:' + a]) {
         try { if (await kv.get(k)) { await kv.delete(k); keys++; } } catch (e) {}
+      }
+      try { await rotateAuthGen(kv, a); keys++; } catch (e) {}
+      for (const name of inviteKeys) {
+        let owner = '';
+        try { owner = String((await kv.get(name)) || ''); } catch (e) {}
+        if (owner !== a) continue;
+        try { await kv.delete(name); keys++; } catch (e) {}
+      }
+      for (const name of feedbackKeys) {
+        let rec = null;
+        try { rec = JSON.parse((await kv.get(name)) || 'null'); } catch (e) {}
+        if (!rec || rec.acct !== a) continue;
+        try { await kv.delete(name); keys++; } catch (e) {}
+        const imgKey = 'fbimg:' + String(name).slice(3);
+        try { if (await kv.get(imgKey)) { await kv.delete(imgKey); keys++; } } catch (e) {}
       }
       deleted++;
     }
     /* 按账号的 AI 计数键（键形 <prefix>:<acct>:…）——逐前缀扫一遍，别按账号扫 6 轮。
        ⚠️ 前缀要与 ai.js 写入的完全一致：aiqa 今日(48h) / aiqwv 周 / aiqmv 月 / aiqmo 模考月 /
           aiqt 写作批改 / aiqm 分钟风控。**全站的 aiq / aiqip 不带账号，不动。** */
-    for (const prefix of ['aiqa:', 'aiqwv:', 'aiqmv:', 'aiqmo:', 'aiqt:', 'aiqm:']) {
+    let sessionKeys = [], emailCodeKeys = [];
+    try { sessionKeys = await listAll(kv, 'sess:'); } catch (e) {}
+    try { emailCodeKeys = await listAll(kv, 'ec_d:'); } catch (e) {}
+    for (const name of sessionKeys) {
+      let owner = '';
+      try { owner = JSON.parse((await kv.get(name)) || 'null'); } catch (e) {}
+      owner = owner && owner.acct ? owner.acct : '';
+      if (!set[owner]) continue;
+      try { await kv.delete(name); keys++; } catch (e) {}
+    }
+    for (const name of emailCodeKeys) {
+      const parts = name.split(':');
+      const owner = parts.length >= 2 ? parts[1] : '';
+      if (!set[owner]) continue;
+      try { await kv.delete(name); keys++; } catch (e) {}
+    }
+    for (const prefix of ['aiqa:', 'aiqw:', 'aiqwv:', 'aiqmv:', 'aiqmo:', 'aiqv2:', 'aiqtask:', 'aiqt:', 'aiqm:']) {
       let names = [];
       try { names = await listAll(kv, prefix); } catch (e) { continue; }
       for (const name of names) {

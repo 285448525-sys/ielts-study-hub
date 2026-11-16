@@ -53,9 +53,9 @@ function json(obj, status) {
   });
 }
 
-/* 从 X-Session（sendBeacon 兜底 ?session=）解出邮箱；任何异常都返回空串（fail closed） */
+/* 从 X-Session 解出邮箱；任何异常都返回空串（fail closed） */
 async function sessionEmail(request, env) {
-  const sess = await readSession(env.SYNC_KV, request);
+  const sess = await readSession(env.SYNC_KV, request, null, false);
   return sess ? sess.acct : '';
 }
 

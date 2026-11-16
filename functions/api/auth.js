@@ -12,10 +12,11 @@
 //   老的手机号/用户名账号在 KV 里仍是 user:<acct> / sync:<acct> 键，数据一条没删，
 //   只是再也登不进来（她 10/21 明确要的取舍）；需要找回请找站长手工处理。
 //
-// 邀请码（她 10/1 二次拍板=内测会员码）：KV 键 inv:<CODE> = { max, used, created, vipDays? }；注册选填，
-// 用码注册成功自动开会员 vipDays 天（缺省 30）；不填码注册走免费额度。注册成功才消耗。
-// 发码/作废/看用量统一走 /api/admin（ADMIN_KEY 鉴权），页面化入口 = admin.html 站长面板
-// （她 10/1 要求：不进 CF 后台也能管用户/发码/看数据）。
+// 邀请码分两套，注册时填了码只按其中一套生效：
+//   ① 站长内测码 inv:<CODE> = { max, used, created, vipDays? }，由 /api/admin 生成；
+//      vipDays > 0 送对应天数会员，vipDays = 0 只计使用次数，老码无该字段按 30 天兜底。
+//   ② 用户裂变码 inv2e:<CODE> = <邀请人邮箱>，注册时双方各得 7 天，邀请人累计最多 30 天。
+// 注册成功才消耗内测码、才发放会员；注册失败不吃码、不发放。
 //
 // KV 键（SYNC_KV）：
 //   user:e:<email> { salt, hash, created, via:'email' }  —— PBKDF2-SHA256 10 万次迭代 + 随机盐
@@ -25,7 +26,8 @@
 //   fail:<acct>    登录失败计数（10 次锁 15 分钟，防在线爆破；TTL 自愈）
 //   authgen:<acct> 登录代次（改密/找回后 +1，旧登录凭证立即失效）
 //   ecfail:<email> 邮箱验证码失败计数（10 次锁 15 分钟；TTL 自愈）
-//   inv:<CODE>     { max, used, created, vipDays? }      —— 邀请码（注册选填；vipDays=送会员天数；无 TTL）
+//   inv:<CODE>     { max, used, created, vipDays? }      —— 站长邀请码（注册选填；vipDays=送会员天数；无 TTL）
+//   inv2e:<CODE>   <邀请人邮箱>                        —— 用户邀请码反查（my_invite / 裂变发放）
 //   数据键 sync:e:<email> / meta:e:<email> 归 /api/sync 管。
 //
 // 兼容口径（老账号）：
@@ -81,6 +83,30 @@ async function acctOfInvite(kv, code) {
   try { return (await kv.get('inv2e:' + code)) || ''; } catch (e) { return ''; }
 }
 
+/* 站长邀请码：先读有效性，再在账号落库成功后消耗并发会员。
+   账号写入失败时绝不消耗，避免重试时码已少一次或会员发到不存在的账号。 */
+async function adminInviteOf(kv, code) {
+  if (!code) return null;
+  let inv = null;
+  try { inv = JSON.parse((await kv.get('inv:' + code)) || 'null'); } catch (e) { return null; }
+  if (!inv || !Number.isFinite(Number(inv.max)) || Number(inv.max) < 1) return null;
+  if ((Number(inv.used) || 0) >= Number(inv.max)) return null;
+  return inv;
+}
+
+async function consumeAdminInvite(kv, code, acct) {
+  const inv = await adminInviteOf(kv, code);
+  if (!inv) return { ok: false };
+  inv.used = (Number(inv.used) || 0) + 1;
+  await kv.put('inv:' + code, JSON.stringify(inv));
+  const rawDays = Number(inv.vipDays == null ? 30 : inv.vipDays);
+  const days = Number.isFinite(rawDays) && rawDays > 0
+    ? Math.min(Math.round(rawDays), 3650)
+    : 0;
+  if (days > 0) await addVipDays(kv, acct, days, 'invite:' + code);
+  return { ok: true, days: days };
+}
+
 /* 发放：给邀请人和被邀人各加 INVITE_REWARD_DAYS 天会员。
    上限判定只看邀请人累计（被邀人想再邀也走自己的码，互不占用）。 */
 async function grantInvite(kv, inviteCode, invitedAcct) {
@@ -100,14 +126,63 @@ async function grantInvite(kv, inviteCode, invitedAcct) {
   return { ok: true, earnedDays: st.earnedDays };
 }
 
-/* 给账号加会员天数（在现有 expire 上累加，已过期则从现在起算） */
-async function addVipDays(kv, acct, days) {
+/* 给账号加会员天数（在现有 expire 上累加，已过期则从现在起算）。
+   note 仅用于站长邀请码的新开记录；已有 note / grantedAt 一律保留，续期不改备注。 */
+async function addVipDays(kv, acct, days, note) {
   let cur = null;
   try { cur = JSON.parse((await kv.get('vip:' + acct)) || 'null'); } catch (e) {}
   const now = Date.now();
-  const base = (cur && cur.expire && cur.expire > now) ? cur.expire : now;
+  const prevExpire = (cur && cur.expire) || 0;
+  const active = prevExpire > now;
+  const base = active ? prevExpire : now;
   const expire = base + days * 86400000;
-  await kv.put('vip:' + acct, JSON.stringify({ type: (cur && cur.type) || 'invite', expire }));
+  const next = (cur && typeof cur === 'object') ? cur : {};
+  const prevTierDays = active ? vipTierDays(cur) : 0;
+  next.type = next.type || (note ? 'base' : 'invite');
+  next.expire = expire;
+  /* 有效期内的历史大档不降级：30 天会员续 7 天，前面的全额期仍是全额。
+     但已经过期的旧档不再参与：过期后再买 7 天卡就是 7 天档，不能靠历史大档白拿全额。 */
+  const planDays = Math.max(days, prevTierDays || 0);
+  next.planDays = planDays;
+  next.plan = planDays <= 7 ? 'week' : (planDays <= 30 ? 'month' : 'quarter');
+  /* fullUntil 记录“全额配额期”到哪一刻：新买 30/90 天从本次顺延起点重算；
+     7 天卡不新增全额期。老记录没有该字段时按原档位保守推算剩余全额段。 */
+  let prevFullUntil = Number(next.fullUntil || 0);
+  if (!prevFullUntil && active && prevTierDays > 7) {
+    prevFullUntil = Math.min(prevExpire, now + prevTierDays * 86400000);
+  }
+  next.fullUntil = days > 7 ? (base + days * 86400000) : prevFullUntil;
+  next.grantedAt = next.grantedAt || now;
+  if (note && !next.note) { next.note = note; next.grantedAt = next.grantedAt || now; }
+  await kv.put('vip:' + acct, JSON.stringify(next));
+}
+
+/* 只认可靠档位；老记录用首次开通到到期的总天数做保守推断。
+   7/14 天视为周卡档，29~31 天视为月卡档，更长的视为季卡档。 */
+function vipTierDays(vip) {
+  if (!vip || typeof vip !== 'object') return 0;
+  const explicit = Number(vip.planDays || vip.grantedDays || 0);
+  if (explicit > 0) return explicit;
+  const plan = String(vip.plan || '').toLowerCase();
+  if (plan === 'week' || plan === '7d') return 7;
+  if (plan === 'month' || plan === '30d') return 30;
+  if (plan === 'quarter' || plan === '90d') return 90;
+  if (plan === 'permanent') return 3650;
+  if (vip.grantedAt && vip.expire && vip.expire > vip.grantedAt) {
+    const inferredDays = Math.round((vip.expire - vip.grantedAt) / 86400000);
+    if (inferredDays > 0 && inferredDays <= 14) return 7;
+    if (inferredDays >= 29 && inferredDays <= 92) return inferredDays <= 31 ? 30 : 90;
+  }
+  return 0;
+}
+
+function isShortPlanQuota(vip) {
+  if (!vip || !vip.expire || vip.expire >= 9999999999999) return false;
+  const fullUntil = Number(vip.fullUntil || 0);
+  if (fullUntil > 0) return Date.now() >= fullUntil;
+  const tierDays = vipTierDays(vip);
+  if (tierDays > 0) return tierDays <= 7;
+  return false;
 }
 /* 🔴 10/21：账号 → KV 键名统一入口。邮箱-only 后只剩 user:e:<email> 一种形态。
    老手机号/用户名账号的 user:<acct> 键仍在云端（数据一条没删），但已无登录入口；
@@ -219,11 +294,11 @@ async function bumpAuthGen(kv, acct) {
   await kv.put('authgen:' + acct, String(gen + 1));
 }
 
-/* 从 body、X-Session 头或 ?session= 取 token；返回 sess 记录或 null。
-   公开导出给其他 /api/* 复用：统一校验 token 格式、账号格式、显式过期与登录代次。 */
-export async function readSession(kv, request, body) {
+/* 从 body / X-Session 头取 token；allowQuery 仅给确有 ?session= 需求的历史入口放行。
+   公开导出给其他 /api/* 复用：统一校验 token 格式、账号存在、显式过期与登录代次。 */
+export async function readSession(kv, request, body, allowQuery) {
   let tok = String((request.headers.get('X-Session') || (body && body.token) || '')).trim();
-  if (!tok && request && request.url) {
+  if (!tok && allowQuery && request && request.url) {
     try { tok = String(new URL(request.url).searchParams.get('session') || '').trim(); } catch (e) {}
   }
   if (!tok || !/^[0-9a-f]{32,128}$/.test(tok)) return null;
@@ -233,6 +308,7 @@ export async function readSession(kv, request, body) {
     const s = JSON.parse(raw);
     const acct = String((s && s.acct) || '').trim().toLowerCase();
     if (!acct || !ACCT_RE.test(acct)) return null;
+    if (!(await kv.get(acctKey(acct)))) return null;
     if (s && s.exp != null && Number(s.exp) > 0 && Date.now() > Number(s.exp)) return null;
     const gen = await authGenOf(kv, acct);
     const sessGen = parseInt((s && s.gen) || '0', 10) || 0;
@@ -241,7 +317,12 @@ export async function readSession(kv, request, body) {
   } catch (e) { return null; }
 }
 
-const sessionOf = readSession;
+const sessionOf = (kv, request, body) => readSession(kv, request, body, false);
+export async function rotateAuthGen(kv, acct) {
+  const gen = await authGenOf(kv, acct);
+  await kv.put('authgen:' + acct, String(gen + 1));
+  return gen + 1;
+}
 
 /* 🔴 10/5 16:45 全局兜底：任何未捕获异常都返回人话 JSON，不再抛裸 500。
    背景：Workers 免费版 CPU 超限时抛 `error code: 1101`，浏览器只看到
@@ -408,6 +489,7 @@ async function handleRequest(context) {
       await kv.put('ec:' + email, code, { expirationTtl: 600 });
       await kv.put(cdKey, '1', { expirationTtl: 60 });
       await kv.put('ec_d:' + email + ':' + day, String(dayCnt), { expirationTtl: 86400 });
+      try { if (await kv.get('ecfail:' + email)) await codeFailClear(kv, email); } catch (e) {}
     } catch (e) {
       if (/limit/i.test(String(e && e.message))) {
         return json({ ok: false, error: 'kv_busy', code: 'kv_busy_after_send',
@@ -423,7 +505,7 @@ async function handleRequest(context) {
      注册要验证码（证明邮箱真实存在，挡批量薅邀请）；**之后登录只走普通 login**
      （账号填邮箱 + 密码，不用天天收码，体验顺）。
      邮箱账号用 e:<email> 命名空间与老手机号账号（user:<acct>）隔离，互不覆盖。
-     inviteCode 选填：批 2 接裂变（双向 7 天）；本批先收下存着，不发放。 */
+     inviteCode 选填：优先认站长内测码，其次认用户裂变码；账号落库成功才发放。 */
   if (action === 'email_register') {
     const email = String(body.email || '').trim().toLowerCase();
     const code = String(body.code || '').trim();
@@ -464,20 +546,31 @@ async function handleRequest(context) {
     try { await kv.put(_ipKey, String(_ipN), { expirationTtl: 86400 }); } catch (e) {}
 
     const rec = { email, via: 'email', created: Date.now(), salt, hash: await pbkdf2(password, salt) };
-    /* ---------- 邀请裂变（10/13 她拍板）----------
-       规则：邀请码 = 邀请人邮箱的稳定哈希（8 位）；被邀人注册时填别人的码 →
-       双方各得 INVITE_REWARD_DAYS（默认 7 天）会员；邀请人累计收益上限 INVITE_CAP_DAYS（30 天）→
-       最多邀请 4 人（4×7=28），第 5 人起不再发放（她原话：超过 30 天就不能薅了）。
-       幂等：同一邀请码只对一个被邀账号生效一次（invitedBy 落库即凭证，重复注册走 exists 拦）。 */
+    /* ---------- 邀请码（10/1 内测码 + 10/13 裂变码）----------
+       站长码按 inv:<CODE> 限次消耗并按设定天数开会员；用户码按 inv2e: 反查邀请人，
+       双方各得 7 天、邀请人累计上限 30 天。两套码都只在账号落库成功后发放。
+       幂等：同一邮箱重复注册走 exists 拦；同一裂变码不会给同一个人重复发奖。 */
+    let adminInvite = null;
     if (invCode) {
-      rec.invitedBy = invCode;
-      try { await grantInvite(kv, invCode, acct); } catch (e) { /* 发放失败不阻塞注册 */ }
+      adminInvite = await adminInviteOf(kv, invCode);
+      if (!adminInvite) {
+        const inviterAcct = await acctOfInvite(kv, invCode);
+        if (!inviterAcct) return json({ ok: false, error: 'bad_invite', msg: '邀请码无效或已用完' }, 403);
+      }
     }
+    if (invCode) rec.invitedBy = invCode;
+    await rotateAuthGen(kv, acct);
     try { await kv.put(acctKey(acct), JSON.stringify(rec)); } catch (e) {
       if (/limit/i.test(String(e && e.message))) {
         return json({ ok: false, error: 'kv_busy', msg: '云端存储今日写入配额已用完，明早再注册' }, 503);
       }
       throw e;
+    }
+    if (invCode) {
+      try {
+        if (adminInvite) await consumeAdminInvite(kv, invCode, acct);
+        else await grantInvite(kv, invCode, acct);
+      } catch (e) { /* 发放失败不阻塞注册 */ }
     }
     try { await kv.delete('ec:' + email); } catch (e) {}
     /* 建邀请反查索引：别人注册时填我的码，服务端要能反查到「是我邀请的」。
@@ -587,7 +680,9 @@ async function handleRequest(context) {
        都只降级、绝不 500 —— 宁可少回战绩，也要把码给到她。 */
     let code = '';
     try { code = await inviteCodeOf(kv, sess.acct); } catch (e) {}
-    try { if (code) await kv.put('inv2e:' + code, sess.acct); } catch (e) {}
+    try {
+      if (code && !(await kv.get('inv2e:' + code))) await kv.put('inv2e:' + code, sess.acct);
+    } catch (e) {}
     /* 顺手回邀请战绩：已邀几人 + 累计获得天数（她要看「我还差几人到顶」） */
     let invited = 0, earnedDays = 0;
     try {
@@ -604,6 +699,13 @@ async function handleRequest(context) {
     try {
     const code = String(body.code || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
     if (!code) return json({ ok: false, error: 'bad_code', msg: '邀请码不能为空' }, 400);
+    const adminInv = await adminInviteOf(kv, code);
+    if (adminInv) {
+      const left = Math.max(0, Number(adminInv.max) - (Number(adminInv.used) || 0));
+      const days = Number(adminInv.vipDays == null ? 30 : adminInv.vipDays);
+      return json({ ok: true, valid: true, remainingUses: left, vipDays: Number.isFinite(days) ? days : 0,
+        msg: left > 0 ? ('有效 · 还能用于 ' + left + ' 次注册') : '这个邀请码已用完' });
+    }
     const acct = await acctOfInvite(kv, code);
     if (!acct) return json({ ok: false, error: 'not_found', msg: '这个邀请码不存在，检查一下？' }, 404);
     let earnedDays = 0;
@@ -633,23 +735,23 @@ async function handleRequest(context) {
     return json({ ok: true, acct: sess.acct, vip });
   }
 
-  /* ---------- 查询 AI 免费额度用量（10/1 分功能差异化口径；首页 AI 卡/功能入口置灰用） ----------
-     键与闸值必须与 ai.js 同源：aiqt:<acct>:<组>（终身）/ aiqd:<acct>:<day>（每日，UTC YYYYMMDD）。
-     默认阈值改这里要同步 ai.js + vip.html 对比表（三处口径一致）。day 计算与 ai.js dayKey 同口径。 */
+  /* ---------- 查询 AI 免费额度用量（免费轻量每周 5 次；写作每月 3 篇；模考会员专属） ----------
+     默认阈值改这里要同步 ai.js + vip.html 对比表。 */
   if (action === 'ai_usage') {
     const sess = await sessionOf(kv, request, body);
     if (!sess) return json({ ok: false, error: 'unauthorized', msg: '登录已过期，请重新登录' }, 401);
     let vip = null;
+    let vipRecord = null;
     try {
       const v = JSON.parse((await kv.get('vip:' + sess.acct)) || 'null');
-      if (v && v.expire && v.expire > Date.now()) vip = { type: v.type || 'base', expire: v.expire };
+      if (v && v.expire && v.expire > Date.now()) {
+        vipRecord = v;
+        vip = { type: v.type || 'base', expire: v.expire };
+      }
     } catch (e) {}
+    const g = async k => { try { return parseInt((await kv.get(k)) || '0', 10) || 0; } catch (e) { return 0; } };
     const _p = n => String(n).padStart(2, '0');
     const _d = new Date();
-    const day = _d.getUTCFullYear() + _p(_d.getUTCMonth() + 1) + _p(_d.getUTCDate());
-    const g = async k => { try { return parseInt((await kv.get(k)) || '0', 10) || 0; } catch (e) { return 0; } };
-    /* 10/1 下午她拍板新口径：模考=每月 1 次（aiqmo 月键）/ 写作批改免费 0（会员专属）/
-       翻译并入兜底 / 兜底=每周 5 次（aiqw 周键）。与 ai.js 阈值同源，改要三处同步。 */
     const isoWeekOf = d => {
       const t = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
       const dn = (t.getUTCDay() + 6) % 7;
@@ -661,12 +763,34 @@ async function handleRequest(context) {
       return t.getUTCFullYear() + '-W' + String(w).padStart(2, '0');
     };
     const month = _d.getUTCFullYear() + '-' + _p(_d.getUTCMonth() + 1);
-    const mockUsed = await g('aiqmo:' + sess.acct + ':' + month);
-    const weeklyUsed = await g('aiqw:' + sess.acct + ':' + isoWeekOf(_d));
+    const week = isoWeekOf(_d);
+    const writingUsed = await g('aiqmo:' + sess.acct + ':' + month + ':writing');
+    const weeklyUsed = await g('aiqw:' + sess.acct + ':' + week);
+    const shortQuota = isShortPlanQuota(vipRecord);
+    const heavyDefs = {
+      mock_exam: { limit: 10, period: 'week', reset: 'weekly' },
+      chuan: { limit: 5, period: 'month', reset: 'monthly' },
+      material: { limit: 5, period: 'month', reset: 'monthly' },
+      remap: { limit: 5, period: 'month', reset: 'monthly' },
+      studyplan: { limit: 5, period: 'month', reset: 'monthly' },
+      diagpro: { limit: 5, period: 'month', reset: 'monthly' },
+    };
+    const heavy = {};
+    for (const group in heavyDefs) {
+      const def = heavyDefs[group];
+      const total = vipRecord ? (shortQuota ? Math.max(1, Math.floor(def.limit / 4)) : def.limit) : 0;
+      const suffix = def.period === 'week' ? week : month;
+      const used = await g('aiqv2:' + sess.acct + ':' + group + ':' + suffix);
+      heavy[group] = { used: used, total: total, remaining: Math.max(0, total - used), reset: def.reset };
+    }
+    const freeWriting = parseInt((env && env.AI_FREE_WRITING_TOTAL) != null ? env.AI_FREE_WRITING_TOTAL : '3', 10) || 0;
+    const freeWeekly = parseInt((env && env.AI_USER_WEEKLY_LIMIT) != null ? env.AI_USER_WEEKLY_LIMIT : '5', 10) || 0;
     return json({
       ok: true, acct: sess.acct, vip,
-      mock:   { used: mockUsed,   total: 1, reset: 'monthly' },  // env AI_FREE_MOCK_MONTHLY 默认 1
-      weekly: { used: weeklyUsed, total: 5 },                   // env AI_USER_WEEKLY_LIMIT 默认 5（含翻译/长难句等全部辅助 AI）
+      mock:   { used: heavy.mock_exam.used, total: heavy.mock_exam.total, reset: heavy.mock_exam.reset },
+      writing:{ used: writingUsed, total: vipRecord ? 0 : freeWriting, reset: 'monthly' },
+      weekly: { used: weeklyUsed, total: freeWeekly },
+      heavy: heavy,
     });
   }
 

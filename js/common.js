@@ -64,7 +64,7 @@ const PAGES = [
         改 id 或 file 会让 bank.html 变成孤儿页（软导航找不到对应条目）。 */
   { id:'bank',      file:'bank.html',      icon:ICON.mock,      name:'机经',       desc:'阅读 · 听力' },
   { id:'review',    file:'review.html',    icon:ICON.review,    name:'回顾',       desc:'模考成绩 + 学习轨迹' },
-  { id:'vip',       file:'vip.html',       icon:ICON.vip,       name:'会员',       desc:'AI 无限用 + 专属权益' },  // 10/1 付费方案：非学习功能，不进 PRIMARY_NAV
+  { id:'vip',       file:'vip.html',       icon:ICON.vip,       name:'会员',       desc:'轻量不限用 + 重度额度' },
   { id:'settings',  file:'settings.html',  icon:ICON.settings,  name:'设置',       desc:'同步 / AI / 数据' },
   /* 同上：10-23 她拍板删掉服药页入口 → hidden:true，文件与 DATA.meds 数据保留 */
   { id:'meds',      file:'meds.html',      icon:ICON.meds,      name:'服药',   desc:'专注达药效窗口', hidden:true },  // ← 移到最后
@@ -2559,9 +2559,8 @@ function toast(msg){
 }
 
 /* 10/1 免费额度/会员专属轻条（她拍板口径：不打扰——不用大弹窗不自动跳页，
-   就一条底部小提示条带「开会员」小按钮，8 秒自动消失，可手动关）。
-   msg 用服务端返回的文案（单点维护在 ai.js）；同一时刻只保留一条。 */
-function limitStrip(msg){
+    8 秒自动消失，可手动关）。会员到额只提示，不再引导开会员。 */
+function limitStrip(msg, errCode){
   try{
     /* 🔴 10/20 模考锁：模考中不弹额度条。
        它是 fixed 底栏（bottom:26px），会盖住模考底部的题号行/操作条，
@@ -2574,13 +2573,17 @@ function limitStrip(msg){
     const strip = document.createElement('div');
     strip.id = 'hubLimitStrip';
     const txt = document.createElement('span');
-    txt.className = 'ls-txt'; txt.textContent = msg || '免费额度已用完';
-    const btn = document.createElement('a');
-    btn.className = 'ls-btn'; btn.href = 'vip.html'; btn.textContent = '开会员';
+    txt.className = 'ls-txt'; txt.textContent = msg || '这波脑力用完了，先让 AI 喝口水，额度回来再继续';
+    strip.appendChild(txt);
+    if(/^(user_limit|writing_limit|mock_limit|trans_limit|vip_required)$/.test(errCode || '')){
+      const btn = document.createElement('a');
+      btn.className = 'ls-btn'; btn.href = 'vip.html'; btn.textContent = '开会员';
+      strip.appendChild(btn);
+    }
     const x = document.createElement('button');
     x.className = 'ls-x'; x.type = 'button'; x.setAttribute('aria-label', '关闭'); x.textContent = '✕';
     x.addEventListener('click', () => strip.remove());
-    strip.appendChild(txt); strip.appendChild(btn); strip.appendChild(x);
+    strip.appendChild(x);
     document.body.appendChild(strip);
     setTimeout(() => { try{ strip.remove(); }catch(e){} }, 8000);
   }catch(e){}
