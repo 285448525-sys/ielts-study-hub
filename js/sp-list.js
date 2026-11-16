@@ -232,6 +232,7 @@ function spCardHtml(s){
       + (zh ? '<div class="sp-card-zh">' + escapeHtml(zh) + '</div>' : '')
       + '<div class="sp-card-tags">' + tagsHtml(s) + '</div>'
     + '</div>'
+    + '<button type="button" class="spt-bank-go" tabindex="-1" aria-hidden="true">开始练<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></button>'
     /* W-SPCRD-1（10-25）：她 03:0x 原话「全部开始和练这道题删掉」→ 右栏那颗已删。
        右栏空出来后 .sp-card-main 独占整行宽度（标题照样换行不截断，见 css 里 .sp-card-row 的改制）。 */
     + '</div>';

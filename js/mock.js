@@ -124,6 +124,10 @@
      兜底：BANK tab 取不到时直接藏掉 #mockView，绝不再拿 MOCK tab 当出口。 */
   function exitToBank(){
     try{
+      if(window.__sptTabs && typeof window.__sptTabs.show === 'function'){
+        window.__sptTabs.show('mock');
+        return;
+      }
       const bt = document.querySelector('#tabs [data-type="BANK"]');
       if(bt){ bt.click(); return; }
       const mv = $('#mockView'); if(mv) mv.hidden = true;

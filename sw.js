@@ -1,4 +1,5 @@
 /* 11-16 v882 = SPEAKING-FINAL-2：口语第三轮 8 条批注收口（陪练快捷按钮 28px + 12px 间距、素材返回栏与引导页头/故事数/覆盖数删除、详情页恢复全站宽度、返回链隐藏、题卡 AI 三按钮 32px）。 */
+/* 11-16 v880 = SPEAKING-FINAL-2：口语五页真页面与三轮 8 条批注上线（题库 / 陪练 / 素材 / 模考 / 记录；陪练快捷按钮 28px、素材返回栏与固定数字删除、详情页全宽与 AI 按钮 32px）。 */
 /* v412（2026-10-17 · A 窗口 · 性能批第二批】
    1) speaking.html：materials.js / mock-report.js / mock-history.js / mock.js 四个视图脚本
       从首屏 defer 队列摘出，改由 js/speaking.js 的 lateLoad() 在真正切到「素材 / 模考」时
@@ -807,7 +808,7 @@ const IDLE_PRECACHE = [
   '/css/p/bank.css', '/css/p/beginner.css', '/css/p/corpus.css', '/css/p/home.css',
   '/css/p/login.css', '/css/p/materials.css', '/css/p/meds.css', '/css/p/pay.css',
   '/css/p/hub-shell.css', '/css/p/plans.css', '/css/p/practice.css', '/css/p/review.css', '/css/p/settings.css',
-  '/css/p/speaking.css', '/css/p/timer.css', '/css/p/vip.css', '/css/p/writing.css', '/css/p/word-master.css',
+  '/css/p/speaking.css', '/css/p/speaking-main.css', '/css/p/timer.css', '/css/p/vip.css', '/css/p/writing.css', '/css/p/word-master.css',
   '/data/announce.json', '/data/materialsets.json', '/data/official-banks/awl.json', '/data/official-banks/lstans.json',
   '/data/official-banks/qstem.json', '/data/scenes.json', '/data/sentences.json', '/data/writing_prompts.json',
   '/favicon.ico', '/favicon.svg', '/icons/apple-touch-icon.png', '/icons/favicon-16x16.png',

@@ -226,7 +226,7 @@
   function ans(id){ return (store.answers[id] || '').trim(); }
 
   /* 渲染容器双适配：materials.html 用 #matRoot；口语页 MAT tab 用 #matView */
-  function rootEl(){ return $('#matRoot') || $('#matView'); }
+  function rootEl(){ return $('#matRoot') || $('#sptMatLegacy') || $('#matView'); }
   function init(){
     store = loadStore();
     // 10/6：老素材没有 bankSeason → 静默补成当前季节（**不弹框**），补完存一次盘
@@ -256,10 +256,66 @@
   /* ═══ MAT-INTRO-1（10-25）：首次进入的引导屏 ═══
      她 15:0x「串题引导可以通过」+「会员专属的生成按钮要设计好」。
      🔴 触发：没有素材卡（store.materials 为空）且本会话没点过「跳进流程」。
-     🔴 三个数全部实测：当季 P2 卡数从 DATA.speaking 里数（不写死），
-        故事数 2~4 与每故事覆盖 10~20 也来自实际生成口径。
+     🔴 当季 P2 卡数从 DATA.speaking 里数（不写死）；故事数与单卡覆盖题数不写死上限。
      🔴 价格不写死：从 window.Pricing.VIP_PLANS 读，读不到就整段不显示（宁可不显示也不编价格）。 */
-  var MI_INTRO_HTML = "<div id=\"introView\">\n    <div class=\"mi-head\">\n      <div>\n        <h1>万能素材 · 串题</h1>\n        <div class=\"mi-sub\">一次写好经历，考场接到几十道题上</div>\n      </div>\n      \n    </div>\n\n    \n    <div class=\"mi-hero\">\n      <div class=\"mi-k\">雅思口语 P2 · 当季题库</div>\n      <h2>P2 有 56 道题卡，一道一道准备，你永远准备不完</h2>\n      <p>串题的做法是：把你自己的经历写成 2~4 个故事，考场上原样讲出来，只加一句过渡就能接到很多道题上。<b>不用背 56 篇范文</b>。</p>\n      <div class=\"mi-nums\">\n        <div class=\"mi-it\"><b>56</b><span>当季 P2 题卡</span></div>\n        <div class=\"mi-it\"><b>3</b><span>你要准备的故事数</span></div>\n        <div class=\"mi-it\"><b>10~20</b><span>每个故事能接的题</span></div>\n      </div>\n    </div>\n\n    \n    <div class=\"mi-pain\">\n      <div class=\"mi-col mi-old\">\n        <h3>老办法 <span class=\"mi-tag\">一道一准备</span></h3>\n        <ul>\n          <li>56 道题 = 56 篇素材，写到第 10 篇就坚持不下去</li>\n          <li>背过的换个问法就接不上（「描述地方」→「描述一次等待」）</li>\n          <li>考场上现场编，一紧张就只剩 and / and / and</li>\n          <li>时间全花在「写新素材」，没有时间练口语本身</li>\n        </ul>\n      </div>\n      <div class=\"mi-col mi-new\">\n        <h3>串题 <span class=\"mi-tag\">一次准备，反复接题</span></h3>\n        <ul>\n          <li>只写 2~4 个自己的真实故事，写一次就完</li>\n          <li>同一故事能接人物 / 地点 / 物品 / 事件一大类题</li>\n          <li>考场上直接背熟的内容，只加一句点题过渡</li>\n          <li>省下来的时间全部用来开口练</li>\n        </ul>\n      </div>\n    </div>\n\n    \n    <div class=\"mi-card\">\n      <p style=\"margin:0 0 14px;font-size:15px;font-weight:750\">这套流程为什么高效</p>\n      <div class=\"mi-how\">\n        <div class=\"mi-step\"><div class=\"mi-n\">1</div><b>写你自己的经历</b><span>14 个问题全是问你的生活（和谁、去哪、看见什么、什么感受），中文随便写，不用管英文。</span></div>\n        <div class=\"mi-step\"><div class=\"mi-n\">2</div><b>AI 对照当季题库</b><span>它读的是本站当季真实题库（现在 2026-10-20 季 56 道 P2），出的问题就是你可能抽到的题。</span></div>\n        <div class=\"mi-step\"><div class=\"mi-n\">3</div><b>合成能背的故事</b><span>把十几段经历合并成 2~4 个连贯英文故事，130~180 词，带最小背诵骨架。</span></div>\n        <div class=\"mi-step\"><div class=\"mi-n\">4</div><b>算出每张卡能接哪些题</b><span>每张卡标出「能串 N 道当季题」+ 一句考场可直接念的英文点题句。</span></div>\n      </div>\n      <div class=\"mi-note\" style=\"background:var(--line2);border-radius:var(--r-sm);padding:11px 14px;font-size:12.5px;color:var(--ink2);line-height:1.75;margin-top:14px\">\n        <b>核心口径：宁多勿漏。</b>判断标准不是「故事里有没有讲到这道题」，而是「把故事原样讲出来，能不能自然引到这道题」。所以每个故事通常能挂 10~20 道题——考场上不合适当场放弃就行，没列上才吃亏。\n      </div>\n    </div>\n\n    \n    <div class=\"mi-vip-bar\">\n      <span class=\"mi-ic\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style=\"width:17px;height:17px\"><path d=\"M6 3h12l4 6-10 12L2 9z\"></path><path d=\"M2 9h20M9.5 9 12 3l2.5 6M12 21 9.5 9M12 21l2.5-12\"></path></svg></span>\n      <span class=\"mi-tx\"><b>生成串题卡是会员功能</b>　这一步要让 AI 通读当季题库、再读你 14 段经历、合成故事并逐题算覆盖，一次消耗大量算力。价格见下方，开通后整套素材生成每月 5 次，7 天卡 1 次。</span>\n      <span class=\"mi-price\">__MI_PRICE__</span>\n      <button class=\"mi-btn mi-btn-p\" id=\"goVip\">看看会员</button>\n    </div>\n\n    <div class=\"mi-card\" style=\"margin-top:14px;text-align:center\">\n      <button class=\"mi-btn mi-btn-p mi-btn-lg\" id=\"startGen\">生成我的串题卡</button>\n      <p class=\"mi-muted\" style=\"font-size:12.5px;margin:10px 0 0\">先填 14 个中文问题（约 15 分钟）→ AI 合成 → 得到 2~4 张可背故事卡</p>\n      <div class=\"mi-has\">已经有素材卡了？<a href=\"javascript:void(0)\" id=\"backRes\">回到我的素材 →</a></div>\n    </div>\n  </div>";
+  var MI_INTRO_HTML = `
+  <div id="introView">
+    <div class="mi-hero">
+      <div class="mi-k">雅思口语 P2 · 当季题库</div>
+      <h2>P2 有 56 道题卡，一道一道准备，你永远准备不完</h2>
+      <p>串题的做法是：把你自己的经历写成几个故事，考场上原样讲出来，只加一句过渡就能接到很多道题上。<b>不用背 56 篇范文</b>。</p>
+      <div class="mi-nums">
+        <div class="mi-it"><b>56</b><span>当季 P2 题卡</span></div>
+      </div>
+    </div>
+
+    <div class="mi-pain">
+      <div class="mi-col mi-old">
+        <h3>老办法 <span class="mi-tag">一道一准备</span></h3>
+        <ul>
+          <li>56 道题 = 56 篇素材，写到一半就坚持不下去</li>
+          <li>背过的换个问法就接不上（「描述地方」→「描述一次等待」）</li>
+          <li>考场上现场编，一紧张就只剩 and / and / and</li>
+          <li>时间全花在「写新素材」，没有时间练口语本身</li>
+        </ul>
+      </div>
+      <div class="mi-col mi-new">
+        <h3>串题 <span class="mi-tag">一次准备，反复接题</span></h3>
+        <ul>
+          <li>只写几个自己的真实故事，写一次就完</li>
+          <li>同一故事能接人物 / 地点 / 物品 / 事件一大类题</li>
+          <li>考场上直接背熟的内容，只加一句点题过渡</li>
+          <li>省下来的时间全部用来开口练</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="mi-card">
+      <p style="margin:0 0 14px;font-size:15px;font-weight:750">这套流程为什么高效</p>
+      <div class="mi-how">
+        <div class="mi-step"><div class="mi-n">1</div><b>写你自己的经历</b><span>14 个问题全是问你的生活（和谁、去哪、看见什么、什么感受），中文随便写，不用管英文。</span></div>
+        <div class="mi-step"><div class="mi-n">2</div><b>AI 对照当季题库</b><span>它读的是本站当季真实题库，出的问题就是你可能抽到的题。</span></div>
+        <div class="mi-step"><div class="mi-n">3</div><b>合成能背的故事</b><span>把十几段经历合并成几个连贯英文故事，130~180 词，带最小背诵骨架。</span></div>
+        <div class="mi-step"><div class="mi-n">4</div><b>算出每张卡能接哪些题</b><span>每张卡标出「能串 N 道当季题」+ 一句考场可直接念的英文点题句。</span></div>
+      </div>
+      <div class="mi-note" style="background:var(--line2);border-radius:var(--r-sm);padding:11px 14px;font-size:12.5px;color:var(--ink2);line-height:1.75;margin-top:14px">
+        <b>核心口径：宁多勿漏。</b>判断标准不是「故事里有没有讲到这道题」，而是「把故事原样讲出来，能不能自然引到这道题」。每张卡能接多少题，以当季题库实际覆盖为准。
+      </div>
+    </div>
+
+    <div class="mi-vip-bar">
+      <span class="mi-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:17px;height:17px"><path d="M6 3h12l4 6-10 12L2 9z"></path><path d="M2 9h20M9.5 9 12 3l2.5 6M12 21 9.5 9M12 21l2.5-12"></path></svg></span>
+      <span class="mi-tx"><b>生成串题卡是会员功能</b>　这一步要让 AI 通读当季题库、再读你 14 段经历、合成故事并逐题算覆盖，一次消耗大量算力。价格见下方，开通后整套素材生成每月 5 次，7 天卡 1 次。</span>
+      <span class="mi-price">__MI_PRICE__</span>
+      <button class="mi-btn mi-btn-p" id="goVip">看看会员</button>
+    </div>
+
+    <div class="mi-card" style="margin-top:14px;text-align:center">
+      <button class="mi-btn mi-btn-p mi-btn-lg" id="startGen">生成我的串题卡</button>
+      <p class="mi-muted" style="font-size:12.5px;margin:10px 0 0">先填 14 个中文问题（约 15 分钟）→ AI 合成 → 得到可背故事卡</p>
+      <div class="mi-has">已经有素材卡了？<a href="javascript:void(0)" id="backRes">回到我的素材 →</a></div>
+    </div>
+  </div>`;
 
   function miCountP2(){
     try{
@@ -282,8 +338,8 @@
     /* MAT-INTRO-1：导出工具的加固副本选择器都以 .mi-page 打头（提高特异性压过站点全局规则），
        所以必须包这一层；否则 1:1 基线找不到根节点。 */
     var h = MI_INTRO_HTML;
-    /* 三个数：题卡数按实测替换（设计稿写死 56，这里保持同步） */
-    try{ h = h.replace(/<b>56<\/b><span>当季 P2 题卡<\/span>/, '<b>' + miCountP2() + '<\/b><span>当季 P2 题卡<\/span>'); }catch(e){}
+    /* 题卡数按实测替换（模板里的 56 只是占位，运行时以 DATA.speaking 为准） */
+    try{ h = h.replace(/56/g, miCountP2()); }catch(e){}
     var price = miPriceText();
     if(price){ h = h.replace('__MI_PRICE__', price); }
     else { h = h.replace(/<span class="mi-price">__MI_PRICE__<\/span>/, ''); }
@@ -477,7 +533,7 @@
        场景（她原话）：「我自己可能也有一套已经准备好了的素材，就不需要这个平台给我生成素材了」。
        **独立入口，旁跳过人设与问卷** —— 不答题、不填人设，直接粘贴 → AI 整理。
        输入是中英混杂的零散文字（她积累的句子/段落/笔记/范文都行）；
-       输出与「生成我的专属素材」完全同构（2~4 个故事卡 + coverage + spineEn + goldenEn），
+       输出与「生成我的专属素材」完全同构（若干故事卡 + coverage + spineEn + goldenEn），
        复用同一套 SYS_MAT 规则与 normalizeMaterial / collectBatch / mergeBatch 链路，零新规则。 */
     h += '<div class="mat-import">'
       + '<button class="btn btn-ghost btn-block" type="button" id="matImportToggle" aria-expanded="false" aria-controls="matImportBody">'
