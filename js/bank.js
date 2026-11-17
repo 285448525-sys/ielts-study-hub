@@ -845,8 +845,13 @@
         （「考试页零中文」管的是答题界面本身；这里若写英文，普通考生反而看不懂。）
      ⚠️ 她讨厌冗余浮层 → 只 4 条、一辈子只出现一次、一个按钮，右上 ✕ 与 Esc 都等于看过。 */
   var GUIDE_KEY = 'hub_exam_guide_v2_';
-  function guidePassed(ch){ try{ return localStorage.getItem(GUIDE_KEY + ch) === '1'; }catch(e){ return true; } }
-  function markGuidePassed(ch){ try{ localStorage.setItem(GUIDE_KEY + ch, '1'); }catch(e){} }
+  function guidePassed(ch){
+    try{
+      return localStorage.getItem('hub_exam_guide_once') === '1'
+        || localStorage.getItem(GUIDE_KEY + ch) === '1';
+    }catch(e){ return true; }
+  }
+  function markGuidePassed(ch){ try{ localStorage.setItem('hub_exam_guide_once', '1'); }catch(e){} }
   function showExamGuide(ch, cb){
     var old = document.getElementById('exGuide'); if(old && old.parentNode) old.parentNode.removeChild(old);
     var wrap = document.createElement('div');
@@ -1803,7 +1808,7 @@
     if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();setExSplit(_exSplitPct+(e.key==='ArrowLeft'?-5:5))}
     else if(e.key==='Home'||e.key==='End'){e.preventDefault();setExSplit(e.key==='Home'?25:75)}
   });
-  /* RV-FIX5-5：AI 讲解面板垂直分隔线拖动（桌面档）——改 --ex-ai-h（面板高度），上栏自适应。 */
+  /* RV-FIX5-5：固定解析面板垂直分隔线拖动（桌面档）——改 --ex-ai-h（面板高度），上栏自适应。 */
   var _exAiH = 240;
   try{ _exAiH = Math.max(120,Math.min(560,Number(localStorage.getItem('hub_ex_ai_h')) || 240)); }catch(e){}
   function setExAiH(px){
@@ -1941,7 +1946,6 @@ window.__reportExamState = reportExamState;
       :               '<div class="ex-nums" id="exNums"></div>')
       +      '</div>'
       +      '<div class="ex-actions">'
-      +        (!rvDone && showPause ? '<button type="button" class="btn-ghost ex-pause" id="exPauseBtn">Pause</button>' : '')
       +        '<button class="btn-ghost" type="button" data-exit>Exit</button>'
       +        (!rvDone ? '<button class="btn-primary" type="button" data-submit>Finish section</button>' : '')
       +      '</div>'
@@ -3509,17 +3513,13 @@ window.__reportExamState = reportExamState;
       + '<b class="ok">' + (res.total - wrong) + '</b> correct · <b class="no">' + wrong + '</b> incorrect';
     var tg = document.createElement('span');
     tg.className = 'ex-toggles';
-    /* RV-SW-26：第三钮「答案句」（默认开）—— 只有听力复盘（有 timeline 答案句数据）才渲染；
-       阅读的答案标识已由 Answers 开关管，不造重复钮。 */
-    var isListenRv = !!(EX && EX.channel === 'listening');
+     /* RV-SW-26：第三钮「答案句」（默认开）—— 听力按 timeline 答案句，阅读按题库定位句。 */
     if(EX._rvShowAnsQ == null) EX._rvShowAnsQ = true;    /* 她口径：默认开 */
     if(EX._rvShowCn == null) EX._rvShowCn = false;       /* 她口径：默认关 */
     tg.innerHTML = '<button type="button" class="ex-tg' + (EX._rvShowAns ? ' on' : '') + '" data-rvtg="ans">Answers</button>'
       + '<button type="button" class="ex-tg' + (EX._rvShowHl ? ' on' : '') + '" data-rvtg="hl">Highlights</button>'
-      + (isListenRv ? '<button type="button" class="ex-tg' + (EX._rvShowAnsQ ? ' on' : '') + '" data-rvtg="ansq">Answer sentences</button>' : '')
-      /* RV-SW-26 2 11-05：中文翻译钮改成听力/阅读都出（她今早点名「头顶的翻译键还没做」）。
-         原来跟「答案句」一样被 isListenRv 挡掉，阅读卷压根不渲染这个钮；
-         「答案句」仍只听力（它靠 timeline 答案句数据，阅读没有）。 */
+      + '<button type="button" class="ex-tg' + (EX._rvShowAnsQ ? ' on' : '') + '" data-rvtg="ansq">答案句</button>'
+      /* RV-SW-26 2：中文翻译钮听力/阅读都出，读取题库同源的固定译文。 */
       + '<button type="button" class="ex-tg' + (EX._rvShowCn ? ' on' : '') + '" data-rvtg="cn">中文翻译</button>';
     var icons = top.querySelector('.ex-icons');
     var nameEl = top.querySelector('.ex-name');
@@ -3540,26 +3540,146 @@ window.__reportExamState = reportExamState;
        mountReviewTools 是三条路径（doSubmit/renderExam 先手/openLastResult）的公共必经口，
        在这里统一摘掉 inline（提交时 EX.submitted 恒 true，做题态到不了这里，零误伤）。 */
     top.style.display = '';
-    if(EX.submitted && EX.result) mountAiExplain();          /* RV-AI-EXPLAIN-1：讲解卡宿主（无图标无按钮，点答案才出） */
+    var pause = top.querySelector('#exTopPauseBtn'); if(pause) pause.remove();
+    if(EX.submitted && EX.result) mountAiExplain();          /* RV-AI-EXPLAIN-1：固定解析卡宿主（无图标无按钮，点答案才出） */
   }
 
-  /* ===== RV-AI-EXPLAIN-1（11-02 她口径：「点了答案会显示 AI 讲解的功能在右下角」）=====
+  /* ===== RV-AI-EXPLAIN-1（11-02 她口径：「点了答案会显示解析的功能在右下角」）=====
      复盘态（交卷 / 只读回看）点某题的作答控件（选项 / 空格 / 槽 / 题号）→
-     右下角锚定该题 AI 讲解卡。**不加任何图标、不加触发按钮、不改卷面 DOM**（解析位已退役，她不另加）。
-     · 走 common-ai 现有出口 callRelay（站内中转 / 自备 Key 自动降级、25s 超时、额度闸全继承），
-       失败文案走 aiErrMsg 人话表（额度用完 / 先登录 / 稍后重试，原始串只进 console）。
-     · 无答案键篇目（EX.scored===false / 该题 d.right 为空）不触发——没有正答就没有可讲的对象。
-     · 每题结果存内存缓存 EX._aiExp（同场不重复扣额度）；点另一题才换题，同题再点不重复请求。
-     · 讲解生成只喂「题干 + 她的作答 + 正确答案 + 文章里相关的一句」（不整篇上传，省 token），
-       模型被要求「依据给定内容讲，不编造文章外的信息」。 */
-  var AI_EXP_CACHE_KEY = '_aiExp';
+     右栏锚定该题固定解析卡。**不加任何图标、不加触发按钮、不改卷面 DOM**（解析位已退役，她不另加）。
+     · 解析与定位句全部取自题库 JSON 自带的 analyses 字段，本地直接渲染，**不调用任何 AI / API**。
+     · 无答案键篇目（EX.scored===false / 该题 d.right 为空）不触发——没有正答就没有可讲的对象。 */
+  function reviewQuestion(qn){
+    if(!EX) return null;
+    if(!EX.full){
+      for(var i = 0; i < (EX.groups || []).length; i++){
+        var found = (EX.groups[i].questions || []).filter(function(q){ return String(q.qNumber) === String(qn); })[0];
+        if(found) return found;
+      }
+      return null;
+    }
+    var entry = EX.byG && EX.byG[qn];
+    if(!entry || !entry.g) return null;
+    return entry.q || (entry.g.questions || []).filter(function(q){ return String(q.qNumber) === String(entry.loc); })[0] || null;
+  }
+  function reviewUnit(){
+    if(!EX) return null;
+    return EX.full ? (EX.packs && EX.packs[EX.curP - 1] && EX.packs[EX.curP - 1].unit) : EX.unit;
+  }
+  function reviewQuestions(){
+    var unit = reviewUnit(), out = [];
+    (unit && unit.parts || []).forEach(function(p){
+      (p.groups || []).forEach(function(g){ (g.questions || []).forEach(function(q){ out.push(q); }); });
+    });
+    return out;
+  }
+  function fixedExplanation(qn){
+    var q = reviewQuestion(qn), out = { text: '', tip: '', evidence: '' };
+    var analyses = q && q.analyses || [];
+    if(!analyses.length && EX && EX.result && Array.isArray(EX.result.detail)){
+      /* 同一道多选题在部分题库中分成两个题号，但解析只挂在承载题上。 */
+      var mine = EX.result.detail.filter(function(d){ return String(d.qn) === String(qn); })[0];
+      if(mine){
+        reviewQuestions().forEach(function(other){
+          if(!other.analyses || !other.analyses.length) return;
+          var peer = EX.result.detail.filter(function(d){ return String(d.qn) === String(other.qNumber); })[0];
+          if(peer && String(peer.right) === String(mine.right)) analyses = other.analyses;
+        });
+      }
+    }
+    analyses.forEach(function(a){
+      var text = String(a.content || '').trim(), label = String(a.labelsOne || '') + String(a.labelsTwo || '');
+      if(label.indexOf('句子') > -1 || label.indexOf('原文') > -1) out.evidence = out.evidence || text;
+      else if(label.indexOf('干扰') > -1) out.tip = out.tip || text;
+      else if(label.indexOf('解析') > -1) out.text = out.text || text;
+    });
+    return out;
+  }
+  function answerParagraph(d){
+    var right = String(d && d.right || '').trim().toUpperCase();
+    if(!/^[A-H]$/.test(right) || !(d.t === 'para' || d.t === 'head')) return null;
+    var art = document.getElementById('exArt'); if(!art) return null;
+    var blocks = Array.prototype.slice.call(art.querySelectorAll('p, .ace-line')).filter(function(n){ return !n.querySelector('p, .ace-line'); });
+    for(var i = 0; i < blocks.length; i++){
+      if(new RegExp('^' + right + '(?:\\s|[.:])').test(String(blocks[i].textContent || '').trim())) return blocks[i];
+    }
+    return null;
+  }
+  function evidenceParts(evidence){
+    return String(evidence || '').replace(/\([^)]*Paragraph\s+[A-Z][^)]*\)/ig, '').replace(/[“”]/g, '')
+      .split(/\s*(?:\.\.\.|…|\s\/\s)\s*/).map(function(s){ return s.replace(/^[.\s]+|[.\s]+$/g, '').trim(); })
+      .filter(function(s){ return /[A-Za-z]{3}/.test(s) && s.length > 12; });
+  }
+  function answerSentenceNode(d, evidence){
+    var root = document.getElementById('examRoot'); if(!root) return null;
+    var exact = root.querySelector('.sc-line.sc-ans[data-q~="' + d.qn + '"]') || root.querySelector('.sc-ans[data-q~="' + d.qn + '"]');
+    if(exact) return exact;
+    var needle = String(evidence || '').trim();
+    var nodes = Array.prototype.slice.call(root.querySelectorAll('#exArt p, #exArt .ace-line, #exArt .sc-line, #examRoot .ex-script .sc-line'));
+    function text(n){ return String(n.textContent || '').replace(/\s+/g, ' ').toLowerCase(); }
+    var parts = evidenceParts(needle);
+    if(parts.length){
+      var best = null, bestScore = 0;
+      nodes.forEach(function(n){
+        var tx = text(n), score = 0;
+        parts.forEach(function(part){
+          if(tx.indexOf(part.toLowerCase()) > -1){ score += part.length + 100; return; }
+          var words = part.toLowerCase().match(/[a-z0-9]+/g) || [];
+          if(words.length > 4){
+            var prefix = words.slice(0, 7).join(' ');
+            if(prefix.length > 15 && tx.indexOf(prefix) > -1) score += prefix.length;
+          }
+        });
+        if(score > bestScore){ best = n; bestScore = score; }
+      });
+      if(best) return best;
+    }
+    var para = answerParagraph(d); if(para) return para;
+    if(!needle && String(d.right || '').trim().length > 1 && !/^[A-Z](?:[,/\sA-Z]*)$/.test(String(d.right).trim())) needle = String(d.right).trim();
+    if(!needle) return null;
+    for(var i = 0; i < nodes.length; i++) if(text(nodes[i]).indexOf(needle.toLowerCase()) > -1) return nodes[i];
+    return null;
+  }
+  function focusAnswerSentence(d, evidence){
+    var root = document.getElementById('examRoot');
+    if(root) root.querySelectorAll('.ex-answer-current').forEach(function(n){ n.classList.remove('ex-answer-current'); });
+    var entry = EX.full && EX.byG && EX.byG[d.qn];
+    if(entry && entry.p !== EX.curP){
+      if(EX.channel === 'listening') renderListenPart(entry.p); else renderPassage(entry.p);
+    }
+    var node = answerSentenceNode(d, evidence);
+    if(!node) return false;
+    if(EX._rvShowAnsQ === false){ EX._rvShowAnsQ = true; applyReviewAnsQ(); }
+    node.classList.add('ex-answer-evidence', 'ex-answer-current');
+    var scroller = node.closest('.ex-article, .ex-qcol, .ex-script');
+    if(scroller){
+      var target = node.getBoundingClientRect(), box = scroller.getBoundingClientRect();
+      scroller.scrollTo({ top: scroller.scrollTop + target.top - box.top - box.height / 2 + target.height / 2, behavior: 'smooth' });
+    }else node.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    if(entry) scrollToQ(d.qn);
+    return true;
+  }
+  function applyReadingEvidence(){
+    var root = document.getElementById('examRoot'); if(!root) return;
+    root.querySelectorAll('.ex-answer-evidence').forEach(function(n){
+      n.classList.remove('ex-answer-evidence');
+      if(n.hasAttribute('data-rv-evidence')){ n.classList.remove('sc-ans'); n.removeAttribute('data-rv-evidence'); }
+    });
+    if(!EX || !EX.result || !EX._rvShowAnsQ) return;
+    (EX.result.detail || []).forEach(function(d){
+      if(!d || d.right == null) return;
+      var node = answerSentenceNode(d, fixedExplanation(d.qn).evidence);
+      if(!node) return;
+      node.classList.add('ex-answer-evidence');
+      if(!node.classList.contains('sc-ans')){ node.classList.add('sc-ans'); node.setAttribute('data-rv-evidence', '1'); }
+    });
+  }
   function mountAiExplain(){
     var root = document.getElementById('examRoot'); if(!root) return;
     if(!EX || !EX.submitted || !EX.result) return;
     if(EX.scored === false) return;                         /* 无答案键篇目不挂（无正答可讲） */
-    if(EX[AI_EXP_CACHE_KEY] == null) EX[AI_EXP_CACHE_KEY] = {};
     /* RV-FIX5-6（她 11-03 口径「把右边分成两块，不是弄一个悬浮框」）：讲解嵌进右栏文档流——
-       右栏分上下两块：上 = 题干滚动区（原 #exQCol 内容包进 #exQScroll），下 = AI 讲解面板，
+       右栏分上下两块：上 = 题干滚动区（原 #exQCol 内容包进 #exQScroll），下 = 固定解析面板，
        中间 #exAiHandle 分隔线可上下拖。分栏只在讲解开着时存在（openAiExplain 挂 ai-open /
        ✕ 摘除还原单列），做题态零影响。手机档 scroll 壳 display:contents 交还页面滚动。 */
     var qcol = root.querySelector('#exQCol'); if(!qcol) return;
@@ -3574,12 +3694,14 @@ window.__reportExamState = reportExamState;
       }
       card = document.createElement('section');
       card.innerHTML = '<button type="button" class="ex-ai-handle" id="exAiHandle" role="separator" aria-orientation="horizontal" aria-label="拖动调整讲解区高度" tabindex="0"></button>'
-        + '<div class="ex-ai-h"><b id="exAiTitle">AI 讲解</b>'
+        + '<div class="ex-ai-h"><b id="exAiTitle">答案解析</b>'
         + '<button type="button" class="ex-ai-x" data-aiexpclose aria-label="Close">✕</button></div>'
         + '<div class="ex-ai-b" id="exAiBody"></div>';
       card.className = 'ex-ai-panel'; card.id = 'exAiCard'; card.hidden = true;
       qcol.appendChild(card);
     }
+    applyReadingEvidence();
+    if(EX._rvShowCn) rvCnToggle();
   }
   /* 点击锚：作答控件优先（选项 / 空格 / 槽 / 矩阵格），都没有再认题号徽章。
      返回 { qn, detail }；detail 取自 EX.result.detail（含 right/user/ok/q）。 */
@@ -3598,7 +3720,7 @@ window.__reportExamState = reportExamState;
       if(badge2) qn = badge2.getAttribute('data-qn');
     }
     /* RV-FIX5 挑刺①：多选共享组（.ex-q--mgroup）—— 组 qn 挂在 .ex-cbox[data-q] 容器、
-       题号徽章是 data-qns（"9 10"）而非 data-qn，上面两条链全落空 → AI 讲解点不开（她多选必踩）。
+        题号徽章是 data-qns（"9 10"）而非 data-qn，上面两条链全落空 → 固定解析点不开（她多选必踩）。
        补两条兜底：行内 cbox 容器 data-q / data-qns 空格拆分匹配。 */
     if(!qn){
       var row2 = ctl && ctl.closest('.ex-q');
@@ -3651,7 +3773,7 @@ window.__reportExamState = reportExamState;
        桌面档分栏在视口内恒可见，不需要滚。 */
     if(window.innerWidth <= 860 && card.scrollIntoView){ try{ card.scrollIntoView({ block: 'start', behavior: 'smooth' }); }catch(e){} }
     var title = card.querySelector('#exAiTitle');
-    if(title) title.textContent = 'Q' + hit.qn + ' · AI 讲解';
+    if(title) title.textContent = '第 ' + hit.qn + ' 题 · 固定解析';
     var body = card.querySelector('#exAiBody'); if(!body) return;
     /* 高亮当前题：题号徽章优先；填空题等无徽章的退到 .ex-blankw 容器（只留当前题） */
     root.querySelectorAll('.ai-cur').forEach(function(n){ n.classList.remove('ai-cur'); });
@@ -3667,85 +3789,19 @@ window.__reportExamState = reportExamState;
         if(mxNo) mxNo.classList.add('ai-cur');
       }
     }
-    var cache = EX[AI_EXP_CACHE_KEY] || {};
-    var cached = cache[hit.qn];
-    if(cached && cached.text){ body.textContent = cached.text; return; }
-    if(EX._aiExpLoading === hit.qn) return;                  /* 同题请求在飞，别重复发 */
-    EX._aiExpLoading = hit.qn;
-    body.textContent = 'AI 正在看这道题…';
     var d = hit.detail;
-    /* 题目上下文：题干（detail.q.question 在交卷/只读内存链上都活着；没有就从 DOM 题干取） */
-    var stem = '';
-    if(d.q && d.q.question) stem = String(d.q.question).replace(/<[^>]*>/g, '').trim();
-    /* HEAD-STEMMARK：heading 组题干只是占位词（Paragraph/Section[ A]），别把占位词喂给 AI */
-    if(/^(paragraph|section)\s*[A-Z]?$/i.test(stem)) stem = '';
-    if(!stem){
-      var qRow = root.querySelector('.ex-qn[data-qn="' + hit.qn + '"]');
-      var qWrap = qRow && qRow.closest('.ex-q');
-      var qt = qWrap && qWrap.querySelector('.ex-qt');
-      if(qt) stem = (qt.textContent || '').trim().slice(0, 400);
-    }
-    /* 文章相关句：只取文章里包含正确答案串的那一句（没有就空，不整篇上传） */
-    var evidence = '';
-    var art = document.getElementById('exArt');
-    if(art && d.right){
-      var needle = String(d.right).trim();
-      if(needle && needle.length > 1 && !/^[A-Z]$/i.test(needle)){
-        var txt = art.textContent || '';
-        var ix = txt.indexOf(needle);
-        if(ix > -1){
-          var a = Math.max(0, txt.lastIndexOf('.', ix) + 1);
-          var b = txt.indexOf('.', ix + needle.length);
-          evidence = txt.slice(a, b > -1 ? b + 1 : ix + needle.length + 160).trim().slice(0, 400);
-        }
-      }
-    }
-    var optsText = '';
-    if(d.q && Array.isArray(d.q.options) && d.q.options.length){
-      optsText = d.q.options.map(function(o){ return (o.optionNum || '') + '. ' + (o.optionContent || ''); }).join(' / ').slice(0, 500);
-    }
-    var sys = '你是一位雅思阅读/听力老师。只依据给你的题目、她的作答、正确答案与文章原句来讲，'
-      + '不要编造文章里没有的信息，不要扯考试技巧空话。'
-      + '用中文回答，分三小段（每段 1-3 句，别堆长段）：'
-      + '①答案定位——正确答案是什么、在文章哪一句能对应上（没有原句就依据题干与选项讲）；'
-      + '②为什么她对/错——她的作答与正确答案差在哪，判断逻辑是什么；'
-      + '③这一题容易踩的坑——同义替换、范围偷换、NOT GIVEN 与 FALSE 的区分（只挑和本题有关的说，没有就省）。';
-    var usr = '【题型】' + (d.t || '未知')
-      + '\n【题干】' + (stem || '（未取到题干文本）')
-      + (optsText ? '\n【选项】' + optsText : '')
-      + '\n【她的作答】' + (d.user == null || d.user === '' ? '（未作答）' : String(d.user))
-      + '\n【正确答案】' + String(d.right)
-      + '\n【判分结果】' + (d.ok ? '答对了' : '答错了')
-      + (evidence ? '\n【文章原句】' + evidence : '\n【文章原句】（未定位到，请依据题干与选项讲，不要编造原文）');
-    var reqQn = hit.qn;
-    if(typeof callRelay !== 'function'){
-      body.textContent = 'AI 讲解暂时用不了（AI 模块没加载上），刷新一下页面再点这题。';
-      EX._aiExpLoading = null;
-      return;
-    }
-    callRelay('gpt', [
-      { role: 'system', content: sys },
-      { role: 'user', content: usr }
-    ], 0.35, { max_tokens: 1200 }).then(function(content){
-      EX._aiExpLoading = null;
-      if(!EX || !EX.result) return;
-      var txt = String(content || '').trim();
-      if(!txt) txt = 'AI 这次没说出内容，再点一次这题试试。';
-      (EX[AI_EXP_CACHE_KEY] = EX[AI_EXP_CACHE_KEY] || {})[reqQn] = { text: txt };
-      /* 只回写仍停留在本题的卡（她可能等的时候点了别的题） */
-      var t2 = document.getElementById('exAiTitle');
-      if(t2 && t2.textContent.indexOf('Q' + reqQn + ' ') === 0){
-        var b2 = document.getElementById('exAiBody'); if(b2) b2.textContent = txt;
-      }
-    }).catch(function(e){
-      EX._aiExpLoading = null;
-      var msg = (typeof aiErrMsg === 'function') ? aiErrMsg(e) : 'AI 服务这会儿忙不过来，过一分钟可重试';
-      if(window.console && console.error) console.error('[bank] AI 讲解失败：', e);
-      var t3 = document.getElementById('exAiTitle');
-      if(t3 && t3.textContent.indexOf('Q' + reqQn + ' ') === 0){
-        var b3 = document.getElementById('exAiBody'); if(b3) b3.textContent = msg;
-      }
-    });
+    var fixed = fixedExplanation(hit.qn);
+    var html = '<div class="ex-fixed-result ' + (d.ok ? 'ok' : 'no') + '">' + (d.ok ? '回答正确' : '回答错误') + '</div>'
+      + '<dl class="ex-fixed-answers"><div><dt>正确答案</dt><dd>' + esc(d.right == null ? '—' : d.right) + '</dd></div>'
+      + '<div><dt>你的答案</dt><dd>' + esc(d.user == null || d.user === '' ? '未作答' : d.user) + '</dd></div></dl>';
+    if(fixed.evidence) html += '<section class="ex-fixed-evidence"><h5>定位句</h5><p>' + esc(fixed.evidence) + '</p></section>';
+    if(fixed.text) html += '<section class="ex-fixed-text"><h5>答案解析</h5><p>' + esc(fixed.text).replace(/\n/g, '<br>') + '</p></section>';
+    if(fixed.tip) html += '<section class="ex-fixed-tip"><h5>易错点</h5><p>' + esc(fixed.tip) + '</p></section>';
+    if(!fixed.text && !fixed.evidence) html += '<p class="ex-fixed-empty">本题暂无人工解析。</p>';
+    body.innerHTML = html;
+    EX._rvShowAnsQ = true;
+    applyReviewAnsQ(); applyReadingEvidence();
+    focusAnswerSentence(d, fixed.evidence);
   }
   function closeAiExplain(){
     var root = document.getElementById('examRoot'); if(!root) return;
@@ -3829,16 +3885,11 @@ window.__reportExamState = reportExamState;
   function applyReviewAnsQ(){
     var root = document.getElementById('examRoot'); if(!root) return;
     root.classList.toggle('rv-noansq', !EX._rvShowAnsQ);
+    applyReadingEvidence();
   }
-  /* RV-SW-26：逐句中文翻译（AI 实时，方案 b）——
-     打开时把当前篇听力稿句子合并成一次 callRelay 请求（不一句一个请求烧额度），
-     译文按篇缓存在 EX（EX._rvCnCache[linesKey]，同一篇重开不重翻），
-     失败 aiErrMsg 人话提示不炸页面；译文渲染在句下方小一号灰字（ex-cn 子行）。 */
-  var RV_CN_CACHE_KEY = '_rvCnCache';
-  function rvCnLinesKey(){
-    var unit = EX && EX.unit;
-    return unit ? String(unit.id || '') + ':' + ((EX.channel === 'listening') ? 'L' : 'R') : '';
-  }
+  /* RV-SW-26：逐句中文翻译（固定译文）——
+     译文按篇随题库预生成在 bank/translations/<id>.json，运行时只读本地文件，
+     不调用任何 AI / API；同一篇加载后缓存在 unit._cnContent，重开不重复请求。 */
   /* 逐句中文翻译要翻的「行」：
      · 听力卷 → 逐句稿 .sc-line；
      · 阅读卷 → ① 左栏原文 #exArt 段落（两种文章格式都认）＋ ② 右栏 #exQCol 的
@@ -3848,9 +3899,9 @@ window.__reportExamState = reportExamState;
      · 两种文章格式（阅读库 280 篇里 179 篇 = 64% 是 Lark 导出）：
        - Lark：正文多包一层 div[data-lark-html-role=root]，每段是 div.ace-line；
        - 普通：正文就是裸 p/h4 平铺。只看 box.children 会让 Lark 篇取行恒为 0。
-     · 右栏去重：选项/表格若已落在 .ex-qt（题干行）里，就由题干行整体带过去，不再单列一行，
-       否则同一句会翻两遍、还会互相覆盖译文；只有题干行之外的独立选项才单列。
-     · 空行 / 纯箭头 / 纯题号（如「27 28 29 30」）不进翻译，白烧额度还翻出空行。 */
+     · 右栏按「题干 / 选项」分别取原文：题干行取 .ex-qt（摘掉 .ex-opts），选项逐个取 .ex-opt，
+       与预生成译文时的 question / optionContent 字段一一对应。
+     · 空行 / 纯箭头 / 纯题号（如「27 28 29 30」）不进翻译。 */
   function rvCnRows(){
     var root = document.getElementById('examRoot'); if(!root) return [];
     var rows = root.querySelectorAll('.ex-script .sc-body .sc-line');
@@ -3868,10 +3919,8 @@ window.__reportExamState = reportExamState;
     }
     var qcol = root.querySelector('#exQCol, .ex-qcol');
     if(qcol){
-      Array.prototype.forEach.call(qcol.querySelectorAll('.ex-grp-i, .ex-qt, .ex-html td, .ex-opt'), function(el){
+      Array.prototype.forEach.call(qcol.querySelectorAll('.ex-grp-i, .ex-qt, .ex-html td, .ex-opt, .ex-pool .ex-chip'), function(el){
         if(!rvCnHasEn(el)) return;
-        if(el.matches('.ex-opt') && el.closest('.ex-qt')) return;   /* 已含在题干行里 */
-        if(el.tagName === 'TD' && el.closest('.ex-qt')) return;     /* 同上 */
         out.push(el);
       });
     }
@@ -3885,10 +3934,37 @@ window.__reportExamState = reportExamState;
   /* 取一行要翻的原文：阅读段落里混着填空框（.ex-blankw）、Mark 旗子、已插的译文，
      克隆一份摘干净再取文字，不动真 DOM。 */
   function rvCnTextOf(el){
-    if(el.classList && el.classList.contains('sc-line')) return (el.textContent || '').trim();
     var c = el.cloneNode(true);
-    Array.prototype.forEach.call(c.querySelectorAll('.ex-blankw,.sc-cn,.ex-flagq,.ex-qn,.ex-ai-panel,.ex-score-mini'), function(n){ n.remove(); });
+    if(el.classList && el.classList.contains('ex-opt')) Array.prototype.forEach.call(c.querySelectorAll('span > b'), function(n){ n.remove(); });
+    else if(el.classList && el.classList.contains('ex-chip')){
+      var word = c.querySelector('b');
+      return word ? (word.textContent || '').replace(/\s+/g, ' ').trim() : '';
+    }
+    else Array.prototype.forEach.call(c.querySelectorAll('.ex-blankw,.sc-cn,.sc-q,.ex-flagq,.ex-qn,.ex-ai-panel,.ex-score-mini,.ex-opts,.ex-pills'), function(n){ n.remove(); });
     return (c.textContent || '').replace(/\s+/g, ' ').trim();
+  }
+  function rvCnHash(text){
+    var h = 2166136261;
+    for(var i = 0; i < text.length; i++){ h ^= text.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return (h >>> 0).toString(36);
+  }
+  function rvCnSentences(text){
+    if(typeof Intl !== 'undefined' && Intl.Segmenter){
+      return Array.from(new Intl.Segmenter('en', { granularity: 'sentence' }).segment(text), function(s){ return s.segment.trim(); }).filter(Boolean);
+    }
+    return String(text).match(/[^.!?]+[.!?]+(?:["'’”]+)?|[^.!?]+$/g).map(function(s){ return s.trim(); }).filter(Boolean);
+  }
+  function loadReviewCn(){
+    var unit = reviewUnit();
+    if(!unit) return Promise.resolve(null);
+    if(unit._cnContent) return Promise.resolve(unit._cnContent);
+    if(unit._cnLoading) return unit._cnLoading;
+    var id = unit.id;
+    unit._cnLoading = fetch('bank/translations/' + id + '.json')
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(doc){ unit._cnContent = doc && doc.items || {}; return unit._cnContent; })
+      .catch(function(){ return {}; });
+    return unit._cnLoading;
   }
   function rvCnToggle(){
     var root = document.getElementById('examRoot'); if(!root) return;
@@ -3899,73 +3975,27 @@ window.__reportExamState = reportExamState;
     var rows = rvCnRows();
     if(!rows.length){ if(typeof toast === 'function') toast('这篇没有可翻译的原文'); return; }
     root.classList.add('rv-cn-on');
-    var key = rvCnLinesKey();
-    EX[RV_CN_CACHE_KEY] = EX[RV_CN_CACHE_KEY] || {};
-    var cached = EX[RV_CN_CACHE_KEY][key];
-    /* 行数变了（例如本次把右栏题干也纳入翻译）就别拿旧缓存对位，重新翻一遍 */
-    if(cached && cached.length === rows.length){ rvCnPaint(cached); return; }
-    /* 合并请求：全部句子/段落一次发（不一段一个请求烧额度） */
-    var joined = rows.map(function(el, i){ return (i + 1) + '. ' + rvCnTextOf(el); }).join('\n');
-    var btn = document.querySelector('#examRoot .ex-tg[data-rvtg="cn"]');
-    if(btn){ btn.disabled = true; }
-    var relay = (typeof callRelay === 'function') ? callRelay : null;
-    if(!relay){
-      if(btn){ btn.disabled = false; }
-      if(typeof toast === 'function') toast('AI 通道未就绪，稍后再试');
-      return;
-    }
-    relay('gpt', [
-      { role: 'system', content: '你是雅思听力/阅读原文与题目的翻译。把用户给的编号文本逐条翻成简体中文（含文章段落、题目指令、题干、选项、表格文字）。只输出与输入相同编号格式的译文列表，一行一条「编号. 译文」，不解释、不加原文。' },
-      { role: 'user', content: joined }
-    ], 0.2, { max_tokens: 4000 }).then(function(out){
-      /* 🔴 callRelay 返回的是**字符串**（全站其它 14 处调用都是 `const content = await callRelay(...)` 直接当字符串用，
-         见 js/bank.js:3712 的 AI 讲解那处）。原来这里按对象取 out.content / out.text / out.choices ——
-         字符串上这三个都取不到，译文恒为空串（听力卷那条路也一样，此前没人点过）。
-         现在先认字符串，再兜住对象形态，万一以后换通道返回结构体也不炸。 */
-      var text = (typeof out === 'string') ? out
-        : ((out && (out.content || out.text || (out.choices && out.choices[0] && out.choices[0].message && out.choices[0].message.content))) || '');
-      var map = {};
-      String(text).split(/\n+/).forEach(function(row){
-        var m = row.match(/^\s*(\d+)[.、．]\s*(.+)$/);
-        if(m) map[Number(m[1]) - 1] = m[2].trim();
-      });
-      var result = rows.map(function(el, i){ return map[i] || ''; });
-      /* 拿到空结果**不写缓存**（B1 报的：一次失败就把空数组写进 EX[RV_CN_CACHE_KEY]，
-         之后关掉再开命中缓存、不再重试，用户永远看着一个开着却空白的开关）。
-         只有真有译文才落缓存；全空就把开关复位、给一句人话，下次点开重试。 */
-      var got = result.filter(function(x){ return String(x || '').trim().length; }).length;
-      if(!got){
-        EX._rvShowCn = false;
-        root.classList.remove('rv-cn-on');
-        if(btn){ btn.disabled = false; btn.classList.remove('on'); }
-        if(typeof toast === 'function') toast('这次没翻出来，再点一次试试');
+    var current = EX, part = EX.curP;
+    loadReviewCn().then(function(doc){
+      if(EX !== current || EX.curP !== part || !EX._rvShowCn) return;
+      if(!doc || !Object.keys(doc).length){
+        if(typeof toast === 'function') toast('本篇暂无固定中文翻译');
         return;
       }
-      EX[RV_CN_CACHE_KEY][key] = result;
-      rvCnPaint(result);
-      if(btn){ btn.disabled = false; }
-    }).catch(function(e){
-      if(btn){ btn.disabled = false; }
-      EX._rvShowCn = false;
-      var b2 = document.querySelector('#examRoot .ex-tg[data-rvtg="cn"]');
-      if(b2) b2.classList.remove('on');
-      root.classList.remove('rv-cn-on');
-      var msg = (typeof aiErrMsg === 'function') ? aiErrMsg(e) : '翻译失败，请稍后重试';
-      if(typeof toast === 'function') toast(msg);
+      rvCnPaint(doc);
     });
   }
   /* 译文落在「那一行」里（听力 .sc-line 内、阅读 <p> 内）：.sc-cn 是 display:block
      的小一号灰字子行，样式壳 bank.html 早就有；关闭态由 #examRoot:not(.rv-cn-on) 整藏。 */
-  function rvCnPaint(cns){
+  function rvCnPaint(items){
     rvCnRows().forEach(function(row, i){
-      var old = row.querySelector(':scope > .sc-cn');
-      if(old) old.parentNode.removeChild(old);
-      var cn = cns[i];
-      if(!cn) return;
-      var sub = document.createElement('span');
-      sub.className = 'sc-cn';
-      sub.textContent = cn;
-      row.appendChild(sub);
+      row.querySelectorAll('.sc-cn').forEach(function(old){ old.remove(); });
+      rvCnSentences(rvCnTextOf(row)).forEach(function(sentence){
+        var cn = items[rvCnHash(sentence)]; if(!cn) return;
+        var sub = document.createElement('span');
+        sub.className = 'sc-cn'; sub.textContent = cn;
+        (row.querySelector('.sc-tx') || row).appendChild(sub);
+      });
     });
   }
   function toggleReview(k){
@@ -4820,13 +4850,25 @@ window.__reportExamState = reportExamState;
      ⚠️ 底栏保持英文 Pause/Resume（与官方一致）；顶栏按设计稿用中文「暂停/继续」。 */
   function paintPauseBtn(){
     var on = !!(EX && EX.paused);
-    ['exPauseBtn', 'exTopPauseBtn'].forEach(function(id){
+    ['exTopPauseBtn'].forEach(function(id){
       var b = document.getElementById(id);
       if(!b) return;
-      if(id === 'exTopPauseBtn') b.textContent = on ? '继续' : '暂停';
-      else b.textContent = on ? 'Resume' : 'Pause';
+      b.textContent = on ? '继续' : '暂停';
       b.classList.toggle('on', on);
     });
+  }
+  function removePauseMask(){
+    var mask = document.getElementById('exPauseMask');
+    if(mask) mask.remove();
+  }
+  function showPauseMask(){
+    var root = document.getElementById('examRoot'); if(!root) return;
+    removePauseMask();
+    var mask = document.createElement('button');
+    mask.type = 'button'; mask.id = 'exPauseMask'; mask.className = 'ex-pause-mask';
+    mask.setAttribute('aria-label', '继续考试');
+    mask.innerHTML = '<span><b>考试已暂停</b><small>点击屏幕任意位置继续考试</small></span>';
+    root.appendChild(mask);
   }
   function pauseExam(){
     if(!EX || EX.submitted || EX.paused) return;
@@ -4837,6 +4879,7 @@ window.__reportExamState = reportExamState;
     var a = document.getElementById('exAudio');
     EX._wasPlaying = !!(a && !a.paused);
     if(a) a.pause();
+    showPauseMask();
     paintPauseBtn();
     paintFtMini();
   }
@@ -4848,6 +4891,7 @@ window.__reportExamState = reportExamState;
     startTimer(EX._leftSec == null ? (EX._noTimer ? 0 : (EX._totalSec || 60 * 60)) : EX._leftSec);
     var a = document.getElementById('exAudio');
     if(a && EX._wasPlaying) a.play();
+    removePauseMask();
     paintPauseBtn();
     paintFtMini();
   }
@@ -5113,26 +5157,25 @@ window.__reportExamState = reportExamState;
     var MARK_MAX = 12;
     var ov = document.createElement('div');
     ov.className = 'ex-modal'; ov.id = 'exSubmitModal';
-    ov.innerHTML = '<div class="ex-modal-c" role="dialog" aria-modal="true" aria-label="Finish section">'
-      + '<h4>Finish section?</h4>'
+    ov.innerHTML = '<div class="ex-modal-c" role="dialog" aria-modal="true" aria-label="交卷确认">'
+      + '<h4>确认交卷？</h4>'
       + (unanswered
-          ? '<p>You still have <b>' + unanswered + '</b> unanswered question' + (unanswered > 1 ? 's' : '') + '. '
-            + 'You can go back and check them, or finish now.</p>'
+          ? '<p>还有 <b>' + unanswered + '</b> 题未作答。可以回去检查，也可以直接交卷。</p>'
             /* 10/18 P1-4：未答数从「只能看的文字」变成本按钮 —— 点了回第一道没答的题。
                未答在机考里是纯丢分，把「糊里糊涂交卷」变成「补完再交」。 */
-            + '<button type="button" class="ex-modal-jump" data-sjump="first">Go to the first unanswered \u203A</button>'
-          : '<p>You have answered all questions. Finish now?</p>')
+            + '<button type="button" class="ex-modal-jump" data-sjump="first">回到第一道未作答 \u203A</button>'
+          : '<p>所有题目都已作答，现在交卷吗？</p>')
       + (flags.length
-          ? '<div class="ex-modal-marks"><span class="ex-modal-mk-h">Marked for review</span>'
+          ? '<div class="ex-modal-marks"><span class="ex-modal-mk-h">标记待检查</span>'
             + flags.slice(0, MARK_MAX).map(function(n){
                 return '<button type="button" class="ex-modal-chip" data-sjumpmark="' + n + '">' + n + '</button>';
               }).join('')
-            + (flags.length > MARK_MAX ? '<span class="ex-modal-more">+' + (flags.length - MARK_MAX) + ' more</span>' : '')
+            + (flags.length > MARK_MAX ? '<span class="ex-modal-more">还有 ' + (flags.length - MARK_MAX) + ' 题</span>' : '')
             + '</div>'
           : '')
       + '<div class="ex-modal-b">'
-      + '<button class="btn-ghost" type="button" data-scancel>Keep working</button>'
-      + '<button class="btn-primary" type="button" data-sok>Finish</button>'
+      + '<button class="btn-ghost" type="button" data-scancel>继续作答</button>'
+      + '<button class="btn-primary" type="button" data-sok>确认交卷</button>'
       + '</div></div>';
     host.appendChild(ov);
   }
@@ -5140,6 +5183,7 @@ window.__reportExamState = reportExamState;
 
   function doSubmit(){
     if(!EX || EX.submitted) return;
+    removePauseMask(); EX.paused = false;
     EX.submitted = true; stopTimer(); stopFtMini();      /* 10/13：小徽章随交卷停 */
     /* 🔴 10/20：交卷 = 解锁导航（成绩与作答已落库，可以离开了），
        但**不执行**待刷新（flushHeal 不传）—— 她刚交卷要在这看成绩解析，
@@ -5315,6 +5359,7 @@ window.__reportExamState = reportExamState;
   }
 
   function exitExam(){
+    removePauseMask();
     stopTimer();
     stopFtMini();                                        /* 10/13：顶栏小徽章随之停 */
     dgReset();
@@ -5325,7 +5370,7 @@ window.__reportExamState = reportExamState;
     var _wasReadonly = !!(EX && EX.readonly);
     if(EX && !EX.submitted && !EX.readonly) saveDraft();
     if(!_wasReadonly) bankCommitTimer();              /* C-3：未交卷退出也要结算（别只挂交卷上）；只读复盘不算专注 */
-    EX = null;                                        /* RV-AI-EXPLAIN-1：讲解卡与缓存随 EX 一起清（innerHTML 清空即消失） */
+  EX = null;                                        /* RV-AI-EXPLAIN-1：解析卡随 EX 一起清（innerHTML 清空即消失） */
     var host = document.getElementById('examRoot'); if(host){ host.hidden = true; host.innerHTML = ''; }
     var root = document.getElementById('bankRoot'); if(root) root.style.display = '';
     /* 组卷缓存 _fullSet/_listenFullSet 已随「纯随机」口径删除（10/12）：每次 Start 现抽，无需重置 */
@@ -5462,11 +5507,11 @@ window.__reportExamState = reportExamState;
         toggleReview(el.getAttribute('data-rvtg'));
         return;
       }
-      /* RV-AI-EXPLAIN-1：讲解卡 ✕ = 只收卡（不动作答/判分数据） */
+  /* RV-AI-EXPLAIN-1：解析卡 ✕ = 只收卡（不动作答/判分数据） */
       if((el = t.closest && t.closest('[data-aiexpclose]'))){
         e.preventDefault(); closeAiExplain(); return;
       }
-      /* RV-AI-EXPLAIN-1：复盘态点作答控件/题号 → 右下角 AI 讲解（仅复盘；做题态 EX.submitted 为 false 自然不触发） */
+  /* RV-AI-EXPLAIN-1：复盘态点作答控件/题号 → 右栏固定解析（仅复盘；做题态 EX.submitted 为 false 自然不触发） */
       if(EX && EX.submitted && EX.result){
         var aiHit = aiExpTargetOf(t);
         if(aiHit){ openAiExplain(aiHit); }
@@ -5499,7 +5544,8 @@ window.__reportExamState = reportExamState;
       if(t.closest && t.closest('#exAudioGate [data-askip]')){ skipAudioGate(); return; }
       /* Pause / Resume（10/13 她报「Pause 是个摆设」→ 实现：暂停音频+倒计时，按钮互文切换） */
       /* W-EXTOP-1（10-25）：顶栏那颗 #exTopPauseBtn 与底栏是同一个开关，接在同一分支。 */
-      if(t.closest && (t.closest('#exPauseBtn') || t.closest('#exTopPauseBtn'))){
+      if(t.closest && t.closest('#exPauseMask')){ resumeExam(); return; }
+      if(t.closest && t.closest('#exTopPauseBtn')){
         if(EX && EX.paused) resumeExam(); else pauseExam();
         return;
       }
@@ -5682,7 +5728,7 @@ window.__reportExamState = reportExamState;
         if(EX && !EX.submitted){
           if(t.checked){ EX.user[_q] = _v; }
           else { delete EX.user[_q]; }
-          paintSheet();
+          saveDraft(); paintSheet();
         }
         return;
       }

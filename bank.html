@@ -18,7 +18,7 @@
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
 <title>机经 · 雅思备考 Hub</title>
-<link rel="preload" as="script" href="js/bank.js?v=20261117b" /> <!-- W1-PRELOAD-1 (373KB)：与下方 defer 同串防双下载 -->
+<link rel="preload" as="script" href="js/bank.js?v=20261117c" /> <!-- W1-PRELOAD-1 (373KB)：与下方 defer 同串防双下载 -->
 <link rel="preload" as="script" href="js/common-shell.js?v=20261116a" /> <!-- W1-PRELOAD-1 (113KB)：与下方 defer 同串防双下载 -->
 <link rel="stylesheet" href="css/common.css?v=20261116a" />
 <link rel="stylesheet" href="css/p/bank.css?v=20261116i" />
@@ -56,18 +56,11 @@
 .bk-groups{display:flex;flex-direction:column;gap:6px}
 .bk-grp-h{display:flex;align-items:baseline;gap:8px;padding:10px 2px 6px}
 .bk-grp-h b{font-size:13.5px;font-weight:700;color:var(--ink)}
-.bk-grp-n{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
-.bk-grp-empty{padding:14px 2px;font-size:13px;color:var(--muted)}
-/* 「展开更多」按钮：居中一条，弱化（不是主行动点） */
-.bk-grp-more{list-style:none;padding:10px 0 4px;text-align:center}
 .bk-more{font:inherit;font-size:12.5px;font-weight:600;color:var(--primary-700);
   border:1px solid var(--primary-200);background:var(--primary-50);
   padding:6px 16px;border-radius:999px;cursor:pointer;transition:background .15s}
 .bk-more:hover{background:var(--primary-100)}
 .bk-more:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(58,154,147,.25)}
-
-.full-row{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:15px 18px;
-  display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:14px}
 .full-row .l b{font-size:15.5px;font-weight:700}
 .full-row .l span{display:block;color:var(--muted);font-size:13px;margin-top:3px}
 .btn-primary{appearance:none;border:none;background:var(--primary);color:#fff;font-weight:700;font-size:14px;
@@ -78,14 +71,12 @@
 .btn-ghost:hover{border-color:var(--primary);color:var(--primary)}
 /* 10/17：交卷后 Finish 按钮。此前只 disabled + inline opacity:.5 → 仍是实心 teal、文案不变，
    看着像「还能点/没交上」（她 18:3x 报的第 2 个问题）。改：灰底 + 文案 Submitted（JS 改文案）。 */
-#examRoot .ex-actions .btn-primary.is-done,#examRoot .ex-actions .btn-primary:disabled{
+#examRoot .ex-actions .btn-primary.is-done, #examRoot .ex-actions .btn-primary:disabled{
   background:var(--n-200);color:var(--n-600);cursor:default}
 /* 黄底档（ct-yellow）下 .btn-primary 是黄底黑字 → 交卷灰态要另给一套，
    否则 L484 的 ct-yellow 规则特异性更高，disabled 仍是实心黄（看着像没交卷）。 */
-#examRoot.ct-yellow .ex-actions .btn-primary.is-done,#examRoot.ct-yellow .ex-actions .btn-primary:disabled{
+#examRoot.ct-yellow .ex-actions .btn-primary.is-done, #examRoot.ct-yellow .ex-actions .btn-primary:disabled{
   background:#2a2a2a;color:#8a8a8a;border-color:#3a3f45;cursor:default}
-
-.bank-count{font-size:13px;color:var(--muted);margin:0 0 10px}
 .bank-items{list-style:none;margin:0;padding:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface)}
 .bank-item{display:flex;align-items:center;gap:14px;padding:10px 16px;border-top:1px solid var(--line);cursor:pointer;transition:background .12s}
 .bank-item:first-child{border-top:none}
@@ -111,7 +102,7 @@
 .bi-st.ok b{color:var(--primary-900)}
 .bi-when{display:block;font-style:normal;font-size:11px;color:var(--n-500);font-weight:400;line-height:1.3;margin-top:1px}
 .bi-chev{width:14px;flex:none;text-align:right;color:var(--n-400);font-size:15px;transition:color .12s}
-.bank-loading,.bank-empty{padding:40px 16px;text-align:center;color:var(--muted);font-size:14px;line-height:1.8}
+.bank-loading, .bank-empty{padding:40px 16px;text-align:center;color:var(--muted);font-size:14px;line-height:1.8}
 /* ===== B-1a 加载四态 + 骨架屏（2026-10-23 新增，勿与上面 .bank-loading 旧规则混用）=====
    方案：交接/方案/B-1a-bank加载试卷重做-方案.md §3.1（她拍板选版一：骨架屏） */
 .bk-state{padding:40px 16px;text-align:center}
@@ -125,18 +116,16 @@
 .bk-skel .sk-ln{height:10px;border-radius:5px}
 .bk-skel .sk-ln.a{width:72%}
 .bk-skel .sk-ln.b{width:44%}
-.bk-skel .sk-no,.bk-skel .sk-ln{background:var(--line);animation:bkSkelPulse 1.4s ease-in-out infinite}
+.bk-skel .sk-no, .bk-skel .sk-ln{background:var(--line);animation:bkSkelPulse 1.4s ease-in-out infinite}
 .bk-skel .sk-row:nth-child(even) .sk-ln.a{width:60%}
 .bk-skel .sk-row:nth-child(even) .sk-ln.b{width:52%}
 @keyframes bkSkelPulse{0%,100%{opacity:1}50%{opacity:.55}}
 @media (prefers-reduced-motion:reduce){
-  .bk-skel .sk-no,.bk-skel .sk-ln{animation:none;opacity:.7}
+  .bk-skel .sk-no, .bk-skel .sk-ln{animation:none;opacity:.7}
 }
 /* 考试档（类只挂 #examRoot；.ex-split.ct-* 是死选择器，别写） */
-#examRoot.ct-dark .bk-skel .sk-no,
-#examRoot.ct-dark .bk-skel .sk-ln{background:rgba(255,255,255,.16)}
-#examRoot.ct-yellow .bk-skel .sk-no,
-#examRoot.ct-yellow .bk-skel .sk-ln{background:rgba(0,0,0,.12)}
+#examRoot.ct-dark .bk-skel .sk-no, #examRoot.ct-dark .bk-skel .sk-ln{background:rgba(255,255,255,.16)}
+#examRoot.ct-yellow .bk-skel .sk-no, #examRoot.ct-yellow .bk-skel .sk-ln{background:rgba(0,0,0,.12)}
 @media (max-width:420px){.bk-state{padding:28px 12px}}
 
 /* ===== MOCK-LOADING-PAGE-1（10-31 她「现在的加载页不好看」）：练习/模考的载入页重做 =====
@@ -176,14 +165,14 @@
 .bk-state.bk-loadpage .bk-st-act{margin-top:22px}
 
 /* 三档外观：考场内是 #examRoot.ct-* 自己的一套写死色（不跟 data-theme 走），这里按同一口径补齐 */
-#examRoot.ct-dark .bk-lp-doc,#examRoot.ct-dark .bk-lp-ringbg{stroke:#5a5f66}
+#examRoot.ct-dark .bk-lp-doc, #examRoot.ct-dark .bk-lp-ringbg{stroke:#5a5f66}
 #examRoot.ct-dark .bk-lp-bar{background:#3a3f45}
 #examRoot.ct-dark .bk-state.bk-loadpage .bk-st-title{color:#f2f2f2}
-#examRoot.ct-dark .bk-state.bk-loadpage .bk-st-sub,#examRoot.ct-dark .bk-lp-tip{color:#c8cbd0}
-#examRoot.ct-yellow .bk-lp-doc,#examRoot.ct-yellow .bk-lp-ringbg{stroke:#4a4526}
+#examRoot.ct-dark .bk-state.bk-loadpage .bk-st-sub, #examRoot.ct-dark .bk-lp-tip{color:#c8cbd0}
+#examRoot.ct-yellow .bk-lp-doc, #examRoot.ct-yellow .bk-lp-ringbg{stroke:#4a4526}
 #examRoot.ct-yellow .bk-lp-bar{background:#4a4526}
 #examRoot.ct-yellow .bk-state.bk-loadpage .bk-st-title{color:#f0e3a8}
-#examRoot.ct-yellow .bk-state.bk-loadpage .bk-st-sub,#examRoot.ct-yellow .bk-lp-tip{color:#c9bd85}
+#examRoot.ct-yellow .bk-state.bk-loadpage .bk-st-sub, #examRoot.ct-yellow .bk-lp-tip{color:#c9bd85}
 
 /* 手机档：整体收一档（稿子 @media 480 的口径），保证 390 宽不出横向滚动 */
 @media (max-width:480px){
@@ -198,8 +187,6 @@
 @media (prefers-reduced-motion:reduce){
   .bk-lp-ringp,.bk-lp-dots i,.bk-lp-bar i{animation:none}
 }
-.bank-note{margin:18px 0 0;font-size:13px;color:var(--muted);line-height:1.7}
-.soon-box{background:var(--surface);border:1px dashed var(--line);border-radius:12px;padding:26px 20px;text-align:center;color:var(--muted);font-size:14px;line-height:1.9}
 
 /* ===== P2 题库页 B 定版（11-12 点头）：完整模考入口收成一行细白条，题目列表当主角 =====
    推翻的旧口径：深绿大卡（深主色实底与渐变）、大号数字、两条组卷提示胶囊、
@@ -241,38 +228,7 @@ html[data-theme="dark"] .full-card{background:var(--surface);border-color:var(--
    ③ english-secrets.com/ielts-speaking-practice —— 编号步骤卡 1/2/3（Part 名 + 一句内容 + 时长）。
    结论：模考引导页通例 = 「Part 结构流程卡 + 说明条目小卡网格」，质感靠字重和留白，不靠字号。 */
 .spk-flow{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:0 0 16px}
-.spk-flow .spk-step{border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:12px 14px}
 .spk-flow .spk-step .no{display:block;font-size:11px;font-weight:800;letter-spacing:.1em;color:var(--primary)}
-.spk-flow .spk-step b{display:block;font-size:14px;font-weight:700;color:var(--ink);margin:3px 0 4px}
-.spk-flow .spk-step span{display:block;font-size:12.5px;line-height:1.6;color:var(--muted)}
-.spk-tips{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.spk-tips .spk-tip{border:1px solid var(--line);border-radius:12px;background:var(--surface);
-  padding:12px 14px;font-size:13.5px;line-height:1.68;color:var(--muted)}
-.spk-tips .spk-tip b{display:block;font-size:13.5px;font-weight:700;color:var(--ink);margin-bottom:3px}
-.spk-tips .spk-tip strong{font-weight:700;color:var(--ink)}
-.spk-notes-h{display:flex;align-items:baseline;gap:8px;margin:0 0 10px}
-.spk-notes-h b{font-size:14px;font-weight:700;color:var(--ink)}
-.spk-notes-h span{font-size:12.5px;color:var(--muted)}
-/* ---- M-4（10-24）：两栏化 ----
-   原来「怎么考」三步卡 + 「考试说明」四张帖各横排占满 1080px，右边空白越往下越多、
-   整页被拉很高。现在左上「怎么考」、右上「考试说明」，**高度砍一半**。
-   🔴 只改布局，文案一字不动（10/11 她确认过的说明文字）。
-   🔴 窄屏（≤860）仍按原来的顺序上下叠，一栏一屏。 */
-.spk-cols{display:grid;grid-template-columns:minmax(0,.86fr) minmax(0,1fr);gap:22px;align-items:start}
-.spk-col{min-width:0}
-/* 栏内小卡改单列（两栏后每栏约 480px，三列会挤成一条细分段） */
-.spk-cols .spk-flow{grid-template-columns:1fr;gap:9px;margin:0}
-.spk-cols .spk-tips{grid-template-columns:1fr 1fr;gap:9px}
-@media(max-width:860px){
-  .spk-cols{grid-template-columns:1fr;gap:18px}
-  .spk-cols .spk-flow{grid-template-columns:1fr}
-  .spk-cols .spk-tips{grid-template-columns:1fr}
-}
-@media(max-width:860px){
-  .spk-flow{grid-template-columns:1fr}
-  .spk-tips{grid-template-columns:1fr}
-  .spk-tips .spk-tip{font-size:13px}
-}
 
 /* 10/12 批A：顶部 Passage/Part 切换（.ex-ptabs）已删 —— 挪到底部篇切换器，见 .ex-nav 区 */
 
@@ -343,18 +299,18 @@ html[data-theme="dark"] .full-card{background:var(--surface);border-color:var(--
    正答填入/还原走 applyReviewToggles（data-rv-user 存她的作答，判分数据不动）。 */
 #examRoot.rv-noans input.ex-blank.right[data-q]{border-bottom-color:var(--line) !important;color:#24272c !important}
 /* .wrong 不在这条规则里——错字靠 #examRoot .ex-blankw input.ex-blank.wrong 的红一直显（她对错照显口径） */
-#examRoot.rv-nohl .ex-hl,#examRoot.rv-nohl .ex-nt{background:transparent !important;color:inherit !important;outline:none !important;box-shadow:none !important}
+#examRoot.rv-nohl .ex-hl, #examRoot.rv-nohl .ex-nt{background:transparent !important;color:inherit !important;outline:none !important;box-shadow:none !important}
 @media(max-width:860px){
 .ex-toggles{order:9;width:100%;justify-content:flex-start;padding-top:2px}
 .ex-top{flex-wrap:wrap;row-gap:4px}
 .ex-score-mini{margin-left:auto}
 }
 /* 深色/黄底考试档：顶栏深底（#161616），开关与对错小字按 ct-dark 同款反色（对齐 .ex-top .ex-name 口径）。 */
-#examRoot.ct-dark .ex-tg,#examRoot.ct-yellow .ex-tg{background:#262a24;color:#c8cbd0;border-color:#5a5f66}
-#examRoot.ct-dark .ex-tg:hover,#examRoot.ct-yellow .ex-tg:hover{border-color:#8fe0d6;color:#8fe0d6}
+#examRoot.ct-dark .ex-tg, #examRoot.ct-yellow .ex-tg{background:#262a24;color:#c8cbd0;border-color:#5a5f66}
+#examRoot.ct-dark .ex-tg:hover, #examRoot.ct-yellow .ex-tg:hover{border-color:#8fe0d6;color:#8fe0d6}
 #examRoot.ct-dark .ex-tg.on{background:#8fe0d6;border-color:#8fe0d6;color:#0f3330}
 #examRoot.ct-yellow .ex-tg.on{background:#ffd400;border-color:#ffd400;color:#161616}
-#examRoot.ct-dark .ex-score-mini,#examRoot.ct-yellow .ex-score-mini{color:#c8cbd0}
+#examRoot.ct-dark .ex-score-mini, #examRoot.ct-yellow .ex-score-mini{color:#c8cbd0}
 #examRoot.ct-dark .ex-score-mini b{color:#f2f2f2}
 #examRoot.ct-yellow .ex-score-mini b{color:#f0e3a8}
 /* ===== RV-AI-EXPLAIN-1（11-02 她口径：点答案 → 右下角 AI 讲解）=====
@@ -375,7 +331,7 @@ html[data-theme="dark"] .full-card{background:var(--surface);border-color:var(--
 #exQCol .ex-ai-handle{appearance:none;border:0;background:transparent;height:10px;margin-top:-5px;
   cursor:row-resize;flex:none;position:relative;touch-action:none}
 #exQCol .ex-ai-handle::after{content:'';position:absolute;left:0;right:0;top:4px;height:2px;background:rgba(0,0,0,.35)}
-#exQCol .ex-ai-handle:hover::after,#exQCol .ex-ai-handle:focus-visible::after{height:4px;top:3px;background:var(--primary)}
+#exQCol .ex-ai-handle:hover::after, #exQCol .ex-ai-handle:focus-visible::after{height:4px;top:3px;background:var(--primary)}
 .ex-ai-h{display:flex;align-items:center;justify-content:space-between;gap:8px;
   padding:8px 12px;border-bottom:1px solid #eceff2;flex:none}
 .ex-ai-h b{font-size:12.5px;font-weight:800;color:#111}
@@ -395,15 +351,12 @@ html[data-theme="dark"] .full-card{background:var(--surface);border-color:var(--
 .ex-qn.ai-cur{outline:2px solid #237a74;outline-offset:1px}
 .ex-blankw.ai-cur{outline:2px solid #237a74;outline-offset:1px;border-radius:3px}
 .mx-no.ai-cur{outline:2px solid #237a74;outline-offset:1px;border-radius:3px}
-@media(max-width:640px){
-
-}
-#examRoot.ct-dark .ex-ai-panel,#examRoot.ct-yellow .ex-ai-panel{background:#1c1f22;border-color:#5a5f66}
-#examRoot.ct-dark .ex-ai-h,#examRoot.ct-yellow .ex-ai-h{border-bottom-color:#33383d}
-#examRoot.ct-dark .ex-ai-h b,#examRoot.ct-yellow .ex-ai-h b{color:#f2f2f2}
-#examRoot.ct-dark .ex-ai-b,#examRoot.ct-yellow .ex-ai-b{color:#d7dade}
-#examRoot.ct-dark .ex-ai-x,#examRoot.ct-yellow .ex-ai-x{color:#9aa0a6}
-#examRoot.ct-dark .ex-ai-x:hover,#examRoot.ct-yellow .ex-ai-x:hover{background:#2a2e33;color:#f2f2f2}
+#examRoot.ct-dark .ex-ai-panel, #examRoot.ct-yellow .ex-ai-panel{background:#1c1f22;border-color:#5a5f66}
+#examRoot.ct-dark .ex-ai-h, #examRoot.ct-yellow .ex-ai-h{border-bottom-color:#33383d}
+#examRoot.ct-dark .ex-ai-h b, #examRoot.ct-yellow .ex-ai-h b{color:#f2f2f2}
+#examRoot.ct-dark .ex-ai-b, #examRoot.ct-yellow .ex-ai-b{color:#d7dade}
+#examRoot.ct-dark .ex-ai-x, #examRoot.ct-yellow .ex-ai-x{color:#9aa0a6}
+#examRoot.ct-dark .ex-ai-x:hover, #examRoot.ct-yellow .ex-ai-x:hover{background:#2a2e33;color:#f2f2f2}
 .ex-timer{margin:0 auto;font-variant-numeric:tabular-nums;font-weight:700;font-size:12px;color:#111;background:none;border:none;border-radius:0;padding:0}
 .ex-timer.warn{color:#b3261e;animation:exblink 1s step-start infinite}
 .ex-timer.soon{color:#8a5a00}
@@ -411,9 +364,6 @@ html[data-theme="dark"] .full-card{background:var(--surface);border-color:var(--
 /* 10/13 顶栏计时小徽章（她报「左下绿胶囊太明显」→ 考场内隐藏全站 floatTimer，
    改在顶栏时间旁显示小号徽章；数据源/口径与 floatTimer 一致，JS 见 bank.js paintFtMini） */
 .ex-ft{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:#6b7280;background:#f2f4f6;border:1px solid var(--line);border-radius:999px;padding:1px 8px;line-height:1.5;white-space:nowrap;font-variant-numeric:tabular-nums}
-.ex-ft[hidden]{display:none}
-.ex-ft i{width:5px;height:5px;border-radius:50%;background:var(--primary);flex:none}
-.ex-ft b{font-weight:600}
 #examRoot.ct-dark .ex-ft{background:#262a24;border-color:#5a5f66;color:#c8cbd0}
 .ex-icons{display:flex;gap:6px;margin-left:auto;position:relative;align-items:center}
 /* UNIFIED-EXAM-UI-3 笔1（10-31 她点头 design/UNIFIED-EXAM-UI-3）：
@@ -436,12 +386,7 @@ html[data-theme="dark"] .full-card{background:var(--surface);border-color:var(--
 .ex-saved.on{opacity:1}
 #examRoot.ct-dark .ex-saved{color:#9aa0a6}
 #examRoot.ct-yellow .ex-saved{color:#c9b978}
-.ex-pop{position:absolute;top:34px;right:0;z-index:20;background:#fff;border:1px solid var(--n-400);border-radius:6px;
-  box-shadow:0 6px 20px rgba(0,0,0,.12);padding:14px 16px;min-width:220px;display:none}
 .ex-pop.on{display:block}
-.ex-pop h5{margin:0 0 8px;font-size:11.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
-.ex-pop label{display:flex;align-items:center;gap:8px;font-size:13.5px;padding:4px 0;cursor:pointer;color:#111}
-.ex-pop hr{border:none;border-top:1px solid var(--line);margin:10px 0}
 /* Part 横幅：一行淡绿（照样子稿 104）*/
 .ex-part{flex:none;background:var(--primary-50);padding:7px 16px;border-bottom:1px solid var(--primary-100);font-size:13px;color:#111}
 .ex-part b{font-weight:800}
@@ -456,9 +401,9 @@ html[data-theme="dark"] .full-card{background:var(--surface);border-color:var(--
       原来写死 15px + !important → Size 三档只改了题干/选项（它们走 .em），**文章纹丝不动**。
       现在全部改成 `calc(var(--exfs) * 系数)`：默认档（--exfs:20px）仍是 15px（外观零变化，
       不回归 10/14 那次「字太大」），large(23) / xl(27) 时文章、组标题、组指令、填空框一起放大。 */
-.ex-article,.ex-article *{font-size:calc(var(--exfs) * .75) !important;line-height:1.7 !important}
-.ex-article b,.ex-article strong{font-size:calc(var(--exfs) * .75) !important;font-weight:700 !important}
-.ex-article h2,.ex-article h3{font-size:calc(var(--exfs) * .85) !important;line-height:1.5;margin:0 0 10px}
+.ex-article, .ex-article *{font-size:calc(var(--exfs) * .75) !important;line-height:1.7 !important}
+.ex-article b, .ex-article strong{font-size:calc(var(--exfs) * .75) !important;font-weight:700 !important}
+.ex-article h2, .ex-article h3{font-size:calc(var(--exfs) * .85) !important;line-height:1.5;margin:0 0 10px}
 
 .ex-article p{margin:0 0 12px}
 /* 10/14 实测：第一个子元素是 &nbsp; 空 DIV，真正的「标题+正文」在第二个 DIV，
@@ -478,7 +423,7 @@ html[data-theme="dark"] .full-card{background:var(--surface);border-color:var(--
    —— 两处一致：题号是独立编号列，题干说明与选项左边界严格对齐，选项竖排等距。 */
 .ex-q{display:flex;align-items:flex-start;gap:11px;margin:0 0 15px;font-size:.8em;line-height:1.6;color:#111;position:relative;padding-right:34px}   /* 10/14 字号 18.8→16px、行高 1.75→1.6（她：字体太大） */
 .ex-qt{flex:1;min-width:0}
-.ex-qt > .ex-drop,.ex-qt > .ex-pills,.ex-qt > .ex-opts,.ex-qt > .ex-pool{margin-top:8px}
+.ex-qt > .ex-drop, .ex-qt > .ex-pills, .ex-qt > .ex-opts, .ex-qt > .ex-pool{margin-top:8px}
 .ex-q:last-child{margin-bottom:0}
 .ex-qn{flex:none;display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;border:1.5px solid #111;border-radius:3px;font-weight:700;font-size:13px;background:#fff;padding:0 4px;margin-top:1px}   /* 10/14 14→13px、方框 27→24px */
 /* 🔴 10/20 她 ⑦「题目放左、选项放右竖排」（真题口径，省空间）：
@@ -559,9 +504,6 @@ html[data-theme="dark"] .full-card{background:var(--surface);border-color:var(--
 .ex-flagq{position:absolute;right:0;top:2px;border:none;background:none;color:#c3c8cf;font-size:16px;cursor:pointer;padding:2px 4px;line-height:1}
 .ex-flagq:hover{color:#8f959e}
 .ex-flagq.on{color:#111}
-.ex-hdbox{border:1px solid var(--n-400);border-radius:4px;padding:12px 16px;margin-bottom:16px}
-.ex-hdbox div{font-size:.9em;margin:4px 0;line-height:1.7}
-.ex-hdbox i{font-style:normal;font-weight:700;display:inline-block;min-width:30px}
 /* ===== 配对题：选项池 + 拖拽入框（对齐真机考）===== */
 .ex-pool{border:1px solid #6a6f77;border-radius:4px;background:#fff;margin:0 0 18px}
 .ex-pool-t{font-size:.85em;font-weight:700;padding:8px 13px;background:#f7f8f9;border-bottom:1px solid var(--line)}
@@ -639,7 +581,7 @@ html[data-theme="dark"] .full-card{background:var(--surface);border-color:var(--
 /* 10/14 表格单元格里的填空框会被 td 拉伸成 200px（截图里显得很宽）→ 固定宽度紧贴文字 */
 /* 10/14 修正：固定 118px 会撑破窄格子（截图里框压住了后面的文字）→ 改弹性：
    有空间时目标 118px，格子不够时自动缩（min-width 只留 72px 保底可点）。 */
-.ex-html td .ex-blankw,.ex-html th .ex-blankw{width:118px;max-width:100%;min-width:72px;flex:0 1 auto}
+.ex-html td .ex-blankw, .ex-html th .ex-blankw{width:118px;max-width:100%;min-width:72px;flex:0 1 auto}
 .ex-html td .ex-blankw input{width:100%}
 /* 🔴🔴 10/16 修（她：Option>Size「只能调题目的字体大小，其他调不了」——填空框算「其他」）：
    真凶是**特异性**：common.css:475 的全局表单规则
@@ -651,7 +593,7 @@ html[data-theme="dark"] .full-card{background:var(--surface);border-color:var(--
    height 改 100% 让它跟着 .ex-blankw（后者已随 --exfs 缩放）。 */
 #examRoot .ex-blankw input{display:block;border:none;outline:none;background:none;border-radius:0;box-shadow:none;font:inherit;font-size:calc(var(--exfs) * .725);width:100%;height:100%;text-align:left;color:#111;padding:0 8px}
 .ex-blankw.editing b{display:none}   /* 10/14：input 常驻后此规则仅兜底 */
-.ex-blankw.editing input,.ex-blankw.filled input{display:block}
+.ex-blankw.editing input, .ex-blankw.filled input{display:block}
 /* 10/13 她截图 3 口径：点击后数字不硬消失——input 的 placeholder 灰显题号，
    光标在前、数字在后，输入第一个字符原生让位（BC 机考同款行为） */
 .ex-blankw input::placeholder{color:#9ca3af;opacity:1}
@@ -661,8 +603,8 @@ html[data-theme="dark"] .full-card{background:var(--surface);border-color:var(--
 .ex-blankw.wrong{border-color:#b3261e}
 .ex-blank.right{border-color:#1f7a5c;color:#1f7a5c}
 .ex-blank.wrong{border-color:#b3261e;color:#b3261e}
-/* RV-COLOR-LOGIC-1 修：#examRoot .ex-blankw input（0,1,2 + 元素选择器）写死 color:#111，
-   裸 .ex-blank.wrong（0,1,0）压不过 → 填空对错色被默认墨色吃掉。
+/* RV-COLOR-LOGIC-1 修：#examRoot .ex-blankw input（0, 1, 2 + 元素选择器）写死 color:#111，
+   裸 .ex-blank.wrong（0, 1, 0）压不过 → 填空对错色被默认墨色吃掉。
    提到同族 + 类：#examRoot .ex-blankw input.ex-blank.right/.wrong 特异性 (1,2,1) 反超。 */
 #examRoot .ex-blankw input.ex-blank.right{color:#1f7a5c}
 #examRoot .ex-blankw input.ex-blank.wrong{color:#b3261e}
@@ -703,9 +645,8 @@ html[data-theme="dark"] .full-card{background:var(--surface);border-color:var(--
 .ex-blankw.wrong input{color:#b3261e}
 /* ═══ RV-SW-26（她 11-02 台账 26 号两开关）═══
    ① rv-noansq（听力复盘「Answer sentences」开关默认开）：关=藏 .sc-ans 高亮与 Q 徽章，visibility 保位；
-   ② sc-cn（「中文翻译」开关默认关，AI 实时逐句翻）：句下方小一号灰字子行，不挤原文行高；手机档不越界。 */
-#examRoot.rv-noansq .ex-script .sc-line.sc-ans .sc-tx,
-#examRoot.rv-noansq .ex-script .sc-line.sc-ans .sc-t{color:inherit;font-weight:inherit}
+   ② sc-cn（「中文翻译」开关默认关，读取随题库预生成的固定译文）：句下方小一号灰字子行，不挤原文行高；手机档不越界。 */
+#examRoot.rv-noansq .ex-script .sc-line.sc-ans .sc-tx, #examRoot.rv-noansq .ex-script .sc-line.sc-ans .sc-t{color:inherit;font-weight:inherit}
 #examRoot.rv-noansq .ex-script .sc-line.sc-ans{background:none}
 #examRoot.rv-noansq .ex-script .sc-q{display:none}
 .sc-cn{display:block;font-size:.82em;color:#6b7280;line-height:1.45;margin-top:1px;font-weight:400}
@@ -715,8 +656,11 @@ html[data-theme="dark"] .full-card{background:var(--surface);border-color:var(--
    .ex-opt 是横排选项，译文要另起一行才不挤在字母旁边；只在开关打开时放开换行，
    做题态 / 关翻译态布局一律不变。表格格里的译文左对齐，中文不跟着流程图的居中跑。 */
 #examRoot.rv-cn-on .ex-opt{flex-wrap:wrap}
-.ex-opt > .sc-cn{flex:0 0 100%;min-width:0}
-.ex-qt > .sc-cn,.ex-grp-i > .sc-cn{white-space:normal;overflow-wrap:anywhere}
+.ex-opt span{flex-wrap:wrap}
+.ex-opt > .sc-cn, .ex-opt span > .sc-cn{flex:0 0 100%;min-width:0}
+#examRoot.rv-cn-on .ex-chip{flex-wrap:wrap}
+.ex-chip > .sc-cn{flex:0 0 100%;min-width:0}
+.ex-qt > .sc-cn, .ex-grp-i > .sc-cn{white-space:normal;overflow-wrap:anywhere}
 .ex-html td > .sc-cn{text-align:left;white-space:normal;overflow-wrap:anywhere}
 
 /* 段落信息匹配（她 10/12 22:16 截图要求的真机考形态）：文章每段上方虚线槽 + 题号气泡。
@@ -738,7 +682,7 @@ html[data-theme="dark"] .full-card{background:var(--surface);border-color:var(--
    字号全部 calc(var(--exfs)*系数)：默认档与官方尺度一致，Size 三档整体放大。窄屏横向滚动。 */
 .ex-lomatrix-wrap{overflow-x:auto;margin:2px 0 12px}
 .ex-lomatrix{border-collapse:collapse;font-size:.8em;table-layout:fixed;width:100%;min-width:560px}   /* fixed：A–I 列固定宽、题干占剩余并换行；<560 窄屏横向滚 */
-.ex-lomatrix th,.ex-lomatrix td{border:1px solid #d7dbe0}
+.ex-lomatrix th, .ex-lomatrix td{border:1px solid #d7dbe0}
 .ex-lomatrix thead th{font-weight:800;background:#f7f8f9;padding:9px 6px;text-align:center;color:#111}
 .ex-lomatrix thead th:not(.mx-stem-h){width:calc(var(--exfs) * 1.7)}
 .ex-lomatrix .mx-stem-h{min-width:0}
@@ -749,10 +693,10 @@ html[data-theme="dark"] .full-card{background:var(--surface);border-color:var(--
 .ex-lomatrix td.mx-right{background:#eaf6f0}
 .ex-lomatrix td.mx-wrong{background:#fdf3f2}
 .ex-lomatrix td.mx-right input[type=radio]{accent-color:#1f7a5c}
-#examRoot.ct-dark .ex-lomatrix th,#examRoot.ct-dark .ex-lomatrix td{border-color:#3a3f45}
+#examRoot.ct-dark .ex-lomatrix th, #examRoot.ct-dark .ex-lomatrix td{border-color:#3a3f45}
 #examRoot.ct-dark .ex-lomatrix thead th{background:#1c1f22;color:#f2f2f2}
 #examRoot.ct-dark .ex-lomatrix .mx-stem{color:#f2f2f2}
-#examRoot.ct-yellow .ex-lomatrix th,#examRoot.ct-yellow .ex-lomatrix td{border-color:#4a4526}
+#examRoot.ct-yellow .ex-lomatrix th, #examRoot.ct-yellow .ex-lomatrix td{border-color:#4a4526}
 #examRoot.ct-yellow .ex-lomatrix thead th{background:#24241a;color:#f0e3a8}
 #examRoot.ct-yellow .ex-lomatrix .mx-stem{color:#f0e3a8}
 /* 10/16 三修：.ex-lohsel（段落匹配下拉）整套样式已随矩阵形态退役删除 */
@@ -764,14 +708,14 @@ html[data-theme="dark"] .full-card{background:var(--surface);border-color:var(--
 /* 交卷后选项上色（兼容新选项行） */
 #examRoot .ex-opt.right{background:#eaf6f0}
 #examRoot .ex-opt.wrong{background:#fdf3f2}
-.ex-opt.right::before,.ex-radio-box .ex-opt.right::before{border-color:#1f7a5c}
+.ex-opt.right::before, .ex-radio-box .ex-opt.right::before{border-color:#1f7a5c}
 .ex-opt.wrong::before{border-color:#b3261e}
 /* Option 覆盖面板（☰ 菜单，照她截图的 Option 居中列表 + 子面板 + Back） */
 .ex-option{position:absolute;inset:0;background:rgba(255,255,255,.99);z-index:95;display:none;overflow:auto}
 .ex-option.on{display:block}
 .ex-option .ex-opx{position:absolute;top:18px;right:22px;border:none;background:#f1f3f5;color:#333;width:38px;height:38px;border-radius:50%;font-size:17px;cursor:pointer}
 .ex-option h3{text-align:center;font-size:20px;font-weight:600;margin:34px 0 22px;color:#111}
-.ex-oplist,.ex-opsub{max-width:560px;margin:0 auto;border:1px solid #e3e5e8}
+.ex-oplist, .ex-opsub{max-width:560px;margin:0 auto;border:1px solid #e3e5e8}
 .ex-opsub{display:none}
 .ex-opsub.on{display:block}
 .ex-oprow{display:flex;align-items:center;gap:14px;padding:15px 22px;border-bottom:1px solid #e3e5e8;font-size:16px;cursor:pointer;background:#fff;color:#111}
@@ -784,16 +728,16 @@ html[data-theme="dark"] .full-card{background:var(--surface);border-color:var(--
 .ex-opback button{border:1px solid #c6ccd4;background:#fff;border-radius:7px;padding:7px 18px;font:inherit;font-size:13.5px;cursor:pointer}
 /* 三主题（官方档位：Black on white / White on black / Yellow on black；整屏反色） */
 #examRoot.ct-dark{background:#161616}
-#examRoot.ct-dark .ex-top,#examRoot.ct-dark .ex-foot,#examRoot.ct-dark .ex-bar,#examRoot.ct-dark .ex-main,#examRoot.ct-dark .ex-article,#examRoot.ct-dark .ex-qcol,#examRoot.ct-dark .ex-listen,#examRoot.ct-dark .ex-split{background:#161616;border-color:#5a5f66}
-#examRoot.ct-dark .ex-article,#examRoot.ct-dark .ex-qcol,#examRoot.ct-dark .ex-listen,#examRoot.ct-dark .ex-name,#examRoot.ct-dark .ex-timer,#examRoot.ct-dark .ex-ico,#examRoot.ct-dark .ex-part,#examRoot.ct-dark .ex-opt,#examRoot.ct-dark .ex-pill,#examRoot.ct-dark .ex-blankw,#examRoot.ct-dark .ex-drop,#examRoot.ct-dark .ex-chip,#examRoot.ct-dark .ex-gqh,#examRoot.ct-dark .ex-pslot,#examRoot.ct-dark .ex-lohb,#examRoot.ct-dark .ex-lohv{background:#161616;color:#f2f2f2;border-color:#5a5f66}
+#examRoot.ct-dark .ex-top, #examRoot.ct-dark .ex-foot, #examRoot.ct-dark .ex-bar, #examRoot.ct-dark .ex-main, #examRoot.ct-dark .ex-article, #examRoot.ct-dark .ex-qcol, #examRoot.ct-dark .ex-listen, #examRoot.ct-dark .ex-split{background:#161616;border-color:#5a5f66}
+#examRoot.ct-dark .ex-article, #examRoot.ct-dark .ex-qcol, #examRoot.ct-dark .ex-listen, #examRoot.ct-dark .ex-name, #examRoot.ct-dark .ex-timer, #examRoot.ct-dark .ex-ico, #examRoot.ct-dark .ex-part, #examRoot.ct-dark .ex-opt, #examRoot.ct-dark .ex-pill, #examRoot.ct-dark .ex-blankw, #examRoot.ct-dark .ex-drop, #examRoot.ct-dark .ex-chip, #examRoot.ct-dark .ex-gqh, #examRoot.ct-dark .ex-pslot, #examRoot.ct-dark .ex-lohb, #examRoot.ct-dark .ex-lohv{background:#161616;color:#f2f2f2;border-color:#5a5f66}
 #examRoot.ct-dark .ex-part{background:#262a24}
 #examRoot.ct-dark .ex-audio .ea-part{background:#262a24;border-color:#5a5f66;color:#f2f2f2}
-#examRoot.ct-dark .ex-gqd,#examRoot.ct-dark .ex-q,#examRoot.ct-dark .ex-html{color:#f2f2f2}
+#examRoot.ct-dark .ex-gqd, #examRoot.ct-dark .ex-q, #examRoot.ct-dark .ex-html{color:#f2f2f2}
 
 /* 🔴 10/14 三主题适配补齐（她：三个主题 UI 适配优化）。
    实测缺口：.ex-bar/.ex-top 背景已变深，但文字 color 没跟着变 → 深底深字看不见。 */
-#examRoot.ct-dark .ex-bar,#examRoot.ct-dark .ex-bar *{color:#e8eaed}
-#examRoot.ct-dark .ex-bar .ex-pg,#examRoot.ct-dark .ex-bar .ex-pg *{color:#e8eaed}
+#examRoot.ct-dark .ex-bar, #examRoot.ct-dark .ex-bar *{color:#e8eaed}
+#examRoot.ct-dark .ex-bar .ex-pg, #examRoot.ct-dark .ex-bar .ex-pg *{color:#e8eaed}
 #examRoot.ct-dark .ex-num{color:#b9bdc4;border-color:#3a3f45}
 #examRoot.ct-dark .ex-num--done{color:#e8eaed;border-color:#5a5f66}
 #examRoot.ct-dark .ex-num--cur{color:#fff;border-color:#fff}
@@ -801,26 +745,19 @@ html[data-theme="dark"] .full-card{background:var(--surface);border-color:var(--
 #examRoot.ct-dark .ex-actions .btn-primary{background:var(--primary);color:#fff;border-color:var(--primary)}
 /* 深色档：交卷灰态要压过上面这条（同特异性、它在本行之后才能生效）——
    否则 Finish 交卷后仍是实心 teal，等于深色下「看着像没交卷」的原 bug 复发。 */
-#examRoot.ct-dark .ex-actions .btn-primary.is-done,#examRoot.ct-dark .ex-actions .btn-primary:disabled{
+#examRoot.ct-dark .ex-actions .btn-primary.is-done, #examRoot.ct-dark .ex-actions .btn-primary:disabled{
   background:#2c2f33;color:#8b9099;border-color:#3f4348;cursor:default}
 #examRoot.ct-dark .ex-actions .btn-ghost{background:transparent;color:#e8eaed;border-color:#5a5f66}
 /* Option 面板（☰ 菜单）也要跟着变，否则深色下是白底刺眼 */
 #examRoot.ct-dark .ex-option{background:#1b1b1b;border-color:#3a3f45}
 #examRoot.ct-dark .ex-option *{color:#e8eaed}
-
-/* 10/14 音频控件（音量/倍速/静音）从音频条移入 Option 面板（她：进度条折叠，三科顶栏一致） */
-.ex-op-audio-row{display:flex;align-items:center;justify-content:space-between;gap:14px}
-.ex-op-audio-row>span{font-size:14px;font-weight:600;color:#111;flex:none}
-.ex-op-audio-row input[type=range]{flex:1;max-width:200px;accent-color:var(--primary);height:24px}
-.ex-op-rate,.ex-op-mute{min-height:36px;padding:0 16px;border:1px solid #9ca3af;background:#fff;color:#111;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer}
-.ex-op-rate:hover,.ex-op-mute:hover{border-color:var(--primary);color:var(--primary)}
 #examRoot.ct-dark .ex-option .ex-oprow:hover{background:#242628}
 #examRoot.ct-dark .ex-top{background:#161616}
-#examRoot.ct-dark .ex-top .ex-name,#examRoot.ct-dark .ex-top .ex-timer{color:#f2f2f2}
+#examRoot.ct-dark .ex-top .ex-name, #examRoot.ct-dark .ex-top .ex-timer{color:#f2f2f2}
 
 /* 黄色主题：黑底黄字（真机考 Yellow on black）*/
-#examRoot.ct-yellow .ex-bar,#examRoot.ct-yellow .ex-bar *{color:#f0e3a8}
-#examRoot.ct-yellow .ex-bar .ex-pg,#examRoot.ct-yellow .ex-bar .ex-pg *{color:#f0e3a8}
+#examRoot.ct-yellow .ex-bar, #examRoot.ct-yellow .ex-bar *{color:#f0e3a8}
+#examRoot.ct-yellow .ex-bar .ex-pg, #examRoot.ct-yellow .ex-bar .ex-pg *{color:#f0e3a8}
 #examRoot.ct-yellow .ex-num{color:#c9bd85;border-color:#4a4526}
 #examRoot.ct-yellow .ex-num--done{color:#f0e3a8;border-color:#6b6435}
 #examRoot.ct-yellow .ex-num--cur{color:#ffd400;border-color:#ffd400}
@@ -836,7 +773,7 @@ html[data-theme="dark"] .full-card{background:var(--surface);border-color:var(--
 #examRoot.ct-yellow .ex-option *{color:#f0e3a8}
 #examRoot.ct-yellow .ex-option .ex-oprow:hover{background:#26241a}
 #examRoot.ct-yellow .ex-top{background:#161616}
-#examRoot.ct-yellow .ex-top .ex-name,#examRoot.ct-yellow .ex-top .ex-timer{color:#f0e3a8}
+#examRoot.ct-yellow .ex-top .ex-name, #examRoot.ct-yellow .ex-top .ex-timer{color:#f0e3a8}
 
 /* 选中项/已答态在两主题下的可读性（题号与选项圈）*/
 #examRoot.ct-dark .ex-qn{color:#f2f2f2;border-color:#5a5f66}
@@ -847,33 +784,29 @@ html[data-theme="dark"] .full-card{background:var(--surface);border-color:var(--
 /* 10/14 二轮主题适配（她截图：黄/黑主题下 Questions 标题、说明、加粗词、题号全看不见）。
    用对比度扫描穷举出 18 处 <3 的元素，逐条修。 */
 /* ① 题组标题 / 说明 / 加粗词（原只覆盖 .ex-q，漏了这些） */
-#examRoot.ct-dark .ex-grp-h,#examRoot.ct-dark .ex-grp-i,#examRoot.ct-dark .ex-grp-i *,
-#examRoot.ct-dark .ex-qt b,#examRoot.ct-dark .ex-qt strong,#examRoot.ct-dark .ex-listen b,
-#examRoot.ct-dark .ex-listen strong{color:#f2f2f2 !important}
-#examRoot.ct-yellow .ex-grp-h,#examRoot.ct-yellow .ex-grp-i,#examRoot.ct-yellow .ex-grp-i *,
-#examRoot.ct-yellow .ex-qt b,#examRoot.ct-yellow .ex-qt strong,#examRoot.ct-yellow .ex-listen b,
-#examRoot.ct-yellow .ex-listen strong{color:#f0e3a8 !important}
+#examRoot.ct-dark .ex-grp-h, #examRoot.ct-dark .ex-grp-i, #examRoot.ct-dark .ex-grp-i *, #examRoot.ct-dark .ex-qt b, #examRoot.ct-dark .ex-qt strong, #examRoot.ct-dark .ex-listen b, #examRoot.ct-dark .ex-listen strong{color:#f2f2f2 !important}
+#examRoot.ct-yellow .ex-grp-h, #examRoot.ct-yellow .ex-grp-i, #examRoot.ct-yellow .ex-grp-i *, #examRoot.ct-yellow .ex-qt b, #examRoot.ct-yellow .ex-qt strong, #examRoot.ct-yellow .ex-listen b, #examRoot.ct-yellow .ex-listen strong{color:#f0e3a8 !important}
 /* ② 顶栏副标题（Full Test）与 Part 横幅说明 */
-#examRoot.ct-dark .ex-top small,#examRoot.ct-dark .ex-part span{color:#b9bdc4 !important}
-#examRoot.ct-yellow .ex-top small,#examRoot.ct-yellow .ex-part span{color:#c9bd85 !important}
+#examRoot.ct-dark .ex-top small, #examRoot.ct-dark .ex-part span{color:#b9bdc4 !important}
+#examRoot.ct-yellow .ex-top small, #examRoot.ct-yellow .ex-part span{color:#c9bd85 !important}
 /* ③ 反向修正：题号框和白底控件不要用主题色（否则白底黄字/白底浅字同样看不见） */
 #examRoot.ct-dark .ex-qn{color:#111 !important;border-color:#111 !important}
 #examRoot.ct-yellow .ex-qn{color:#111 !important;border-color:#111 !important}
-#examRoot.ct-dark .ex-pgar,#examRoot.ct-yellow .ex-pgar{color:#111 !important;border-color:#9ca3af !important}
-#examRoot.ct-dark .ex-blankw b,#examRoot.ct-yellow .ex-blankw b{color:#111 !important}
-#examRoot.ct-dark .ex-drop b,#examRoot.ct-yellow .ex-drop b{color:#111 !important}
+#examRoot.ct-dark .ex-pgar, #examRoot.ct-yellow .ex-pgar{color:#111 !important;border-color:#9ca3af !important}
+#examRoot.ct-dark .ex-blankw b, #examRoot.ct-yellow .ex-blankw b{color:#111 !important}
+#examRoot.ct-dark .ex-drop b, #examRoot.ct-yellow .ex-drop b{color:#111 !important}
 /* ④ 填空框、选项在深色下的底色（保持白底深字，与真实机考一致：作答控件始终浅底） */
-#examRoot.ct-dark .ex-blankw input,#examRoot.ct-yellow .ex-blankw input{color:#111}
-#examRoot.ct-dark .ex-opt:hover,#examRoot.ct-dark .ex-pill:hover{background:#242628}
-#examRoot.ct-dark .ex-opt.on,#examRoot.ct-dark .ex-pill.on{background:#20302d}
+#examRoot.ct-dark .ex-blankw input, #examRoot.ct-yellow .ex-blankw input{color:#111}
+#examRoot.ct-dark .ex-opt:hover, #examRoot.ct-dark .ex-pill:hover{background:#242628}
+#examRoot.ct-dark .ex-opt.on, #examRoot.ct-dark .ex-pill.on{background:#20302d}
 #examRoot.ct-yellow{background:#161616}
-#examRoot.ct-yellow .ex-top,#examRoot.ct-yellow .ex-foot,#examRoot.ct-yellow .ex-bar,#examRoot.ct-yellow .ex-main,#examRoot.ct-yellow .ex-article,#examRoot.ct-yellow .ex-qcol,#examRoot.ct-yellow .ex-listen,#examRoot.ct-yellow .ex-split{background:#161616;border-color:#5a5f66}
-#examRoot.ct-yellow .ex-article,#examRoot.ct-yellow .ex-qcol,#examRoot.ct-yellow .ex-listen,#examRoot.ct-yellow .ex-name,#examRoot.ct-yellow .ex-timer,#examRoot.ct-yellow .ex-ico,#examRoot.ct-yellow .ex-part,#examRoot.ct-yellow .ex-opt,#examRoot.ct-yellow .ex-pill,#examRoot.ct-yellow .ex-blankw,#examRoot.ct-yellow .ex-drop,#examRoot.ct-yellow .ex-chip,#examRoot.ct-yellow .ex-gqh,#examRoot.ct-yellow .ex-pslot,#examRoot.ct-yellow .ex-lohb,#examRoot.ct-yellow .ex-lohv{background:#161616;color:#f0e3a8;border-color:#5a5f66}
+#examRoot.ct-yellow .ex-top, #examRoot.ct-yellow .ex-foot, #examRoot.ct-yellow .ex-bar, #examRoot.ct-yellow .ex-main, #examRoot.ct-yellow .ex-article, #examRoot.ct-yellow .ex-qcol, #examRoot.ct-yellow .ex-listen, #examRoot.ct-yellow .ex-split{background:#161616;border-color:#5a5f66}
+#examRoot.ct-yellow .ex-article, #examRoot.ct-yellow .ex-qcol, #examRoot.ct-yellow .ex-listen, #examRoot.ct-yellow .ex-name, #examRoot.ct-yellow .ex-timer, #examRoot.ct-yellow .ex-ico, #examRoot.ct-yellow .ex-part, #examRoot.ct-yellow .ex-opt, #examRoot.ct-yellow .ex-pill, #examRoot.ct-yellow .ex-blankw, #examRoot.ct-yellow .ex-drop, #examRoot.ct-yellow .ex-chip, #examRoot.ct-yellow .ex-gqh, #examRoot.ct-yellow .ex-pslot, #examRoot.ct-yellow .ex-lohb, #examRoot.ct-yellow .ex-lohv{background:#161616;color:#f0e3a8;border-color:#5a5f66}
 #examRoot.ct-yellow .ex-part{background:#2a2718}
 #examRoot.ct-yellow .ex-audio .ea-part{background:#2a2718;border-color:#5a5f66;color:#f2f2f2}
-#examRoot.ct-yellow .ex-gqd,#examRoot.ct-yellow .ex-q,#examRoot.ct-yellow .ex-html{color:#f0e3a8}
-#examRoot.ct-yellow .ex-opt:hover,#examRoot.ct-yellow .ex-pill:hover{background:#26241a}
-#examRoot.ct-yellow .ex-opt.on,#examRoot.ct-yellow .ex-pill.on{background:#2e2b1d}
+#examRoot.ct-yellow .ex-gqd, #examRoot.ct-yellow .ex-q, #examRoot.ct-yellow .ex-html{color:#f0e3a8}
+#examRoot.ct-yellow .ex-opt:hover, #examRoot.ct-yellow .ex-pill:hover{background:#26241a}
+#examRoot.ct-yellow .ex-opt.on, #examRoot.ct-yellow .ex-pill.on{background:#2e2b1d}
 /* ===== Highlight / Note 标注色（10/12 定稿：棕底白字 + 重复高亮玫红）=====
    ⚠️ 色值以她之前定的 #8b3a2e（棕底白字）为准 —— 官方未公开 hex，她的决定是唯一权威来源。
    10/12 深夜差点被我用「新东方黄色底纹」改回黄底（那两条描述的是改版前旧界面），她纠正后定稿：
@@ -887,7 +820,7 @@ html[data-theme="dark"] .full-card{background:var(--surface);border-color:var(--
 /* RV-FIX5-8（她 11-03「note是蓝色高亮不是下划线」）：Note 标注 = 蓝色高亮块（对齐爱听写机考口径），
    橙色下划线退役 */
 .ex-nt{background:#b3d7ff;color:inherit;border-bottom:none;border-radius:2px;padding:0 1px;cursor:pointer}
-.ex-hl:hover,.ex-nt:hover{outline:1px solid rgba(0,0,0,.35)}
+.ex-hl:hover, .ex-nt:hover{outline:1px solid rgba(0,0,0,.35)}
 /* 划词浮动工具条（10/12 改：由「必须右键」改为「选中即弹」，横向一行）
    来源：Notion / Medium 的 selection bubble menu 已是现代网页默认范式 ——
    devl.dev《Floating toolbars》、21st.dev《Selection Bubble Menu》、bullet.so 与 spellapp 的 Notion 高亮教程，
@@ -905,7 +838,7 @@ html[data-theme="dark"] .full-card{background:var(--surface);border-color:var(--
 #examRoot .ex-split{position:relative}
 #examRoot .ex-split-handle{position:absolute;top:0;bottom:0;left:calc(var(--ex-art-pct,50)*1%);width:16px;margin-left:-8px;padding:0;border:0;background:transparent;cursor:col-resize;z-index:5;touch-action:none}
 #examRoot .ex-split-handle::after{content:'';position:absolute;top:0;bottom:0;left:7px;width:2px;background:rgba(0,0,0,.5)}
-#examRoot .ex-split-handle:hover::after,#examRoot .ex-split-handle:focus-visible::after{width:4px;left:6px;background:var(--primary)}
+#examRoot .ex-split-handle:hover::after, #examRoot .ex-split-handle:focus-visible::after{width:4px;left:6px;background:var(--primary)}
 #examRoot.ct-dark .ex-split-handle::after{background:rgba(255,255,255,.5)}
 #examRoot.ct-yellow .ex-split-handle::after{background:rgba(240,227,168,.5)}
 @media(max-width:860px){#examRoot .ex-split-handle{display:none}}
@@ -1056,16 +989,16 @@ html[data-theme="dark"] .full-card{background:var(--surface);border-color:var(--
 .ex-num--flag{border-radius:50%;box-shadow:inset 0 0 0 1.5px #b3261e}
 .ex-num--flag.ex-num--cur{border-radius:50%;box-shadow:inset 0 0 0 2px #b3261e}
 /* 10/17 复盘：交卷后题号行变答题卡 —— 绿=对 / 红=错（爱听写 bg-green-100 / bg-red-100 口径）。
-   🔴 VIS-1-HITBG-1（10-27 取证修复）：原来写的是裸 `.ex-num--hit/.ex-num--miss`（特异性 0,1,0 = 100），
-      而题号基础规则 `#examRoot .ex-num{…background:transparent}`（1602 行，1,1,0 = 10100）比它高
+   🔴 VIS-1-HITBG-1（10-27 取证修复）：原来写的是裸 `.ex-num--hit/.ex-num--miss`（特异性 0, 1, 0 = 100），
+      而题号基础规则 `#examRoot .ex-num{…background:transparent}`（1602 行，1, 1, 0 = 10100）比它高
       → **白档交卷后的绿底/红底从来没有生效过**，只剩上方杠色区分对错（像素实证 design/_scratch/examnum_light.png：
       四个题号并排，底色全是白的）。
-      深档/黄档没中招，是因为它们写的是 `#examRoot.ct-dark/ct-yellow .ex-num--hit`（1,3,0），压得过基础规则。
+      深档/黄档没中招，是因为它们写的是 `#examRoot.ct-dark/ct-yellow .ex-num--hit`（1, 3, 0），压得过基础规则。
       ⚠️ **踩过两次返工，两点都写清楚**：
       ① 只加 `#examRoot ` 前缀 → (1,1,0) 与基础规则**同特异性**，而基础规则在 1602 行写在后面
          → 后写胜出，底色**还是透明**（实测照旧 rgba(0,0,0,0)）。
       ② 抬到 `#examRoot .ex-num.ex-num--hit`(1,2,0) 确实压过了基础规则，但它是**不带主题判断的全局规则**，
-         一样压过 ct-yellow 的 (1,3,0)？——不会（1,3,0 > 1,2,0），可是它压过了 ct-yellow 里
+         一样压过 ct-yellow 的 (1,3,0)？——不会（1, 3, 0 > 1, 2, 0），可是它压过了 ct-yellow 里
          **只设 ::before 不设底色**的那半边，导致黄档底色从深绿 #123b2c 变成白档浅绿（实测假绿）。
       正解 = **用 :not() 把两个主题档排除掉**：白档（默认）才吃这两条，深/黄档继续走各自的专色。
       ⚠️ 不要动 ::before 那两条（杠色本来就正常，且 EXAM-NUM-DONE 正拿 :not() 收窄 done，别撞）。 */
@@ -1073,15 +1006,15 @@ html[data-theme="dark"] .full-card{background:var(--surface);border-color:var(--
 #examRoot .ex-num--hit::before{background:#2f7d61}
 #examRoot:not(.ct-dark):not(.ct-yellow) .ex-num.ex-num--miss{background:#fdeceb;border-radius:3px}
 #examRoot .ex-num--miss::before{background:#b3261e}
-#examRoot .ex-num--hit,#examRoot .ex-num--miss{font-weight:700}
+#examRoot .ex-num--hit, #examRoot .ex-num--miss{font-weight:700}
 /* hover 排在 hit/miss 之后且同特异性 → 会把对错的底色盖掉（10/17 自查发现），
    所以 hover 只对「未判对错」的题号生效。 */
 .ex-num:not(.ex-num--hit):not(.ex-num--miss):hover{background:#e3e7eb}
 /* ===== 右侧动作区 =====
    10/20 截图口径：Finish section / Pause / Exit **三个同款浅灰**（原来 Finish 是主色蓝、
    Exit 红描边，都与真实软件不符 → 统一）。
-   ⚠️ 特异性说明：#examRoot .ex-actions button（1,1,1）压过本页 L43/L47 的
-   .btn-primary/.btn-ghost（0,1,0），背景/字色/高度都不需要 !important。 */
+   ⚠️ 特异性说明：#examRoot .ex-actions button（1, 1, 1）压过本页 L43/L47 的
+   .btn-primary/.btn-ghost（0, 1, 0），背景/字色/高度都不需要 !important。 */
 .ex-actions{display:flex;gap:6px;flex:none;justify-content:flex-end;align-items:center}
 #examRoot .ex-actions button{min-height:30px;height:30px;padding:0 13px;font-size:12.5px;font-weight:600;
   line-height:1;display:inline-flex;align-items:center;border-radius:7px;
@@ -1111,12 +1044,10 @@ html[data-theme="dark"] .full-card{background:var(--surface);border-color:var(--
 #examRoot.ct-dark .ex-strip{color:#8a9199}
 #examRoot.ct-dark .ex-strip-b{color:#aab2bb}
 /* ⚠️ 必须显式带 .btn-primary/.btn-ghost/.ex-pause 类名：L519/L524/L551/L552 的
-   ct-* .btn-primary/.btn-ghost 规则特异性是 (1,3,0)，只写 `.ex-actions button`（1,2,1）
+   ct-* .btn-primary/.btn-ghost 规则特异性是 (1,3,0)，只写 `.ex-actions button`（1, 2, 1）
    压不过 → Finish 在深色/黄底主题下会变回主色蓝/黄。 */
-#examRoot.ct-dark .ex-actions .btn-primary,#examRoot.ct-dark .ex-actions .btn-ghost,
-#examRoot.ct-dark .ex-actions .ex-pause{background:#242628;border-color:#3a3f45;color:#e8eaed}
-#examRoot.ct-dark .ex-actions .btn-primary:hover,#examRoot.ct-dark .ex-actions .btn-ghost:hover,
-#examRoot.ct-dark .ex-actions .ex-pause:hover{background:#2c2f33;border-color:#4a5058}
+#examRoot.ct-dark .ex-actions .btn-primary, #examRoot.ct-dark .ex-actions .btn-ghost, #examRoot.ct-dark .ex-actions .ex-pause{background:#242628;border-color:#3a3f45;color:#e8eaed}
+#examRoot.ct-dark .ex-actions .btn-primary:hover, #examRoot.ct-dark .ex-actions .btn-ghost:hover, #examRoot.ct-dark .ex-actions .ex-pause:hover{background:#2c2f33;border-color:#4a5058}
 #examRoot.ct-yellow .ex-pt{color:#c9bd85}
 #examRoot.ct-yellow .ex-pt:hover{background:rgba(255,212,0,.12)}
 #examRoot.ct-yellow .ex-pt.on{color:#ffd400}
@@ -1135,10 +1066,8 @@ html[data-theme="dark"] .full-card{background:var(--surface);border-color:var(--
 #examRoot.ct-yellow .ex-num--cur{box-shadow:inset 0 0 0 1.5px #ffd400}
 #examRoot.ct-yellow .ex-strip{color:#8a7f56}
 #examRoot.ct-yellow .ex-strip-b{color:#c9bd85}
-#examRoot.ct-yellow .ex-actions .btn-primary,#examRoot.ct-yellow .ex-actions .btn-ghost,
-#examRoot.ct-yellow .ex-actions .ex-pause{background:#24241a;border-color:#4a4526;color:#f0e3a8}
-#examRoot.ct-yellow .ex-actions .btn-primary:hover,#examRoot.ct-yellow .ex-actions .btn-ghost:hover,
-#examRoot.ct-yellow .ex-actions .ex-pause:hover{background:#2e2e20;border-color:#5d5734}
+#examRoot.ct-yellow .ex-actions .btn-primary, #examRoot.ct-yellow .ex-actions .btn-ghost, #examRoot.ct-yellow .ex-actions .ex-pause{background:#24241a;border-color:#4a4526;color:#f0e3a8}
+#examRoot.ct-yellow .ex-actions .btn-primary:hover, #examRoot.ct-yellow .ex-actions .btn-ghost:hover, #examRoot.ct-yellow .ex-actions .ex-pause:hover{background:#2e2e20;border-color:#5d5734}
 /* 手机（≤860）：两行 —— 第一行 Part 行（当前 Part 内含题号，整行横向滚），第二行动作按钮。
    390 宽放不下 4 个 Part + 题号 + 3 个按钮，所以这一档不复刻桌面的单行形态。
    品牌条 .ex-strip 在这一档隐藏：手机内容空间优先（底栏每高 1px 正文就少 1px）。 */
@@ -1169,8 +1098,8 @@ html[data-theme="dark"] .full-card{background:var(--surface);border-color:var(--
 .ex-split.ts-large{--exfs:23px}
 .ex-split.ts-xl{--exfs:27px}
 .ex-split.ct-dark{background:#1b1b1b}
-.ex-split.ct-dark .ex-article,.ex-split.ct-dark .ex-qcol{background:#1b1b1b;color:#fff;border-color:#3a3f45}
-.ex-split.ct-dark .ex-grp-h,.ex-split.ct-dark .ex-grp-i,.ex-split.ct-dark .ex-q{color:#fff}
+.ex-split.ct-dark .ex-article, .ex-split.ct-dark .ex-qcol{background:#1b1b1b;color:#fff;border-color:#3a3f45}
+.ex-split.ct-dark .ex-grp-h, .ex-split.ct-dark .ex-grp-i, .ex-split.ct-dark .ex-q{color:#fff}
 .ex-split.ct-dark .ex-pill{background:#1b1b1b;color:#fff;border-color:#6a6f77}
 .ex-split.ct-dark .ex-hdbox{border-color:#6a6f77}
 .ex-split.ct-dark .ex-opt{color:#fff}
@@ -1189,7 +1118,7 @@ html[data-theme="dark"] .full-card{background:var(--surface);border-color:var(--
 /* 🔴 10-23 B-1c 洞③：这组便签栏覆盖原来全挂在 `.ex-split.ct-dark` / `.ex-split.ct-yellow` 上，
    而 ct-dark / ct-yellow 这两个类 **只挂 #examRoot**（js/bank.js 的 exCt 处理器：`root.classList.toggle('ct-dark')`），
    .ex-split 上永远不会出现它们 → 便签栏在生效路径上**一条深色样式都没有**，深色档下一直是蓝底。
-   改挂 #examRoot.ct-dark / #examRoot.ct-yellow（特异性 0,2,1 更高，且真正会命中）。
+   改挂 #examRoot.ct-dark / #examRoot.ct-yellow（特异性 0, 2, 1 更高，且真正会命中）。
    ⚠️ 原来的 `.ex-split.ct-*` 死选择器暂留（B-1b 死代码清零时一起删），这里只是补齐生效路径。 */
 #examRoot.ct-dark .ex-notes{background:#1b1b1b;border-color:#3a3f45}
 #examRoot.ct-dark .ex-notes-h b{color:#8fc4e8}
@@ -1214,8 +1143,8 @@ html[data-theme="dark"] .full-card{background:var(--surface);border-color:var(--
 .ex-split.ct-yellow .ex-drop{border-color:#ffd400;color:#ffd400}
 .ex-split.ct-yellow .ex-drop.filled{background:#141414;border-color:#ffd400;color:#ffd400}
 .ex-split.ct-yellow{background:#141414}
-.ex-split.ct-yellow .ex-article,.ex-split.ct-yellow .ex-qcol{background:#141414;color:#ffd400;border-color:#3a3f45}
-.ex-split.ct-yellow .ex-grp-h,.ex-split.ct-yellow .ex-grp-i,.ex-split.ct-yellow .ex-q{color:#ffd400}
+.ex-split.ct-yellow .ex-article, .ex-split.ct-yellow .ex-qcol{background:#141414;color:#ffd400;border-color:#3a3f45}
+.ex-split.ct-yellow .ex-grp-h, .ex-split.ct-yellow .ex-grp-i, .ex-split.ct-yellow .ex-q{color:#ffd400}
 @media(max-width:860px){
   .ex-split{grid-template-columns:1fr;grid-template-rows:minmax(170px,36vh) 1fr}
   /* W-EXSPLIT-1（10-25）：补底色 —— 原来 #fff 跟着桌面口径走了，手机浅色没人给背景。 */
@@ -1247,13 +1176,13 @@ html[data-theme="dark"] .full-card{background:var(--surface);border-color:var(--
        ① 顶栏允许 wrap，两个开关整排落到第二行（order:9 + width:100% 本来就有）
        ② 篇名允许收缩（原来 flex:none 抢着不还位置），保住工具组不被推出屏
      做题态没有 .rv-tooled 这个类 → 一个像素都不变，「只要一行」依然是铁律。
-     ⚠️ 选择器必须带 #examRoot 前缀（1,2,0）才压得过上面那条 nowrap。 */
+     ⚠️ 选择器必须带 #examRoot 前缀（1, 2, 0）才压得过上面那条 nowrap。 */
   #examRoot .ex-top.rv-tooled{flex-wrap:wrap;row-gap:2px}
   #examRoot .ex-top.rv-tooled .ex-name{flex:0 1 auto;min-width:64px}
   #examRoot .ex-top.rv-tooled .ex-toggles{order:9;width:100%;justify-content:flex-start;padding-top:2px}
   #examRoot .ex-top.rv-tooled .ex-score-mini{margin-left:auto}
 
-  .mock-tabs .pill-tab,.partbar .pill-tab{padding:9px 12px;font-size:13.5px}
+  .mock-tabs .pill-tab, .partbar .pill-tab{padding:9px 12px;font-size:13.5px}
   .mock-tabs{width:100%}.mock-tabs .pill-tab{flex:1;justify-content:center}
   .bi-chips{display:none}
   /* W-BANKTT-1（10-25）：手机端文章标题只分到 118px，被截成「The Blockbuste…」。
@@ -1373,9 +1302,9 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 .wt-bar .ex-pg:focus-visible{outline:2px solid var(--primary);outline-offset:-2px}
 .wt-bar .ex-pg--static{cursor:default}
 .wt-bar .ex-pg--static:hover{background:#fff;color:#111}
-.wt-bar .exam-step,.wt-bar .exam-step-label{display:none}   /* 10/20 Q3：不再显示「1 Part 1」，官方就叫 Task */
+.wt-bar .exam-step, .wt-bar .exam-step-label{display:none}   /* 10/20 Q3：不再显示「1 Part 1」，官方就叫 Task */
 .wt-bar .ex-actions{display:flex;align-items:center;gap:8px;flex:none}
-.wt-bar .ex-actions .btn-ghost,.wt-bar .ex-actions .btn-primary{
+.wt-bar .ex-actions .btn-ghost, .wt-bar .ex-actions .btn-primary{
   height:32px;min-height:0;padding:0 16px;font-size:13px;font-weight:600;border-radius:7px;
   display:inline-flex;align-items:center;justify-content:center;line-height:1}
 .wt-bar .ex-actions .btn-primary{padding:0 18px}
@@ -1405,7 +1334,7 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 #examPractice.exam-fs-0 .exam-part{font-size:24px}
 #examPractice.exam-fs-0 .exam-instr{font-size:15.5px}
 #examPractice.exam-fs-0 .exam-q-lead{font-size:17px}
-#examPractice.exam-fs-0 .exam-q-body,#examPractice.exam-fs-0 .exam-q-body .ei-en,#examPractice.exam-fs-0 .exam-q-body .ei-zh{font-size:20px}
+#examPractice.exam-fs-0 .exam-q-body, #examPractice.exam-fs-0 .exam-q-body .ei-en, #examPractice.exam-fs-0 .exam-q-body .ei-zh{font-size:20px}
 #examPractice.exam-fs-0 .exam-q-note{font-size:16.5px}
 #examPractice.exam-fs-0 .exam-essay-fold-sum{font-size:17px}
 #examPractice.exam-fs-0 .exam-essay-orig{font-size:19px}
@@ -1414,7 +1343,7 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 #examPractice.exam-fs-1 .exam-part{font-size:27px}
 #examPractice.exam-fs-1 .exam-instr{font-size:18px}
 #examPractice.exam-fs-1 .exam-q-lead{font-size:20px}
-#examPractice.exam-fs-1 .exam-q-body,#examPractice.exam-fs-1 .exam-q-body .ei-en,#examPractice.exam-fs-1 .exam-q-body .ei-zh{font-size:23px}
+#examPractice.exam-fs-1 .exam-q-body, #examPractice.exam-fs-1 .exam-q-body .ei-en, #examPractice.exam-fs-1 .exam-q-body .ei-zh{font-size:23px}
 #examPractice.exam-fs-1 .exam-q-note{font-size:19px}
 #examPractice.exam-fs-1 .exam-essay-fold-sum{font-size:20px}
 #examPractice.exam-fs-1 .exam-essay-orig{font-size:22px}
@@ -1423,7 +1352,7 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 #examPractice.exam-fs-2 .exam-part{font-size:31px}
 #examPractice.exam-fs-2 .exam-instr{font-size:21px}
 #examPractice.exam-fs-2 .exam-q-lead{font-size:24px}
-#examPractice.exam-fs-2 .exam-q-body,#examPractice.exam-fs-2 .exam-q-body .ei-en,#examPractice.exam-fs-2 .exam-q-body .ei-zh{font-size:27px}
+#examPractice.exam-fs-2 .exam-q-body, #examPractice.exam-fs-2 .exam-q-body .ei-en, #examPractice.exam-fs-2 .exam-q-body .ei-zh{font-size:27px}
 #examPractice.exam-fs-2 .exam-q-note{font-size:22px}
 #examPractice.exam-fs-2 .exam-essay-fold-sum{font-size:24px}
 #examPractice.exam-fs-2 .exam-essay-orig{font-size:26px}
@@ -1485,7 +1414,7 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
   .ts-loc{border:none;background:none;color:var(--primary);cursor:pointer;font-size:12px;padding:0}
   .ts-loc:hover{text-decoration:underline}
   #practice .ph-loc{outline:2px solid var(--primary);outline-offset:1px;border-radius:3px}
-  .exam-essay-orig mark,mark{background:var(--primary-soft);color:inherit;padding:0 2px;border-radius:3px}
+  .exam-essay-orig mark, mark{background:var(--primary-soft);color:inherit;padding:0 2px;border-radius:3px}
   .hist-summary{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface);padding:10px 12px;margin-bottom:10px}
   .hist-spark{flex-shrink:0}
   .hist-sum-t{display:flex;flex-direction:column;gap:4px;font-size:13px;min-width:0}
@@ -1510,7 +1439,7 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 
   /* ===== 10/10 批③：评分结果「左作文 / 右批改」（她点头的样子稿 → design/95）===== */
   .sr-wrap{display:grid;grid-template-columns:minmax(0,1.32fr) minmax(0,1fr);gap:14px;align-items:start}
-  .sr-left,.sr-right{min-width:0}
+  .sr-left, .sr-right{min-width:0}
   .sr-left{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
   .sr-left-h{font-size:13px;font-weight:700;color:var(--muted);padding:11px 16px;border-bottom:1px solid var(--line);background:var(--surface-2)}
   .sr-essay{padding:16px 18px;font-size:15.5px;line-height:1.95;color:var(--n-800);white-space:pre-wrap;word-break:break-word}
@@ -1519,7 +1448,7 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
   .sr-legend .sw{width:20px;height:0;border-top-width:1.5px;border-top-style:solid}
   .sr-legend .sw.bad{border-color:var(--danger);border-top-style:wavy}
   .sr-legend .sw.good{border-color:var(--ok)}
-  /* 内联标注：覆盖全局 mark 底色（.exam-essay-orig mark,mark 有 teal 底） */
+  /* 内联标注：覆盖全局 mark 底色（.exam-essay-orig mark, mark 有 teal 底） */
   mark.mk{background:none;padding:0 .5px;border-radius:0;cursor:help;position:relative}
   mark.mk-bad{text-decoration:underline wavy var(--danger);text-underline-offset:4px;text-decoration-thickness:1.5px}
   mark.mk-good{text-decoration:underline solid var(--ok);text-underline-offset:4px;text-decoration-thickness:1.5px}
@@ -1682,8 +1611,7 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
   .ex-script .sc-line.on .sc-tx{color:var(--primary-900);font-weight:600}
   .ex-script .sc-line.on .sc-t{color:var(--primary-text);font-weight:700}
   /* 深色主题：浅底高亮在深底上会很刺眼，换成半透明主色 */
-  #examRoot.ct-dark .ex-script .sc-line:hover,
-  #examRoot.ct-yellow .ex-script .sc-line:hover{background:rgba(255,255,255,.06)}
+  #examRoot.ct-dark .ex-script .sc-line:hover, #examRoot.ct-yellow .ex-script .sc-line:hover{background:rgba(255,255,255,.06)}
   /* 3-2（7-2 核心三条之三）：答案句 —— 行首 Q 徽章 + 播到该句时整行 .hit */
   /* 3-2：复盘态音频条 —— 交卷后音频要留在原文区上方、一直可见（精听就是反复回听）。
      sticky 让它随原文滚动时贴在滚动区顶部；.review 只在 showScript 之后才加。 */
@@ -1700,18 +1628,12 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
   .ex-script .sc-line.sc-ans .sc-t{color:var(--primary-text);font-weight:700}
   .ex-script .sc-line.hit{background:var(--primary-100);border-left-color:var(--primary-700)}
   .ex-script .sc-line.hit .sc-q{color:var(--on-primary);background:var(--primary-600)}
-  #examRoot.ct-dark .ex-script .sc-line.hit,
-  #examRoot.ct-yellow .ex-script .sc-line.hit{background:rgba(92,179,171,.30);border-left-color:#8fe0d6}
-  #examRoot.ct-dark .ex-script .sc-line .sc-q,
-  #examRoot.ct-yellow .ex-script .sc-line .sc-q{color:#8fe0d6;background:rgba(92,179,171,.22)}
-  #examRoot.ct-dark .ex-script .sc-line.sc-ans .sc-tx,
-  #examRoot.ct-yellow .ex-script .sc-line.sc-ans .sc-tx{color:#eef3f2}
-  #examRoot.ct-dark .ex-script .sc-line.hit .sc-q,
-  #examRoot.ct-yellow .ex-script .sc-line.hit .sc-q{color:#0f3330;background:#8fe0d6}
-  #examRoot.ct-dark .ex-script .sc-line.on,
-  #examRoot.ct-yellow .ex-script .sc-line.on{background:rgba(92,179,171,.22)}
-  #examRoot.ct-dark .ex-script .sc-line.on .sc-tx,
-  #examRoot.ct-yellow .ex-script .sc-line.on .sc-tx{color:#fff}
+  #examRoot.ct-dark .ex-script .sc-line.hit, #examRoot.ct-yellow .ex-script .sc-line.hit{background:rgba(92,179,171,.30);border-left-color:#8fe0d6}
+  #examRoot.ct-dark .ex-script .sc-line .sc-q, #examRoot.ct-yellow .ex-script .sc-line .sc-q{color:#8fe0d6;background:rgba(92,179,171,.22)}
+  #examRoot.ct-dark .ex-script .sc-line.sc-ans .sc-tx, #examRoot.ct-yellow .ex-script .sc-line.sc-ans .sc-tx{color:#eef3f2}
+  #examRoot.ct-dark .ex-script .sc-line.hit .sc-q, #examRoot.ct-yellow .ex-script .sc-line.hit .sc-q{color:#0f3330;background:#8fe0d6}
+  #examRoot.ct-dark .ex-script .sc-line.on, #examRoot.ct-yellow .ex-script .sc-line.on{background:rgba(92,179,171,.22)}
+  #examRoot.ct-dark .ex-script .sc-line.on .sc-tx, #examRoot.ct-yellow .ex-script .sc-line.on .sc-tx{color:#fff}
   #examRoot.ct-yellow .ex-script .sc-line.on .sc-tx{color:#ffe98a}
   /* 时间戳在深色下也翻亮（.sc-t 走的是 --primary-text，深色里会压成近墨绿，看不清） */
   #examRoot.ct-dark .ex-script .sc-line .sc-t{color:#9fb3b1}
@@ -1724,8 +1646,7 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
      #examRoot.ct-dark 不会把它翻掉 → 深色/黄色考场里这块原文卡**还是白底**。
      上面又把文字改浅了 → 白底浅字，几乎看不见（截图确认过）。
      修法 = 整块跟着翻深（这才是深色考场该有的样子，没时间轴的旧形态同样受益）。 */
-  #examRoot.ct-dark .ex-script,
-  #examRoot.ct-yellow .ex-script{background:#1b1b1b;border-color:#3a3f45}
+  #examRoot.ct-dark .ex-script, #examRoot.ct-yellow .ex-script{background:#1b1b1b;border-color:#3a3f45}
   #examRoot.ct-dark .ex-script>summary{color:#8fe0d6}
   #examRoot.ct-yellow .ex-script>summary{color:#ffe98a}
   #examRoot.ct-dark .ex-script .sc-body{color:#d8dde2}
@@ -1751,29 +1672,25 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
   @media(max-width:860px){.exam-bar{padding:0 12px;gap:8px}.exam-bar .ex-pg{padding:0 12px;font-size:12px}}
 
   /* 写作壳配色（Option → Colour）：与写作页同口径，作用域 #examPractice */
-  #examPractice.ct-dark,#examPractice.ct-dark .exam-split,#examPractice.ct-dark .exam-a{background:#1b1b1b}
+  #examPractice.ct-dark, #examPractice.ct-dark .exam-split, #examPractice.ct-dark .exam-a{background:#1b1b1b}
   #examPractice.ct-dark .exam-head{background:#111;border-bottom-color:#3a3f45}
-  #examPractice.ct-dark .exam-part,#examPractice.ct-dark .exam-instr,#examPractice.ct-dark .exam-q-lead,
-  #examPractice.ct-dark .exam-q-body,#examPractice.ct-dark .exam-q-body .ei-en,#examPractice.ct-dark .exam-q-body .ei-zh,
-  #examPractice.ct-dark .exam-q-note,#examPractice.ct-dark .exam-group-title{color:#e8eaed}
+  #examPractice.ct-dark .exam-part, #examPractice.ct-dark .exam-instr, #examPractice.ct-dark .exam-q-lead, #examPractice.ct-dark .exam-q-body, #examPractice.ct-dark .exam-q-body .ei-en, #examPractice.ct-dark .exam-q-body .ei-zh, #examPractice.ct-dark .exam-q-note, #examPractice.ct-dark .exam-group-title{color:#e8eaed}
   #examPractice.ct-dark .exam-textarea{background:#141414;color:#e8eaed;border-color:#3a3f45}
   #examPractice.ct-dark .exam-wc{color:#9aa0a6}
   #examPractice.ct-dark .ex-option{background:#1b1b1b}
   #examPractice.ct-dark .ex-option *{color:#e8eaed}
-  #examPractice.ct-dark .ex-oplist,#examPractice.ct-dark .ex-opsub{border-color:#3a3f45}
+  #examPractice.ct-dark .ex-oplist, #examPractice.ct-dark .ex-opsub{border-color:#3a3f45}
   #examPractice.ct-dark .ex-oprow{background:#1b1b1b;border-bottom-color:#3a3f45}
   #examPractice.ct-dark .ex-oprow:hover{background:#242628}
   #examPractice.ct-dark .ex-opback button{background:#1b1b1b;border-color:#4a4f55;color:#e8eaed}
-  #examPractice.ct-yellow,#examPractice.ct-yellow .exam-split,#examPractice.ct-yellow .exam-a{background:#1b1b1b}
+  #examPractice.ct-yellow, #examPractice.ct-yellow .exam-split, #examPractice.ct-yellow .exam-a{background:#1b1b1b}
   #examPractice.ct-yellow .exam-head{background:#111;border-bottom-color:#4a4526}
-  #examPractice.ct-yellow .exam-part,#examPractice.ct-yellow .exam-instr,#examPractice.ct-yellow .exam-q-lead,
-  #examPractice.ct-yellow .exam-q-body,#examPractice.ct-yellow .exam-q-body .ei-en,#examPractice.ct-yellow .exam-q-body .ei-zh,
-  #examPractice.ct-yellow .exam-q-note,#examPractice.ct-yellow .exam-group-title{color:#f0e3a8}
+  #examPractice.ct-yellow .exam-part, #examPractice.ct-yellow .exam-instr, #examPractice.ct-yellow .exam-q-lead, #examPractice.ct-yellow .exam-q-body, #examPractice.ct-yellow .exam-q-body .ei-en, #examPractice.ct-yellow .exam-q-body .ei-zh, #examPractice.ct-yellow .exam-q-note, #examPractice.ct-yellow .exam-group-title{color:#f0e3a8}
   #examPractice.ct-yellow .exam-textarea{background:#141414;color:#f0e3a8;border-color:#4a4526}
   #examPractice.ct-yellow .exam-wc{color:#c9b978}
   #examPractice.ct-yellow .ex-option{background:#1b1b1b}
   #examPractice.ct-yellow .ex-option *{color:#f0e3a8}
-  #examPractice.ct-yellow .ex-oplist,#examPractice.ct-yellow .ex-opsub{border-color:#4a4526}
+  #examPractice.ct-yellow .ex-oplist, #examPractice.ct-yellow .ex-opsub{border-color:#4a4526}
   #examPractice.ct-yellow .ex-oprow{background:#1b1b1b;border-bottom-color:#4a4526}
   #examPractice.ct-yellow .ex-oprow:hover{background:#252317}
   #examPractice.ct-yellow .ex-opback button{background:#1b1b1b;border-color:#6a6132;color:#f0e3a8}
@@ -1819,8 +1736,8 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 #examRoot .ex-name small{font-weight:400;color:#333;font-size:12px}
 #examRoot .ex-timer{font-size:13px;font-weight:700;color:#000}
 #examRoot .ex-top .ex-ico{color:#000;font-size:14px;padding:6px 10px}
-/* W-EXTOP-1（10-25）：上面那条 `#examRoot .ex-top .ex-ico`（0,3,0）会把「暂停」字号压回 14px。
-   这里用同样前缀 + 类名（0,4,0）把它钉成设计稿的 11.5px / 小内距，位置也更靠后。 */
+/* W-EXTOP-1（10-25）：上面那条 `#examRoot .ex-top .ex-ico`（0, 3, 0）会把「暂停」字号压回 14px。
+   这里用同样前缀 + 类名（0, 4, 0）把它钉成设计稿的 11.5px / 小内距，位置也更靠后。 */
 #examRoot .ex-top .ex-ico.ex-top-pause{font-size:13px;padding:0 12px}
 #examRoot.ct-dark .ex-top .ex-ico.ex-top-pause{border-color:rgba(255,255,255,.24);color:#e8eaed}
 #examRoot.ct-yellow .ex-top .ex-ico.ex-top-pause{border-color:#ffd400;color:#ffd400}
@@ -1855,9 +1772,9 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 #examRoot.ct-yellow .ex-qcol{border-left-color:rgba(240,227,168,.5)}
 /* 官方文章区字号 16px（getComputedStyle 实测），行高 normal → 本站 1.95 太散，压到 1.7 */
 /* 题干/选项颜色：官方纯黑（本站 #111 也接近，统一到 #000 免疑） */
-#examRoot .ex-grp-h,#examRoot .ex-grp-i,#examRoot .ex-q{color:#000}
-#examRoot.ct-dark .ex-grp-h,#examRoot.ct-dark .ex-grp-i,#examRoot.ct-dark .ex-q{color:#f2f2f2}
-#examRoot.ct-yellow .ex-grp-h,#examRoot.ct-yellow .ex-grp-i,#examRoot.ct-yellow .ex-q{color:#f0e3a8}
+#examRoot .ex-grp-h, #examRoot .ex-grp-i, #examRoot .ex-q{color:#000}
+#examRoot.ct-dark .ex-grp-h, #examRoot.ct-dark .ex-grp-i, #examRoot.ct-dark .ex-q{color:#f2f2f2}
+#examRoot.ct-yellow .ex-grp-h, #examRoot.ct-yellow .ex-grp-i, #examRoot.ct-yellow .ex-q{color:#f0e3a8}
 
 /* ---- ④ 题号方格：官方 21x27 + 当前题 2px 蓝框（截图 19/22 实测）---- */
 #examRoot .ex-num{min-width:21px;max-width:21px;height:27px;border:2px solid transparent;border-radius:3px;
@@ -1899,10 +1816,10 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
   background-size:10px 10px;background-position:center;background-repeat:no-repeat}
 #examRoot .ex-radio-box .ex-opt::before{width:13px;height:13px;border:1px solid #535353;background:#fff}
 #examRoot .ex-radio-box .ex-opt:has(input:checked)::before{border-color:#000;background:radial-gradient(circle,#000 0 3.5px,transparent 4px)}
-#examRoot.ct-dark .ex-cbox .ex-opt::before,#examRoot.ct-dark .ex-radio-box .ex-opt::before{background:#1b1b1b;border-color:#8a8a8a}
+#examRoot.ct-dark .ex-cbox .ex-opt::before, #examRoot.ct-dark .ex-radio-box .ex-opt::before{background:#1b1b1b;border-color:#8a8a8a}
 #examRoot.ct-dark .ex-cbox .ex-opt:has(input:checked)::before{border-color:#f2f2f2;background-color:#f2f2f2}
 #examRoot.ct-dark .ex-radio-box .ex-opt:has(input:checked)::before{border-color:#f2f2f2;background:radial-gradient(circle,#f2f2f2 0 3.5px,transparent 4px)}
-#examRoot.ct-yellow .ex-cbox .ex-opt::before,#examRoot.ct-yellow .ex-radio-box .ex-opt::before{background:#141414;border-color:#8a8a8a}
+#examRoot.ct-yellow .ex-cbox .ex-opt::before, #examRoot.ct-yellow .ex-radio-box .ex-opt::before{background:#141414;border-color:#8a8a8a}
 #examRoot.ct-yellow .ex-cbox .ex-opt:has(input:checked)::before{border-color:#ffd400;background-color:#ffd400}
 #examRoot.ct-yellow .ex-radio-box .ex-opt:has(input:checked)::before{border-color:#ffd400;background:radial-gradient(circle,#ffd400 0 3.5px,transparent 4px)}
 #examRoot .ex-blankw{border:1px solid #535353;border-radius:0;background:#fff;height:22px}
@@ -1976,14 +1893,13 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
    ③ 两列并一列去空隙：手机（≤860）复盘态 .ex-split 从「文章一行+题目一行」两段式
      （rows 36vh+1fr + 分隔线）连成一列去空隙；分隔线拖动（exSplitHandle）保留在桌面档
      （>860 不动，632/632 拖动口径不破）。 */
-#examRoot .ex-bar.rv-done .ex-bar-main{height:auto;max-height:none;padding:0 0 8px}
+#examRoot .ex-bar.rv-done .ex-bar-main{height:44px;min-height:44px;max-height:none;padding:0 12px;align-items:center}
 /* RV-FIX5-1（她 11-02 复盘截图推翻 RV-BOTTOM-23 的「Exit 占满」）：复盘态底栏回到
    做题态同构 row —— 左侧题号排（#exNums 复用 paintSheet 的 hit/miss 红绿，同源答题卡），
    Exit 回小钮贴右下角；Pause/Submitted 仍藏。 */
-#examRoot .ex-bar.rv-done .ex-actions{padding:0 8px}
+#examRoot .ex-bar.rv-done .ex-actions{padding:0 8px;align-self:stretch;align-items:center}
 #examRoot .ex-bar.rv-done .ex-actions .btn-ghost[data-exit]{flex:none;height:32px;padding:0 16px}
-#examRoot .ex-bar.rv-done .ex-pause,
-#examRoot .ex-bar.rv-done [data-submit]{display:none !important}
+#examRoot .ex-bar.rv-done .ex-pause, #examRoot .ex-bar.rv-done [data-submit]{display:none !important}
 @media(max-width:860px){
   #examRoot .ex-split.rv-done{grid-template-columns:1fr;grid-template-rows:none}
   #examRoot .ex-split.rv-done .ex-article{border-bottom:none;padding-bottom:10px}
@@ -2007,7 +1923,6 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 /* ---- ⑧ 右下 Review 勾：官方 #efefef 方块（截图 15/17 实测）---- */
 #examRoot .ex-review{background:#efefef;color:#000;border:0;border-radius:0;
   width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
-#examRoot .ex-review:hover{background:#e2e2e2}
 #examRoot.ct-dark .ex-review{background:#3a3f45;color:#f2f2f2}
 #examRoot.ct-yellow .ex-review{background:#3a3524;color:#f0e3a8}
 
@@ -2052,11 +1967,11 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 #examRoot .ex-oprow:hover{background:#f7f7f7}
 #examRoot .ex-opback button{background:#fff;border:0;color:#000;font-size:14px;padding:14px 18px}
 #examRoot.ct-dark .ex-option{background:#161616}
-#examRoot.ct-dark .ex-option h3,#examRoot.ct-dark .ex-oprow{color:#f2f2f2}
+#examRoot.ct-dark .ex-option h3, #examRoot.ct-dark .ex-oprow{color:#f2f2f2}
 #examRoot.ct-dark .ex-oprow{border-bottom-color:#3a3f45}
 #examRoot.ct-dark .ex-opback button{background:#161616;color:#f2f2f2}
 #examRoot.ct-yellow .ex-option{background:#161616}
-#examRoot.ct-yellow .ex-option h3,#examRoot.ct-yellow .ex-oprow{color:#f0e3a8}
+#examRoot.ct-yellow .ex-option h3, #examRoot.ct-yellow .ex-oprow{color:#f0e3a8}
 #examRoot.ct-yellow .ex-oprow{border-bottom-color:#3a3524}
 #examRoot.ct-yellow .ex-opback button{background:#161616;color:#f0e3a8}
 
@@ -2081,10 +1996,7 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
    上文 ⑫ 段把 .ea-* 判成死规则，本批让它们重新接管渲染（不是捡死代码，是重新生效）。
    考试模式被这里藏掉 → 真机考「不给暂停/回退/倍速」的官方口径一点没破。 */
 #examRoot .ex-audio{display:flex;align-items:center;gap:12px;flex-wrap:nowrap}
-#examRoot .ex-audio.locked .ea-play,
-#examRoot .ex-audio.locked .ea-bar,
-#examRoot .ex-audio.locked .ea-time,
-#examRoot .ex-audio.locked .ea-rate{display:none}
+#examRoot .ex-audio.locked .ea-play, #examRoot .ex-audio.locked .ea-bar, #examRoot .ex-audio.locked .ea-time, #examRoot .ex-audio.locked .ea-rate{display:none}
 /* UNIFIED-EXAM-UI-3（11-01 她：播放按钮小一些、整条低一些）：
    44px 收到 32px（原 34px 也不够小，她要「小一些」），整条 min-height 44→38。
    播放/暂停合一按态换图标逻辑在 paintAudio 里，本次不动。 */
@@ -2097,16 +2009,14 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 #examRoot .ex-audio .ea-bar{flex:1 1 auto;min-width:120px;height:6px;border-radius:999px;
   background:var(--n-100);position:relative;cursor:pointer;transition:height .15s;
   touch-action:none}   /* 关键：触屏拖进度条不要触发页面滚动 */
-#examRoot .ex-audio .ea-bar:hover,
-#examRoot .ex-audio .ea-bar:focus-visible{height:9px}
+#examRoot .ex-audio .ea-bar:hover, #examRoot .ex-audio .ea-bar:focus-visible{height:9px}
 #examRoot .ex-audio .ea-bar:focus-visible{outline:2px solid var(--primary);outline-offset:4px}
 #examRoot .ex-audio .ea-fill{position:absolute;top:0;left:0;bottom:0;width:0;
   background:var(--primary);border-radius:999px;pointer-events:none}
 #examRoot .ex-audio .ea-knob{position:absolute;top:50%;left:0;width:12px;height:12px;border-radius:50%;
   background:var(--surface);border:2px solid var(--primary);transform:translate(-50%,-50%);
   pointer-events:none;opacity:0;transition:opacity .15s}
-#examRoot .ex-audio .ea-bar:hover .ea-knob,
-#examRoot .ex-audio .ea-bar:focus-visible .ea-knob{opacity:1}
+#examRoot .ex-audio .ea-bar:hover .ea-knob, #examRoot .ex-audio .ea-bar:focus-visible .ea-knob{opacity:1}
 #examRoot .ex-audio .ea-time{flex:none;font-size:12px;color:var(--muted);
   font-variant-numeric:tabular-nums;min-width:92px;text-align:right;letter-spacing:.2px}
 /* MOCK-AUDIO-CTRL-1（10-31）：与 A1 上栏笔1 的 36px 高 / 8px 圆角对齐
@@ -2122,16 +2032,11 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
    与倍数下拉同高 36px。窄屏收起（见下方 @media 段）。 */
 #examRoot .ex-audio .ea-vsl{flex:none;width:72px;height:36px;margin:0;
   accent-color:var(--primary);background:transparent;cursor:pointer}
-#examRoot.ct-dark .ex-audio .ea-vsl,
-#examRoot.ct-yellow .ex-audio .ea-vsl{accent-color:#5cb3ab}
-#examRoot.ct-dark .ex-audio .ea-bar,
-#examRoot.ct-yellow .ex-audio .ea-bar{background:#3a3f45}
-#examRoot.ct-dark .ex-audio .ea-time,
-#examRoot.ct-yellow .ex-audio .ea-time{color:#aab2bb}
-#examRoot.ct-dark .ex-audio .ea-knob,
-#examRoot.ct-yellow .ex-audio .ea-knob{background:#161616}
-#examRoot.ct-dark .ex-audio .ea-rate,
-#examRoot.ct-yellow .ex-audio .ea-rate{color:#f2f2f2;border-color:#5a5f66}
+#examRoot.ct-dark .ex-audio .ea-vsl, #examRoot.ct-yellow .ex-audio .ea-vsl{accent-color:#5cb3ab}
+#examRoot.ct-dark .ex-audio .ea-bar, #examRoot.ct-yellow .ex-audio .ea-bar{background:#3a3f45}
+#examRoot.ct-dark .ex-audio .ea-time, #examRoot.ct-yellow .ex-audio .ea-time{color:#aab2bb}
+#examRoot.ct-dark .ex-audio .ea-knob, #examRoot.ct-yellow .ex-audio .ea-knob{background:#161616}
+#examRoot.ct-dark .ex-audio .ea-rate, #examRoot.ct-yellow .ex-audio .ea-rate{color:#f2f2f2;border-color:#5a5f66}
  /* 音频失败提示挤压播放控制（实测：`.ea-err` 是 flex:none + 长文案 → 能占 675px，
     把新加的进度条/倍速全挤成一小截）→ 让它可收缩 + 省略号，播放控制优先保位。 */
 #examRoot .ex-audio .ea-err{flex:0 1 auto;min-width:0;max-width:38%;
@@ -2178,8 +2083,7 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 .ex-script .sc-line .sc-star:hover{color:var(--primary-200);background:var(--primary-50)}
 .ex-script .sc-line .sc-star:focus-visible{outline:2px solid var(--primary);outline-offset:-1px}
 .ex-script .sc-line .sc-star[aria-pressed="true"]{color:#e8a92b}
-#examRoot.ct-dark .ex-script .sc-line .sc-star[aria-pressed="true"],
-#examRoot.ct-yellow .ex-script .sc-line .sc-star[aria-pressed="true"]{color:#f0b840}
+#examRoot.ct-dark .ex-script .sc-line .sc-star[aria-pressed="true"], #examRoot.ct-yellow .ex-script .sc-line .sc-star[aria-pressed="true"]{color:#f0b840}
 /* 「已收藏 N 句」：原文区底部一行（JS 里挂 .sc-body 之后） */
 .ex-script .sc-star-count{margin:0;padding:8px 10px 2px;font-size:12px;color:var(--muted);text-align:right}
 /* ===== 10-25 7-4a · 标记式精听 =====
@@ -2246,7 +2150,7 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 #exMarkReport .rpt-cell.ok .n{color:var(--med)}
 #exMarkReport .rpt-cell.mid .n{color:var(--vocab)}
 #exMarkReport .rpt-cell.no .n{color:var(--danger-text,#a14542)}
-#exMarkReport .rpt-meta,#exMarkReport .rpt-empty{margin:0 0 12px;font-size:12.5px;line-height:1.7;color:var(--muted)}
+#exMarkReport .rpt-meta, #exMarkReport .rpt-empty{margin:0 0 12px;font-size:12.5px;line-height:1.7;color:var(--muted)}
 #exMarkReport .rpt-lines{max-height:46vh;overflow:auto;border:1px solid var(--line);border-radius:11px}
 #exMarkReport .rpt-line{display:flex;align-items:flex-start;gap:10px;padding:9px 12px;border-bottom:1px solid var(--line);font-size:14px;line-height:1.6}
 #exMarkReport .rpt-line:last-child{border-bottom:none}
@@ -2417,15 +2321,14 @@ main.container:has(> .hub-shell){
    [hidden] 仍由 common.css 的 [hidden]{display:none!important} 整块隐藏，四科切换不受影响。*/
 #bankRoot{display:flex;flex-direction:column}
 #bankRoot > .mock-pane:not([hidden]){display:contents}
-#bankRoot #fullEntry,#bankRoot #listenFullEntry{order:0}
-#bankRoot > .bank-info{order:1}
+#bankRoot #fullEntry, #bankRoot #listenFullEntry{order:0}
 #bankRoot .partbar{order:2}
-#bankRoot #bankList,#bankRoot #listenList{order:3}
-#bankRoot #examPanel,#bankRoot #spkEntryCard,#bankRoot .spk-cols{order:0}
+#bankRoot #bankList, #bankRoot #listenList{order:3}
+#bankRoot #examPanel, #bankRoot #spkEntryCard{order:0}
 .hub-side{min-height:0;overflow-y:auto;overflow-x:hidden;background:var(--surface,#fff);
   border-right:1px solid var(--line,#e6e9ea)}
-.hub-side::-webkit-scrollbar,.hub-main::-webkit-scrollbar{width:7px}
-.hub-side::-webkit-scrollbar-thumb,.hub-main::-webkit-scrollbar-thumb{background:var(--line,#e6e9ea);border-radius:7px}
+.hub-side::-webkit-scrollbar, .hub-main::-webkit-scrollbar{width:7px}
+.hub-side::-webkit-scrollbar-thumb, .hub-main::-webkit-scrollbar-thumb{background:var(--line,#e6e9ea);border-radius:7px}
 .hub-main{min-width:0;overflow-y:auto;padding:16px 22px 40px}
 .hub-side-scroll{min-height:100%;display:flex;flex-direction:column}
 
@@ -2504,11 +2407,42 @@ main.container:has(> .hub-shell){
 }
 
 </style>
+
+<style>
+#examRoot .ex-pause-mask{position:absolute;inset:0;z-index:120;border:0;border-radius:0;background:rgba(248,250,250,.68);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);display:flex;align-items:center;justify-content:center;cursor:pointer;color:#253b37;text-align:center}
+#examRoot .ex-pause-mask span{display:flex;flex-direction:column;gap:10px;padding:26px 36px}
+#examRoot .ex-pause-mask b{font-size:24px;font-weight:650;letter-spacing:0}
+#examRoot .ex-pause-mask small{font-size:14px;color:#536661;letter-spacing:0}
+#examRoot.ct-dark .ex-pause-mask,#examRoot.ct-yellow .ex-pause-mask{background:rgba(20,22,22,.72);color:#f2f2f2}
+#examRoot.ct-dark .ex-pause-mask small,#examRoot.ct-yellow .ex-pause-mask small{color:#ccd3d1}
+#examRoot .ex-fixed-result{display:inline-flex;padding:3px 8px;border-radius:5px;font-size:12px;font-weight:600;margin-bottom:8px}
+#examRoot .ex-fixed-result.ok{background:#e7f5ee;color:#147548}
+#examRoot .ex-fixed-result.no{background:#fff0ed;color:#bd493c}
+#examRoot .ex-fixed-answers{display:flex;gap:18px;margin:0 0 13px;padding:0 0 12px;border-bottom:1px solid #e8ecea}
+#examRoot .ex-fixed-answers div{min-width:0}
+#examRoot .ex-fixed-answers dt{font-size:11px;color:#7a8581;margin-bottom:3px}
+#examRoot .ex-fixed-answers dd{margin:0;font-weight:600;color:#253b37;overflow-wrap:anywhere}
+#examRoot .ex-ai-b section{margin:0 0 14px}
+#examRoot .ex-ai-b h5{font-size:12px;color:#71807b;margin:0 0 4px;font-weight:600}
+#examRoot .ex-ai-b p{margin:0;white-space:normal;overflow-wrap:anywhere}
+#examRoot .ex-fixed-evidence{padding:10px 12px;border-left:3px solid #8cbeb1;background:#f4f8f6;border-radius:0 6px 6px 0}
+#examRoot .ex-fixed-evidence p{font-size:12px;color:#52645e}
+#examRoot .ex-fixed-tip{color:#796139}
+#examRoot .ex-fixed-empty{color:#71807b}
+#examRoot.ct-dark .ex-fixed-answers,#examRoot.ct-yellow .ex-fixed-answers{border-color:#3c4542}
+#examRoot.ct-dark .ex-fixed-answers dd,#examRoot.ct-yellow .ex-fixed-answers dd{color:#f2f2f2}
+#examRoot.ct-dark .ex-fixed-evidence,#examRoot.ct-yellow .ex-fixed-evidence{background:#232b28}
+#examRoot .ex-answer-evidence{background:#fff1b9;border-radius:3px;box-shadow:0 0 0 3px #fff1b9}
+#examRoot .ex-answer-current{box-shadow:0 0 0 3px #f2ce60}
+#examRoot.rv-noansq .ex-answer-evidence:not(.ex-answer-current){background:transparent;box-shadow:none}
+#examRoot.ct-dark .ex-answer-evidence,#examRoot.ct-yellow .ex-answer-evidence{background:#695b27;box-shadow:0 0 0 3px #695b27}
+@media(max-width:640px){#examRoot .ex-pause-mask b{font-size:21px}#examRoot .ex-pause-mask span{padding:20px}}
+</style>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
 #bootLoader .ui-loader{margin-bottom:8px}
-@media (prefers-reduced-motion: reduce){#bootLoader .ui-loader-dot,#bootLoader .ui-loader-shadow{animation:none}#bootLoader .ui-loader-dot{top:20px;height:20px;border-radius:50%;transform:none}#bootLoader .ui-loader-shadow{opacity:.5;transform:scaleX(1)}}
+@media (prefers-reduced-motion: reduce){#bootLoader .ui-loader-dot, #bootLoader .ui-loader-shadow{animation:none}#bootLoader .ui-loader-dot{top:20px;height:20px;border-radius:50%;transform:none}#bootLoader .ui-loader-shadow{opacity:.5;transform:scaleX(1)}}
 /* ===== P2 题库页 B 定版（11-12）：原深绿渐变入口卡、大号数字、组卷提示胶囊、
    白底按钮那一整套规则已随本笔移除；入口卡外观统一由本页前部的细白条规则定义。
    旧做法特意把这些规则放文件末尾压前部，如今末尾再留会把细白条按钮压回白底，
@@ -2526,12 +2460,12 @@ main.container:has(> .hub-shell){
 .fx-noscore .fx-meta b{color:#111;font-weight:800;font-variant-numeric:tabular-nums;margin-right:2px}
 /* 深色档：换成暗一档的墨绿，否则浅薄荷底会被整屏 #161616 吃掉 */
 #examRoot.ct-dark .fx-noscore{background:#22312f;border-bottom-color:#3a4a48}
-#examRoot.ct-dark .fx-noscore .fx-top b,#examRoot.ct-dark .fx-noscore .fx-meta b{color:#f2f2f2}
-#examRoot.ct-dark .fx-noscore .fx-top span,#examRoot.ct-dark .fx-noscore .fx-meta{color:#c8cbd0}
+#examRoot.ct-dark .fx-noscore .fx-top b, #examRoot.ct-dark .fx-noscore .fx-meta b{color:#f2f2f2}
+#examRoot.ct-dark .fx-noscore .fx-top span, #examRoot.ct-dark .fx-noscore .fx-meta{color:#c8cbd0}
 /* 黄底档：黄底黑字（与未判分横幅的 ct-yellow 反色同一套口径） */
 #examRoot.ct-yellow .fx-noscore{background:#ffd400;border-bottom-color:#e6bc00}
-#examRoot.ct-yellow .fx-noscore .fx-top b,#examRoot.ct-yellow .fx-noscore .fx-meta b{color:#000}
-#examRoot.ct-yellow .fx-noscore .fx-top span,#examRoot.ct-yellow .fx-noscore .fx-meta{color:#161616}
+#examRoot.ct-yellow .fx-noscore .fx-top b, #examRoot.ct-yellow .fx-noscore .fx-meta b{color:#000}
+#examRoot.ct-yellow .fx-noscore .fx-top span, #examRoot.ct-yellow .fx-noscore .fx-meta{color:#161616}
 .ex-noans{flex:none;display:flex;gap:9px;align-items:flex-start;background:var(--warn-soft);
   border-bottom:1px solid rgba(255,149,0,.35);padding:11px 15px;font-size:13px;line-height:1.65;color:var(--ink)}
 .ex-noans-ic{flex:none;width:17px;height:17px;border-radius:50%;background:var(--warn);color:#fff;
@@ -2557,8 +2491,8 @@ main.container:has(> .hub-shell){
 #examRoot .ex-toolbtn:hover{opacity:1;background:#f2f4f6}
 #examRoot .ex-toolbtn svg{width:16px;height:16px;display:block}
 #examRoot .ex-toolbtn.on{opacity:1;color:#b3261e;background:rgba(179,38,30,.09)}
-#examRoot.ct-dark .ex-toolbtn:hover,#examRoot.ct-yellow .ex-toolbtn:hover{background:#2a2a2a}
-#examRoot.ct-dark .ex-toolbtn.on,#examRoot.ct-yellow .ex-toolbtn.on{color:#ff8a80;background:rgba(255,138,128,.12)}
+#examRoot.ct-dark .ex-toolbtn:hover, #examRoot.ct-yellow .ex-toolbtn:hover{background:#2a2a2a}
+#examRoot.ct-dark .ex-toolbtn.on, #examRoot.ct-yellow .ex-toolbtn.on{color:#ff8a80;background:rgba(255,138,128,.12)}
 /* 隐藏计时后 --:-- 用等宽数字，避免宽度抖动（与 .ex-timer 同口径） */
 #examRoot .ex-timer{font-variant-numeric:tabular-nums}
 
@@ -2571,13 +2505,13 @@ main.container:has(> .hub-shell){
 #examRoot .ex-audio .ea-full{flex:none;font-size:13px;font-weight:700;color:#111;
   font-variant-numeric:tabular-nums;letter-spacing:.02em;padding-left:12px;margin-left:14px;
   border-left:1px solid rgba(0,0,0,.14)}
-#examRoot.ct-dark .ex-audio .ea-full,#examRoot.ct-yellow .ex-audio .ea-full{border-left-color:rgba(255,255,255,.22)}
+#examRoot.ct-dark .ex-audio .ea-full, #examRoot.ct-yellow .ex-audio .ea-full{border-left-color:rgba(255,255,255,.22)}
 #examRoot .ex-audio .ea-full.warn{color:#a56400}
 #examRoot .ex-audio .ea-full.soon{color:#b3261e}
 #examRoot .ex-audio .ex-icons{margin-left:2px}
-#examRoot.ct-dark .ex-audio .ea-full,#examRoot.ct-yellow .ex-audio .ea-full{color:#f2f2f2}
-#examRoot.ct-dark .ex-audio .ea-full.warn,#examRoot.ct-yellow .ex-audio .ea-full.warn{color:#e8b25a}
-#examRoot.ct-dark .ex-audio .ea-full.soon,#examRoot.ct-yellow .ex-audio .ea-full.soon{color:#ff8a80}
+#examRoot.ct-dark .ex-audio .ea-full, #examRoot.ct-yellow .ex-audio .ea-full{color:#f2f2f2}
+#examRoot.ct-dark .ex-audio .ea-full.warn, #examRoot.ct-yellow .ex-audio .ea-full.warn{color:#e8b25a}
+#examRoot.ct-dark .ex-audio .ea-full.soon, #examRoot.ct-yellow .ex-audio .ea-full.soon{color:#ff8a80}
 #examRoot .ex-audio.has-tools{padding-right:8px}
 
 /* ===== P2 题库页 B 定版（11-12）：上次成绩行的样式已并入本页前部细白条规则
@@ -2614,10 +2548,10 @@ main.container:has(> .hub-shell){
 .bk-donepick .bdp-meta b{color:var(--ink);font-size:15px;font-variant-numeric:tabular-nums}
 .bk-donepick .bdp-warn{margin:8px 0 0;font-size:12.5px;color:#8a6238}
 .bk-donepick .bdp-b{display:flex;gap:10px;margin:16px 0 0}
-.bk-donepick .bdp-view,.bk-donepick .bdp-redo{appearance:none;font:inherit;font-size:13.5px;font-weight:700;
+.bk-donepick .bdp-view, .bk-donepick .bdp-redo{appearance:none;font:inherit;font-size:13.5px;font-weight:700;
   cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:7px;
   min-height:44px;padding:0 16px;border-radius:8px;flex:1}
-.bk-donepick .bdp-view svg,.bk-donepick .bdp-redo svg{width:16px;height:16px;flex:none;
+.bk-donepick .bdp-view svg, .bk-donepick .bdp-redo svg{width:16px;height:16px;flex:none;
   fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .bk-donepick .bdp-redo svg{fill:currentColor;stroke:none}
 .bk-donepick .bdp-view{border:1px solid var(--line);background:#fff;color:var(--ink)}
@@ -2695,13 +2629,6 @@ main.container:has(> .hub-shell){
    收起态只占一行（summary 8px 上下内距 ≈ 33px），不撑高首屏；展开才显示明细。
    颜色一律走 token（--line / --surface / --muted / --primary-600），深浅与三套外观自动跟随。 */
 .bank-info{margin:0 0 10px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
-.bank-info summary{cursor:pointer;padding:8px 12px;font-size:12.5px;font-weight:650;color:var(--muted);list-style:none}
-.bank-info summary::-webkit-details-marker{display:none}
-.bank-info summary::before{content:'▸ ';color:var(--primary-600)}
-.bank-info[open] summary::before{content:'▾ '}
-.bank-info summary:focus-visible{outline:2px solid var(--primary-600);outline-offset:2px;border-radius:8px}
-.bank-info-body{padding:0 12px 10px;font-size:12.5px;color:var(--muted);line-height:1.7}
-.bank-info-body b{color:var(--ink)}
 
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -2736,7 +2663,7 @@ main.container:has(> .hub-shell){
 .bk-grp-h{background:var(--primary-50);box-shadow:inset 3px 0 0 var(--primary);border-radius:8px;
  padding:9px 10px 7px 11px;margin:10px 0 4px}
 /* MODULE-MOVE-1：机经左栏共用脚本仍渲染 4 颗 sub，这里藏掉已搬走的写作/口语两颗。 */
-#hubSubs .hub-sub[data-hub-sub="writing"],#hubSubs .hub-sub[data-hub-sub="speaking"]{display:none!important}
+#hubSubs .hub-sub[data-hub-sub="writing"], #hubSubs .hub-sub[data-hub-sub="speaking"]{display:none!important}
 </style>
 <style id="brRlPolish">
 /* 11-13 BANK-EXTEND-2：五个板块整页统一。阅读与听力沿用既有 DOM 与全部功能节点，
@@ -2752,9 +2679,6 @@ main.container:has(> .hub-shell){
 #bankRoot .full-card .fc-last{order:4;flex:1 0 100%;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
 #bankRoot .full-card .fc-last b{color:var(--ink)}
 #bankRoot .full-card .fc-last.is-none{display:none}
-#bankRoot > .bank-info{margin:0 0 8px;border:0;border-bottom:1px solid var(--line);border-radius:0;background:none}
-#bankRoot > .bank-info summary{padding:7px 2px;font-size:12px;font-weight:650;color:var(--muted)}
-#bankRoot > .bank-info .bank-info-body{font-size:11.5px;line-height:1.8;padding:0 2px 8px}
 #bankRoot .partbar{gap:12px;flex-wrap:wrap;padding:0 0 8px;border-bottom:1px solid var(--line);margin:0 0 10px}
 #bankRoot .partbar .pill-tabs{gap:6px}
 #bankRoot .partbar .pill-tab{font-size:12.5px;padding:5px 7px;border-radius:4px;line-height:1.2}
@@ -2765,8 +2689,6 @@ main.container:has(> .hub-shell){
 #bankRoot .bk-search{flex:0 1 210px;min-width:160px}
 #bankRoot .bk-grp-h{background:none;box-shadow:inset 2px 0 0 var(--primary);border-radius:0;border-bottom:1px solid var(--line);padding:8px 2px;margin:14px 0 0}
 #bankRoot .bk-grp-h b{font-size:12.5px;font-weight:750;color:var(--ink)}
-#bankRoot .bk-grp-n{margin-left:auto;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
-#bankRoot .bk-grp-more{padding:8px 0 0}
 #bankRoot .bk-more{border:0;background:none;color:var(--primary-600);border-radius:4px;padding:6px 8px;font:inherit;font-size:11.5px;font-weight:650;box-shadow:none}
 #bankRoot .bk-more:hover{background:var(--surface-2)}
 #bankRoot .bank-items{border:0;border-radius:0;background:none;overflow:visible}
@@ -2783,10 +2705,10 @@ main.container:has(> .hub-shell){
 #bankRoot .bi-tt i{font-size:11.5px;color:var(--muted)}
 #bankRoot .bi-st{width:auto;font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
 #bankRoot .bi-st.ok{color:var(--primary-600);font-weight:700}
-#bankRoot .bi-st b,#bankRoot .bi-st.ok b{font-size:11.5px;color:inherit}
+#bankRoot .bi-st b, #bankRoot .bi-st.ok b{font-size:11.5px;color:inherit}
 #bankRoot .bi-when{font-size:10.5px;color:var(--muted)}
 #bankRoot .bi-chev{width:10px;font-size:14px;color:var(--muted)}
-#bankRoot .pill-tab:focus-visible,#bankRoot .bank-info summary:focus-visible,#bankRoot .bk-more:focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:4px;box-shadow:none}
+#bankRoot .pill-tab:focus-visible, #bankRoot .bk-more:focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:4px;box-shadow:none}
 @media(max-width:860px){
   #bankRoot .full-card{gap:6px 8px;padding:9px 10px}
   #bankRoot .full-card .bk-tag{display:none}
@@ -2804,7 +2726,7 @@ main.container:has(> .hub-shell){
   #bankRoot .bi-st{width:auto;flex:none}
   #bankRoot .bi-chev{width:10px;flex:none}
 }
-@media(prefers-reduced-motion:reduce){#bankRoot .bank-item,#bankRoot .partbar .pill-tab,#bankRoot .bk-more{transition:none}}
+@media(prefers-reduced-motion:reduce){#bankRoot .bank-item, #bankRoot .partbar .pill-tab, #bankRoot .bk-more{transition:none}}
 </style>
 <style id="bankV2">
 /* BANK-V2（11-16 定版）：机经五格「阅读 / 听力 / 记录 / 错题 / 统计」。
@@ -2862,20 +2784,20 @@ html[data-theme="dark"] .bk2-mobile button.on{background:var(--primary-50);borde
 .hub-main #bankRoot .bk-search .ui-field-search-in{padding:0 30px 0 30px;font-size:12px;color:var(--ink)}
 
 /* 目录：一张白卡，英文主行、中文副行，行高约 52 */
-.hub-main #bankRoot #fullEntry,.hub-main #bankRoot #listenFullEntry{order:auto;flex:0 0 auto;margin:0}
-.hub-main #bankRoot #bankList,.hub-main #bankRoot #listenList{order:auto;flex:1 0 auto;min-height:0;padding:0 0 8px}
+.hub-main #bankRoot #fullEntry, .hub-main #bankRoot #listenFullEntry{order:auto;flex:0 0 auto;margin:0}
+.hub-main #bankRoot #bankList, .hub-main #bankRoot #listenList{order:auto;flex:1 0 auto;min-height:0;padding:0 0 8px}
 .hub-main #bankRoot .bk-groups{display:block;margin:0}
 .hub-main #bankRoot .bk-grp{min-width:0}
 .hub-main #bankRoot .bk-grp-h{display:none!important}
 .hub-main #bankRoot .bank-items{list-style:none;margin:0;padding:0;border:1px solid var(--line);border-radius:15px;background:var(--surface);overflow:hidden;box-shadow:0 1px 2px rgba(28,55,48,.035)}
 .hub-main #bankRoot .bank-item{display:flex;align-items:center;gap:12px;min-height:52px;padding:8px 18px;border:0;border-bottom:1px solid var(--line-soft);background:var(--surface);box-shadow:none!important;cursor:pointer;transition:background .14s}
 .hub-main #bankRoot .bank-item:last-child{border-bottom:0}
-.hub-main #bankRoot .bank-item:hover,.hub-main #bankRoot .bank-item:focus-within{background:var(--surface-2)}
-.hub-main #bankRoot .bi-no,.hub-main #bankRoot .bi-source,.hub-main #bankRoot .bi-chev{display:none!important}
+.hub-main #bankRoot .bank-item:hover, .hub-main #bankRoot .bank-item:focus-within{background:var(--surface-2)}
+.hub-main #bankRoot .bi-no, .hub-main #bankRoot .bi-source, .hub-main #bankRoot .bi-chev{display:none!important}
 .hub-main #bankRoot .bi-st{display:none!important}
 .hub-main #bankRoot .bank-item[data-done="1"] .bi-st{display:block!important;width:auto;flex:none;text-align:right;
   font-size:10.5px;line-height:1.35;font-weight:700;color:var(--primary-700);font-variant-numeric:tabular-nums;white-space:nowrap}
-.hub-main #bankRoot .bi-st b,.hub-main #bankRoot .bi-st.ok b{display:inline;font-size:10.5px;color:inherit}
+.hub-main #bankRoot .bi-st b, .hub-main #bankRoot .bi-st.ok b{display:inline;font-size:10.5px;color:inherit}
 .hub-main #bankRoot .bi-when{display:none!important}
 .hub-main #bankRoot .bk2-qn{flex:none;font-size:10.5px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
 @media(max-width:860px){
@@ -2890,12 +2812,12 @@ html[data-theme="dark"] .bk2-mobile button.on{background:var(--primary-50);borde
 .hub-main #bankRoot .bi-tt i{display:block;margin-top:3px;font-size:10.5px;font-style:normal;color:var(--muted);line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hub-main #bankRoot .bank-item:hover .bi-tt b{color:var(--primary-700)}
 .hub-main #bankRoot .bank-item::after{content:'›';flex:none;font-size:17px;line-height:1;font-weight:600;color:var(--muted);opacity:.55;transition:opacity .16s,color .16s}
-.hub-main #bankRoot .bank-item:hover::after,.hub-main #bankRoot .bank-item:focus-within::after{content:'开始 ›';font-size:11.5px;font-weight:700;color:var(--primary-700);opacity:1}
+.hub-main #bankRoot .bank-item:hover::after, .hub-main #bankRoot .bank-item:focus-within::after{content:'开始 ›';font-size:11.5px;font-weight:700;color:var(--primary-700);opacity:1}
 .hub-main #bankRoot .bk2-list-foot{display:flex;align-items:center;justify-content:center;padding:14px 0 0}
 .hub-main #bankRoot .bk2-list-foot[hidden]{display:none!important}
 .hub-main #bankRoot .bk-more{display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:0 12px;border:0;border-radius:8px;background:transparent;color:var(--primary-700);font:inherit;font-size:12px;font-weight:650;box-shadow:none;cursor:pointer}
 .hub-main #bankRoot .bk-more:hover{background:var(--primary-50)}
-.hub-main #bankRoot .bank-empty,.hub-main #bankRoot .bank-loading{margin:0;padding:48px 20px;border:1px solid var(--line);border-radius:15px;background:var(--surface);font-size:12.5px;line-height:1.8;text-align:center;color:var(--muted)}
+.hub-main #bankRoot .bank-empty, .hub-main #bankRoot .bank-loading{margin:0;padding:48px 20px;border:1px solid var(--line);border-radius:15px;background:var(--surface);font-size:12.5px;line-height:1.8;text-align:center;color:var(--muted)}
 .hub-main #bankRoot .bank-empty p{margin:0}
 
 /* 记录 / 错题 / 统计三页共用 */
@@ -3059,7 +2981,7 @@ html[data-theme="dark"] .hub-main #bankRoot .partbar .pill-tab.active{background
   .bk2-soon{min-height:380px;padding:38px 20px}
 }
 @media(prefers-reduced-motion:reduce){
-  .hub-main #bankRoot .bank-item,.hub-main #bankRoot .bk-more,.bk2-srow,.bk2-schev{transition:none}
+  .hub-main #bankRoot .bank-item, .hub-main #bankRoot .bk-more, .bk2-srow, .bk2-schev{transition:none}
 }
 </style>
 </head>
@@ -3229,7 +3151,7 @@ html[data-theme="dark"] .hub-main #bankRoot .partbar .pill-tab.active{background
 <script defer src="js/common-shell.js?v=20261116a"></script>
 <script defer src="js/common-pwa.js?v=20261117a"></script>
 <script defer src="js/exam-timer.js?v=20261102c"></script>
-<script defer src="js/bank.js?v=20261117b"></script>
+<script defer src="js/bank.js?v=20261117c"></script>
 <!-- RV-FIX5-10/11（11-03 合流修正）：bank.js 内容改了但引用串此前漏 bump（串还是 g，与上一版撞）——
      按 11-02 判据「bump 不覆盖页面 js 引用串」人工改 h；bank.css 保持 g（本笔未再动它）。 -->
 <!-- M-2（10-24）：模考页「没做过/做过」分组 + 展开更多。
