@@ -20,7 +20,7 @@ setTimeout(__rvRescue,2500);
 <meta http-equiv="Expires" content="0" />
 <title>设置 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css?v=20261116a" />
-<link rel="stylesheet" href="css/p/settings.css?v=20261116a" />
+<link rel="stylesheet" href="css/p/settings.css?v=20261117a" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -300,7 +300,7 @@ setTimeout(__rvRescue,2500);
 
 .set-layout{margin-top:18px;border:1px solid var(--line);border-radius:16px;background:var(--surface);
   box-shadow:var(--shadow);overflow:hidden}
-.set-layout.set-shell{display:grid;grid-template-columns:264px minmax(0,1fr);gap:0;align-items:stretch;min-height:420px}
+.set-layout.set-shell{display:grid;grid-template-columns:216px minmax(0,1fr);gap:0;align-items:stretch;min-height:420px}
 .set-layout .hub-side{min-height:0;overflow-y:auto;overflow-x:hidden;background:var(--surface);border-right:1px solid var(--line)}
 .set-layout .hub-side-scroll{min-height:100%;display:flex;flex-direction:column}
 .set-layout .hub-subs{padding:14px 10px;flex:none;display:block}
@@ -328,10 +328,11 @@ setTimeout(__rvRescue,2500);
   .set-layout .hub-side{display:block;border-right:0;border-bottom:1px solid var(--line)}
   .set-layout .hub-side-scroll{min-height:0}
   .set-layout .hub-subs{display:block;padding:10px}
-  .set-nav{display:grid;grid-template-columns:1fr;gap:4px}
+  .set-nav{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
   .set-layout .hub-main{overflow:visible;padding:0 12px 12px}
-  .set-nav-item{min-height:44px}
-  .set-nav-item.on{box-shadow:inset 0 3px 0 var(--primary)}
+  .set-nav-item{min-height:42px;justify-content:center;padding:8px 6px;font-size:12.5px}
+  .set-nav-item.on:before{display:none}
+  .set-nav-item.on{box-shadow:inset 0 2px 0 var(--primary)}
   .set-pane .set-card{padding:4px 14px 6px}
 }
 @media(max-width:640px){
@@ -379,7 +380,7 @@ setTimeout(__rvRescue,2500);
   <script defer src="js/feedback.js?v=20261111b"></script>
   <!-- 10/3 头像选择（DiceBear CC0 素材；必须在 data.js/common.js 之后 —— 它读 DATA.settings.avatar） -->
   <script defer src="js/av-picker.js?v=20261107d"></script>
-  <script src="js/settings.js?v=20261116a" defer></script>
+  <script src="js/settings.js?v=20261117a" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -500,46 +501,52 @@ setTimeout(__rvRescue,2500);
            改密/退出/未登录引导也一并搬进身份卡右侧。四个 DOM 钩子全部保留、只换位置。 -->
       <!-- ===== 备考目标（T-002 步1：原「分数自评」整体搬来 + 原「个人设置」的考期）===== -->
       <section class="set-pane on" data-pane="targets">
-    <section class="card set-card rv" data-d="1">
-      
-      <div class="set-row">
-        <div class="set-row-t"><b>下次考试日期</b></div>
-        <div class="set-row-c"><input id="sExam" type="date" aria-label="下次考试日期" /></div>
-      </div>
-      <div class="set-row">
-        <div class="set-row-t"><b>目标总分</b></div>
-        <div class="set-row-c"><input id="tOverall" type="number" step="0.5" min="0" max="9" aria-label="目标总分" /></div>
-      </div>
-      <!-- 四科目标一行排开（不是四行）：同为「按科拆」的一组数，拆四行反而难横向比较。
-           375 下 .set-row-c 掉第二行占满，五个框仍可读（方案 §四 图 4 口径）。 -->
-      <div class="set-row">
-        <div class="set-row-t"><b>四科目标</b></div>
-        <div class="set-row-c set-row-c--band">
-          <input id="tListening" type="number" step="0.5" min="0" max="9" aria-label="听力目标" placeholder="听" />
-          <input id="tReading" type="number" step="0.5" min="0" max="9" aria-label="阅读目标" placeholder="阅" />
-          <input id="tWriting" type="number" step="0.5" min="0" max="9" aria-label="写作目标" placeholder="写" />
-          <input id="tSpeaking" type="number" step="0.5" min="0" max="9" aria-label="口语目标" placeholder="口" />
+    <!-- SET-TARGET-1（11-17 · 她点头「可以」）：四科目标收成四张横卡（科目 / 目标 / 当前），
+         日期与总分并排，口语自评标签移到框上方。id 与读写路径一个没动。 -->
+    <section class="card set-card st-card rv" data-d="1">
+      <div class="st-meta">
+        <div class="st-field">
+          <label for="sExam">下次考试日期</label>
+          <input id="sExam" type="date" aria-label="下次考试日期" />
+        </div>
+        <div class="st-field">
+          <label for="tOverall">目标总分</label>
+          <div class="st-score-wrap">
+            <input id="tOverall" type="number" step="0.5" min="0" max="9" aria-label="目标总分" />
+            <span>/ 9</span>
+          </div>
         </div>
       </div>
-    </section>
-
-    <!-- 原「口语自评」卡（data-d 从 2 起顺延避免动画错位） -->
-    <section class="card set-card rv" data-d="2">
-      
-      
-      <div class="set-row">
-        <div class="set-row-t"><b>口语自评</b></div>
-        <div class="set-row-c set-row-c--band">
-          <!-- SET-LAB-1（10-27）：标签只挂 placeholder，框一填值就消失（她截图填 5.5/6 时看不出哪边是哪边）
-               → 每框包 .set-band-item，框下挂常驻小字。id/读写路径/aria 一个没动。 -->
-          <div class="set-band-item">
-            <input id="sFlu" type="number" min="0" max="9" step="0.5" aria-label="固定流利度分" />
-            <span class="set-band-lab">流利度</span>
+      <div class="st-block">
+        <div class="st-block-label">四科目标</div>
+        <div class="st-subjects">
+          <div class="st-subject" style="--st-c:var(--mock)">
+            <div class="st-sub-name"><i></i>听力</div>
+            <input class="st-sub-input" id="tListening" type="number" step="0.5" min="0" max="9" aria-label="听力目标" placeholder="—" />
+            <div class="st-sub-cur">当前 <b data-cur="listening">—</b></div>
           </div>
-          <div class="set-band-item">
-            <input id="sPron" type="number" min="0" max="9" step="0.5" aria-label="固定发音分" />
-            <span class="set-band-lab">发音</span>
+          <div class="st-subject" style="--st-c:var(--vocab)">
+            <div class="st-sub-name"><i></i>阅读</div>
+            <input class="st-sub-input" id="tReading" type="number" step="0.5" min="0" max="9" aria-label="阅读目标" placeholder="—" />
+            <div class="st-sub-cur">当前 <b data-cur="reading">—</b></div>
           </div>
+          <div class="st-subject" style="--st-c:var(--warn)">
+            <div class="st-sub-name"><i></i>写作</div>
+            <input class="st-sub-input" id="tWriting" type="number" step="0.5" min="0" max="9" aria-label="写作目标" placeholder="—" />
+            <div class="st-sub-cur">当前 <b data-cur="writing">—</b></div>
+          </div>
+          <div class="st-subject" style="--st-c:var(--med)">
+            <div class="st-sub-name"><i></i>口语</div>
+            <input class="st-sub-input" id="tSpeaking" type="number" step="0.5" min="0" max="9" aria-label="口语目标" placeholder="—" />
+            <div class="st-sub-cur">当前 <b data-cur="speaking">—</b></div>
+          </div>
+        </div>
+      </div>
+      <div class="st-speak">
+        <div class="st-block-label">口语自评</div>
+        <div class="st-speak-fields">
+          <label class="st-sf"><span>流利度</span><input id="sFlu" type="number" min="0" max="9" step="0.5" aria-label="固定流利度分" placeholder="—" /></label>
+          <label class="st-sf"><span>发音</span><input id="sPron" type="number" min="0" max="9" step="0.5" aria-label="固定发音分" placeholder="—" /></label>
         </div>
       </div>
     </section>

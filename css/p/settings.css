@@ -86,3 +86,84 @@
    每框包 .set-band-item 竖排，框下挂常驻小字；placeholder 保留（空框时两处提示不冲突）。 */
 .set-band-item{ display:flex; flex-direction:column; align-items:center; gap:3px; }
 .set-band-lab{ font-size:10.5px; color:var(--muted); line-height:1; }
+
+/* ═══ SET-TARGET-1（11-17）· 备考目标：四科横卡 + 当前分 ═══
+   她点头的样子稿：科目名 / 目标分 / 当前分，日期与总分并排，口语自评标签在框上方。
+   ⚠️ 输入框选择器必须带 :not() 链，压过 css/common.css 的全局 input 规则。 */
+.set-pane .set-card.st-card{padding:22px 24px 20px}
+.st-meta{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:26px;padding-bottom:20px;border-bottom:1px solid var(--line)}
+.st-field{min-width:0}
+.st-field>label,.st-block-label{display:block;font-size:12px;font-weight:650;line-height:1.4;color:var(--muted)}
+.st-field>label{margin-bottom:7px}
+.st-field input:not([type=checkbox]):not([type=radio]):not([type=range]){
+  width:100%;height:42px;padding:0 12px;border:1px solid var(--neutral);border-radius:10px;
+  background:var(--surface);color:var(--ink);font:inherit;font-size:13.5px;outline:none;
+  transition:border-color .15s,box-shadow .15s
+}
+.st-field input:not([type=checkbox]):not([type=radio]):not([type=range]):focus{
+  border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)
+}
+.st-score-wrap{position:relative}
+.st-score-wrap input:not([type=checkbox]):not([type=radio]):not([type=range]){
+  padding-right:38px;font-weight:700;font-variant-numeric:tabular-nums
+}
+.st-score-wrap span{position:absolute;right:12px;top:50%;transform:translateY(-50%);
+  font-size:11.5px;color:var(--muted);pointer-events:none}
+.st-block{padding-top:20px}
+.st-block-label{margin-bottom:11px}
+.st-subjects{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.st-subject{position:relative;min-width:0;padding:13px 14px 12px;border:1px solid var(--line);
+  border-radius:12px;background:linear-gradient(180deg,var(--n-50) 0%,var(--surface) 72%);overflow:hidden}
+.st-subject:before{content:"";position:absolute;left:0;right:0;top:0;height:3px;
+  background:var(--st-c,var(--primary));opacity:.7}
+.st-sub-name{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;color:var(--ink-2)}
+.st-sub-name i{width:6px;height:6px;border-radius:50%;background:var(--st-c,var(--primary));flex:none}
+.st-sub-input:not([type=checkbox]):not([type=radio]):not([type=range]){
+  display:block;width:100%;height:44px;margin:7px 0 0;padding:0 10px;border:1px solid transparent;
+  border-radius:9px;background:var(--n-50);color:var(--ink);font:inherit;font-size:24px;font-weight:800;
+  line-height:42px;letter-spacing:-.03em;font-variant-numeric:tabular-nums;outline:none;
+  transition:background .15s,border-color .15s,box-shadow .15s;
+  -moz-appearance:textfield;appearance:textfield
+}
+.st-sub-input::-webkit-outer-spin-button,.st-sub-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.st-sub-input::placeholder{color:var(--muted);opacity:.62;font-weight:600}
+.st-sub-input:not([type=checkbox]):not([type=radio]):not([type=range]):hover{background:var(--surface-2)}
+.st-sub-input:not([type=checkbox]):not([type=radio]):not([type=range]):focus{
+  background:var(--surface);border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)
+}
+.st-sub-cur{margin-top:8px;font-size:11px;line-height:1.5;color:var(--muted);white-space:nowrap}
+.st-sub-cur b{font-weight:700;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.st-sub-cur b.none{color:var(--muted);font-weight:600;opacity:.7}
+.st-speak{display:flex;align-items:flex-start;gap:20px;margin-top:20px;padding-top:20px;border-top:1px solid var(--line)}
+.st-speak .st-block-label{margin:0;flex:none;padding-top:1px}
+.st-speak-fields{display:flex;gap:12px;margin-left:auto}
+.st-sf{display:flex;flex-direction:column;gap:5px;width:112px}
+.st-sf span{font-size:11px;line-height:1.3;color:var(--muted)}
+.st-sf input:not([type=checkbox]):not([type=radio]):not([type=range]){
+  width:100%;height:38px;padding:0 10px;border:1px solid var(--neutral);border-radius:9px;
+  background:var(--surface);color:var(--ink);font:inherit;font-size:13.5px;font-weight:650;
+  text-align:center;font-variant-numeric:tabular-nums;outline:none;
+  transition:border-color .15s,box-shadow .15s;
+  -moz-appearance:textfield;appearance:textfield
+}
+.st-sf input::-webkit-outer-spin-button,.st-sf input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.st-sf input:not([type=checkbox]):not([type=radio]):not([type=range]):focus{
+  border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)
+}
+@media(max-width:960px){
+  .st-subjects{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:640px){
+  .set-pane .set-card.st-card{padding:18px 16px 16px}
+  .st-meta{grid-template-columns:1fr;gap:15px;padding-bottom:17px}
+  .st-block{padding-top:17px}
+  .st-subjects{gap:9px}
+  .st-subject{padding:12px 12px 11px}
+  .st-sub-input:not([type=checkbox]):not([type=radio]):not([type=range]){
+    height:42px;font-size:23px;line-height:40px
+  }
+  .st-speak{display:block;margin-top:17px;padding-top:17px}
+  .st-speak .st-block-label{padding-top:0;margin-bottom:7px}
+  .st-speak-fields{margin-left:0}
+  .st-sf{flex:1;width:auto}
+}

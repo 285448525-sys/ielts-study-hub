@@ -26,6 +26,37 @@ function setSaveSoon(){
   });
 })();
 
+/* SET-TARGET-1（11-17）：四科「当前分」只读展示最近一次四科齐全的成绩；
+   没有完整记录就显示「—」。只读 DATA.scores，不写任何字段。 */
+function latestFullScore(){
+  if(typeof DATA === 'undefined' || !DATA || !Array.isArray(DATA.scores)) return null;
+  var keys = ['listening','reading','writing','speaking'];
+  var list = DATA.scores.filter(function(x){
+    if(!x) return false;
+    for(var i = 0; i < keys.length; i++){
+      var v = x[keys[i]];
+      if(v == null || v === '' || !isFinite(Number(v))) return false;
+    }
+    return true;
+  });
+  if(!list.length) return null;
+  list.sort(function(a,b){ return String(b.date || '').localeCompare(String(a.date || '')); });
+  return list[0];
+}
+function paintCurrentScores(){
+  var last = latestFullScore();
+  document.querySelectorAll('[data-cur]').forEach(function(b){
+    var v = last ? Number(last[b.getAttribute('data-cur')]) : NaN;
+    if(isFinite(v)){
+      b.textContent = v.toFixed(1);
+      b.classList.remove('none');
+    }else{
+      b.textContent = '—';
+      b.classList.add('none');
+    }
+  });
+}
+
 // 把当前 DATA.settings 回填到设置页表单（登录合并云端数据后调用，确保「目标分数/每日目标」等可见恢复）
 function populateSettingsForm(){
   const s = DATA.settings || {};
@@ -72,6 +103,7 @@ function populateSettingsForm(){
 
   if($('#sPron')) $('#sPron').value = (s.pronunciationScore != null ? s.pronunciationScore : '');
   if($('#sFlu')) $('#sFlu').value = (s.fluencyScore != null ? s.fluencyScore : '');
+  paintCurrentScores();
   /* F-4（10-25）：#sChime / #sReduceMotion / #sAdhd 三个控件已分别被 S-1、S-1b 删掉（settings.html 里实测 0 处）→ 回填这三行是纯空转，清掉。字段 chimeOnDone / reduceMotion / adhd 一律保留（同步白名单里，数据不丢）。 */
   // 10-23 T-002 步5：正文字号（缺省 md=标准）与减少动效（缺省关）回填
   const _font = (s.fontScale === 'sm' || s.fontScale === 'lg') ? s.fontScale : 'md';
