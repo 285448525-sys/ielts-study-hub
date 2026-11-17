@@ -1411,9 +1411,6 @@ body:has(#practiceBody .wdd-stage) #wdFoot,
   padding:clamp(18px,3vh,38px) 0 28px;
   box-sizing:border-box;
 }
-#practiceBody .wdd-stage::before{
-  content:none;
-}
 #practiceBody .wdd-zone{
   position:relative; z-index:1;
   width:min(720px,100%);

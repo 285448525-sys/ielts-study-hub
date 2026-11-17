@@ -203,7 +203,6 @@
   }
 
   /* ---------- 听写沉浸区挂载（practice.js 渲染完听写题后调用） ---------- */
-  var BOUND = null;                                 // 防重复绑定
   var ACTIVE = null;                                // 当前题目的 UI 控制器
 
   function fmtIpa(s){
@@ -246,7 +245,7 @@
               '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path id="wddStatusPath" d="m20 6-11 11-5-5"/></svg>' +
             '</span><span id="wddStatusText"></span>' +
           '</div>' +
-          '<div class="wdd-feedback" id="wddFeedback">' +
+          '<div class="wdd-feedback">' +
             '<div class="wdd-answer-card" id="wddAnswerCard" hidden>' +
               '<div class="wdd-answer-label">正确答案</div>' +
               '<div class="wdd-answer-word" id="wddAnswerWord"></div>' +
@@ -286,15 +285,12 @@
     var speaker = document.getElementById('wddSpeaker');
     var progressFill = document.getElementById('wddProgressFill');
     var progressText = document.getElementById('wddProgressText');
-    var zone = host.querySelector('.wdd-zone');
     var actions = document.querySelector('#practiceBody .answer-btns');
     var state = 'answering';                        // answering | correct | wrong
 
     /* 听写态不展示「不知道 / 已掌握 / 撤销 / 听写记录」这一行。
        只隐藏，不删节点与事件；非听写模式仍照常用。 */
-    if(actions && zone){
-      actions.hidden = true;
-    }
+    if(actions) actions.hidden = true;
 
     var type = 'mechanical';
     try{
@@ -423,11 +419,9 @@
     });
     input.addEventListener('input', renderTyped);
 
-    host.addEventListener('pointerdown', function(e){
-      if(e.target.closest('button,a,input')) return;
-      focusInput();
+    line.addEventListener('pointerdown', function(e){
+      if(!e.target.closest('button,a,input')) focusInput();
     });
-    line.addEventListener('pointerdown', focusInput);
     speaker.addEventListener('click', function(){
       speaker.classList.add('speaking');
       setTimeout(function(){ speaker.classList.remove('speaking'); }, 1700);
@@ -435,17 +429,16 @@
       if(qs) qs.click();
     });
 
-    ACTIVE = { afterJudge: afterJudge, unknown: unknownAnswer, reset: unlockForRetry, updateProgress: updateProgress };
+    ACTIVE = { afterJudge: afterJudge, unknown: unknownAnswer };
     renderTyped();
     updateProgress();
     setTimeout(focusInput, 60);
-    BOUND = input;
   }
 
-  function afterJudge(cur, ok){
+  function afterJudge(_cur, ok){
     if(ACTIVE && ACTIVE.afterJudge) ACTIVE.afterJudge(ok);
   }
-  function unknown(cur){
+  function unknown(){
     if(ACTIVE && ACTIVE.unknown) ACTIVE.unknown();
   }
 
