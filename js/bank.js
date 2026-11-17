@@ -122,7 +122,11 @@
     }
     return out;
   }
-  var CHIP_CLS = { '判断': 't1', '填空': 't1', '配对': 't2', '选择': 't3', '多选': 't3', '地图': 't3' };
+  var CHIP_CLS = {
+    '判断': 't1', '填空': 't1', '配对': 't2', '选择': 't3', '多选': 't3', '地图': 't3',
+    '填空题': 't1', 'Heading 题': 't1', '匹配题': 't2', '段落匹配题': 't2',
+    '单选题': 't3', '多选题': 't3'
+  };
   function chipCls(t, i){ return CHIP_CLS[t] || ('t' + ((i % 3) + 1)); }
   function currentPart(){
     var root = document.getElementById('bankRoot');
