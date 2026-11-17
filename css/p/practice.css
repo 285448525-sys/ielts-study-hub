@@ -941,6 +941,7 @@ html[data-theme="dark"] .rw-row + .rw-row{ border-top-color:rgba(255,255,255,.14
   opacity:.78; pointer-events:none;
 }
 #studyView.wd-exam #practiceArea > *{ position:relative; z-index:1; }
+#studyView.wd-exam #practiceArea #wdWordHeader{ z-index:30; }
 #studyView.wd-exam #practiceArea .wd-modes{ z-index:30; }
 /* 🔴 WD-PAGE-REDESIGN-4 第①条（她 21:2x「整体还是偏上了一点点，我们可以稍微居中一点」）：
    **居中这件事必须抬到 #studyView 这一层做，不能只写在 practiceBody 上。**
