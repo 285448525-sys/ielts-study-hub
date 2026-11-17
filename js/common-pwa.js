@@ -346,7 +346,8 @@ function maybeShowSwUpdatePrompt(version){
    ========================================================================= */
 function onbDefaults(){
   /* exp:null = 未回答「考过雅思吗」（10/13 分流卡）；true/false = 已选，不再问 */
-  return { v:2, entered:false, finished:false, setup:{ exam:false, effort:false, words:false }, snoozed:false, exp:null, ts:0 };
+  return { v:2, entered:false, finished:false, setup:{ exam:false, effort:false, words:false },
+    snoozed:false, dismissed:false, guideStep:0, guideWord:'', exp:null, ts:0 };
 }
 /* 老 v1 → v2 迁移：一次性迁成「已完成 + 不再提示」，老用户零打扰。
    ⭐ 返回 null 的唯一含义是「全新浏览器」（既没 v2 也没 v1），只有这种情况才走引导。 */
@@ -354,7 +355,7 @@ function _onbMigrateOld(){
   let old = null;
   try{ old = localStorage.getItem(ONB_OLD_KEY); }catch(e){}
   if(!old) return null;
-  const mig = { v:2, entered:true, finished:true, snoozed:true,
+  const mig = { v:2, entered:true, finished:true, snoozed:true, dismissed:true, guideStep:0,
     setup:{ exam:true, effort:true, words:true }, ts:Date.now() };
   try{ localStorage.setItem(ONB_KEY, JSON.stringify(mig)); }catch(e){}
   return mig;
@@ -371,6 +372,9 @@ function getOnboarding(){
       finished: !!o.finished,
       setup: Object.assign({}, d.setup, (o.setup && typeof o.setup === 'object') ? o.setup : {}),
       snoozed: !!o.snoozed,
+      dismissed: !!o.dismissed,
+      guideStep: Math.max(0, Math.min(ONB_TOTAL, Number(o.guideStep) || 0)),
+      guideWord: (o.guideWord === 'awl' || o.guideWord === 'import') ? o.guideWord : '',
       exp: (o.exp === true || o.exp === false) ? o.exp : null,
       ts: Number(o.ts) || 0 };
   }catch(e){ return null; }
@@ -414,7 +418,7 @@ function onbBackfillFromData(){
     hasWords = (Array.isArray(DATA.words) && DATA.words.length > 0) ||
       (typeof wbActive === 'function' && wbActive() !== 'custom');   // design/78：官方词库激活同样算已设
   }catch(e){}
-  return setOnboarding({ entered:false, finished:true, snoozed:true,
+  return setOnboarding({ entered:false, finished:true, snoozed:true, dismissed:true, guideStep:0,
     setup:{ exam: !!s.examDate,
             effort: (Number(s.dailyGoalHours) > 0 || Number(pc.dailyCap) > 0),
             words: hasWords } });
@@ -458,21 +462,20 @@ function initOnboarding(){
        分流卡（你之前考过雅思吗？）会挡住正在使用的功能，很突兀。
        首页（home.html / index.html）才问；其余页面直接跳过，等他自己点到首页再问。
        ?onb=1 强制重看不受限（调试/演示用）。 */
-    let force0 = false;
-    try{ force0 = /(?:^|[?&])onb=1(?:&|$)/.test(location.search || ''); }catch(e){}
-    if(!force0){
-      const f = String((typeof _hubCurrentFile === 'string' && _hubCurrentFile) || location.pathname.split('/').pop() || '').toLowerCase();
-      const isHome = /^(home|index)\.html$/.test(f) || f === 'home' || f === 'index' || f === '';
-      if(!isHome) return;
-    }
+    let force = false;
+    try{ force = /(?:^|[?&])onb=1(?:&|$)/.test(location.search || ''); }catch(e){}
+    const f = String((typeof _hubCurrentFile === 'string' && _hubCurrentFile) || location.pathname.split('/').pop() || '').toLowerCase();
+    const isHome = /^(home|index)\.html$/.test(f) || f === 'home' || f === 'index' || f === '';
     // 引导里点了「去导入词库」→ 落到 practice.html 后自动切到词库 tab
     let flag = null;
     try{ flag = sessionStorage.getItem(ONB_GOTO_BANK); sessionStorage.removeItem(ONB_GOTO_BANK); }catch(e){}
     if(flag === '1' && /practice\.html$/.test(location.pathname)) onbLandBankTab();
-    // 已走过引导的人想重看：任意页加 ?onb=1 即可（同样适用于调试/演示）
-    let force = false;
-    try{ force = /(?:^|[?&])onb=1(?:&|$)/.test(location.search || ''); }catch(e){}
+    if(!force && !isHome) return;
     const st = getOnboarding();
+    /* 首页走 11-17 定版的页内「开工三步」卡：不遮全屏、不模糊背景、跳过永久生效。
+       旧遮罩只在 ?onb=1 的其它页面保留，用于调试/演示。 */
+    if(isHome){ initHomeGuide(force, st); return; }
+    // 已走过引导的人想重看：任意页加 ?onb=1 即可（同样适用于调试/演示）
     if(st && st.finished && !force){
       // ⭐ 回填缺失的三步完成态：按真实数据只做 false→true 升级、绝不降级
       const sset = (DATA && DATA.settings) || {};
@@ -504,20 +507,386 @@ function initOnboarding(){
     });
   }catch(e){}
 }
+/* ==================== HOME-ONB-1（11-17）· 首页页内开工三步 ====================
+   她 11-17 点头 A+A：不遮全屏、不模糊背景；跳过 = 永久不再弹这张卡。
+   状态继续用现有 ONB 键（不另造第二套 localStorage），新增 dismissed / guideStep / guideWord。
+   ⚠️ 老用户零打扰：有真实数据且从没进过引导（entered=false、guideStep=0）→ 静默回填后隐藏。
+   ⚠️ 用户已经开始填（entered=true）后，即使 examDate 已写入也不再按「老用户」收掉，避免半途消失。 */
+function initHomeGuide(force, st){
+  if(!document.getElementById('railGuideSlot') && !document.getElementById('guideMobileSlot')) return;
+  if(force){
+    st = setOnboarding({ entered:true, finished:false, snoozed:false, dismissed:false,
+      guideStep:0, guideWord:'', setup:{ exam:false, effort:false, words:false } });
+  }
+  if(!st){
+    if(!force && onbHasExistingData()){ onbBackfillFromData(); hideHomeGuide(); return; }
+    st = setOnboarding({});
+  }
+  if(!force){
+    if(st.finished || st.dismissed){ hideHomeGuide(); return; }
+    if(!st.entered && !Number(st.guideStep) && onbHasExistingData()){
+      onbBackfillFromData(); hideHomeGuide(); return;
+    }
+  }
+  renderHomeGuide();
+}
+function hideHomeGuide(){
+  const card = document.getElementById('homeGuide');
+  if(card){ card.hidden = true; card.innerHTML = ''; }
+  const rail = document.getElementById('homeRail');
+  if(rail) rail.classList.remove('onb-active');
+  const progress = document.getElementById('railProgressCard');
+  if(progress) progress.hidden = false;
+}
+function _gdEl(tag, cls, text){
+  const e = document.createElement(tag);
+  if(cls) e.className = cls;
+  if(text != null) e.textContent = text;
+  return e;
+}
+function _gdSvg(kind){
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('viewBox', kind === 'check' ? '0 0 12 12' : '0 0 24 24');
+  svg.setAttribute('fill', 'none');
+  svg.setAttribute('stroke', 'currentColor');
+  svg.setAttribute('stroke-width', kind === 'check' ? '2' : '2');
+  svg.setAttribute('stroke-linecap', 'round');
+  svg.setAttribute('stroke-linejoin', 'round');
+  if(kind === 'check') svg.setAttribute('class', 'gd-tick');
+  else svg.setAttribute('class', 'gd-chev');
+  const p = document.createElementNS(ns, 'path');
+  p.setAttribute('d', kind === 'check' ? 'M2.4 6.3l2.3 2.3 4.9-5.2' : 'M9 6l6 6-6 6');
+  svg.appendChild(p);
+  return svg;
+}
+function _gdFmtDate(v){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(v || '')) return '未设置';
+  const p = String(v).split('-');
+  return Number(p[1]) + '月' + Number(p[2]) + '日';
+}
+function _gdDoneCount(st){
+  const s = (st && st.setup) || {};
+  return (s.exam ? 1 : 0) + (s.effort ? 1 : 0) + (s.words ? 1 : 0);
+}
+function _gdActualWordsDone(){
+  try{
+    return (Array.isArray(DATA.words) && DATA.words.length > 0) ||
+      (typeof wbActive === 'function' && wbActive() !== 'custom');
+  }catch(e){ return false; }
+}
+function _gdHead(card, n, pct){
+  const top = _gdEl('div', 'gd-top');
+  top.appendChild(_gdEl('span', 'gd-cap', '开工三步'));
+  top.appendChild(_gdEl('span', 'gd-num', n + ' / 3'));
+  card.appendChild(top);
+  const bar = _gdEl('div', 'gd-bar');
+  const fill = document.createElement('i');
+  fill.style.width = Math.max(0, Math.min(100, pct)) + '%';
+  bar.appendChild(fill);
+  card.appendChild(bar);
+}
+function _gdBind(card){
+  card.querySelectorAll('[data-step]').forEach(function(b){
+    b.addEventListener('click', function(){
+      setOnboarding({ entered:true, guideStep:Number(b.getAttribute('data-step')) || 1 });
+      renderHomeGuide();
+    });
+  });
+  card.querySelectorAll('[data-score]').forEach(function(b){
+    b.addEventListener('click', function(){
+      const inp = document.getElementById('gdTarget');
+      if(inp) inp.value = b.getAttribute('data-score');
+      card.querySelectorAll('[data-score]').forEach(function(x){ x.classList.toggle('on', x === b); });
+    });
+  });
+  card.querySelectorAll('[data-word]').forEach(function(b){
+    b.addEventListener('click', function(){
+      setOnboarding({ entered:true, guideWord:b.getAttribute('data-word') });
+      renderHomeGuide();
+    });
+  });
+  const start = card.querySelector('[data-act="start"]');
+  if(start) start.addEventListener('click', function(){
+    setOnboarding({ entered:true, guideStep:1 });
+    renderHomeGuide();
+  });
+  const skip = card.querySelector('[data-act="skip"]');
+  if(skip) skip.addEventListener('click', skipHomeGuide);
+  const back = card.querySelector('[data-act="back"]');
+  if(back) back.addEventListener('click', function(){
+    const st = getOnboarding() || onbDefaults();
+    setOnboarding({ guideStep:Math.max(0, (Number(st.guideStep) || 1) - 1) });
+    renderHomeGuide();
+  });
+  const next = card.querySelector('[data-act="next"]');
+  if(next) next.addEventListener('click', _gdNextStep);
+  const done = card.querySelector('[data-act="done"]');
+  if(done) done.addEventListener('click', _gdFinishStep);
+}
+function _gdErr(msg){
+  const el = document.getElementById('gdErr');
+  if(!el) return;
+  el.textContent = msg || '';
+  el.classList.toggle('on', !!msg);
+}
+function _gdNextStep(){
+  const st = getOnboarding() || onbDefaults();
+  const step = Number(st.guideStep) || 1;
+  if(step === 1){
+    const d = ((document.getElementById('gdDate') || {}).value || '').trim();
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(d)){ _gdErr('先选考试日期'); return; }
+    const tw = (document.getElementById('gdTarget') || {}).value || '';
+    const tv = Number(String(tw).trim());
+    try{
+      DATA.settings = DATA.settings || {};
+      DATA.settings.examDate = d;
+      DATA.settings.examDates = [];
+      DATA.settings._fieldTs = DATA.settings._fieldTs || {};
+      DATA.settings._fieldTs.examDate = Date.now();
+      if(!isNaN(tv) && tv > 0) onbWriteTarget(Math.min(9, Math.round(tv * 2) / 2));
+      hubSave();
+    }catch(e){}
+    setOnboarding({ entered:true, guideStep:2, setup:{ exam:true } });
+    renderHomeGuide();
+    try{ if(typeof renderDashV6 === 'function') renderDashV6(); }catch(e){}
+    return;
+  }
+  if(step === 2){
+    try{
+      const rawH = ((document.getElementById('gdHours') || {}).value || '').trim();
+      const h = Number(rawH);
+      if(rawH !== '' && !isNaN(h) && h >= 0){
+        DATA.settings = DATA.settings || {};
+        DATA.settings.dailyGoalHours = Math.min(24, Math.round(h * 10) / 10);
+        DATA.settings._fieldTs = DATA.settings._fieldTs || {};
+        DATA.settings._fieldTs.dailyGoalHours = Date.now();
+      }
+      const rawC = ((document.getElementById('gdCap') || {}).value || '').trim();
+      onbWriteDailyCap(rawC === '' ? 60 : rawC);
+      hubSave();
+    }catch(e){}
+    setOnboarding({ entered:true, guideStep:3, setup:{ effort:true } });
+    renderHomeGuide();
+    return;
+  }
+}
+function _gdFinishStep(){
+  const st = getOnboarding() || onbDefaults();
+  const choice = st.guideWord || '';
+  if(!choice){ _gdErr('先选一个词库'); return; }
+  _gdErr('');
+  if(choice === 'awl'){
+    try{ if(typeof wbSetActive === 'function') wbSetActive('awl'); }catch(e){}
+    try{ if(typeof hubSave === 'function') hubSave(); }catch(e){}
+    setOnboarding({ entered:true, finished:true, snoozed:true, dismissed:false, guideStep:0,
+      guideWord:'awl', setup:{ words:true } });
+    afterHomeGuideClosed();
+    return;
+  }
+  /* 导入自己的词库：已经有词就直接完成；没有就带一次性暗号去词库页。 */
+  if(Array.isArray(DATA.words) && DATA.words.length > 0){
+    setOnboarding({ entered:true, finished:true, snoozed:true, dismissed:false, guideStep:0,
+      guideWord:'import', setup:{ words:true } });
+    afterHomeGuideClosed();
+    return;
+  }
+  setOnboarding({ entered:true, guideStep:3, guideWord:'import', setup:{ words:false } });
+  try{ sessionStorage.setItem(ONB_GOTO_BANK, '1'); }catch(e){}
+  location.href = 'practice.html';
+}
+function skipHomeGuide(){
+  setOnboarding({ entered:true, finished:true, snoozed:true, dismissed:true, guideStep:0 });
+  afterHomeGuideClosed();
+}
+function afterHomeGuideClosed(){
+  hideHomeGuide();
+  try{ if(typeof renderDashV6 === 'function') renderDashV6(); }catch(e){}
+  try{ if(typeof renderHomeSetup === 'function') renderHomeSetup(); }catch(e){}
+  try{ document.dispatchEvent(new CustomEvent('hub:onboarding-done')); }catch(e){}
+}
+function _gdListHtml(card, st){
+  const s = st.setup || {};
+  _gdHead(card, _gdDoneCount(st), Math.round(_gdDoneCount(st) / 3 * 100));
+  const rows = [
+    { step:1, name:'考试日期', ok:!!s.exam, text:s.exam ? _gdFmtDate((DATA.settings || {}).examDate) : '未设置' },
+    { step:2, name:'每日投入', ok:!!s.effort, text:s.effort ? '已设置' : '未设置' },
+    { step:3, name:'词库', ok:!!s.words, text:s.words ? '已选择' : '未选择' }
+  ];
+  const box = _gdEl('div', 'gd-steps');
+  rows.forEach(function(r){
+    const b = _gdEl('button', 'gd-step' + (r.ok ? ' ok' : ''));
+    b.type = 'button';
+    b.setAttribute('data-step', String(r.step));
+    const dot = _gdEl('span', 'gd-dot');
+    dot.appendChild(_gdSvg('check'));
+    b.appendChild(dot);
+    b.appendChild(_gdEl('span', 'gd-name', r.name));
+    b.appendChild(_gdEl('span', 'gd-state', r.text));
+    b.appendChild(_gdSvg('chev'));
+    box.appendChild(b);
+  });
+  card.appendChild(box);
+  const actions = _gdEl('div', 'gd-actions');
+  const start = _gdEl('button', 'gd-primary', '开始配置');
+  start.type = 'button'; start.setAttribute('data-act', 'start');
+  const skip = _gdEl('button', 'gd-skip', '跳过');
+  skip.type = 'button'; skip.setAttribute('data-act', 'skip');
+  actions.appendChild(start); actions.appendChild(skip);
+  card.appendChild(actions);
+  const link = _gdEl('a', 'gd-beginner', '第一次考？先看 3 分钟新手必读 →');
+  link.href = 'beginner.html';
+  card.appendChild(link);
+}
+function _gdExamHtml(card, st){
+  _gdHead(card, 1, 33);
+  const s = (DATA && DATA.settings) || {};
+  const form = _gdEl('div', 'gd-form');
+  const d1 = _gdEl('div');
+  const lb1 = _gdEl('label', 'gd-label', '考试日期'); lb1.setAttribute('for', 'gdDate');
+  const date = _gdEl('input', 'gd-input'); date.type = 'date'; date.id = 'gdDate';
+  date.value = String(s.examDate || '');
+  d1.appendChild(lb1); d1.appendChild(date);
+  const d2 = _gdEl('div');
+  const lb2 = _gdEl('label', 'gd-label', '目标总分（选填）'); lb2.setAttribute('for', 'gdTarget');
+  const target = _gdEl('input', 'gd-input'); target.type = 'number'; target.id = 'gdTarget';
+  target.min = '0'; target.max = '9'; target.step = '0.5'; target.inputMode = 'decimal';
+  target.placeholder = '例如 6.0';
+  const tv = Number(((s.targets) || {}).overall || 0);
+  if(tv > 0) target.value = String(tv);
+  const chips = _gdEl('div', 'gd-chips');
+  [5.5, 6, 6.5, 7].forEach(function(v){
+    const b = _gdEl('button', 'gd-chip' + (tv === v ? ' on' : ''), v.toFixed(1));
+    b.type = 'button'; b.setAttribute('data-score', String(v));
+    chips.appendChild(b);
+  });
+  d2.appendChild(lb2); d2.appendChild(target); d2.appendChild(chips);
+  form.appendChild(d1); form.appendChild(d2);
+  card.appendChild(form);
+  const err = _gdEl('div', 'gd-err'); err.id = 'gdErr';
+  card.appendChild(err);
+  const foot = _gdEl('div', 'gd-foot');
+  const back = _gdEl('button', 'gd-back', '上一步'); back.type = 'button'; back.setAttribute('data-act', 'back');
+  const next = _gdEl('button', 'gd-primary', '继续 →'); next.type = 'button'; next.setAttribute('data-act', 'next');
+  foot.appendChild(back); foot.appendChild(next);
+  card.appendChild(foot);
+}
+function _gdEffortHtml(card){
+  _gdHead(card, 2, 66);
+  const s = (DATA && DATA.settings) || {};
+  const pc = (s.practiceCfg && typeof s.practiceCfg === 'object') ? s.practiceCfg : {};
+  const form = _gdEl('div', 'gd-form');
+  const d1 = _gdEl('div');
+  const lb1 = _gdEl('label', 'gd-label', '每日学习时长（小时）'); lb1.setAttribute('for', 'gdHours');
+  const hours = _gdEl('input', 'gd-input'); hours.type = 'number'; hours.id = 'gdHours';
+  hours.min = '0'; hours.max = '24'; hours.step = '0.5'; hours.inputMode = 'decimal';
+  hours.placeholder = '留空不限';
+  if(Number(s.dailyGoalHours) > 0) hours.value = String(s.dailyGoalHours);
+  d1.appendChild(lb1); d1.appendChild(hours);
+  const d2 = _gdEl('div');
+  const lb2 = _gdEl('label', 'gd-label', '每日背词上限（个）'); lb2.setAttribute('for', 'gdCap');
+  const cap = _gdEl('input', 'gd-input'); cap.type = 'number'; cap.id = 'gdCap';
+  cap.min = '0'; cap.max = '999'; cap.step = '1'; cap.inputMode = 'numeric';
+  cap.value = Number(pc.dailyCap) > 0 ? String(pc.dailyCap) : '60';
+  d2.appendChild(lb2); d2.appendChild(cap);
+  form.appendChild(d1); form.appendChild(d2);
+  card.appendChild(form);
+  const err = _gdEl('div', 'gd-err'); err.id = 'gdErr';
+  card.appendChild(err);
+  const foot = _gdEl('div', 'gd-foot');
+  const back = _gdEl('button', 'gd-back', '上一步'); back.type = 'button'; back.setAttribute('data-act', 'back');
+  const next = _gdEl('button', 'gd-primary', '继续 →'); next.type = 'button'; next.setAttribute('data-act', 'next');
+  foot.appendChild(back); foot.appendChild(next);
+  card.appendChild(foot);
+}
+function _gdWordsHtml(card, st){
+  _gdHead(card, 3, 100);
+  const active = (function(){ try{ return (typeof wbActive === 'function') ? wbActive() : 'custom'; }catch(e){ return 'custom'; } })();
+  let choice = st.guideWord || '';
+  if(!choice) choice = active !== 'custom' ? 'awl' : ((Array.isArray(DATA.words) && DATA.words.length > 0) ? 'import' : '');
+  const form = _gdEl('div', 'gd-form');
+  [
+    { v:'awl', name:'官方 AWL 570' },
+    { v:'import', name:'导入我的词库' }
+  ].forEach(function(o){
+    const b = _gdEl('button', 'gd-opt' + (choice === o.v ? ' on' : ''));
+    b.type = 'button'; b.setAttribute('data-word', o.v);
+    const radio = _gdEl('span', 'gd-radio'); radio.appendChild(_gdSvg('check'));
+    b.appendChild(radio); b.appendChild(_gdEl('b', '', o.name));
+    form.appendChild(b);
+  });
+  card.appendChild(form);
+  const err = _gdEl('div', 'gd-err'); err.id = 'gdErr';
+  card.appendChild(err);
+  const foot = _gdEl('div', 'gd-foot');
+  const back = _gdEl('button', 'gd-back', '上一步'); back.type = 'button'; back.setAttribute('data-act', 'back');
+  const done = _gdEl('button', 'gd-primary', '完成'); done.type = 'button'; done.setAttribute('data-act', 'done');
+  foot.appendChild(back); foot.appendChild(done);
+  card.appendChild(foot);
+}
+function _gdMount(card){
+  const mobile = window.matchMedia && window.matchMedia('(max-width:860px)').matches;
+  const slot = document.getElementById(mobile ? 'guideMobileSlot' : 'railGuideSlot') ||
+    document.getElementById('railGuideSlot') || document.getElementById('guideMobileSlot');
+  if(slot && card.parentElement !== slot) slot.appendChild(card);
+}
+function renderHomeGuide(){
+  const card = (function(){
+    let el = document.getElementById('homeGuide');
+    if(el) return el;
+    el = _gdEl('div', 'gd-card'); el.id = 'homeGuide'; el.hidden = true;
+    document.body.appendChild(el);
+    return el;
+  })();
+  const _mobileSlot = document.getElementById('guideMobileSlot');
+  const _railSlot = document.getElementById('railGuideSlot');
+  if(!_mobileSlot && !_railSlot){ hideHomeGuide(); return; }
+  const st = getOnboarding();
+  const active = !!(st && !st.finished && !st.dismissed);
+  const rail = document.getElementById('homeRail');
+  if(rail) rail.classList.toggle('onb-active', active);
+  if(!active){ hideHomeGuide(); return; }
+  const progress = document.getElementById('railProgressCard');
+  if(progress) progress.hidden = true;
+
+  card.innerHTML = '';
+  const step = Math.max(0, Math.min(ONB_TOTAL, Number(st.guideStep) || 0));
+  if(step === 1) _gdExamHtml(card, st);
+  else if(step === 2) _gdEffortHtml(card);
+  else if(step === 3) _gdWordsHtml(card, st);
+  else _gdListHtml(card, st);
+  _gdMount(card);
+  card.hidden = false;
+  _gdBind(card);
+
+  /* 引导进行中先收起设置补齐条；跳过或完成后由 afterHomeGuideClosed 恢复。 */
+  const setup = document.getElementById('homeSetup');
+  if(setup) setup.hidden = true;
+
+  if(!window.__hubHomeGuideResize){
+    window.__hubHomeGuideResize = function(){ const c = document.getElementById('homeGuide'); if(c && !c.hidden) _gdMount(c); };
+    window.addEventListener('resize', window.__hubHomeGuideResize);
+  }
+}
 /* 落到词库 tab：practice.js 的 switchWordTab 可能还没执行到，轮询等它出现 */
 function onbLandBankTab(){
-  setTimeout(function(){
-    let n = 25;
-    (function wait(){
-      if(typeof switchWordTab === 'function'){
-        try{ switchWordTab('bank'); }catch(e){}
-        try{ onbBankBackHint(); }catch(e){}
-        return;
-      }
-      if(n-- <= 0) return;
-      setTimeout(wait, 120);
-    })();
-  }, 200);
+  let n = 0;
+  function wait(){
+    n++;
+    if(typeof switchWordTab === 'function'){
+      try{ switchWordTab('bank'); }catch(e){}
+      try{ onbBankBackHint(); }catch(e){}
+      /* practice.js 自己的 300ms 启动分支会把分栏拨回「学习」；切完再看一眼，
+         被拨回去就重切（最多 12 次），确保用户真的落在词库导入。 */
+      setTimeout(function(){
+        const bank = document.getElementById('bankView');
+        if(bank && bank.hidden && n < 12) wait();
+      }, 260);
+      return;
+    }
+    if(n < 30) setTimeout(wait, 120);
+  }
+  setTimeout(wait, 360);
 }
 /* 10/10 批④：从引导点「去导入我的词库」跳过来的用户，落到词库页后**没有任何回来的线索**（走查实拍：
    页面只有 0 个单词 + 「没有匹配的单词」，用户不知道导完要干嘛）。在词库容器顶部插一条一次性提示。 */

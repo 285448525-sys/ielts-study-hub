@@ -479,6 +479,9 @@ function renderHomeSetup(){
   try{
     const box = document.getElementById('homeSetup');
     if(!box) return;                      // 软导航换走了本页 DOM，防过期闭包误写
+    /* 新人引导卡在场时先不显示补齐条：引导本身就在配这几项，两条同时出现会重复。 */
+    const guide = document.getElementById('homeGuide');
+    if(guide && !guide.hidden){ box.hidden = true; box.innerHTML = ''; return; }
     const items = homeSetupItems();
     const missing = items.filter(x => !x.done);
     if(!missing.length){ box.hidden = true; box.innerHTML = ''; return; }
@@ -934,6 +937,13 @@ function renderDashTasks(){
    状态与遮罩共用 common.js 的 hub_onboarding_v1；只有「确实走过引导（entered）且未三步齐全」才显示，
    老用户被静默回填的状态 entered=false → 永不打扰。三步齐全 / 点「不再提示」→ 写 snoozed 永久消失。 */
 function renderOnboardingBar(){
+  /* HOME-ONB-1（11-17）：首页已改成右侧/问候下方的「开工三步」页内卡，
+     不再叠一条旧的三步提示条；两者同时出现会重复、也会把首屏挤高。 */
+  if(document.getElementById('railGuideSlot') || document.getElementById('guideMobileSlot')){
+    const old = document.getElementById('onbBarHost');
+    if(old){ old.hidden = true; old.innerHTML = ''; }
+    return;
+  }
   // ⭐ 定义在函数内：index.js 是 defer 脚本，ready() 会同步执行到本函数，
   // 顶层 const 声明在文件末尾此时仍在 TDZ（访问即 ReferenceError）。引导三步骤的顺序表不需要跨函数共享。
   const ONB_STEPS = [
