@@ -1,15 +1,9 @@
-/* js/wd-dict.js — 单词听写打字层（WD-DICT-TYPE-1 · 11-01 她口令）
-   需求原话：「现在要做那个新的听写模式…把我这个网站里面简化的功能加到这个听写模式就行」
-   + 参考 C:/Users/Camille/Desktop/雅思/sentence-typing（她自己的句子打字站）的打字反馈音效。
-   ── 形态 ──
-   听发音（进题自动播一次，喇叭可重播）→ 键盘打出单词 →
-   · 逐键打字音（sfx/bubble/*.wav，与句子打字站同一套素材：普通键轮换、空格/回车/退格走指定索引、60ms 节流）
-   · 判定：输入长度 ≥ 词长即判（Enter 也可提前判）
-     对 → sfx/correct.mp3 → judge(cur, en, true)
-     错 → sfx/error.mp3  → judge(cur, en, false)（judge 原链路揭示正确拼写/释义/SRS/短线重复，一行不改）
-   · 打字过程中题干隐藏逻辑沿用 .pw-audio/.pw-dict 那套 CSS，无新增壳。
-   🔴 判题/SRS/统计/进度 全走既有 judge()，本文件只做「输入 + 音效 + 触发 judge」。
-   顶层零 const/let 导出污染：全部挂 window.WD_DICT（PRECORE 无顶层 const 纪律）。 */
+/* js/wd-dict.js — 单词听写打字层（WD-DICT-IMMERSIVE-1 · 11-17）
+   形态参考她点头的 design/UI-SURVEY-1115/听写-沉浸式-1117.html：
+   听发音 → 横线输入 → 回车提交；错误显示正确答案，继续输入即清空重打。
+   · 逐键音默认机械键盘（sfx/mechanical/*.wav，与句子打字站同一套素材）
+   · 判题/SRS/短线重复/统计/进度全部走 practice.js 既有 judge()，本文件只做输入与反馈。
+   · 顶层零 const/let 导出污染：全部挂 window.WD_DICT（PRECORE 无顶层 const 纪律）。 */
 (function(){
   'use strict';
   if (window.WD_DICT) return;                       // 软导航重复 eval 幂等
@@ -80,7 +74,7 @@
   var _warmed = {};
   function warmKeys(type){
     try{
-      var t = KEY_SOUNDS[type] ? type : 'bubble';
+      var t = KEY_SOUNDS[type] ? type : 'mechanical';
       if(_warmed[t]) return;
       _warmed[t] = 1;
       var all = keyAudio(t).slice();                 // ← 建池：提前 new 9 个 Audio（preload=auto 自动开拉）
@@ -208,55 +202,255 @@
     }catch(e){}
   }
 
-  /* ---------- 听写输入框挂载（practice.js 渲染完听写题后调用） ---------- */
+  /* ---------- 听写沉浸区挂载（practice.js 渲染完听写题后调用） ---------- */
   var BOUND = null;                                 // 防重复绑定
+  var ACTIVE = null;                                // 当前题目的 UI 控制器
+
+  function fmtIpa(s){
+    s = String(s || '').trim();
+    if(!s) return '';
+    return /^\/.*\/$/.test(s) ? s : '/ ' + s + ' /';
+  }
+
+  /* 进度读现成口径：updateWordStats 已把「已完成 / 总数」写进 #statProgress。
+     它只是被听写态 CSS 藏起来，不再另算一套 SRS 进度。 */
+  function readProgress(){
+    var done = 0, total = 0;
+    try{
+      var txt = String((document.getElementById('statProgress') || {}).textContent || '');
+      var m = txt.match(/(\d+)\s*\/\s*(\d+)/);
+      if(m){ done = Number(m[1]) || 0; total = Number(m[2]) || 0; }
+    }catch(e){}
+    if(!total){
+      try{
+        if(typeof pq !== 'undefined' && pq){
+          total = Number(pq.initLen || (pq.queue ? pq.queue.length : 0)) || 0;
+          done = Math.min(Number(pq.counted ? pq.counted.size : 0) || 0, total);
+        }
+      }catch(e){}
+    }
+    return { done: done, total: total };
+  }
+
   function mount(cur){
     var host = document.getElementById('opts');
     if(!host || !cur) return;
     var answer = String(cur.en || '');
+    var ipaText = fmtIpa(cur.ipa);
+    host.className = 'opts-grid wdd-stage';
     host.innerHTML =
-      '<div class="wdd-wrap">' +
-        '<input id="wddInput" class="wdd-input" type="text" autocomplete="off" autocapitalize="off" ' +
-          'spellcheck="false" inputmode="text" placeholder="打出你听到的单词…" ' +
-          'aria-label="听写输入框" data-wdd-answer="' + answer.replace(/"/g,'&quot;') + '">' +
-        '<div class="wdd-hint">听发音，打出单词 · 回车提交</div>' +
+      '<div class="wdd-zone">' +
+        '<div class="wdd-top">' +
+          '<div class="wdd-status" id="wddStatus" role="status" aria-live="polite">' +
+            '<span class="wdd-status-ic" aria-hidden="true">' +
+              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path id="wddStatusPath" d="m20 6-11 11-5-5"/></svg>' +
+            '</span><span id="wddStatusText"></span>' +
+          '</div>' +
+          '<div class="wdd-feedback" id="wddFeedback">' +
+            '<div class="wdd-answer-card" id="wddAnswerCard" hidden>' +
+              '<div class="wdd-answer-label">正确答案</div>' +
+              '<div class="wdd-answer-word" id="wddAnswerWord"></div>' +
+              '<div class="wdd-answer-ipa" id="wddAnswerIpa"></div>' +
+              '<div class="wdd-answer-tip">接着输入，再打一遍</div>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="wdd-line" id="wddLine">' +
+          '<input id="wddInput" class="wdd-real-input" type="text" autocomplete="off" autocapitalize="off" ' +
+            'autocorrect="off" spellcheck="false" inputmode="text" aria-label="在横线上打出听到的单词，回车提交">' +
+          '<div class="wdd-typed" id="wddTyped" aria-hidden="true"></div>' +
+        '</div>' +
+        '<div class="wdd-bottom">' +
+          '<div class="wdd-ipa" id="wddIpa">' + (ipaText || '&nbsp;') + '</div>' +
+          '<div class="wdd-hint" id="wddHint">回车提交</div>' +
+          '<button class="wdd-speaker" id="wddSpeaker" type="button" title="再听一遍" aria-label="播放单词发音">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M15 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/></svg>' +
+          '</button>' +
+        '</div>' +
+      '</div>' +
+      '<div class="wdd-foot">' +
+        '<div class="wdd-progress-track" aria-hidden="true"><div class="wdd-progress-fill" id="wddProgressFill"></div></div>' +
+        '<div class="wdd-progress-text" id="wddProgressText">0 / 0</div>' +
       '</div>';
+
     var input = document.getElementById('wddInput');
-    var type = 'bubble';                            // 默认 bubble 音色（与句子站 default 同级，柔和）
+    var typed = document.getElementById('wddTyped');
+    var line = document.getElementById('wddLine');
+    var hint = document.getElementById('wddHint');
+    var status = document.getElementById('wddStatus');
+    var statusText = document.getElementById('wddStatusText');
+    var statusPath = document.getElementById('wddStatusPath');
+    var answerCard = document.getElementById('wddAnswerCard');
+    var answerWord = document.getElementById('wddAnswerWord');
+    var answerIpa = document.getElementById('wddAnswerIpa');
+    var speaker = document.getElementById('wddSpeaker');
+    var progressFill = document.getElementById('wddProgressFill');
+    var progressText = document.getElementById('wddProgressText');
+    var zone = host.querySelector('.wdd-zone');
+    var actions = document.querySelector('#practiceBody .answer-btns');
+    var state = 'answering';                        // answering | correct | wrong
+
+    /* 听写态不展示「不知道 / 已掌握 / 撤销 / 听写记录」这一行。
+       只隐藏，不删节点与事件；非听写模式仍照常用。 */
+    if(actions && zone){
+      actions.hidden = true;
+    }
+
+    var type = 'mechanical';
     try{
-      var saved = localStorage.getItem('ielts_study_hub_v1');
-      // 打字音色偏好存站点独立键，不进 DATA（轻量、不参与云同步）
-      type = localStorage.getItem('wdd_key_sound') || 'bubble';
-      if(!KEY_SOUNDS[type]) type = 'bubble';
+      type = localStorage.getItem('wdd_key_sound') || 'mechanical';
+      if(!KEY_SOUNDS[type]) type = 'mechanical';
     }catch(e){}
-    warmKeys(type);                                 // SLIM-2：进题即预热，首键不再等 io
-    if(BOUND){ BOUND.remove && BOUND.remove(); }
-    function judgeNow(silent){
+    warmKeys(type);
+
+    function setStatus(kind, text){
+      status.classList.remove('good', 'bad', 'show');
+      if(!kind || !text) return;
+      status.classList.add(kind === 'good' ? 'good' : 'bad', 'show');
+      statusText.textContent = text;
+      statusPath.setAttribute('d', kind === 'good' ? 'm20 6-11 11-5-5' : 'M6 6l12 12M18 6 6 18');
+    }
+
+    function renderTyped(){
+      typed.textContent = input.value || '';
+      var caret = document.createElement('span');
+      caret.className = 'wdd-caret';
+      typed.appendChild(caret);
+      hint.classList.toggle('show', state === 'answering' && !!input.value);
+      line.classList.toggle('wrong', state === 'wrong');
+      line.classList.toggle('correct', state === 'correct');
+    }
+
+    function updateProgress(){
+      var p = readProgress();
+      var pct = p.total ? Math.min(100, p.done / p.total * 100) : 0;
+      progressFill.style.width = pct + '%';
+      progressText.textContent = p.done + ' / ' + p.total;
+    }
+
+    function focusInput(){
+      try{ input.focus({ preventScroll: true }); }catch(e){ try{ input.focus(); }catch(_e){} }
+    }
+
+    function unlockForRetry(){
+      state = 'answering';
+      input.value = '';
+      input.readOnly = false;
+      answerCard.hidden = true;
+      setStatus('', '');
+      line.classList.remove('wrong', 'correct');
+      try{
+        if(typeof pq !== 'undefined' && pq){
+          pq.revealed = false;
+          pq._picked = false;
+          pq._qStartAt = Date.now();
+          clearTimeout(pq._holdTimer);
+          pq._holdTimer = null;
+          pq._holdCur = null;
+        }
+      }catch(e){}
+      var warea = document.querySelector('#practiceBody .practice-word-area');
+      if(warea) warea.classList.remove('pw-reveal');
+      var ub = document.getElementById('unknownBtn');
+      if(ub){ ub.disabled = false; ub.style.pointerEvents = ''; }
+      renderTyped();
+      focusInput();
+    }
+
+    function afterJudge(ok){
+      if(ok){
+        state = 'correct';
+        input.readOnly = true;
+        answerCard.hidden = true;
+        setStatus('good', '正确');
+      }else{
+        state = 'wrong';
+        input.readOnly = false;
+        answerWord.textContent = answer;
+        answerIpa.textContent = ipaText;
+        answerCard.hidden = false;
+        setStatus('bad', '不对');
+      }
+      renderTyped();
+      updateProgress();
+      if(!ok) focusInput();
+    }
+
+    function judgeNow(){
+      if(state === 'correct') return;
       var val = input.value.trim();
       if(!val) return;
       var ok = val.toLowerCase() === answer.toLowerCase();
       fb(ok ? 'sfx/correct.mp3' : 'sfx/error.mp3');
       try{
-        // 走既有 judge：pickedEn=输入值（答错时 wrongList.user 记录入值），correct=true/false
         if(typeof window.__wdJudge === 'function') window.__wdJudge(cur, val, ok, false);
+      }catch(e){ try{ console.error('[wd-dict] judge failed', e); }catch(_e){} }
+    }
+
+    function unknownAnswer(){
+      if(state === 'correct') return;
+      if(state === 'wrong') unlockForRetry();
+      input.value = '';
+      renderTyped();
+      fb('sfx/error.mp3');
+      try{
+        if(typeof window.__wdJudge === 'function') window.__wdJudge(cur, null, false, true);
       }catch(e){}
     }
+
     input.addEventListener('keydown', function(e){
       var k = e.key;
-      if(k === 'Enter'){ e.preventDefault(); keyClick('Enter', type); judgeNow(); return; }
+      if(k === 'Enter'){
+        e.preventDefault();
+        keyClick('Enter', type);
+        if(state === 'wrong'){ unlockForRetry(); return; }
+        if(state === 'correct') return;
+        judgeNow();
+        return;
+      }
+      if(state === 'wrong' && !e.ctrlKey && !e.metaKey && !e.altKey){
+        if(k === 'Backspace'){
+          e.preventDefault();
+          unlockForRetry();
+          keyClick('Backspace', type);
+          return;
+        }
+        if(k && k.length === 1) unlockForRetry();
+      }
       if(k === 'Backspace'){ keyClick('Backspace', type); return; }
-      if(k === ' '){ keyClick(' ', type); return; }   // 词组里允许空格，音效照响
+      if(k === ' '){ keyClick(' ', type); return; }
       keyClick(k, type);
-      // 打满词长即自动判（回车也可）——但退格中的瞬时长度不判
     });
-    input.addEventListener('input', function(){
-      var v = input.value;
-      // 长度达词长且无空格词组差异时自动判：只在「输入长度 >= 答案长度」时触发
-      if(v.length >= answer.length){ setTimeout(function(){ if(!input.value) return; judgeNow(); }, 0); }
+    input.addEventListener('input', renderTyped);
+
+    host.addEventListener('pointerdown', function(e){
+      if(e.target.closest('button,a,input')) return;
+      focusInput();
     });
-    setTimeout(function(){ try{ input.focus({ preventScroll: true }); }catch(e){ input.focus(); } }, 60);
+    line.addEventListener('pointerdown', focusInput);
+    speaker.addEventListener('click', function(){
+      speaker.classList.add('speaking');
+      setTimeout(function(){ speaker.classList.remove('speaking'); }, 1700);
+      var qs = document.getElementById('qSpeaker');
+      if(qs) qs.click();
+    });
+
+    ACTIVE = { afterJudge: afterJudge, unknown: unknownAnswer, reset: unlockForRetry, updateProgress: updateProgress };
+    renderTyped();
+    updateProgress();
+    setTimeout(focusInput, 60);
     BOUND = input;
   }
 
-  window.WD_DICT = { mount: mount, keyClick: keyClick, fb: fb, KEY_SOUNDS: KEY_SOUNDS, warmKeys: warmKeys };
+  function afterJudge(cur, ok){
+    if(ACTIVE && ACTIVE.afterJudge) ACTIVE.afterJudge(ok);
+  }
+  function unknown(cur){
+    if(ACTIVE && ACTIVE.unknown) ACTIVE.unknown();
+  }
+
+  window.WD_DICT = {
+    mount: mount, afterJudge: afterJudge, unknown: unknown,
+    keyClick: keyClick, fb: fb, KEY_SOUNDS: KEY_SOUNDS, warmKeys: warmKeys
+  };
 })();

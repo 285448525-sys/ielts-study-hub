@@ -1573,6 +1573,9 @@ function renderQuestion(cur, isRehold){
   const audioMode = (pq._curQMode === 'audio');
   const dictMode  = (pq._curQMode === 'dictation');
   const selfMode  = (pq._curQMode === 'self');   // WORDBOOK-UX-1：自评三档（翻卡后自己评级）
+  /* 从设置页直接进入听写/听音时，头部模式胶囊可能还停在旧值；
+     以本题真实模式为准同步一次，通用框架的文案与中间答题区保持一致。 */
+  try{ if(typeof window.__wdSyncMode === 'function') window.__wdSyncMode(); }catch(e){}
 
   /* 听写只要拼写，不需要释义干扰项那套「释义撞车」判据，单独一套生成器 */
   const opts = selfMode ? [] : (dictMode ? genDictationOptions(cur, wbWords()) : genDistractors(cur, wbWords()));
@@ -1699,9 +1702,17 @@ function renderQuestion(cur, isRehold){
     try{
       /* WD-DICT-LOG-1（11-01）：听写记录——本笔只在判定前后加一次「记账」，
          判题/SRS/短线/统计/每日上限一行不动（judge 原样调用，不返回值、不改入参）。 */
-      window.__wdJudge = (c2, picked, ok) => {
+      window.__wdJudge = (c2, picked, ok, isUnknown) => {
         try{ wddLogAdd(c2, picked, ok); }catch(e){}
-        judge(c2, picked, ok, false);
+        try{ judge(c2, picked, ok, !!isUnknown); }
+        finally{
+          /* 听写错题不进入「停顿后重渲染」：保留当前输入横线，让她接着打。
+             清掉 judge 刚排下的停顿定时器，避免几秒后本题被重新渲染。 */
+          try{
+            if(pq){ clearTimeout(pq._holdTimer); pq._holdTimer = null; pq._holdCur = null; }
+          }catch(e){}
+          try{ if(window.WD_DICT && window.WD_DICT.afterJudge) window.WD_DICT.afterJudge(c2, ok); }catch(e){}
+        }
       };
       if(window.WD_DICT && window.WD_DICT.mount) window.WD_DICT.mount(cur);
       else { /* wd-dict.js 未就绪的兜底：退回四选一拼写（旧形态，可作答不卡死） */
@@ -1742,7 +1753,9 @@ function renderQuestion(cur, isRehold){
   if(!isRehold) pq.lastEn = String(cur.en).trim().toLowerCase();
   if(typeof window.syncPrevWord === 'function'){ try{ window.syncPrevWord(); }catch(e){} }
   const left0 = document.getElementById('unknownBtn');
-  if(left0) left0.onclick = () => judge(cur, null, false, true);
+  if(left0) left0.onclick = dictMode && window.WD_DICT && window.WD_DICT.unknown
+    ? () => window.WD_DICT.unknown(cur)
+    : () => judge(cur, null, false, true);
   ensureMasteredBtn(cur);
   /* WORDBOOK-UX-1：撤销按钮随每题重建 → 每题重绑；显隐按 8 秒窗口内的单槽快照 */
   var _undoBtn = document.getElementById('wbUndoBtn');

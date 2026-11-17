@@ -926,6 +926,22 @@ html[data-theme="dark"] .rw-row + .rw-row{ border-top-color:rgba(255,255,255,.14
   flex-direction: column;
   justify-content: center;
 }
+/* 所有背词模式共用同一张答题壳的渐变底，不再只在听写模式出现 */
+#studyView.wd-exam #practiceArea{
+  position:relative;
+}
+#studyView.wd-exam #practiceArea::before{
+  content:"";
+  position:absolute;
+  z-index:0;
+  left:50%; top:48%; transform:translate(-50%,-50%);
+  width:min(620px,70vw); height:min(620px,70vw);
+  border-radius:50%;
+  background:radial-gradient(circle,var(--primary-soft),transparent 68%);
+  opacity:.78; pointer-events:none;
+}
+#studyView.wd-exam #practiceArea > *{ position:relative; z-index:1; }
+#studyView.wd-exam #practiceArea .wd-modes{ z-index:30; }
 /* 🔴 WD-PAGE-REDESIGN-4 第①条（她 21:2x「整体还是偏上了一点点，我们可以稍微居中一点」）：
    **居中这件事必须抬到 #studyView 这一层做，不能只写在 practiceBody 上。**
    实测（1440×900，答题态）：卡片高 601、正文高 467，卡片顶在 y=86、底在 687 ——
@@ -1277,7 +1293,7 @@ body.word-fullscreen #practiceBody.practice-body-fit .opt-big{height:auto;min-he
   #practiceArea .ws-book-switcher{max-width:120px;padding:6px 8px;gap:4px}
   #practiceArea .ws-book-switcher .ws-bs-meta{display:none}
   #practiceArea .ws-book-switcher .ws-bs-name{font-size:12px}
-  #practiceArea .wd-modes #wdModeBtn{font-size:12px;padding:6px 3px}
+  #practiceArea .wd-modes #wdModeBtn{font-size:12px;padding:0 9px}
   #practiceArea .ws-tool-btn{width:34px;height:34px}
   /* 手机档切书面板出界（A1 11-01，实测 390/360/700）：
      病根 = 本文件 1251 行 `#practiceArea .ws-book-pop{left:auto;right:0}` 把 320px 宽的面板
@@ -1303,7 +1319,7 @@ body.word-fullscreen #practiceBody.practice-body-fit .opt-big{height:auto;min-he
 @media(max-width:380px){
   #practiceArea .ws-wh-tools{max-width:calc(100% - 100px);gap:3px}
   #practiceArea .ws-book-switcher{max-width:106px}
-  #practiceArea .wd-modes #wdModeBtn{font-size:11px}
+  #practiceArea .wd-modes #wdModeBtn{font-size:11px;padding:0 7px}
   #practiceArea .ws-tool-btn{width:32px;height:32px}
 }
 
@@ -1360,55 +1376,252 @@ body.word-fullscreen #practiceBody.practice-body-fit .opt-big{height:auto;min-he
   #practiceBody .opt-big-letter{width:22px;height:22px;border-radius:6px;font-size:11px}
 }
 
-/* ── WD-DICT-TYPE-1（11-01 她口令）：听写打字型 ──
-   听发音→键盘打出单词。样式与选项卡同族（同底色/圆角/边框变量），不另起一套视觉。 */
-#practiceBody .wdd-wrap{display:grid;gap:9px;margin:2px 0 0}
-#practiceBody .wdd-input{
-  width:100%;box-sizing:border-box;
-  font:inherit;font-size:21px;font-weight:650;letter-spacing:.04em;line-height:1.3;
-  padding:13px 16px;border-radius:12px;
-  border:1.5px solid var(--line);background:var(--surface);color:var(--ink);
-  text-align:center;text-transform:none;
-}
-#practiceBody .wdd-input::placeholder{font-size:14.5px;font-weight:500;letter-spacing:0;color:var(--ink2);opacity:.75}
-#practiceBody .wdd-input:focus{outline:none;border-color:var(--primary,#5cb3ab);box-shadow:0 0 0 3px rgba(92,179,171,.16)}
-#practiceBody .wdd-hint{font-size:12px;color:var(--ink2);text-align:center;letter-spacing:.02em}
-/* 答后：judge 会锁指针并揭示（.pw-reveal），输入框降透明度只读，别抢戏 */
-#practiceBody .pw-reveal ~ .opts-grid .wdd-input,
-#practiceBody .opts-grid .wdd-input:disabled{opacity:.55;pointer-events:none}
-/* 深色档：跟随站点 token，不写死浅色值（站内深色口径=settings.theme） */
-[data-theme="dark"] #practiceBody .wdd-input{background:var(--surface);border-color:var(--line);color:var(--ink)}
-/* 手机档：字号/内边距收一档 */
-@media(max-width:700px){
-  #practiceBody .wdd-input{font-size:18px;padding:11px 13px;border-radius:10px}
+/* ════════════════════════════════════════════════════════════════════
+   WD-DICT-IMMERSIVE-1（11-17 她点头 design/UI-SURVEY-1115/听写-沉浸式-1117.html）
+   听写态只换中间答题区：右上词书 / 模式 / 设置 / 全屏通用框架全部保留。
+   输入横线、音标、喇叭、错误答案卡、底部细进度都在 #opts 内重排；
+   判题仍走 practice.js 的 judge()，这里只做视觉与输入状态。
+   ════════════════════════════════════════════════════════════════════ */
+
+/* 旧题干区整块让位（里面还留着 #qSpeaker、听写记录等原节点，仅视觉隐藏） */
+#practiceBody .practice-word-area.pw-dict{ display:none !important; }
+
+/* 通用头部保留；只收起会与沉浸区重复的顶部进度与底部旧工具 */
+body:has(#practiceBody .wdd-stage) #progBarWrap,
+body:has(#practiceBody .wdd-stage) #statProgress,
+body:has(#practiceBody .wdd-stage) #wordStats,
+body:has(#practiceBody .wdd-stage) #practiceTools,
+body:has(#practiceBody .wdd-stage) #wdFoot,
+#practiceBody:has(.wdd-stage) .wd-bottom-audio{
+  display:none !important;
 }
 
-/* ═══ DICT-HEADER-SLIM-1（11-03 她 19:0x 截图 + 领头牛裁定「形态 A」）═══
-   听写态只留三件：输入横线 / 音标 / 音标右边那枚话筒；外加模式钮（唯一模式出口，删了会把人
-   困死在听写模式里）。另外两条答题出口「不知道 / 已掌握」留着 —— 它们是功能不是装饰。
-   实现只用 :has() 从 #practiceBody 的听写根类反推（站内 CSS 本来就用 :has()，见上方
-   body:not(.word-fullscreen) #practiceBody.practice-body-fit:has(.opts-grid) 那条）。
-   🔴 零 DOM 改动、零 JS 改动：其他两种模式（看词选义 / 听音选义）一个像素都不动。
-   🔴 下面这些节点都还在 DOM 里（JS 还在写它们），只是听写态视觉上不出现；切回别的模式立刻回来。 */
-body:has(#practiceBody .practice-word-area.pw-dict) #wdWordHeader .ws-wh-home,
-body:has(#practiceBody .practice-word-area.pw-dict) #wdWordHeader #wsPrevBtn,
-body:has(#practiceBody .practice-word-area.pw-dict) #wdWordHeader .ws-book-pop-wrap,
-body:has(#practiceBody .practice-word-area.pw-dict) #wdWordHeader #cfgGear,
-body:has(#practiceBody .practice-word-area.pw-dict) #wdWordHeader #fullscreenBtn,
-body:has(#practiceBody .practice-word-area.pw-dict) #progBarWrap,
-body:has(#practiceBody .practice-word-area.pw-dict) #statProgress,
-body:has(#practiceBody .practice-word-area.pw-dict) #practiceTools,
-body:has(#practiceBody .practice-word-area.pw-dict) #wdFoot{
-  display: none !important;
+#practiceBody.practice-body-fit:has(.wdd-stage){
+  padding-top:0; padding-bottom:0;
+  justify-content:center;
 }
-/* 题目块内多余的提示行 / 底部第二颗喇叭 / 例句占位 / 输入框下那行小字 */
-#practiceBody .practice-word-area.pw-dict .pw-dict-hint,
-#practiceBody .practice-word-area.pw-dict #wdExample{
-  display: none !important;
+#practiceBody.practice-body-fit .opts-grid.wdd-stage{
+  position:relative;
+  display:flex; flex-direction:column; align-items:center;
+  justify-content:center;
+  gap:0; width:100%; max-width:100%;
+  margin-top:0; flex:1 1 auto;
+  min-height:clamp(440px,62vh,680px);
+  padding:clamp(18px,3vh,38px) 0 28px;
+  box-sizing:border-box;
 }
-#practiceBody:has(.practice-word-area.pw-dict) .wd-bottom-audio,
-#practiceBody:has(.practice-word-area.pw-dict) .wdd-hint{
-  display: none !important;
+#practiceBody .wdd-stage::before{
+  content:none;
+}
+#practiceBody .wdd-zone{
+  position:relative; z-index:1;
+  width:min(720px,100%);
+  display:flex; flex-direction:column; align-items:center;
+}
+
+#practiceBody .wdd-top{
+  position:absolute;
+  left:50%; bottom:calc(100% + 8px); transform:translateX(-50%);
+  width:min(720px,100%);
+  display:flex; flex-direction:column; align-items:center;
+  pointer-events:none;
+}
+#practiceBody .wdd-status{
+  height:24px; margin-bottom:8px;
+  display:flex; align-items:center; justify-content:center; gap:7px;
+  color:var(--muted); font-size:12.5px; font-weight:650; letter-spacing:.02em;
+  visibility:hidden;
+}
+#practiceBody .wdd-status.show{ visibility:visible; }
+#practiceBody .wdd-status.good{ color:var(--ok-text); }
+#practiceBody .wdd-status.bad{ color:var(--danger-text); }
+#practiceBody .wdd-status-ic{
+  width:16px; height:16px; border-radius:50%;
+  display:grid; place-items:center; background:currentColor;
+}
+#practiceBody .wdd-status-ic svg{
+  width:10px; height:10px; color:#fff; stroke:currentColor;
+}
+
+#practiceBody .wdd-line{
+  position:relative;
+  width:min(680px,92%);
+  height:82px;
+  min-height:82px;
+  display:flex; align-items:flex-end; justify-content:center;
+  border-bottom:2px solid var(--line);
+  cursor:text;
+  transition:border-color .18s;
+}
+#practiceBody .wdd-line::after{
+  content:""; position:absolute; left:50%; right:50%; bottom:-2px;
+  height:2px; border-radius:2px; background:var(--primary);
+  transition:left .2s,right .2s;
+}
+#practiceBody .wdd-line:focus-within{ border-color:transparent; }
+#practiceBody .wdd-line:focus-within::after{ left:0; right:0; }
+#practiceBody .wdd-line.correct{ border-color:transparent; }
+#practiceBody .wdd-line.correct::after{ left:0; right:0; background:var(--ok); }
+#practiceBody .wdd-line.wrong{ border-color:transparent; }
+#practiceBody .wdd-line.wrong::after{ left:0; right:0; background:var(--danger); }
+
+#practiceBody .wdd-real-input{
+  position:absolute; inset:0; width:100%; height:100%;
+  border:0; outline:0; padding:0; opacity:0;
+  background:transparent; color:transparent; caret-color:transparent;
+  font-size:16px; cursor:text; z-index:3;
+}
+#practiceBody .wdd-typed{
+  min-height:64px; padding:0 14px 7px;
+  display:flex; align-items:flex-end; justify-content:center; gap:2px;
+  max-width:100%; overflow:hidden;
+  font-family:"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  font-size:clamp(30px,4.6vw,56px); line-height:1.08;
+  letter-spacing:.015em; font-weight:560; color:var(--ink);
+  white-space:nowrap; transition:color .16s;
+}
+#practiceBody .wdd-line.wrong .wdd-typed{ color:var(--danger-text); }
+#practiceBody .wdd-line.correct .wdd-typed{ color:var(--ok-text); }
+#practiceBody .wdd-caret{
+  width:2px; height:.92em; margin:0 2px 5px;
+  border-radius:2px; background:var(--primary);
+  align-self:flex-end; flex:none;
+  animation:wddBlink 1.06s steps(1) infinite;
+}
+#practiceBody .wdd-line.wrong .wdd-caret{ background:var(--danger); }
+#practiceBody .wdd-line.correct .wdd-caret{ background:var(--ok); opacity:.45; }
+@keyframes wddBlink{ 0%,48%{opacity:1} 49%,100%{opacity:0} }
+
+#practiceBody .wdd-ipa{
+  margin-top:12px; min-height:24px;
+  font-family:"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  font-size:19px; line-height:1.4; color:var(--ink-2);
+  letter-spacing:.02em; text-align:center;
+}
+#practiceBody .wdd-hint{
+  height:18px; margin-top:3px;
+  font-size:11.5px; color:var(--muted);
+  opacity:0; transition:opacity .15s;
+}
+#practiceBody .wdd-hint.show{ opacity:1; }
+
+#practiceBody .wdd-bottom{
+  width:min(470px,96%);
+  display:flex; flex-direction:column; align-items:center;
+}
+#practiceBody .wdd-speaker{
+  position:relative;
+  width:58px; height:58px; margin-top:22px;
+  margin-left:0; margin-right:0; align-self:center;
+  border:0; border-radius:50%;
+  background:var(--surface); color:var(--ink-2);
+  display:grid; place-items:center; cursor:pointer;
+  box-shadow:0 10px 28px rgba(30,70,60,.1);
+  transition:transform .15s,color .15s,box-shadow .15s;
+}
+#practiceBody .wdd-speaker:hover{
+  transform:translateY(-1px); color:var(--primary-700);
+  box-shadow:0 13px 32px rgba(30,70,60,.14);
+}
+#practiceBody .wdd-speaker:active{ transform:scale(.96); }
+#practiceBody .wdd-speaker svg{ width:25px; height:25px; }
+#practiceBody .wdd-speaker.speaking::before,
+#practiceBody .wdd-speaker.speaking::after{
+  content:""; position:absolute; inset:-7px; border-radius:50%;
+  border:1px solid var(--primary); opacity:.32;
+  animation:wddRipple 1.1s ease-out infinite;
+}
+#practiceBody .wdd-speaker.speaking::after{ animation-delay:.55s; }
+@keyframes wddRipple{
+  0%{transform:scale(.85);opacity:.9}
+  100%{transform:scale(1.32);opacity:0}
+}
+
+#practiceBody .wdd-feedback{
+  width:min(470px,96%);
+  margin-top:0;
+  display:flex; align-items:flex-end; justify-content:center;
+  pointer-events:auto;
+}
+#practiceBody .wdd-answer-card{
+  width:100%; box-sizing:border-box;
+  padding:9px 18px 10px;
+  border:1px solid var(--line); border-radius:15px;
+  background:var(--surface);
+  box-shadow:0 12px 34px rgba(30,70,60,.07);
+  text-align:center;
+  animation:wddCardIn .2s ease-out;
+}
+#practiceBody .wdd-answer-card[hidden]{ display:none !important; }
+@keyframes wddCardIn{
+  from{opacity:0;transform:translateY(4px)}
+  to{opacity:1;transform:none}
+}
+#practiceBody .wdd-answer-label{
+  font-size:10.5px; line-height:1.3; font-weight:700; letter-spacing:.06em; color:var(--muted);
+}
+#practiceBody .wdd-answer-word{
+  margin-top:2px;
+  font-family:"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  font-size:29px; line-height:1.15; font-weight:620; color:var(--ink);
+  overflow-wrap:anywhere;
+}
+#practiceBody .wdd-answer-ipa{
+  margin-top:1px; color:var(--ink-2);
+  font-family:"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  font-size:13px; line-height:1.25;
+}
+#practiceBody .wdd-answer-tip{ margin-top:4px; color:var(--muted); font-size:10.5px; line-height:1.4; }
+
+/* 听写态不展示底部操作小字：节点保留，非听写模式不受影响 */
+#practiceBody .answer-btns[hidden]{ display:none !important; }
+
+#practiceBody .wdd-foot{
+  position:absolute; z-index:1;
+  left:50%; bottom:22px; transform:translateX(-50%);
+  width:min(680px,92%);
+  margin-top:0; padding-top:0;
+  display:flex; align-items:center; gap:12px;
+}
+#practiceBody .wdd-progress-track{
+  flex:1; height:4px; border-radius:999px;
+  background:var(--line); overflow:hidden;
+}
+#practiceBody .wdd-progress-fill{
+  height:100%; width:0; border-radius:999px;
+  background:var(--primary); transition:width .35s ease;
+}
+#practiceBody .wdd-progress-text{
+  min-width:46px; text-align:right;
+  color:var(--muted);
+  font-family:"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  font-size:12px; font-variant-numeric:tabular-nums;
+}
+
+@media(max-width:700px){
+  #practiceBody.practice-body-fit .opts-grid.wdd-stage{
+    min-height:0; padding:clamp(24px,5vh,54px) 0 18px;
+  }
+  #practiceBody .wdd-line{ width:100%; min-height:68px; }
+  #practiceBody .wdd-typed{ font-size:clamp(28px,10vw,42px); min-height:53px; }
+  #practiceBody .wdd-ipa{ font-size:16px; margin-top:9px; }
+  #practiceBody .wdd-speaker{ width:52px; height:52px; margin-top:18px; }
+  #practiceBody .wdd-feedback{ margin-top:0; }
+  #practiceBody .wdd-answer-card{ padding:8px 14px 9px; }
+  #practiceBody .wdd-answer-word{ font-size:26px; }
+  #practiceBody .wdd-foot{ width:92%; bottom:16px; }
+}
+@media(max-width:380px){
+  #practiceBody .wdd-typed{ font-size:27px; }
+}
+body.word-fullscreen #practiceBody .opts-grid.wdd-stage{
+  min-height:0; padding-top:clamp(14px,4vh,46px); padding-bottom:12px;
+}
+@media(prefers-reduced-motion:reduce){
+  #practiceBody .wdd-caret,
+  #practiceBody .wdd-speaker.speaking::before,
+  #practiceBody .wdd-speaker.speaking::after,
+  #practiceBody .wdd-answer-card{ animation:none !important; }
 }
 
 /* ════════════════════════════════════════════════════════════════════

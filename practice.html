@@ -31,11 +31,11 @@
 })();
 </script>
 <title>单词 · 雅思备考 Hub</title>
-<link rel="preload" as="script" href="js/practice.js?v=20261117b" /> <!-- W1-PRELOAD-1 (168KB)：与下方 defer 同串防双下载 -->
+<link rel="preload" as="script" href="js/practice.js?v=20261117d" /> <!-- W1-PRELOAD-1 (168KB)：与下方 defer 同串防双下载 -->
 <link rel="preload" as="script" href="js/words.js?v=20261102c" /> <!-- W1-PRELOAD-1 (90KB)：与下方 defer 同串防双下载 -->
 <link rel="preload" as="script" href="js/common-shell.js?v=20261116a" /> <!-- W1-PRELOAD-1 (113KB)：与下方 defer 同串防双下载 -->
 <link rel="stylesheet" href="css/common.css?v=20261116a" />
-<link rel="stylesheet" href="css/p/practice.css?v=20261116a" />
+<link rel="stylesheet" href="css/p/practice.css?v=20261117d" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -58,9 +58,9 @@
   <script defer src="js/wordbank.js?v=20261116b"></script>
   <!-- design/77 DHP+SSP-MMC 策略表：必须在 practice.js 之前（defer 按文档序执行，表未加载时 practice.js 有回退兜底） -->
   <script defer src="js/dhp_policy.js?v=20260921a"></script>
-  <script src="js/practice.js?v=20261117b" defer></script>
+  <script src="js/practice.js?v=20261117d" defer></script>
   <script src="js/words.js?v=20261102c" defer></script>
-  <script src="js/wd-dict.js?v=20261104d" defer></script>
+  <script src="js/wd-dict.js?v=20261117b" defer></script>
 <style>
 /* ============================================================
    10/3 A 版「今日复习卡 + 学习状态分组」（她选的 A 版）
@@ -292,6 +292,14 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
    ⚠️ .wd-modes 必须是定位锚（position:relative），弹层才能贴着它下沿展开。 */
 .wd-modes{position:relative}
 #practiceArea .wd-modes{display:flex;align-items:center}
+#practiceArea .wd-modes #wdModeBtn{
+  height:36px;display:inline-flex;align-items:center;gap:4px;
+  padding:0 12px;border:1px solid var(--ws-line);border-radius:10px;
+  background:var(--surface);color:var(--ws-muted);
+  font-size:12.5px;font-weight:600;line-height:1;white-space:nowrap;
+}
+#practiceArea .wd-modes #wdModeBtn b{color:var(--primary-700);font-weight:700}
+#practiceArea .wd-modes #wdModeBtn:hover{border-color:var(--ws-soft);color:var(--ink)}
 .wd-mode-pop{
   position:absolute;top:calc(100% + 6px);right:0;
   min-width:132px;padding:5px;
@@ -313,6 +321,7 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
 @media (max-width:700px){
   .wd-mode-pop{min-width:118px;right:0}
   .wd-mode-opt{padding:9px 10px;font-size:13px}
+  #practiceArea .wd-modes #wdModeBtn{height:34px;padding:0 9px;font-size:12px}
 }
 
 /* ============================================================
