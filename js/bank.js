@@ -168,6 +168,13 @@
         }
       }catch(e){}
       (u.types || []).forEach(function(t, i){ chips += '<span class="bi-ch ' + chipCls(t, i) + '">' + esc(t) + '</span>'; });
+      /* CATALOG-META-1（11-17）：目录行把 Part 与题量带回来。
+         上一版为了清爽把整个状态列藏了，结果「全部」里既看不出这篇属于哪个 Part，
+         也看不出多少题、做没做过；这里只在行尾补一行最小元信息，不动行高。 */
+      var metaBits = [];
+      if(u.partNum) metaBits.push(u.partNum);
+      if(u.qCount) metaBits.push(u.qCount + ' 题');
+      var qn = metaBits.length ? '<span class="bk2-qn">' + esc(metaBits.join(' · ')) + '</span>' : '';
       /* BANK-DONE-ROW-1 笔 2：做过 = 有本地成绩记录 → 点它先弹「看上次结果 / 再做一次」，
          不直接进做题页。标记挂在行上，由事件委托读，不另存状态。 */
       h += '<li class="bank-item" data-unit="' + esc(u.id) + '" data-ch="' + esc(channel) + '"'
@@ -175,6 +182,7 @@
         +    '<span class="bi-no">' + (k + 1) + '</span>'
         +    '<span class="bi-tt"><b>' + esc(u.title || '未命名') + '</b>'
         +      (u.titleZh ? '<i>' + esc(u.titleZh) + '</i>' : '') + '</span>'
+        +    qn
         +    '<span class="bi-chips">' + chips + '</span>'
         +    '<span class="bi-st ' + st + '">'
         +      (st ? '<b>' + esc(oc) + '</b>' : esc(oc))

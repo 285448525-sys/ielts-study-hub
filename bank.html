@@ -18,7 +18,7 @@
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
 <title>机经 · 雅思备考 Hub</title>
-<link rel="preload" as="script" href="js/bank.js?v=20261117a" /> <!-- W1-PRELOAD-1 (373KB)：与下方 defer 同串防双下载 -->
+<link rel="preload" as="script" href="js/bank.js?v=20261117b" /> <!-- W1-PRELOAD-1 (373KB)：与下方 defer 同串防双下载 -->
 <link rel="preload" as="script" href="js/common-shell.js?v=20261116a" /> <!-- W1-PRELOAD-1 (113KB)：与下方 defer 同串防双下载 -->
 <link rel="stylesheet" href="css/common.css?v=20261116a" />
 <link rel="stylesheet" href="css/p/bank.css?v=20261116i" />
@@ -2864,7 +2864,17 @@ html[data-theme="dark"] .bk2-mobile{background:rgba(24,28,30,.96)}
 .hub-main #bankRoot .bank-item{display:flex;align-items:center;gap:12px;min-height:52px;padding:8px 18px;border:0;border-bottom:1px solid var(--line-soft);background:var(--surface);box-shadow:none!important;cursor:pointer;transition:background .14s}
 .hub-main #bankRoot .bank-item:last-child{border-bottom:0}
 .hub-main #bankRoot .bank-item:hover,.hub-main #bankRoot .bank-item:focus-within{background:var(--surface-2)}
-.hub-main #bankRoot .bi-no,.hub-main #bankRoot .bi-source,.hub-main #bankRoot .bi-st,.hub-main #bankRoot .bi-chev{display:none!important}
+.hub-main #bankRoot .bi-no,.hub-main #bankRoot .bi-source,.hub-main #bankRoot .bi-chev{display:none!important}
+.hub-main #bankRoot .bi-st{display:none!important}
+.hub-main #bankRoot .bank-item[data-done="1"] .bi-st{display:block!important;width:auto;flex:none;text-align:right;
+  font-size:10.5px;line-height:1.35;font-weight:700;color:var(--primary-700);font-variant-numeric:tabular-nums;white-space:nowrap}
+.hub-main #bankRoot .bi-st b,.hub-main #bankRoot .bi-st.ok b{display:inline;font-size:10.5px;color:inherit}
+.hub-main #bankRoot .bi-when{display:none!important}
+.hub-main #bankRoot .bk2-qn{flex:none;font-size:10.5px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+@media(max-width:860px){
+  .hub-main #bankRoot .bi-chips{display:none!important}
+  .hub-main #bankRoot .bk2-qn{font-size:10px}
+}
 .hub-main #bankRoot .bi-chips{display:flex;align-items:center;gap:5px;flex:none;max-width:230px;overflow:hidden}
 .hub-main #bankRoot .bi-ch{font-size:10.5px;line-height:1.4;padding:2px 7px;border-radius:6px}
 .hub-main #bankRoot .bi-ch:nth-child(n+4){display:none}
@@ -3209,7 +3219,7 @@ html[data-theme="dark"] .bk2-mobile{background:rgba(24,28,30,.96)}
 <script defer src="js/common-shell.js?v=20261116a"></script>
 <script defer src="js/common-pwa.js?v=20261116a"></script>
 <script defer src="js/exam-timer.js?v=20261102c"></script>
-<script defer src="js/bank.js?v=20261117a"></script>
+<script defer src="js/bank.js?v=20261117b"></script>
 <!-- RV-FIX5-10/11（11-03 合流修正）：bank.js 内容改了但引用串此前漏 bump（串还是 g，与上一版撞）——
      按 11-02 判据「bump 不覆盖页面 js 引用串」人工改 h；bank.css 保持 g（本笔未再动它）。 -->
 <!-- M-2（10-24）：模考页「没做过/做过」分组 + 展开更多。
