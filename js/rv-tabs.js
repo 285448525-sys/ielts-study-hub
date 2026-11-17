@@ -336,11 +336,24 @@
     var d=$('rv2DetailDialog');if(d&&!d.open)d.showModal();
   }
   function deleteRecord(id,kind){
-    var orig=null,safe=String(id).replace(/["\\]/g,'\\$&');
-    if(kind==='whole')orig=document.querySelector('#rvLegacy #scoreList button[data-del="'+safe+'"]');
-    else if(kind==='part')orig=document.querySelector('#rvLegacy #mkList button[data-del="'+safe+'"]');
-    else orig=document.querySelector('#rvLegacy #mockHistoryList .mock-hist-del[data-id="'+safe+'"]');
-    if(orig){orig.click();var d=$('rv2DetailDialog');if(d&&d.open)d.close();setTimeout(renderAll,120)}
+    /* 11-18 她报「删除这条记录点了没反应」：旧写法去 #rvLegacy（hidden）里找对应按钮再 .click()，
+       但详情里的「模考自动记录」是 mock 类型，#mockHistoryList 没渲染出对应按钮 → orig 为 null，啥也不做。
+       改为直接改 DATA + hubSave + 重绘，不依赖隐藏 DOM（日期/确认文案按类型给）。 */
+    if(id==null)return;
+    var list=(kind==='whole'&&typeof DATA!=='undefined'&&DATA)?DATA.scores:DATA.mockRecords;
+    if(!Array.isArray(list))return;
+    var rec=list.filter(function(x){return x&&String(x.id)===String(id)})[0];
+    if(!rec)return;
+    var label=(kind==='whole'?String(rec.date||''):String(rec.date||'')+' 的记录');
+    if(!confirm('确定删除'+label+'？此操作不可恢复。'))return;
+    if(kind==='whole')DATA.scores=list.filter(function(x){return String(x.id)!==String(id)});
+    else DATA.mockRecords=list.filter(function(x){return String(x.id)!==String(id)});
+    DATA.deletedIds=DATA.deletedIds||[];
+    if(!DATA.deletedIds.some(function(x){return String(x)===String(id)}))DATA.deletedIds.push(id);
+    try{if(typeof hubSave==='function')hubSave()}catch(e){}
+    var d=$('rv2DetailDialog');if(d&&d.open)d.close();
+    renderAll();
+    try{if(typeof repaintReview==='function')repaintReview()}catch(e){}
   }
   function openAdd(){
     var d=$('rv2AddDialog');if(!d)return;

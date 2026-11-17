@@ -520,3 +520,13 @@
   #mkToday .m-side #diagRoot .dg-hero{padding:18px 16px}
   #mkToday .m-side .m-timecard{display:none}
 }
+
+/* ===== PLAN-COMMENT-1118：她 11-18 计划页 4 条批注 · 覆盖样式 =====
+   只动可见样式，DOM/ID/数据/事件零改动。 */
+/* 批注 1：本周空态「不应该居中吗」——空态在 4 列 grid 里只占第一格，
+   跨满整行并铺满宽度，内容自然居中。 */
+.pl-week-grid > .pl-week-empty{grid-column:1/-1;width:100%;min-height:max(320px,calc(100dvh - 300px))}
+/* 批注 2：往日空态「应该占满屏幕，外面那个框删掉」。 */
+#mDays > .esys--inline{min-height:max(320px,calc(100dvh - 260px));border:0;border-radius:0;background:transparent;box-shadow:none;display:flex;flex-direction:column;align-items:center;justify-content:center}
+/* 批注 3/4：今天 / 本周页头「这个框有点多余 / 也多余」——去掉说明小字，只留标题与主操作。 */
+.pl-board-head .pl-head-copy p{display:none}
