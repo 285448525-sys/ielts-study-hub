@@ -70,14 +70,21 @@
 .wv-word-ipa{font-size:10px;line-height:1.25;color:#89938f}
 .wv-word-cn{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11.5px;color:#53605b}
 .wv-word-actions{display:flex;align-items:center;gap:4px}
-.wv-icon-btn,.wv-review-btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;height:30px;border:1px solid #e4eae7;border-radius:8px;background:#fff;color:#6c7974;font:inherit;font-size:10px;cursor:pointer}
+.wv-icon-btn, .wv-review-btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;height:30px;border:1px solid #e4eae7;border-radius:8px;background:#fff;color:#6c7974;font:inherit;font-size:10px;cursor:pointer}
 .wv-icon-btn{width:30px;padding:0}
 .wv-review-btn{padding:0 8px;border-color:#dbe8e3;background:#f3f8f6;color:#357d73}
-.wv-icon-btn svg,.wv-review-btn svg{width:14px;height:14px}
+.wv-icon-btn svg, .wv-review-btn svg{width:14px;height:14px}
 .wv-word-actions .wv-icon-btn span{display:none}
 .wv-review-btn span{display:inline}
 .wv-delete{color:#a16d66}
 .wv-empty{padding:70px 20px;text-align:center;color:#89938f}
+/* 11-18 她批注 2：错词空态补齐「图标 + 标题 + 说明 + 引导按钮」（对齐写作/口语空态规格）。 */
+#wbWrongEmpty.wv-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:max(320px,calc(100dvh - 200px));padding:48px 24px;border:1px dashed var(--line);border-radius:14px;background:var(--surface)}
+#wbWrongEmpty .wv-empty-ic{display:grid;place-items:center;width:52px;height:52px;margin-bottom:16px;border-radius:15px;background:var(--primary-50,#e8f3f1);color:var(--primary-700,#2f7d76)}
+#wbWrongEmpty .wv-empty-ic svg{width:26px;height:26px}
+#wbWrongEmpty>b{display:block;font-size:16px;font-weight:700;color:var(--ink);margin-bottom:8px}
+#wbWrongEmpty>p{font-size:13px;line-height:1.8;max-width:340px;margin:0 0 22px}
+#wbWrongEmpty .wv-primary{min-height:42px;padding:0 22px}
 .wv-books{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(300px,.8fr);gap:16px}
 .wv-book-list{border:1px solid #e0e8e4;border-radius:14px;background:#fff;overflow:hidden;align-self:start}
 .wv-book-row{display:flex;align-items:center;gap:14px;width:100%;min-height:60px;padding:0 16px;border:0;border-bottom:1px solid #edf1ef;background:#fff;color:#26312e;font:inherit;text-align:left;cursor:pointer}

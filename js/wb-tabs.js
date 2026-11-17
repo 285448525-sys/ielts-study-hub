@@ -244,6 +244,7 @@
       return;
     }
     if(t.closest('#wbWrongReview')){practiceWords(wrongData().filter(function(x){return !!x.w;}));return;}
+    if(t.closest('#wbWrongGoStudy')){show('study');return;}
     var range=t.closest('[data-wb-range]');if(range){statRange=Number(range.getAttribute('data-wb-range'));renderStat();return;}
     if(t.closest('#wbCapMinus')||t.closest('#wbCapPlus')){var delta=t.closest('#wbCapPlus')?5:-5;try{pcSave({dailyCap:Math.max(0,num(cfg().dailyCap)+delta)});}catch(e){}renderSettings();try{if(window.__wdRefreshToday)window.__wdRefreshToday();}catch(e){}return;}
     var sw=t.closest('[data-wb-sw]');if(sw){var key=sw.getAttribute('data-wb-sw'),obj={};obj[key]=!cfg()[key];try{pcSave(obj);}catch(e){}renderSettings();return;}
