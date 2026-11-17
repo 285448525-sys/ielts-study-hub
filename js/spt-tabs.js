@@ -14,6 +14,11 @@
     book:'<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
     chat:'<path d="M4 5h16v11H9l-5 4z"/>',
     layers:'<path d="m12 2 9 5-9 5-9-5 9-5z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/>',
+    plus:'<path d="M12 5v14M5 12h14"/>',
+    upload:'<path d="M12 16V4M7 9l5-5 5 5M5 20h14"/>',
+    pin:'<path d="m12 3 2.7 5.7 6.3.9-4.6 4.4 1.1 6.2L12 17.3 6.5 20.2l1.1-6.2L3 9.6l6.3-.9L12 3Z"/>',
+    edit:'<path d="M4 20h4l10-10-4-4L4 16v4Z"/><path d="m13 7 4 4"/>',
+    trash:'<path d="M4 7h16M9 7V5h6v2M7 7l1 13h8l1-13"/>',
     target:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/>',
     table:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 9v11"/>',
     clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
@@ -28,6 +33,7 @@
   var materialKey='';
   var materialSearch='';
   var materialRemove='';
+  var materialDetailTab='story';
   var mockLoading=false;
 
   function $(id){return document.getElementById(id)}
@@ -265,7 +271,7 @@
     var shown=!q?list:list.filter(function(m){return (String(m.title||'')+' '+String(m.storyEn||'')+' '+String(m.logicZh||'')).toLowerCase().indexOf(q)>=0});
     var m=selectedMaterial();
     if(m&&q&&shown.indexOf(m)<0){m=shown[0]||null;materialKey=m?materialId(m,list.indexOf(m)):''}
-    var toolbar='<div class="spt-mat-toolbar"><label class="spt-mat-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="sptMatSearch" type="search" placeholder="搜索素材" value="'+esc(materialSearch)+'"></label><button type="button" class="spt-btn" data-spt-mat-new>生成素材</button><button type="button" class="spt-btn" data-spt-mat-import>导入素材</button>'+(list.length>1?'<button type="button" class="spt-btn" data-spt-mat-manage>批量管理</button>':'')+'<span class="spt-mat-count">'+list.length+' 张素材</span></div>';
+    var toolbar='<div class="spt-mat-toolbar"><label class="spt-mat-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="sptMatSearch" type="search" placeholder="搜索素材" value="'+esc(materialSearch)+'"></label><span class="spt-mat-toolbar-sp"></span><button type="button" class="spt-btn primary" data-spt-mat-new>'+ic('plus')+'生成素材</button><button type="button" class="spt-btn" data-spt-mat-import>'+ic('upload')+'导入素材</button>'+(list.length>1?'<button type="button" class="spt-btn ghost" data-spt-mat-manage>批量管理</button>':'')+'</div>';
     if(!list.length){
       // 没有任何素材时不再显示空态，直接复用现成的生成引导页（有旧进度则回旧问卷）。
       openMaterialLegacy();
@@ -284,12 +290,18 @@
       var story=String(m.storyEn||'').trim();
       var spine=Array.isArray(m.spineEn)?m.spineEn.filter(function(x){return String(x||'').trim()}):[];
       var logic=materialLogic(m.logicZh);
-      body='<article class="spt-mat-detail"><header class="spt-mat-detail-head"><div class="spt-mat-detail-title"><h2>'+esc(m.title||'未命名素材')+'</h2><p>'+(m.pinned?'最熟素材 · ':'')+(Array.isArray(m.coverage)?m.coverage.length:0)+' 道题可用</p></div><div class="spt-mat-actions"><button type="button" data-spt-mat-pin="'+esc(materialId(m,list.indexOf(m)))+'" class="'+(m.pinned?'on':'')+'">'+(m.pinned?'取消置顶':'置顶')+'</button><button type="button" data-spt-mat-edit="'+esc(materialId(m,list.indexOf(m)))+'">编辑</button><button type="button" class="danger" data-spt-mat-delete="'+esc(materialId(m,list.indexOf(m)))+'">删除</button></div></header><div class="spt-mat-detail-body">'
-        +(spine.length?'<section class="spt-mat-sec"><h3>最小骨架</h3><ul class="spt-mat-spine">'+spine.map(function(x,i){return '<li><i>'+pad2(i+1)+'</i><span>'+esc(x)+'</span></li>'}).join('')+'</ul></section>':'')
-        +(story?'<section class="spt-mat-sec"><h3>完整故事</h3><div class="spt-mat-story">'+esc(story).replace(/\n/g,'<br>')+'</div></section>':'')
-        +(logic.length?'<section class="spt-mat-sec"><h3>中文逻辑</h3><ul class="spt-mat-logic">'+logic.map(function(x){return '<li>'+esc(x)+'</li>'}).join('')+'</ul></section>':'')
-        +(materialRemove===materialId(m,list.indexOf(m))?'<div class="spt-mat-remove"><span>删除后这张素材不再出现。</span><button type="button" data-spt-mat-delete-confirm="'+esc(materialId(m,list.indexOf(m)))+'">确认删除</button><button type="button" data-spt-mat-delete-cancel>取消</button></div>':'')
-        +'</div></article>';
+      var key=materialId(m,list.indexOf(m));
+      var spineHtml=spine.map(function(x,i){return '<li><i>'+pad2(i+1)+'</i><span>'+esc(x)+'</span></li>'}).join('');
+      var storyHtml=story?esc(story).replace(/\n/g,'<br>'):'这张素材还没有完整故事，点上方「编辑」补充。';
+      var logicHtml=logic.map(function(x){return '<li>'+esc(x)+'</li>'}).join('');
+      var removeHtml=materialRemove===key?'<div class="spt-mat-remove"><span>删除后这张素材不再出现。</span><button type="button" data-spt-mat-delete-confirm="'+esc(key)+'">确认删除</button><button type="button" data-spt-mat-delete-cancel>取消</button></div>':'';
+      body='<article class="spt-mat-detail"><header class="spt-mat-detail-head"><div class="spt-mat-detail-title"><h2>'+esc(m.title||'未命名素材')+'</h2><p>'+(m.pinned?'最熟素材 · ':'')+'可串 '+(Array.isArray(m.coverage)?m.coverage.length:0)+' 道题</p></div><div class="spt-mat-actions"><button type="button" data-spt-mat-pin="'+esc(key)+'" class="'+(m.pinned?'on':'')+'">'+ic('pin')+'<span>'+(m.pinned?'已置顶':'置顶')+'</span></button><button type="button" data-spt-mat-edit="'+esc(key)+'">'+ic('edit')+'<span>编辑</span></button><button type="button" class="danger" data-spt-mat-delete="'+esc(key)+'">'+ic('trash')+'<span>删除</span></button></div></header>'
+        +'<div class="spt-mat-detail-tabs" role="tablist" aria-label="素材内容">'+[['spine','最小骨架'],['story','完整故事'],['logic','中文逻辑']].map(function(x){return '<button type="button" role="tab" data-spt-mat-section="'+x[0]+'" class="'+(materialDetailTab===x[0]?'on':'')+'" aria-selected="'+(materialDetailTab===x[0]?'true':'false')+'">'+x[1]+'</button>'}).join('')+'</div>'
+        +'<div class="spt-mat-detail-body"><div class="spt-mat-detail-col spt-mat-detail-col--support">'
+        +'<section class="spt-mat-sec"><h3>最小骨架</h3><ul class="spt-mat-spine">'+spineHtml+'</ul></section>'
+        +'<section class="spt-mat-sec"><h3>中文逻辑</h3><ul class="spt-mat-logic">'+logicHtml+'</ul></section></div>'
+        +'<div class="spt-mat-detail-col spt-mat-detail-col--story"><section class="spt-mat-sec"><h3>完整故事</h3><div class="spt-mat-story">'+storyHtml+'</div></section>'+removeHtml+'</div>'
+        +'<div class="spt-mat-detail-narrow"><div class="spt-mat-npane'+(materialDetailTab==='spine'?' on':'')+'" data-spt-mat-pane="spine"><ul class="spt-mat-spine">'+spineHtml+'</ul></div><div class="spt-mat-npane'+(materialDetailTab==='story'?' on':'')+'" data-spt-mat-pane="story"><div class="spt-mat-story">'+storyHtml+'</div>'+removeHtml+'</div><div class="spt-mat-npane'+(materialDetailTab==='logic'?' on':'')+'" data-spt-mat-pane="logic"><ul class="spt-mat-logic">'+logicHtml+'</ul></div></div></div></article>';
     }
     shell.innerHTML=toolbar+'<div class="spt-mat-grid"><aside class="spt-mat-index"><div class="spt-mat-index-head"><span>我的素材</span><span>'+shown.length+' 张</span></div><div class="spt-mat-list">'+idx+'</div></aside>'+body+'</div>';
   }
@@ -389,6 +401,8 @@
     if(t.closest('[data-spt-mat-new]')){e.preventDefault();openMaterialLegacy('generate');return}
     if(t.closest('[data-spt-mat-import]')){e.preventDefault();openMaterialLegacy('import');return}
     if(t.closest('[data-spt-mat-manage]')){e.preventDefault();openMaterialLegacy('bulk');return}
+    var ms=t.closest('[data-spt-mat-section]');
+    if(ms){e.preventDefault();materialDetailTab=ms.getAttribute('data-spt-mat-section')||'story';document.querySelectorAll('[data-spt-mat-section]').forEach(function(b){var on=b.getAttribute('data-spt-mat-section')===materialDetailTab;b.classList.toggle('on',on);b.setAttribute('aria-selected',on?'true':'false')});document.querySelectorAll('[data-spt-mat-pane]').forEach(function(p){p.classList.toggle('on',p.getAttribute('data-spt-mat-pane')===materialDetailTab)});return}
     var mi=t.closest('[data-spt-mat]');
     if(mi){e.preventDefault();materialKey=mi.getAttribute('data-spt-mat');materialRemove='';renderMaterialShell();return}
     var mp=t.closest('[data-spt-mat-pin]');
