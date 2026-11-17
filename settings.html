@@ -20,7 +20,7 @@ setTimeout(__rvRescue,2500);
 <meta http-equiv="Expires" content="0" />
 <title>设置 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css?v=20261116a" />
-<link rel="stylesheet" href="css/p/settings.css?v=20261117a" />
+<link rel="stylesheet" href="css/p/settings.css?v=20261117b" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -254,8 +254,20 @@ setTimeout(__rvRescue,2500);
    身份卡 padding 22/24 · gap 16 · radius 16 · 正文字号 14 · 行高 21.7 · 头像 56 圆 · 用户名 17/700 · 
    小按钮 12.5/600 · radius 9 · padding 0 12 · 幽灵键 13/600 · radius 12 · padding 0 14。 */
 .set-topbar{position:relative;display:flex;align-items:center;gap:16px;padding:22px 24px;margin-bottom:18px;
-  background:var(--surface);border:1px solid var(--line);border-radius:16px;
+  background:linear-gradient(115deg,var(--primary-50) 0%,var(--surface) 52%,var(--surface) 100%);
+  border:1px solid var(--primary-200);border-radius:14px;
   box-shadow:var(--shadow);color:var(--ink);font-size:14px;line-height:21.7px}
+.set-topbar:before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:radial-gradient(460px 120px at 6% -18%,var(--primary-100),transparent 72%)}
+.set-topbar>*{position:relative;z-index:1}
+.set-topbar.set-profile{width:100%;max-width:560px;min-height:100px;padding:16px 18px;gap:14px;justify-content:space-between}
+#setMe .acct-avatar-in{border-color:var(--primary-200)}
+.set-profile-status{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:7px;font-size:12px;line-height:1.55;color:var(--muted)}
+.set-profile-status .set-sync-dot{width:6px;height:6px;box-shadow:none;background:var(--primary);flex:none}
+.set-profile-status .status-sep{color:var(--n-400)}
+.set-profile-status #lastSyncTs{padding:0;border:0;opacity:1}
+.set-profile-actions{margin:0 0 0 auto;flex-wrap:nowrap;align-self:center;flex:none;display:flex;flex-direction:row;white-space:nowrap}
+#setMe .acct-btn{height:34px;padding:0 13px;border-radius:9px;font-size:12px;font-weight:600;white-space:nowrap}
 .acct-main{flex:1 1 auto;min-width:0;font-size:14px;line-height:21.7px}
 /* 头像：稿子 56px 圆形（底色 --primary-200，字色 --primary-text） */
 #acctAvatarBtn{flex:0 0 auto;width:56px;height:56px;border-radius:50%;background:var(--primary-200);
@@ -336,11 +348,15 @@ setTimeout(__rvRescue,2500);
   .set-pane .set-card{padding:4px 14px 6px}
 }
 @media(max-width:640px){
-  .set-topbar{padding:11px 13px;gap:11px}
+  .set-topbar.set-profile{padding:16px;gap:12px}
   .set-topbar .acct-avatar{width:44px;height:44px;border-radius:13px}
   .set-topbar .acct-main>b{font-size:15px}
   /* 数据管理三个按钮手机端各自整行占满：文字不被折行、也不溢出，顺带减少误触「清空」 */
   .set-btns .btn-sm{flex:1 1 100%}
+}
+@media(max-width:520px){
+  .set-topbar.set-profile{flex-wrap:wrap}
+  .set-profile-actions{flex:0 0 auto;justify-content:flex-end;margin:0 0 0 auto}
 }
 /* ===== 10-23 T-002 步5：字号三档分段控件 =====
    SET-RE-BRK-1（10/28）：这组已改用 .set-seg/.set-seg-btn（见 :196 一带），
@@ -424,7 +440,7 @@ setTimeout(__rvRescue,2500);
           #syncLogoutBtn / #syncChangeForm / #sOldPass / #sNewPass / #syncChangeSave /
           #syncGuestBox / #syncGoLogin / #sName —— renderAuthUI() 与 authLogout() 零改动。
        🔴 稿子来源：design/_样子稿-设置页合并账号-2026-10-26.html（1:1） -->
-  <div class="set-topbar" id="setMe">
+  <div class="set-topbar set-profile" id="setMe">
     <button class="acct-avatar" id="acctAvatarBtn" type="button" aria-haspopup="dialog"
             aria-controls="avatarPop" aria-expanded="false" title="点击更换头像">
       <span class="acct-avatar-in"><img id="acctAvatarImg" src="img/avatars/user-f1.svg" alt="" /></span>
@@ -440,21 +456,25 @@ setTimeout(__rvRescue,2500);
         <button class="me-mini me-mini--ghost" id="nameCancel" type="button">取消</button>
       </div>
       <span id="syncUserAcct" hidden></span>
-      <span id="syncState" class="acct-sub"></span>
-      <span id="lastSyncTs" class="acct-sub2"></span>
-      <p id="syncStatus" class="acct-sync"></p>
-      <div id="syncUserBox" style="display:none" class="me-acts">
-        <button class="acct-btn acct-btn--ghost" id="syncChangeBtn" type="button">修改密码</button>
-        <button class="acct-btn acct-btn--ghost" id="syncLogoutBtn" type="button">退出登录</button>
+      <div class="set-profile-status">
+        <span class="set-sync-dot"></span>
+        <span id="syncState" class="acct-sub"></span>
+        <span class="status-sep">·</span>
+        <span id="lastSyncTs" class="acct-sub2"></span>
       </div>
+      <p id="syncStatus" class="acct-sync"></p>
       <div id="syncChangeForm" style="display:none" class="acct-form-row">
         <input aria-label="当前密码" class="acct-input" id="sOldPass" type="password" placeholder="当前密码" autocomplete="current-password" />
         <input aria-label="新密码" class="acct-input" id="sNewPass" type="password" placeholder="新密码（至少 6 位）" autocomplete="new-password" />
         <button class="acct-btn acct-btn--light" id="syncChangeSave" type="button">保存新密码</button>
       </div>
-      <div id="syncGuestBox" hidden class="me-acts">
-        <a class="acct-btn acct-btn--light" id="syncGoLogin" href="login.html?from=settings">去登录 →</a>
-      </div>
+    </div>
+    <div id="syncUserBox" style="display:none" class="me-acts set-profile-actions">
+      <button class="acct-btn acct-btn--ghost" id="syncChangeBtn" type="button">修改密码</button>
+      <button class="acct-btn acct-btn--ghost" id="syncLogoutBtn" type="button">退出登录</button>
+    </div>
+    <div id="syncGuestBox" hidden class="me-acts set-profile-actions">
+      <a class="acct-btn acct-btn--light" id="syncGoLogin" href="login.html?from=settings">去登录</a>
     </div>
     <div id="avatarCard" hidden>
       <div class="av-pop" id="avatarPop" role="dialog" aria-modal="true" aria-label="更换头像">
