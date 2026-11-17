@@ -254,7 +254,7 @@
         ? ('完整模考 · ' + ((r.parts || []).length || (r.ids || []).length) + ' 篇')
         : String((r.parts && r.parts[0] && r.parts[0].label) || (_mf[String(r.unitId)] && _mf[String(r.unitId)].title) || '单篇');
       var open = S.open === i;
-      return '<div class="bk2-sess"><button type="button" class="bk2-srow" data-bk2sess="' + i + '" aria-expanded="' + (open ? 'true' : 'false') + '">'
+      return '<div class="bk2-sess"><button type="button" class="bk2-srow" data-bk2sess="' + i + '" data-bk2uid="' + esc(r.unitId) + '" data-bk2ch="' + esc(r.type || 'reading') + '" data-bk2gran="' + esc(r.granularity || 'part') + '" aria-expanded="' + (open ? 'true' : 'false') + '">'
         + '<span class="bk2-sdate">' + esc(fmtDate(r.date)) + '</span>'
         + '<span class="bk2-smain"><b>' + chName(r.type) + ' · ' + (whole ? '整卷' : '单篇') + '</b><small>' + esc(sub) + '</small></span>'
         + '<span class="bk2-sscore">' + st.ok + '/' + st.tot + '</span>'
@@ -389,6 +389,16 @@
     if ((el = t.closest('[data-bk2rrange]'))) { S.rrange = el.getAttribute('data-bk2rrange'); S.open = null; renderRec(); return; }
     if (t.closest('[data-bk2more]')) { S.extra = !S.extra; renderRec(); return; }
     if ((el = t.closest('[data-bk2sess]'))) {
+      /* SESS-ROW-REVIEW-1（11-18 她报）：会话行点进去要直接进「上次做完提交的画面」，不是展开下拉。
+         单篇会话（granularity !== whole）→ 调 bank.js 的只读复盘入口，进完整复盘视图。
+         整卷会话没有现成的复盘重进入口（openFullTest 是重做开考、不是复盘），暂保留下拉，不硬造。 */
+      var gran = el.getAttribute('data-bk2gran');
+      var uid = el.getAttribute('data-bk2uid');
+      var ch = el.getAttribute('data-bk2ch');
+      if (gran !== 'whole' && uid && window.__hubOpenLastResult) {
+        window.__hubOpenLastResult(uid, ch || 'reading');
+        return;
+      }
       var i = Number(el.getAttribute('data-bk2sess'));
       S.open = (S.open === i ? null : i);
       renderRec(); return;

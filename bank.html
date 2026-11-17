@@ -18,7 +18,7 @@
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
 <title>机经 · 雅思备考 Hub</title>
-<link rel="preload" as="script" href="js/bank.js?v=20261117c" /> <!-- W1-PRELOAD-1 (373KB)：与下方 defer 同串防双下载 -->
+<link rel="preload" as="script" href="js/bank.js?v=20261118a" /> <!-- W1-PRELOAD-1 (373KB)：与下方 defer 同串防双下载 -->
 <link rel="preload" as="script" href="js/common-shell.js?v=20261116a" /> <!-- W1-PRELOAD-1 (113KB)：与下方 defer 同串防双下载 -->
 <link rel="stylesheet" href="css/common.css?v=20261116a" />
 <link rel="stylesheet" href="css/p/bank.css?v=20261116i" />
@@ -539,6 +539,25 @@ html[data-theme="dark"] .full-card{background:var(--surface);border-color:var(--
 .ex-drop .ex-x:hover{color:#b3261e}
 .ex-drop.filled.right{border-color:#1f7a5c;background:#eaf6f0;color:#1f7a5c}
 .ex-drop.filled.wrong{border-color:#b3261e;background:#fdf3f2;color:#b3261e}
+/* WORD-BANK-FILL-1（11-18）：选词填空的行内空格 —— 嵌在摘要正文里，紧凑、随文字流排布。
+   空槽显示题号（灰），已填显示「题号 + 选项词 + ✕」，对错上色复用 .ex-drop.filled.right/.wrong。 */
+.ex-wbdrop{display:inline-flex;width:auto;min-width:calc(var(--exfs) * 3.2);max-width:100%;align-items:center;gap:6px;
+  min-height:calc(var(--exfs) * 1.5);margin:0 3px;padding:2px 10px;font-size:.85em;font-weight:600;
+  border:1.5px dashed #9aa0a8;border-radius:6px;background:#fff;cursor:pointer;touch-action:none;
+  white-space:nowrap;transition:.15s}
+.ex-wbdrop::before{content:none}   /* 行内空格不显示拖拽箭头，空槽靠题号提示 */
+.ex-wbdrop .ex-hslot-n{font-size:.78em;font-weight:400;color:#aeb4bb;display:inline-block}
+.ex-wbdrop.over{border-color:var(--primary);background:var(--primary-50)}
+.ex-wbdrop.dragging{opacity:.28}
+.ex-wbdrop.filled{border-style:solid;border-color:#6a6f77;background:#fff;cursor:grab}
+.ex-wbdrop.filled .ex-hslot-n{color:#6a6f77}
+.ex-wbdrop.filled.right{border-color:#1f7a5c;background:#eaf6f0;color:#1f7a5c}
+.ex-wbdrop.filled.right .ex-hslot-n{color:#1f7a5c}
+.ex-wbdrop.filled.wrong{border-color:#b3261e;background:#fdf3f2;color:#b3261e}
+.ex-wbdrop.filled.wrong .ex-hslot-n{color:#b3261e}
+/* 选项池放在摘要正文最下方横排（真机考形态） */
+.ex-pool--wb{margin-top:14px}
+.ex-pool--wb .ex-pool-t{font-size:.8em}
 /* 🔴 10/16 她 18:16：「heading 题是把右边的选项拖到原文里的，每一段的上面会有一个虚像框让你拖的」
    → 原文段落上方的虚线槽（.ex-hslot 同时带 .ex-drop 类，拖放/点选/清除/复盘上色全部复用既有手势层）。
    槽里只显示罗马数字（heading 全文走 title 提示），避免长标题把文章排版撑乱。 */
@@ -752,6 +771,13 @@ html[data-theme="dark"] .full-card{background:var(--surface);border-color:var(--
 #examRoot.ct-dark .ex-option{background:#1b1b1b;border-color:#3a3f45}
 #examRoot.ct-dark .ex-option *{color:#e8eaed}
 #examRoot.ct-dark .ex-option .ex-oprow:hover{background:#242628}
+/* 11-18 她：深色下 Options 的 Colour/Size 两行与 ✕ 背景没跟着翻（仍是白底）。
+   补行底、选中态、✕、列表边框、Back 钮的深色覆盖，与顶栏/底栏同档。 */
+#examRoot.ct-dark .ex-option .ex-oprow{background:#242628}
+#examRoot.ct-dark .ex-option .ex-oprow:has(input:checked){background:#1e352f;color:#7ee0b3}
+#examRoot.ct-dark .ex-option .ex-opx{background:#2c2f33;color:#e8eaed}
+#examRoot.ct-dark .ex-option .ex-oplist, #examRoot.ct-dark .ex-option .ex-opsub{border-color:#3a3f45}
+#examRoot.ct-dark .ex-option .ex-opback button{background:#242628;color:#e8eaed;border-color:#3a3f45}
 #examRoot.ct-dark .ex-top{background:#161616}
 #examRoot.ct-dark .ex-top .ex-name, #examRoot.ct-dark .ex-top .ex-timer{color:#f2f2f2}
 
@@ -772,6 +798,12 @@ html[data-theme="dark"] .full-card{background:var(--surface);border-color:var(--
 #examRoot.ct-yellow .ex-option{background:#1b1b1b;border-color:#4a4526}
 #examRoot.ct-yellow .ex-option *{color:#f0e3a8}
 #examRoot.ct-yellow .ex-option .ex-oprow:hover{background:#26241a}
+/* 11-18 与深色档同批：黄底档的 Options 行 / ✕ / 边框 / Back 钮补深色覆盖 */
+#examRoot.ct-yellow .ex-option .ex-oprow{background:#26241a}
+#examRoot.ct-yellow .ex-option .ex-oprow:has(input:checked){background:#3a3216;color:#ffd400}
+#examRoot.ct-yellow .ex-option .ex-opx{background:#2c2a1c;color:#f0e3a8}
+#examRoot.ct-yellow .ex-option .ex-oplist, #examRoot.ct-yellow .ex-option .ex-opsub{border-color:#4a4526}
+#examRoot.ct-yellow .ex-option .ex-opback button{background:#26241a;color:#f0e3a8;border-color:#4a4526}
 #examRoot.ct-yellow .ex-top{background:#161616}
 #examRoot.ct-yellow .ex-top .ex-name, #examRoot.ct-yellow .ex-top .ex-timer{color:#f0e3a8}
 
@@ -956,9 +988,9 @@ html[data-theme="dark"] .full-card{background:var(--surface);border-color:var(--
 .ex-pg[disabled]{opacity:.4;cursor:default}
 .ex-pgar{color:var(--muted);font-size:12px;line-height:1}
 /* ===== W-EXTOP-1（10-25）：顶栏「暂停」按钮 =====
-   她「顶栏加一个暂停」；与底栏 #exPauseBtn 同一个开关、状态双向同步（js/bank.js paintPauseBtn）。
-   样式照设计稿 .pause：复用 .ex-ico 的字色与圆角，另加 1px 边框 + 略小字号区分于图标按钮。
-   手机（≤860）隐藏 —— 顶栏右侧图标多，加文字按钮会挤；底栏 Pause 仍在，功能不丢。 */
+   她「顶栏加一个暂停」。样式照设计稿 .pause：复用 .ex-ico 的字色与圆角，另加 1px 边框 + 略小字号区分于图标按钮。
+   11-18：底栏的 #exPauseBtn 已下线（阅读听力都只剩顶栏这一颗暂停），此处与 js/bank.js paintPauseBtn 同源。
+   手机（≤860）隐藏 —— 顶栏右侧图标多，加文字按钮会挤。 */
 /* UNIFIED-EXAM-UI-3 笔1（10-31）：这三条原本给「暂停」单独定了圆角 5px / 字号 11.5，
    与统一的 8px/13px 不一致（实测进考场后暂停钮 43×36 r=5px，旁边全屏钮 36×36 r=8px）。
    现在只覆盖**配色与 on 态**，形状/字号统一交给 .ex-ico 本体。 */
@@ -1021,7 +1053,6 @@ html[data-theme="dark"] .full-card{background:var(--surface);border-color:var(--
   background:#e9ebee;border:1px solid #d6dae0;color:#1a1d21;cursor:pointer}
 #examRoot .ex-actions button:hover{background:#dfe2e7;border-color:#c8ced5}
 #examRoot .ex-actions button:disabled{opacity:.5;cursor:default}
-#examRoot #exPauseBtn{min-width:58px}
 /* 三主题（底栏在深色/黄底主题下会变深 → 控件色要跟着翻） */
 #examRoot.ct-dark .ex-pt{color:#c9ced6}
 #examRoot.ct-dark .ex-pt:hover{background:rgba(255,255,255,.10)}
@@ -1085,7 +1116,6 @@ html[data-theme="dark"] .full-card{background:var(--surface);border-color:var(--
   .ex-strip{display:none}
   .ex-actions{flex:none;width:100%;justify-content:flex-end;gap:6px}
   #examRoot .ex-actions button{min-height:34px;height:34px;padding:0 11px;font-size:12.5px}
-  #examRoot #exPauseBtn{min-width:52px}
 }
 @media(max-width:420px){
   .ex-pg{padding:0 7px;font-size:11px}
@@ -1557,7 +1587,8 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
      appearance:none 之后没给显式宽度，在 flex 容器里 content-based 宽度计算炸成 1401px
      （实测视口才 1425px），把右侧工具组顶到 x=1885（屏幕外，她根本点不到全屏/Option）。
      固定 74px 装得下「1.0×」四个字符 + 自绘 chevron。 */
-  .ex-audio .ea-rate{flex:none;width:74px;border:1px solid var(--line);background:transparent;color:#111;border-radius:7px;padding:3px 8px;font-size:12px;cursor:pointer;font-family:inherit;font-variant-numeric:tabular-nums;text-align:left}
+  /* 11-18 她：音频条右侧几个按钮高度统一、再低一些。定高 32px 与左侧播放键对齐。 */
+  .ex-audio .ea-rate{flex:none;width:74px;height:32px;box-sizing:border-box;border:1px solid var(--line);background:transparent;color:#111;border-radius:7px;padding:3px 8px;font-size:12px;cursor:pointer;font-family:inherit;font-variant-numeric:tabular-nums;text-align:left}
   /* 10/20 她 ④：倍速从「按钮循环 4 档」改成 <select> 9 档（0.8–1.5 / 0.1）。
      原生 select 自带箭头，但默认箭头太小且颜色跟着系统走 → 用 appearance:none + 内联 SVG
      chevron 自己画一个（data-URI，CSP img-src 已放行 data:），并留 padding-right 给箭头。 */
@@ -1568,14 +1599,14 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
   /* 音量（10/12 加）：真机考只有音量可控 → 练习/考试两种模式都保留。
      10/20 她 ③：音量标去 emoji（🔇/🔊 全站禁）→ 按钮里装 SVG（JS 侧 ICO_VOL/ICO_MUTE）。 */
   /* MOCK-AUDIO-CTRL-1（10-31）：与 A1 上栏笔1（UNIFIED-EXAM-UI-3）的 36px 高 / 8px 圆角对齐 */
-.ex-audio .ea-vol{flex:none;border:1px solid var(--line);background:transparent;border-radius:8px;padding:0 7px;font-size:12px;line-height:1.5;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;min-width:32px;min-height:36px}
+.ex-audio .ea-vol{flex:none;border:1px solid var(--line);background:transparent;border-radius:8px;padding:0 7px;font-size:12px;line-height:1.5;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;min-width:32px;height:32px;box-sizing:border-box}
   .ex-audio .ea-vol:hover{border-color:#111}
   .ex-audio .ea-vol svg{display:block}
   .ex-audio .ea-vsl{flex:none;width:64px;accent-color:var(--primary);cursor:pointer;margin:0}
 /* 10/13 Part 横幅并入音频条行首（她报「上面三行缩两行」）：胶囊 = Part N · Questions X–Y
    10/20 她 4B「Part 胶囊瘦身」：字号 12→11.5、内边距收窄、去掉边框（轻底色即可）。 */
 .ex-audio .ea-part{flex:none;font-size:11px;font-weight:700;color:var(--primary-text);background:var(--primary-50);border:1px solid transparent;border-radius:6px;padding:1px 7px;white-space:nowrap;letter-spacing:0}
-  .ex-audio .ea-mode{flex:none;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:999px;padding:3px 11px;font-size:12px;cursor:pointer;font-family:inherit;white-space:nowrap}
+  .ex-audio .ea-mode{flex:none;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:999px;padding:3px 11px;height:32px;box-sizing:border-box;font-size:12px;cursor:pointer;font-family:inherit;white-space:nowrap}
   .ex-audio .ea-mode.exam{border-color:var(--warn-ink);color:var(--warn-ink);background:var(--warn-soft);font-weight:600}
   .ex-audio .ea-mode[disabled]{opacity:.5;cursor:default}
   .ex-audio.locked .ea-bar{cursor:default}
@@ -2021,7 +2052,9 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
   font-variant-numeric:tabular-nums;min-width:92px;text-align:right;letter-spacing:.2px}
 /* MOCK-AUDIO-CTRL-1（10-31）：与 A1 上栏笔1 的 36px 高 / 8px 圆角对齐
    （原来 select 原生高度撑到 44px、圆角 7px，和顶栏那排 36px 方块不在一个节奏）。 */
-#examRoot .ex-audio .ea-rate{flex:none;width:74px;height:36px;border:1px solid var(--line);background:transparent;
+/* 11-18 她：音频条右侧按钮高度统一、再低一些。本块比上方基础规则更具体（#examRoot 胜出），
+   原 36px 会压过基础档的 32px，这里一并降到 32px，与 .ea-vol / .ea-mode 对齐。 */
+#examRoot .ex-audio .ea-rate{flex:none;width:74px;height:32px;border:1px solid var(--line);background:transparent;
   color:var(--ink);border-radius:8px;padding:0 22px 0 8px;font-size:12px;cursor:pointer;
   font-family:inherit;font-variant-numeric:tabular-nums;font-weight:700;
   appearance:none;-webkit-appearance:none;
@@ -2030,7 +2063,7 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 #examRoot .ex-audio .ea-rate:hover{border-color:var(--ink)}
 /* MOCK-AUDIO-CTRL-1（10-31）：音量滑杆（新节点）。72px 对齐 v2 稿的 70px 口径，
    与倍数下拉同高 36px。窄屏收起（见下方 @media 段）。 */
-#examRoot .ex-audio .ea-vsl{flex:none;width:72px;height:36px;margin:0;
+#examRoot .ex-audio .ea-vsl{flex:none;width:72px;height:32px;margin:0;
   accent-color:var(--primary);background:transparent;cursor:pointer}
 #examRoot.ct-dark .ex-audio .ea-vsl, #examRoot.ct-yellow .ex-audio .ea-vsl{accent-color:#5cb3ab}
 #examRoot.ct-dark .ex-audio .ea-bar, #examRoot.ct-yellow .ex-audio .ea-bar{background:#3a3f45}
@@ -3151,7 +3184,7 @@ html[data-theme="dark"] .hub-main #bankRoot .partbar .pill-tab.active{background
 <script defer src="js/common-shell.js?v=20261116a"></script>
 <script defer src="js/common-pwa.js?v=20261117a"></script>
 <script defer src="js/exam-timer.js?v=20261102c"></script>
-<script defer src="js/bank.js?v=20261117c"></script>
+<script defer src="js/bank.js?v=20261118a"></script>
 <!-- RV-FIX5-10/11（11-03 合流修正）：bank.js 内容改了但引用串此前漏 bump（串还是 g，与上一版撞）——
      按 11-02 判据「bump 不覆盖页面 js 引用串」人工改 h；bank.css 保持 g（本笔未再动它）。 -->
 <!-- M-2（10-24）：模考页「没做过/做过」分组 + 展开更多。
@@ -3166,7 +3199,7 @@ html[data-theme="dark"] .hub-main #bankRoot .partbar .pill-tab.active{background
 <!-- 11-13 BANK-EXTEND-1 第 1 期：题目记录 / 错题集 / 正确率统计三板块。
      独立模块自带可见 5 个 tab、纯读 DATA.mockRecords[].detail，不碰判分、不改既有两科 DOM。
      放在业务脚本之后：软导航按 HTML 声明顺序 eval，此时 bank.js / DATA / manifest 都已就位。 -->
-<script defer src="js/bank-records.js?v=20261117a"></script>
+<script defer src="js/bank-records.js?v=20261118a"></script>
 <style id="rvCaInFix">
 .ex-ca-in{display:inline-block;font:inherit;color:#1f7a5c;line-height:1.4;vertical-align:middle;flex:none}
 </style>

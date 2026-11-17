@@ -1168,6 +1168,10 @@
        复盘是只读，慢一点不算错，超时反而会把她想看的结果掐掉。 */
     }, { onCancel: bkExitLoading, noTimeout: true, lpTitle: '正在载入上次结果', lpSub: '只读复盘 · 不重新计时' });
   }
+  /* SESS-ROW-REVIEW-1（11-18 她报）：机经「记录」页的会话行，点进去要直接进「上次提交的画面」，
+     而不是展开逐题下拉。这里把只读复盘入口暴露给 bank-records.js 的会话行委托调用。
+     ⚠️ 只读复盘：不答题、不起表、不写记录，与「查看上次结果」同一入口。 */
+  window.__hubOpenLastResult = openLastResult;
 
   /* RV-BOTTOM-23（11-02 她催的底部布局笔·条①）：底部「上次的结果·只读·用时」信息条
      （rv-ro-badge）整条退役 —— 她原话「最下面那个显示时间的栏怎么还不删掉」。
@@ -1410,6 +1414,34 @@
          Heading 题（isHead，选项是罗马数字 i–x）她 10/15 拍板必须拖放原样 → 不并。
          交互完全不变（还是 chip 拖进 .ex-drop，_dg 状态机/判分/清理全复用），
          变的只是**位置**：选项池从题干上方整块搬到右侧竖排一列。 */
+      /* WORD-BANK-FILL-1（11-18 她报 bug）：「选词填空」= matching 的变种 ——
+         题库形态 = g.contentHtml 里带 <input placeholder=27> 空格的完整摘要正文
+                   + g.options 一份词/短语池（A-H）+ 每题 q.question 为空。
+         旧分支只渲染选项池 + 空题干行 → 正文整块丢失，她看到「只有选项，题干原文全不见」。
+         真机考形态：摘要正文里的空格 = 可拖入槽，选项池放在**最下面**横排，拖词进空格。
+         做法：把 contentHtml 的 <input placeholder=N> 换成行内 .ex-drop（data-q/data-g 与既有
+         拖拽/点选/清除/collect/判分/复盘链路完全一致），选项池复用 .ex-pool 横排形态。
+         判据 = contentHtml 里确实有带数字 placeholder 的 input **且该组题干基本为空**；否则走原配对分支。
+         🔴 11-18 二修：只判「contentHtml 有 input」会误伤**人物/陈述配对**（如 Sweet Trouble：题干是真实
+            陈述句，但导出 HTML 里恰好夹了一个带数字 placeholder 的 input）→ 被错判成选词填空、题干被吞。
+            选词填空的判据是「答案空格在正文里、每题 q.question 为空」，所以补上题干空值守卫。 */
+      var wbRaw = bodyOf(g.contentHtml);
+      var wbHit = /<input[^>]*placeholder\s*=\s*["']?[0-9]+/i.test(wbRaw);
+      var wbBlank = qs.filter(function(q){ return !String(q.question || '').replace(/[_\s]/g, ''); }).length;
+      if(wbHit && opts.length && wbBlank >= Math.ceil(qs.length / 2)){
+        var wbHtml = clean(wbRaw).replace(/<input([^>]*)>/gi, function(m, attrs){
+          var pm = /placeholder\s*=\s*["']?([0-9]+)["']?/i.exec(attrs);
+          var n = pm ? numOf(pm[1]) : '';
+          if(!n) return '';
+          return '<span class="ex-drop ex-wbdrop" data-q="' + esc(n) + '" data-g="' + gid + '">'
+            + '<span class="ex-hslot-n">' + esc(n) + '</span></span>';
+        });
+        h += '<div class="ex-html ex-wbhtml">' + wbHtml + '</div>';
+        h += '<div class="ex-pool ex-pool--wb" data-g="' + gid + '">'
+          + '<div class="ex-pool-t">Options</div>'
+          + '<div class="ex-pool-c">' + opts.map(chipHtml).join('') + '</div></div>';
+        return h + '</div>';
+      }
       var lside = !!(opts.length && !isHead && qs.length >= 3);
       if(lside){
         /* 结构 = .ex-q--lside 容器 > 左列每题（题号 + 题干 + .ex-drop）+ 右列 .ex-q-side（竖排选项池）
