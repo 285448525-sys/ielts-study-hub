@@ -210,6 +210,29 @@ body[data-shell="top"] .hub-main{min-width:0;padding:14px 20px 36px;overflow:aut
 .spt-mat-logic{grid-template-columns:1fr;gap:6px}
 .spt-mat-logic li{font-size:11.5px;line-height:1.7}
 .spt-mat-remove{margin-top:16px}
+/* 空素材：生成引导页（定稿图二），不是「没有找到」空态 */
+#sptMatShell .spt-mat-empty{display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;height:calc(100dvh - 144px);min-height:420px;padding:0;border:1px solid var(--line);border-radius:14px;background:var(--surface);box-shadow:0 1px 2px rgba(24,40,48,.025),0 12px 32px -28px rgba(24,40,48,.35);overflow:hidden;text-align:left}
+#sptMatShell .spt-me-hero{flex:1;min-height:0;display:flex;align-items:center;gap:30px;padding:30px 34px;position:relative;overflow:hidden;background:linear-gradient(135deg,var(--primary-50) 0%,var(--surface) 58%,var(--primary-50) 100%)}
+#sptMatShell .spt-me-hero:after{content:"";position:absolute;right:-70px;top:-120px;width:300px;height:300px;border:1px solid var(--primary-200);border-radius:50%;box-shadow:0 0 0 40px color-mix(in srgb,var(--primary-200) 18%,transparent),0 0 0 80px color-mix(in srgb,var(--primary-200) 10%,transparent);opacity:.55;pointer-events:none}
+#sptMatShell .spt-me-copy{flex:1;min-width:0;position:relative;z-index:1;max-width:620px}
+#sptMatShell .spt-me-kicker{font-size:9.5px;font-weight:800;letter-spacing:.14em;color:var(--primary-700)}
+#sptMatShell .spt-me-copy h2{margin:9px 0 0;font-size:clamp(26px,2.9vw,38px);line-height:1.28;letter-spacing:-.04em;font-weight:800;color:var(--ink)}
+#sptMatShell .spt-me-copy p{margin:10px 0 0;font-size:12.5px;line-height:1.75;color:var(--muted);max-width:540px}
+#sptMatShell .spt-me-actions{display:flex;align-items:center;gap:8px;margin-top:22px}
+#sptMatShell .spt-me-actions .spt-btn{display:inline-flex;align-items:center;justify-content:center;height:38px;min-height:38px;padding:0 16px;border-radius:9px;font-size:12px}
+#sptMatShell .spt-me-actions .spt-btn.primary{background:var(--primary-700);border-color:var(--primary-700);color:#fff}
+#sptMatShell .spt-me-actions .spt-btn:not(.primary){border:1px solid var(--line);background:var(--surface);color:var(--ink-2)}
+#sptMatShell .spt-me-stat{flex:none;position:relative;z-index:1;text-align:right;padding-right:8px}
+#sptMatShell .spt-me-stat b{display:block;font-size:clamp(72px,10vw,132px);line-height:.9;letter-spacing:-.07em;font-weight:800;color:var(--primary-200)}
+#sptMatShell .spt-me-stat span{display:block;margin-top:9px;font-size:10px;font-weight:750;letter-spacing:.08em;color:var(--primary-700)}
+#sptMatShell .spt-me-flow{flex:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid var(--line);background:var(--surface-2)}
+#sptMatShell .spt-me-step{padding:17px 22px;display:flex;align-items:center;gap:11px;min-width:0}
+#sptMatShell .spt-me-step+.spt-me-step{border-left:1px solid var(--line-soft,var(--line))}
+#sptMatShell .spt-me-step i{font-style:normal;width:23px;height:23px;border-radius:50%;background:var(--primary-700);color:#fff;font-size:10px;font-weight:750;display:grid;place-items:center;flex:none}
+#sptMatShell .spt-me-step b{display:block;font-size:12px;color:var(--ink-2);font-weight:700}
+#sptMatShell .spt-me-step span{display:block;margin-top:2px;font-size:10px;color:var(--muted)}
+#sptMatShell .spt-me-foot{flex:none;min-height:46px;padding:0 24px;display:flex;align-items:center;gap:12px;border-top:1px solid var(--line-soft,var(--line));font-size:10.5px;color:var(--muted)}
+#sptMatShell .spt-me-foot a{margin-left:auto;color:var(--primary-700);font-weight:650;text-decoration:none}
 @media(min-width:861px){
   .spt-mat-grid{height:calc(100dvh - 144px);min-height:420px}
 }
@@ -250,6 +273,15 @@ body[data-shell="top"] .hub-main{min-width:0;padding:14px 20px 36px;overflow:aut
   .spt-mat-npane{height:auto;overflow:visible;padding:15px 14px 18px}
   .spt-mat-story{font-size:12.5px;line-height:1.9}
   .spt-mat-logic{grid-template-columns:1fr}
+  #sptMatShell .spt-mat-empty{height:auto;min-height:0}
+  #sptMatShell .spt-me-hero{padding:24px 20px;gap:12px}
+  #sptMatShell .spt-me-copy h2{font-size:24px}
+  #sptMatShell .spt-me-copy p{font-size:12px}
+  #sptMatShell .spt-me-stat b{font-size:64px}
+  #sptMatShell .spt-me-flow{grid-template-columns:1fr}
+  #sptMatShell .spt-me-step{padding:14px 18px}
+  #sptMatShell .spt-me-step+.spt-me-step{border-left:0;border-top:1px solid var(--line-soft,var(--line))}
+  #sptMatShell .spt-me-foot{min-height:0;padding:12px 16px;flex-wrap:wrap}
 }
 #sptMatLegacy .mat-page{max-width:none;margin:0}
 #sptMatLegacy .mat-mgrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}

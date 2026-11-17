@@ -26,7 +26,7 @@
 var curType = 'ALL';   // 题库 tab 合并 P1+P2（'ALL'）；P1/P2 仅保留为数据类型
 var curFreq = 'all';
 var curCat = 'all';
-var curPart = 'all';
+var curPart = 'P1';   // 题库默认只看 P1；P1/P2 互斥，不再合并成「全部」视图
 var curState = 'new';   // 默认只看没练过的题
 var curSearch = '';
 var curDetailId = null;

@@ -105,8 +105,8 @@ ready(() => {
         const cs = $('#catSelect'); if(cs) cs.value = 'all';
         curCat = 'all';
         const ps = $('#partSelect'); if(ps) ps.value = 'all';
-        if(window.__spClearPartSeg) window.__spClearPartSeg();
-        curPart = 'all';
+        if(window.__spSetPartSeg) window.__spSetPartSeg('P1');
+        else curPart = 'P1';
         // 切回题库仍默认只看没练过的题
         curState = 'new'; const stSel = $('#stateSelect'); if(stSel) stSel.value = 'new';
         /* 9/19 修：切回题库时搜索框与 curSearch 一并清空。
@@ -188,8 +188,8 @@ ready(() => {
         const cs = $('#catSelect'); if(cs) cs.value = 'all';
         curCat = 'all';
         const ps = $('#partSelect'); if(ps) ps.value = 'all';
-        if(window.__spClearPartSeg) window.__spClearPartSeg();
-        curPart = 'all';
+        if(window.__spSetPartSeg) window.__spSetPartSeg('P1');
+        else curPart = 'P1';
         // 状态筛选重置为默认「未练过」
         curState = 'new'; const stSel2 = $('#stateSelect'); if(stSel2) stSel2.value = 'new';
         if(window.__spSyncFselLabels) window.__spSyncFselLabels();
@@ -218,18 +218,23 @@ ready(() => {
     partSeg.querySelectorAll('button[data-part]').forEach(b => {
       b.addEventListener('click', () => {
         const v = b.dataset.part;
-        curPart = (curPart === v) ? 'all' : v;
+        curPart = v;
         partSeg.querySelectorAll('button').forEach(x => x.classList.toggle('active', x.dataset.part === curPart));
         renderList();
       });
     });
   }
-  /* 切 tab 重置时同步清 P1/P2 高亮（curPart='all' 由原重置逻辑负责） */
+  /* 切 tab 重置时同步清 P1/P2 高亮；__spSetPartSeg 用于回到题库时默认选中 P1 */
   window.__spClearPartSeg = () => { if(partSeg) partSeg.querySelectorAll('button').forEach(x => x.classList.remove('active')); };
+  window.__spSetPartSeg = (part) => {
+    curPart = part || 'P1';
+    if(partSeg) partSeg.querySelectorAll('button').forEach(x => x.classList.toggle('active', x.dataset.part === curPart));
+  };
   // design/88：状态筛选
   const stateSel = $('#stateSelect');
   if(stateSel) stateSel.addEventListener('change', e => { curState = e.target.value; syncFselLabels(); renderList(); });
   populateFreqOptions();
+  if(partSeg) partSeg.querySelectorAll('button').forEach(x => x.classList.toggle('active', x.dataset.part === curPart));
   // 9/15：Part 下拉选项带各 Part 题数（之之要求 P1/P2 分开计数，一眼看清各有多少题）
   (function(){
     const bank = (DATA.speaking || []).filter(s => !s.framework && !/^sp_p[12]_\d+$/.test(s.id || ''));

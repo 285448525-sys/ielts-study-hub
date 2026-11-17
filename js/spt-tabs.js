@@ -255,6 +255,12 @@
   function materialStore(){return data().materials&&typeof data().materials==='object'?data().materials:null}
   function materialList(){var st=materialStore();return st&&Array.isArray(st.materials)?st.materials.filter(Boolean):[]}
   function materialId(m,i){return m&&m.id!=null?String(m.id):'index:'+i}
+  function materialP2Count(){
+    var n=(Array.isArray(data().speaking)?data().speaking:[]).filter(function(s){
+      return s&&s.type==='P2'&&!s.framework&&!/^sp_p[12]_\d+$/.test(s.id||'');
+    }).length;
+    return n||52;
+  }
   function selectedMaterial(){
     var list=materialList(),hit=null;
     for(var i=0;i<list.length;i++){if(materialId(list[i],i)===materialKey){hit=list[i];break}}
@@ -263,6 +269,23 @@
   }
   function materialLogic(text){
     return String(text||'').split(/\n+/).map(function(x){return x.replace(/^\s*(?:[-•·]|\d+[.)、])\s*/,'').trim()}).filter(Boolean);
+  }
+  function materialEmptyHtml(){
+    var n=materialP2Count();
+    return '<section class="spt-mat-empty">'
+      +'<div class="spt-me-hero"><div class="spt-me-copy">'
+        +'<div class="spt-me-kicker">雅思口语 P2 · 当季题库</div>'
+        +'<h2>'+n+' 道题，不用写 '+n+' 篇素材</h2>'
+        +'<p>把自己的经历写成几个故事，考场上原样讲出来，加一句过渡就能接到很多题上。</p>'
+        +'<div class="spt-me-actions"><button type="button" class="spt-btn primary" data-spt-mat-new>生成我的素材</button><button type="button" class="spt-btn" data-spt-mat-import>导入已有素材</button></div>'
+      +'</div><div class="spt-me-stat"><b>'+n+'</b><span>当季 P2 题卡</span></div></div>'
+      +'<div class="spt-me-flow">'
+        +'<div class="spt-me-step"><i>1</i><div><b>写下经历</b><span>用自己的话，中文就行</span></div></div>'
+        +'<div class="spt-me-step"><i>2</i><div><b>AI 对照题库</b><span>挑出能串的当季题</span></div></div>'
+        +'<div class="spt-me-step"><i>3</i><div><b>得到可背素材</b><span>骨架、全文和中文逻辑</span></div></div>'
+      +'</div>'
+      +'<div class="spt-me-foot"><span>生成素材是会员功能，每月 5 次，7 天卡 1 次。</span><a href="vip.html">查看会员 ›</a></div>'
+    +'</section>';
   }
   function renderMaterialShell(){
     var shell=$('sptMatShell');if(!shell)return;
@@ -273,8 +296,8 @@
     if(m&&q&&shown.indexOf(m)<0){m=shown[0]||null;materialKey=m?materialId(m,list.indexOf(m)):''}
     var toolbar='<div class="spt-mat-toolbar"><label class="spt-mat-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="sptMatSearch" type="search" placeholder="搜索素材" value="'+esc(materialSearch)+'"></label><span class="spt-mat-toolbar-sp"></span><button type="button" class="spt-btn primary" data-spt-mat-new>'+ic('plus')+'生成素材</button><button type="button" class="spt-btn" data-spt-mat-import>'+ic('upload')+'导入素材</button>'+(list.length>1?'<button type="button" class="spt-btn ghost" data-spt-mat-manage>批量管理</button>':'')+'</div>';
     if(!list.length){
-      // 没有任何素材时不再显示空态，直接复用现成的生成引导页（有旧进度则回旧问卷）。
-      openMaterialLegacy();
+      // 没有素材时就是生成引导页：图二定稿，按钮仍接原生成 / 导入流程。
+      shell.innerHTML=materialEmptyHtml();
       return;
     }
     if(!shown.length){
