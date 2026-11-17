@@ -1499,7 +1499,7 @@ function renderHistory(){
   $('#histCount').textContent = DATA.longSent.length + ' 条';
   $('#histCard').hidden = !DATA.longSent.length;   /* 同上：必须动 hidden 属性，不是 style.display */
   const box = $('#histList');
-  if(!list.length){ box.innerHTML = ''; return; }
+  if(!list.length){ box.innerHTML = ''; renderSamples(); return; }
   /* CORPUS-PANEL-REDESIGN-1：记录列表按终稿改成整行条目（左标题+摘要 / 右查看·删除），
      功能与原实现完全一致（data-restore / data-del 绑定在下面两行，没动）。 */
   box.innerHTML = list.map(h => {
@@ -1515,6 +1515,37 @@ function renderHistory(){
   }).join('');
   box.querySelectorAll('[data-restore]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); restoreHist(b.dataset.restore); }));
   box.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); deleteHist(b.dataset.del); }));
+  renderSamples();
+}
+
+/* CORPUS-EMPTY-1（11-17）：拆解页没有记录时，右栏只剩输入框和一大片空白。
+   放三条可点示例句，点一下填进输入框，直接点「拆解」就能看到完整结果。
+   有记录后示例自动让位，不占地方。 */
+function renderSamples(){
+  const card = $('#sampleCard'), box = $('#sampleList');
+  if(!card || !box) return;
+  const CP_SAMPLES = [
+    'The theory suggests that the decline of the species is a deeper imbalance rather than a simple shortage of food.',
+    'While critics argue that the policy is too costly, supporters insist it will pay for itself within a decade.',
+    'What matters is not how much time you spend, but how much you actually notice.'
+  ];
+  const empty = !(DATA.longSent && DATA.longSent.length);
+  card.hidden = !empty;
+  if(!empty || box.innerHTML) return;
+  box.innerHTML = CP_SAMPLES.map((s, i) =>
+    `<button type="button" class="cp2-sample" data-sample="${i}"><span>${escapeHtml(s)}</span><i>拆解 ›</i></button>`
+  ).join('');
+  box.addEventListener('click', e => {
+    const b = e.target.closest('[data-sample]');
+    if(!b) return;
+    const s = CP_SAMPLES[+b.getAttribute('data-sample')] || '';
+    const input = $('#sentInput');
+    if(!input) return;
+    input.value = s;
+    const st = $('#sentStatus');
+    if(st){ st.textContent = '已填入示例'; st.className = 'lsr-status is-ok'; }
+    input.focus();
+  });
 }
 
 function firstSectionPreview(result){

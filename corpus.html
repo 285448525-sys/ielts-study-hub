@@ -52,7 +52,7 @@
   <script defer src="js/common-shell.js?v=20261116a"></script>
   <script defer src="js/common-pwa.js?v=20261116a"></script>
   <script defer src="js/feedback.js?v=20261111b"></script>
-  <script src="js/corpus.js?v=20261116a" defer></script>
+  <script src="js/corpus.js?v=20261117a" defer></script>
 <style>
   /* 长难句 / 错题本 样式（原 errorbook.html 内联） */
   .eb-input{width:100%;min-height:190px;padding:14px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;font-size:14.5px;line-height:1.75;background:var(--bg);color:var(--ink);resize:vertical}
@@ -267,6 +267,20 @@
 .cp2-empty{padding:34px 20px;text-align:center;border:1px dashed var(--ct-line);
   border-radius:var(--ct-radius);background:var(--ct-surface);font-size:12.5px;color:var(--ct-muted);line-height:1.6}
 .cp2-empty b{display:block;font-size:14px;color:var(--ct-ink);margin-bottom:6px}
+.cp2-samples[hidden]{display:none!important}
+.cp2-samples{margin-top:14px;overflow:hidden;border:1px solid var(--line);border-radius:14px;
+  background:var(--surface);box-shadow:0 1px 2px rgba(24,40,48,.04),0 6px 18px -12px rgba(24,40,48,.18)}
+.cp2-samples-head{padding:12px 18px 0}
+.cp2-samples-head h2{margin:0;font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--muted)}
+.cp2-sample{display:flex;align-items:center;gap:14px;width:100%;padding:13px 18px;border:0;
+  border-top:1px solid var(--line-soft);background:transparent;font:inherit;color:var(--ink);
+  text-align:left;cursor:pointer;transition:background .14s}
+.cp2-sample:first-child{border-top:0}
+.cp2-sample:hover{background:var(--surface-2)}
+.cp2-sample span{flex:1;min-width:0;font-size:12.5px;line-height:1.55}
+.cp2-sample i{flex:none;font-style:normal;font-size:11.5px;font-weight:650;color:var(--muted);
+  white-space:nowrap;transition:color .14s}
+.cp2-sample:hover i{color:var(--primary-700)}
 .cp2-mobile-tabs{display:none}
 body.exam-fullscreen .cp2-pane{display:none!important}
 @media(max-width:980px){.cp2-two-col{grid-template-columns:minmax(0,1fr)}}
@@ -359,6 +373,10 @@ importCorpus · importHint · aiImportBox · aiImportBtn · aiImportHint · dict
   <div class="lsr-foot-l"><span id="sentStatus" class="lsr-status" aria-live="polite"></span></div>
   <button class="lsr-btn lsr-btn-primary" id="analyzeBtn" type="button">拆解</button>
 </div>
+</section>
+<section class="cp2-samples" id="sampleCard" hidden>
+<div class="cp2-samples-head"><h2>示例</h2></div>
+<div id="sampleList"></div>
 </section>
 <div id="resultCard" hidden>
 <div class="lsr-result-head"><button class="lsr-btn lsr-btn-sm" id="copyBtn" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg>复制</button></div>
