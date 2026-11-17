@@ -52,7 +52,7 @@
   <script defer src="js/factory-writing.js?v=20261023b"></script>
 <script defer src="js/writing_prompts.js?v=20260903ab"></script>
 <script defer src="js/exam-timer.js?v=20261102c"></script>
-  <script defer src="js/writing.js?v=20261112d"></script>
+  <script defer src="js/writing.js?v=20261112e"></script>
 <style>
 
   /* ===== 10-23 W-1：撤左栏 → 单列 + 横向筛选带（方案 §二）
@@ -828,12 +828,42 @@ body.exam-fullscreen .wr-pane{display:none!important}
 #scorePanel #scoreType{height:36px;padding:0 30px 0 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink-2);font:inherit;font-size:12.5px;font-weight:650;appearance:none;-webkit-appearance:none;cursor:pointer;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2371767e' stroke-width='2.4' stroke-linecap='round'><path d='M6 9l6 6 6-6'/></svg>");background-repeat:no-repeat;background-position:right 10px center}
 #scorePanel #scoreHistCard{border-radius:14px}
 @media(max-width:860px){#scorePanel #scoreType{width:100%}}
+
+/* ===== WR-COMMENT-1118：她 11-18 写作页 7 条批注 · 覆盖样式 =====
+   只动可见样式/间距，DOM/ID/数据/事件一个不删不改。 */
+/* 批注 2：模板预览框「怎么还窄一些的」——取消 640px 限宽，占满可用宽度，略提可读高度。 */
+#detailCard .preview-box{max-width:none;max-height:340px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2);padding:16px 18px}
+/* 批注 4：模板详情头「歪七扭八不对齐」——各元素统一中心对齐，圆角按钮与徽章同高、基线对齐。 */
+.dtl-hd{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.dtl-hd .site-back{flex:none;align-self:center}
+.dtl-hd .dtl-nm{display:inline-flex;align-items:center;line-height:1.4}
+.dtl-hd .dtl-lv{display:inline-flex;align-items:center;line-height:1;padding:3px 9px}
+.dtl-hd .dtl-meta{display:inline-flex;align-items:center;line-height:1.4}
+.dtl-hd .dtl-dict{display:inline-flex;align-items:center;justify-content:center;gap:5px;line-height:1;min-height:34px}
+/* 批注 6：语料表英文列「可以窄一点」——英文列收窄，中文/例句列获得更多空间。 */
+#bankPanel .bank-table{table-layout:fixed}
+#bankPanel .bank-table col.col-en{width:30%}
+#bankPanel .bank-table .bank-td-en{overflow-wrap:break-word}
+/* 批注 1：评分面板「太普通没有成品级感」——首卡质感统一 + 输入区更精致。 */
+#scorePanel > section.card:first-of-type{border:1px solid var(--line);background:var(--surface)}
+#scorePanel #scoreEssay{border:1px solid var(--line);border-radius:12px;background:var(--bg);transition:border-color .15s,box-shadow .15s}
+#scorePanel #scoreEssay:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft);outline:none}
+#scorePanel #scoreTopic{border:1px solid var(--line);border-radius:12px;background:var(--bg);transition:border-color .15s,box-shadow .15s}
+#scorePanel #scoreTopic:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft);outline:none}
+/* 批注 5：默写页「UI 得整体优化」——头部对齐 + 卡片质感 + 输入区精致。 */
+#dictationPanel > section.card{border:1px solid var(--line);background:var(--surface)}
+#dictationPanel .card-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+#dictationPanel .card-head .site-back{flex:none;align-self:center}
+#dictationPanel .card-head h2{display:inline-flex;align-items:center;line-height:1.4}
+#dictationPanel #wtDictHint{display:inline-flex;align-items:center;line-height:1.4}
+#dictationPanel #wtDictInput{border:1px solid var(--line);border-radius:12px;background:var(--bg);transition:border-color .15s,box-shadow .15s}
+#dictationPanel #wtDictInput:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft);outline:none}
 </style>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
 #bootLoader .ui-loader{margin-bottom:8px}
-@media (prefers-reduced-motion: reduce){#bootLoader .ui-loader-dot,#bootLoader .ui-loader-shadow{animation:none}#bootLoader .ui-loader-dot{top:20px;height:20px;border-radius:50%;transform:none}#bootLoader .ui-loader-shadow{opacity:.5;transform:scaleX(1)}}
+@media (prefers-reduced-motion: reduce){#bootLoader .ui-loader-dot, #bootLoader .ui-loader-shadow{animation:none}#bootLoader .ui-loader-dot{top:20px;height:20px;border-radius:50%;transform:none}#bootLoader .ui-loader-shadow{opacity:.5;transform:scaleX(1)}}
 
 /* ══════════════════════════════════════════════════════════════════════
    COLOR-LAYER-1 第 7 单 第二笔（11-05）作文页配色层次
@@ -1083,7 +1113,7 @@ body.exam-fullscreen .wr-pane{display:none!important}
             <h3>完整句（实时）</h3>
             <div id="preview" class="preview-box"></div>
             <div class="form-row" style="margin-top:10px;align-items:center">
-              <button class="btn btn-primary" id="tplScoreBtn" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><rect x="5" y="7" width="14" height="12" rx="3"/><path d="M12 7V3M9 3h6"/><circle cx="9.5" cy="12.5" r="1"/><circle cx="14.5" cy="12.5" r="1"/><path d="M9 16h6"/></svg>AI 按官方 4 维度评分</button>
+              <button class="btn btn-primary" id="tplScoreBtn" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><rect x="5" y="7" width="14" height="12" rx="3"/><path d="M12 7V3M9 3h6"/><circle cx="9.5" cy="12.5" r="1"/><circle cx="14.5" cy="12.5" r="1"/><path d="M9 16h6"/></svg>AI 评分</button>
               <button class="ai-btn" type="button" title="AI 按官方 4 维度评分" aria-label="AI 评分" onclick="document.getElementById('tplScoreBtn').click()"><span class="ai-btn-spark"><svg viewBox="0 0 24 24" width="100%" height="100%" fill="currentColor" aria-hidden="true"><path d="M12 3l1.9 4.6L18.5 9l-4.6 1.4L12 15l-1.9-4.6L5.5 9l4.6-1.4L12 3z"/><path d="M18 14l.9 2.1L21 17l-2.1.9L18 20l-.9-2.1L15 17l2.1-.9L18 14z"/></svg></span><span class="ai-btn-label">AI</span></button>
               <button class="btn" id="tplCopyBtn">复制填好的内容</button>
               <span class="muted" id="tplFillHint" style="font-size:12.5px"></span>
@@ -1186,7 +1216,7 @@ body.exam-fullscreen .wr-pane{display:none!important}
     <div class="wrv-head" data-wrv-head="score"><h1>AI 评分</h1><span class="wrv-hint">按官方四项标准估分，是预估分不是官方成绩</span><span class="wrv-stat" data-wrv-stat="score"></span></div>
     <section class="card">
       <h2>AI 作文评分</h2>
-      <p class="muted" style="font-size:13px;margin-bottom:12px">粘贴完整 Task 2 作文，AI 按 TR / CC / LR / GRA 给出预估分并标出长/复杂句。</p>
+      <p class="muted" style="font-size:13px;margin-bottom:12px">粘贴作文，AI 按官方四项标准给出预估分。</p>
       <div class="form-row" style="margin-bottom:10px">
         <select id="scoreType" style="flex:none">
           <option value="大作文">大作文（Task 2）</option>
@@ -1288,7 +1318,7 @@ body.exam-fullscreen .wr-pane{display:none!important}
   </div>
 </main>
 <link rel="stylesheet" href="css/p/hub-shell.css?v=20261117a" />
-<link rel="stylesheet" href="css/p/writing-main.css?v=20261117c" />
+  <link rel="stylesheet" href="css/p/writing-main.css?v=20261117d" />
 <script defer src="js/hub-side-shell.js?v=20261106b"></script>
 <script defer src="js/wr-tabs.js?v=20261116i"></script>
   <script defer src="js/es-b.js?v=20261112c"></script>

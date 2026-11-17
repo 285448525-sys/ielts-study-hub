@@ -1776,7 +1776,7 @@ function renderBank(){
       + '<td class="bank-td-actions"><button class="bank-del" type="button">删除</button></td>'
       + '</tr>';
   }).join('');
-  box.innerHTML = '<table class="bank-table"><thead><tr><th>英文</th><th>中文 / 例句</th><th style="width:70px">操作</th></tr></thead><tbody>' + rows + '</tbody></table>';
+  box.innerHTML = '<table class="bank-table"><colgroup><col class="col-en"><col class="col-cn"><col class="col-act" style="width:70px"></colgroup><thead><tr><th>英文</th><th>中文 / 例句</th><th style="width:70px">操作</th></tr></thead><tbody>' + rows + '</tbody></table>';
   box.querySelectorAll('.bank-del').forEach(btn => {
     btn.addEventListener('click', () => { const tr = btn.closest('tr'); if(tr) delPhrase(tr.dataset.id); });
   });

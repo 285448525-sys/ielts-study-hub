@@ -214,14 +214,14 @@ body:not(.exam-fullscreen):not(.mock-immerse):not(.word-fullscreen):not(.hub-exa
 #wrQKind{height:38px;padding:3px;gap:2px;border-radius:10px;background:var(--surface-2);border-color:var(--line)}
 #wrQKind button{height:30px;min-height:30px;padding:0 12px;border:1px solid transparent;border-radius:7px}
 #wrQKind button.on{background:var(--surface);border-color:var(--line);color:var(--primary-700);box-shadow:0 1px 2px rgba(16,24,40,.06)}
-/* UI-EMPTY-1117：记录空态收到与机经同一档的矮卡，不再铺满整屏。 */
-.wr-empty{min-height:260px;padding:32px 24px;border-style:solid;border-radius:14px}
-.wr-empty b{font-size:14px;margin-bottom:6px}
-.wr-empty-actions{margin-top:16px}
-.wr-empty-actions .wr-btn{min-height:36px}
-body:not(.exam-fullscreen):not(.mock-immerse):not(.word-fullscreen):not(.hub-exam-locked) #wrRecordsBody .wr-empty.wr-empty{padding:32px 24px!important;border:1px solid var(--line)!important;border-radius:14px!important;background-image:none!important}
-html[data-theme="dark"] .wr-mobile-tabs button.on,
-html[data-theme="dark"] #wrQKind button.on{background:var(--primary-50);border-color:var(--primary-100);box-shadow:none}
+/* 11-18 她批注 7：记录空态「太小了应该把屏幕占满」。
+   撤掉 UI-EMPTY-1117 的矮卡压制（.wr-empty 260px + #wrRecordsBody !important），
+   恢复 .wr-empty 的 min-height:max(340px,100dvh-108px) 铺满档（143 行那套）。 */
+.wr-empty{min-height:max(340px,calc(100dvh - 108px));padding:52px 24px}
+.wr-empty b{font-size:16px;margin-bottom:7px}
+.wr-empty-actions{margin-top:18px}
+.wr-empty-actions .wr-btn{min-height:40px}
+html[data-theme="dark"] .wr-mobile-tabs button.on, html[data-theme="dark"] #wrQKind button.on{background:var(--primary-50);border-color:var(--primary-100);box-shadow:none}
 @media(max-width:860px){
-  .wr-empty{min-height:260px}
+  .wr-empty{min-height:max(320px,calc(100dvh - 150px))}
 }
