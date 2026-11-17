@@ -234,6 +234,7 @@
   function mount(cur){
     var host = document.getElementById('opts');
     if(!host || !cur) return;
+    ACTIVE = null;
     var answer = String(cur.en || '');
     var ipaText = fmtIpa(cur.ipa);
     host.className = 'opts-grid wdd-stage';
@@ -359,6 +360,17 @@
         input.readOnly = true;
         answerCard.hidden = true;
         setStatus('good', '正确');
+        /* 保留答题反馈一拍，再进入下一题；必须现在清掉旧计时，不能等下一帧。 */
+        try{
+          if(typeof pq !== 'undefined' && pq && pq.advanceTimer){
+            clearTimeout(pq.advanceTimer);
+            pq.advanceTimer = null;
+            var answered = cur;
+            setTimeout(function(){
+              if(ACTIVE && ACTIVE.word === answer && pq && pq.revealed && pq.answer === answered) nextQuestion();
+            }, 160);
+          }
+        }catch(e){}
       }else{
         state = 'wrong';
         input.readOnly = false;
@@ -429,7 +441,7 @@
       if(qs) qs.click();
     });
 
-    ACTIVE = { afterJudge: afterJudge, unknown: unknownAnswer };
+    ACTIVE = { word: answer, afterJudge: afterJudge, unknown: unknownAnswer };
     renderTyped();
     updateProgress();
     setTimeout(focusInput, 60);

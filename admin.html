@@ -874,8 +874,6 @@ details.more .body{padding:0 16px 8px}
       $('refreshBtn').disabled = false;
       /* ④ 失败：有缓存就保留旧数据（只把提示条转橙），没缓存才走原来的错误提示 */
       if(!r.ok){
-        if(cached){ showStale('fail', cached.ts); return; }
-        showStale(null, 0);
         if(r.status === 401 || r.status === 403){ /* 身份失效：回账号门 */
           try{ sessionStorage.removeItem(KEY); }catch(e){}
           if(r.status === 401){
@@ -885,6 +883,8 @@ details.more .body{padding:0 16px 8px}
           showGate((r.j && r.j.msg) || '站长身份校验失败', !session);
           return;
         }
+        if(cached){ showStale('fail', cached.ts); return; }
+        showStale(null, 0);
         alert('加载失败：' + ((r.j && r.j.msg) || ('HTTP ' + r.status)));
         return;
       }
