@@ -129,13 +129,15 @@
   .cp-coming{min-height:calc(100dvh - 130px)}
 }
 
+/* 11-18 她批注：错题空态「不要内外框，直接把里面这个轮廓线删掉」。
+   外框 = #ebView > .kc-card（保留），内框 = es-b.js 换进来的 .es-box（去掉边框/外边距）。
+   只去内框轮廓，B 卡内容（价值句 + 主动作 + 右侧预览）原样保留。 */
+#ebView .kc-card > .es-box{border:0!important;border-radius:0;background:transparent;box-shadow:none}
+#ebView .kc-card > .es-box .es-b{margin:0}
+
 @media(max-width:420px){
   .cp-mobile-tabs button{font-size:10.5px;padding:0 2px}
   #lsView .lsr-segment button{padding:0 9px}
-}
-
-@media(prefers-reduced-motion:reduce){
-  .cp-page *{transition:none!important}
 }
 
 /* UI-SEG-1117：句子页分段控件与机经 / 口语 / 写作 / 回顾同一套。
