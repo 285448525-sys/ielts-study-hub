@@ -81,6 +81,8 @@ ready(async () => {
 
   // 首次进入引导提示条（仅首页）：三步没走完时出现，三步齐了或点「不再提示」后永久消失
   safe(renderOnboardingBar);
+  // HOME-ONB-1：common-pwa.js 只在整页加载时跑一次；软导航回首页时由 index.js 重建页内引导卡
+  safe(renderHomeGuide);
 
   // 计时保存后整页指标就地刷新（软导航会重跑本文件：先移除旧监听再挂新监听）
   const prevHub = window.__hubSessionSaved;
