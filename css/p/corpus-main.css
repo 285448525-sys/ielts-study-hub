@@ -109,9 +109,12 @@
 }
 
 @media(max-width:860px){
-  .cp-mobile-tabs{display:flex;gap:5px;position:sticky;top:0;z-index:16;margin:0 -12px 11px;padding:9px 12px;background:var(--bg);border-bottom:1px solid var(--line)}
-  .cp-mobile-tabs button{flex:1;min-width:0;min-height:40px;padding:0 3px;border:1px solid var(--line);border-radius:20px;background:var(--surface);color:var(--muted);font:inherit;font-size:11.5px;font-weight:650;white-space:nowrap}
-  .cp-mobile-tabs button.on{background:var(--primary-50);border-color:var(--primary-200);color:var(--primary-700)}
+  /* BANK-UI-1117：手机子导航统一成分段控件，和机经 / 口语 / 写作 / 回顾同一套。
+     句子页主区没有横向 padding，卡片自己留 12px；这里补同宽外边距。 */
+  .cp-mobile-tabs{display:flex;gap:2px;position:sticky;top:6px;z-index:16;margin:0 12px 11px;padding:3px;background:var(--surface-2);border:1px solid var(--line);border-radius:12px;box-shadow:0 1px 2px rgba(28,55,48,.035)}
+  .cp-mobile-tabs button{flex:1;min-width:0;height:32px;padding:0 3px;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--muted);font:inherit;font-size:11.5px;font-weight:650;white-space:nowrap;transition:background .16s,border-color .16s,color .16s}
+  .cp-mobile-tabs button:hover{background:var(--n-100);color:var(--ink)}
+  .cp-mobile-tabs button.on{background:var(--primary-50);border-color:var(--primary-100);color:var(--primary-700);font-weight:700;box-shadow:0 1px 2px rgba(16,24,40,.06)}
   .cp-page{max-width:none}
   #lsView .lsr-composer{padding:14px 14px 12px}
   #lsView .lsr-composer textarea{min-height:78px;font-size:14px}
@@ -133,4 +136,19 @@
 
 @media(prefers-reduced-motion:reduce){
   .cp-page *{transition:none!important}
+}
+
+/* UI-SEG-1117：句子页分段控件与机经 / 口语 / 写作 / 回顾同一套。
+   手机三格字号收到 12px，桌面拆解模式同一套白色选中块。 */
+.cp-mobile-tabs button{font-size:12px}
+.cp-mobile-tabs button.on{background:var(--surface);border-color:var(--line);color:var(--primary-700);box-shadow:0 1px 2px rgba(16,24,40,.06)}
+#lsView #lsModeSeg{height:38px;padding:3px;gap:2px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2)}
+#lsView #lsModeSeg button{height:30px;min-height:30px;padding:0 12px;border:1px solid transparent;border-radius:7px;background:transparent;color:var(--muted);font-size:12px;font-weight:650}
+#lsView #lsModeSeg button:hover{color:var(--ink);background:var(--n-100)}
+#lsView #lsModeSeg button.on{background:var(--surface);border-color:var(--line);color:var(--primary-700);font-weight:700;box-shadow:0 1px 2px rgba(16,24,40,.06)}
+html[data-theme="dark"] .cp-mobile-tabs button.on,
+html[data-theme="dark"] #lsView #lsModeSeg button.on{background:var(--primary-50);border-color:var(--primary-100);box-shadow:none}
+@media(max-width:420px){
+  .cp-mobile-tabs button{font-size:12px;padding:0 2px}
+  #lsView #lsModeSeg button{padding:0 12px}
 }

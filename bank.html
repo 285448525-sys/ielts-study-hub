@@ -2820,12 +2820,16 @@ body:has(> main > .hub-shell > .hub-main > #bankRoot) .hub-main{padding:16px 22p
 /* 手机顶部五入口 */
 .bk2-mobile{display:none}
 @media(max-width:860px){
-  .bk2-mobile{display:grid;grid-template-columns:repeat(5,1fr);gap:2px;position:sticky;top:0;z-index:30;margin:0 0 10px;padding:6px 4px;background:rgba(255,255,255,.96);border-bottom:1px solid var(--line);backdrop-filter:blur(18px)}
-  .bk2-mobile button{height:36px;padding:0 2px;border:0;border-radius:8px;background:transparent;color:var(--muted);font:inherit;font-size:11.5px;font-weight:650;cursor:pointer}
-  .bk2-mobile button.on{background:var(--primary-50);color:var(--primary-700)}
+  /* BANK-UI-1117：手机五入口收成一块浮动的分段控件，和桌面筛选条同一套选中态；
+     不再做整条色带，避免和口语 / 写作页的胶囊入口各说各话。 */
+  .bk2-mobile{display:grid;grid-template-columns:repeat(5,1fr);gap:2px;position:sticky;top:6px;z-index:30;margin:0 0 10px;padding:3px;background:var(--surface-2);border:1px solid var(--line);border-radius:12px;box-shadow:0 1px 2px rgba(28,55,48,.035)}
+  .bk2-mobile button{height:32px;padding:0 2px;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--muted);font:inherit;font-size:12px;font-weight:650;cursor:pointer;transition:background .16s,border-color .16s,color .16s}
+  .bk2-mobile button:hover{background:var(--n-100);color:var(--ink)}
+  .bk2-mobile button.on{background:var(--surface);border-color:var(--line);color:var(--primary-700);font-weight:700;box-shadow:0 1px 2px rgba(16,24,40,.06)}
   body:has(> main > .hub-shell > .hub-main > #bankRoot) .hub-main{padding:12px 12px 32px}
 }
-html[data-theme="dark"] .bk2-mobile{background:rgba(24,28,30,.96)}
+html[data-theme="dark"] .bk2-mobile{background:var(--surface-2);border-color:var(--line)}
+html[data-theme="dark"] .bk2-mobile button.on{background:var(--primary-50);border-color:var(--primary-100);box-shadow:none}
 
 /* 整套模考：安静一张浅绿卡，不和列表抢层级 */
 .hub-main #bankRoot .full-card{display:flex;align-items:center;gap:16px;min-height:0;padding:15px 20px;margin:0 0 14px;border:1px solid var(--primary-100);border-radius:15px;background:linear-gradient(120deg,var(--primary-50),var(--surface) 58%,var(--surface-2));box-shadow:0 1px 2px rgba(28,55,48,.035);color:var(--ink)}
@@ -2841,18 +2845,21 @@ html[data-theme="dark"] .bk2-mobile{background:rgba(24,28,30,.96)}
 .hub-main #bankRoot .full-card .btn-primary:hover{background:var(--primary-600);border-color:var(--primary-600)}
 
 /* Part 筛选与搜索同一行 */
-.hub-main #bankRoot .partbar{order:0;flex:0 0 auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 10px;padding:0;border:0}
-.hub-main #bankRoot .partbar .pill-tabs{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:0;border:0;border-radius:0;background:transparent}
-.hub-main #bankRoot .partbar .pill-tab{height:30px;padding:0 12px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--muted);font-size:11.5px;font-weight:600;line-height:1;box-shadow:none;white-space:nowrap}
-.hub-main #bankRoot .partbar .pill-tab:hover{border-color:var(--primary-100);color:var(--primary-700)}
-.hub-main #bankRoot .partbar .pill-tab.active{border-color:var(--primary-100);background:var(--primary-50);color:var(--primary-700);box-shadow:none;font-weight:650}
+.hub-main #bankRoot .partbar{order:0;flex:0 0 auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 8px;padding:0;border:0}
+/* BANK-UI-1117：胶囊改成一段式分段控件；轨道本身负责边界，内部按钮不再各自描边。
+   轨道 32px = 24px 按钮 + 上下 3px padding + 1px 边框，搜索框也锁 32px 与它同高。 */
+.hub-main #bankRoot .partbar .pill-tabs{display:inline-flex;align-items:center;gap:2px;flex-wrap:nowrap;padding:3px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);box-shadow:none}
+.hub-main #bankRoot .partbar .pill-tab{height:24px;padding:0 11px;border:1px solid transparent;border-radius:7px;background:transparent;color:var(--muted);font-size:12px;font-weight:650;line-height:1;box-shadow:none;white-space:nowrap;transition:background .16s,border-color .16s,color .16s}
+.hub-main #bankRoot .partbar .pill-tab:hover{background:var(--n-100);color:var(--ink)}
+.hub-main #bankRoot .partbar .pill-tab.active{border-color:var(--line);background:var(--surface);color:var(--primary-700);box-shadow:0 1px 2px rgba(16,24,40,.06);font-weight:700}
 .hub-main #bankRoot .partbar .pill-tab.active::after{display:none}
 .hub-main #bankRoot .partbar .pt-n{display:none}
 .hub-main #bankRoot .partmeta{display:none}
-.hub-main #bankRoot .bk-search{flex:0 0 240px;min-width:0;max-width:240px;margin-left:auto}
-.hub-main #bankRoot .bk-search .ui-field-search{height:36px;border:1px solid var(--line);border-radius:10px;background:var(--surface);box-shadow:none}
+.hub-main #bankRoot .bk-search{flex:0 0 240px;min-width:0;max-width:240px;margin:0 0 0 auto}
+.hub-main #bankRoot .bk-search .ui-field-search{height:32px;margin:0;border:1px solid var(--line);border-radius:9px;background:var(--surface);box-shadow:none}
 .hub-main #bankRoot .bk-search .ui-field-search:focus-within{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-50)}
-.hub-main #bankRoot .bk-search .ui-field-search-in{font-size:12.5px;color:var(--ink)}
+.hub-main #bankRoot .bk-search .ui-field-search-ic{top:50%;width:14px;height:14px;transform:translateY(-50%)}
+.hub-main #bankRoot .bk-search .ui-field-search-in{padding:0 30px 0 30px;font-size:12px;color:var(--ink)}
 
 /* 目录：一张白卡，英文主行、中文副行，行高约 52 */
 .hub-main #bankRoot #fullEntry,.hub-main #bankRoot #listenFullEntry{order:auto;flex:0 0 auto;margin:0}
@@ -2899,17 +2906,19 @@ html[data-theme="dark"] .bk2-mobile{background:rgba(24,28,30,.96)}
 .bk2-page{display:flex;flex-direction:column;min-height:0;gap:0}
 .bk2-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-height:38px;margin:0 0 14px}
 .bk2-spacer{flex:1;min-width:8px}
-.bk2-seg{display:inline-flex;align-items:center;gap:2px;padding:3px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2)}
-.bk2-seg button{min-height:30px;padding:0 12px;border:0;border-radius:7px;background:transparent;color:var(--muted);font:inherit;font-size:12px;font-weight:650;cursor:pointer;white-space:nowrap}
+.bk2-seg{display:inline-flex;align-items:center;gap:2px;padding:3px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2)}
+.bk2-seg button{min-height:30px;padding:0 12px;border:1px solid transparent;border-radius:7px;background:transparent;color:var(--muted);font:inherit;font-size:12px;font-weight:650;cursor:pointer;white-space:nowrap}
 .bk2-seg button:hover{color:var(--ink)}
-.bk2-seg button.on{background:var(--surface);color:var(--primary-700);box-shadow:0 1px 2px rgba(16,24,40,.08)}
+.bk2-seg button.on{background:var(--surface);border-color:var(--line);color:var(--primary-700);box-shadow:0 1px 2px rgba(16,24,40,.08)}
+html[data-theme="dark"] .bk2-seg button.on{background:var(--primary-50);border-color:var(--primary-100);box-shadow:none}
+html[data-theme="dark"] .hub-main #bankRoot .partbar .pill-tab.active{background:var(--primary-50);border-color:var(--primary-100);box-shadow:none}
 .bk2-btn-sm{display:inline-flex;align-items:center;justify-content:center;min-height:32px;padding:0 11px;border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--ink-2);font:inherit;font-size:11.5px;font-weight:650;cursor:pointer}
 .bk2-btn-sm:hover{border-color:var(--primary-100);color:var(--primary-700);background:var(--primary-50)}
 .bk2-hint{font-size:11px;color:var(--muted)}
 .bk2-extra{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:10px 14px;margin:0 0 12px;border:1px solid var(--line);border-radius:11px;background:var(--surface-2)}
 .bk2-extra[hidden]{display:none!important}
 .bk2-extra .lab{font-size:10.5px;color:var(--muted);margin-right:5px}
-.bk2-chip{height:27px;padding:0 10px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--muted);font:inherit;font-size:11px;font-weight:600;cursor:pointer}
+.bk2-chip{height:28px;padding:0 10px;border:1px solid var(--line);border-radius:7px;background:var(--surface);color:var(--muted);font:inherit;font-size:11.5px;font-weight:600;cursor:pointer}
 .bk2-chip:hover{border-color:var(--primary-100);color:var(--primary-700)}
 .bk2-chip.on{border-color:var(--primary-100);background:var(--primary-50);color:var(--primary-700)}
 .bk2-jump{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 8px 0 11px;border:1px solid var(--primary-100);border-radius:999px;background:var(--primary-50);color:var(--primary-700);font-size:11px;font-weight:650}
@@ -2954,7 +2963,7 @@ html[data-theme="dark"] .bk2-mobile{background:rgba(24,28,30,.96)}
 /* 空态：每页一张自己的小图，不铺无意义空白 */
 .bk2-empty{width:min(100%,720px);min-height:220px;margin:0 auto;padding:38px 24px 32px;border:1px solid var(--line);border-radius:14px;background:var(--surface);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;box-shadow:none}
 .bk2-empty-visual{width:44px;height:44px;margin:0 0 12px;border-radius:13px;background:var(--primary-50);display:grid;place-items:center;color:var(--primary-700)}
-.bk2-empty.stats .bk2-empty-visual{background:var(--warn-soft);color:var(--warn-ink)}
+.bk2-empty.stats .bk2-empty-visual{background:var(--primary-50);color:var(--primary-700)}
 .bk2-empty-visual svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .bk2-empty b{font-size:14px;font-weight:750;color:var(--ink)}
 .bk2-empty p{max-width:380px;margin:6px 0 16px;color:var(--muted);font-size:12px;line-height:1.7}
@@ -3018,8 +3027,11 @@ html[data-theme="dark"] .bk2-mobile{background:rgba(24,28,30,.96)}
   .hub-main #bankRoot .full-card .bk-m{flex:1 1 60%}
   .hub-main #bankRoot .full-card .fc-last{display:none!important}
   .hub-main #bankRoot .full-card .btn-primary{width:auto;margin-left:auto}
-  .hub-main #bankRoot .partbar .pill-tabs{flex:1 1 100%}
+  .hub-main #bankRoot .partbar .pill-tabs{display:flex;flex:1 1 100%;width:100%}
+  .hub-main #bankRoot .partbar .pill-tab{flex:1;min-width:0;height:30px;padding:0 8px}
   .hub-main #bankRoot .bk-search{flex:1 1 100%;max-width:none;margin-left:0}
+  .hub-main #bankRoot .bk-search .ui-field-search{height:38px}
+  .hub-main #bankRoot .bk-search .ui-field-search-in{padding:0 32px;font-size:12.5px}
   .hub-main #bankRoot .bank-item{min-height:54px;padding:7px 14px}
   .hub-main #bankRoot .bank-item::after{opacity:1;transform:none}
   .hub-main #bankRoot .bi-chips{gap:4px;max-width:104px}

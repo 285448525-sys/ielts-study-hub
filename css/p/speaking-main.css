@@ -361,9 +361,11 @@ body[data-shell="top"] .hub-main{min-width:0;padding:14px 20px 36px;overflow:aut
 @media(max-width:860px){
   body[data-shell="top"] .hub-main{padding:0 12px 26px!important;overflow:visible}
   .spt-board{max-width:none;min-height:0}
-  .spt-mobile-tabs{display:flex;gap:5px;position:sticky;top:0;z-index:16;margin:0 -12px 11px;padding:9px 12px;background:var(--bg);border-bottom:1px solid var(--line)}
-  .spt-mobile-tabs button{flex:1;min-width:0;min-height:40px;padding:0 3px;border:1px solid var(--line);border-radius:20px;background:var(--surface);color:var(--muted);font:inherit;font-size:11px;font-weight:650;white-space:nowrap}
-  .spt-mobile-tabs button.on{background:var(--primary-50);border-color:var(--primary-200);color:var(--primary-700)}
+  /* BANK-UI-1117：手机子导航统一成分段控件，和机经 / 写作 / 句子 / 回顾同一套。 */
+  .spt-mobile-tabs.spt-mobile-tabs{display:flex;gap:2px;position:sticky;top:6px;z-index:16;margin:0 0 11px;padding:3px;background:var(--surface-2);border:1px solid var(--line);border-radius:12px;flex:none;box-shadow:0 1px 2px rgba(28,55,48,.035)}
+  .spt-mobile-tabs.spt-mobile-tabs button{flex:1;min-width:0;height:32px;min-height:0;padding:0 3px;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--muted);font:inherit;font-size:11.5px;font-weight:650;white-space:nowrap;transition:background .16s,border-color .16s,color .16s}
+  .spt-mobile-tabs.spt-mobile-tabs button:hover{background:var(--n-100);color:var(--ink)}
+  .spt-mobile-tabs.spt-mobile-tabs button.on{background:var(--primary-50);border-color:var(--primary-100);color:var(--primary-700);font-weight:700;box-shadow:0 1px 2px rgba(16,24,40,.06)}
   .spt-pane,#listView,#detailView,#mockView,#matView,#sentView,#coachView{padding:0}
   #listView .sp-toolbar{gap:7px;margin-bottom:8px}
   #listView .sp-toolbar .sp-part-seg{height:36px}
@@ -435,4 +437,38 @@ body[data-shell="top"] .hub-main{min-width:0;padding:14px 20px 36px;overflow:aut
 }
 @media(prefers-reduced-motion:reduce){
   .spt-board *{scroll-behavior:auto!important;transition:none!important}
+}
+
+/* UI-SEG-1117：分段控件统一（L 主导航 / M 工具栏 / S 细筛）。
+   浅灰轨道 + 白色选中块 + 细边 + 极轻投影；不再用实心主色胶囊。 */
+.spt-mobile-tabs.spt-mobile-tabs button{font-size:12px}
+.spt-mobile-tabs.spt-mobile-tabs button.on{background:var(--surface);border-color:var(--line);color:var(--primary-700);box-shadow:0 1px 2px rgba(16,24,40,.06)}
+#listView .sp-toolbar .sp-part-seg{height:38px;padding:3px;gap:2px;border-radius:10px;background:var(--surface-2);border:1px solid var(--line);overflow:visible}
+#listView .sp-toolbar .sp-part-seg button,
+#listView .sp-toolbar .sp-part-seg button + button{height:30px;min-height:30px;padding:0 12px;border:1px solid transparent;border-radius:7px;background:transparent;color:var(--muted);font-size:12px;font-weight:650}
+#listView .sp-toolbar .sp-part-seg button:hover{background:var(--n-100);color:var(--ink)}
+#listView .sp-toolbar .sp-part-seg button.active{background:var(--surface);border-color:var(--line);color:var(--primary-700);font-weight:700;box-shadow:0 1px 2px rgba(16,24,40,.06)}
+#sptPaneRecords .spt-record-tabs{height:38px;padding:3px;gap:2px;border-radius:10px;background:var(--surface-2)}
+#sptPaneRecords .spt-record-tabs button{height:30px;min-height:30px;padding:0 13px;border:1px solid transparent;border-radius:7px}
+#sptPaneRecords .spt-record-tabs button.on{background:var(--surface);border-color:var(--line);color:var(--primary-700);box-shadow:0 1px 2px rgba(16,24,40,.06)}
+.spt-record-toolbar .spt-seg{height:34px;padding:3px;border-radius:9px;background:var(--surface-2)}
+.spt-record-toolbar .spt-seg button{height:26px;min-height:26px;padding:0 10px;border:1px solid transparent;border-radius:6px;font-size:11px}
+.spt-record-toolbar .spt-seg button.on{background:var(--surface);border-color:var(--line);color:var(--primary-700);box-shadow:0 1px 2px rgba(16,24,40,.06)}
+/* UI-EMPTY-1117：记录空态与机经同一套白底细边卡。 */
+#sptPaneRecords .spt-record-empty{min-height:260px;padding:32px 20px;border-style:solid;border-radius:14px}
+#sptPaneRecords .spt-record-empty .spt-empty-ic{width:44px;height:44px;border-radius:13px;margin-bottom:12px}
+#sptPaneRecords .spt-record-empty .spt-empty-ic svg{width:22px;height:22px;max-width:22px;max-height:22px}
+#sptPaneRecords .spt-record-empty b{font-size:14px}
+#sptPaneRecords .spt-record-empty p{margin:6px 0 16px;font-size:12px;line-height:1.7}
+html[data-theme="dark"] .spt-mobile-tabs.spt-mobile-tabs button.on,
+html[data-theme="dark"] #listView .sp-toolbar .sp-part-seg button.active,
+html[data-theme="dark"] #sptPaneRecords .spt-record-tabs button.on,
+html[data-theme="dark"] .spt-record-toolbar .spt-seg button.on{background:var(--primary-50);border-color:var(--primary-100);box-shadow:none}
+@media(max-width:860px){
+  #listView .sp-toolbar .sp-part-seg{height:38px}
+  #listView .sp-toolbar .sp-part-seg button{height:30px;min-height:30px;padding:0 13px}
+  #sptPaneRecords .spt-record-empty{min-height:260px}
+}
+@media(max-width:380px){
+  .spt-mobile-tabs button{font-size:12px;padding:0 2px}
 }

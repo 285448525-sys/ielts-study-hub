@@ -1,6 +1,7 @@
 /* 11-16 写作四格：题库 / 模板 / 语料 / 记录。只覆写本页旧皮肤，DOM 与业务函数保持原样。 */
 body[data-shell="top"]:not(.exam-fullscreen) main.container>.hub-shell>.hub-main{padding:16px 22px 40px}
 #writeTabs,.page-head-row:has(>#writeTabs){display:none!important}
+.wr-mobile-tabs{display:none}
 .wr-pane,.wr-mobile-tabs,#tplPanel,#bankPanel,#scorePanel,#dictationPanel{--wt-ink:var(--ink);--wt-ink-2:var(--ink-2);--wt-muted:var(--muted);--wt-line:var(--line);--wt-soft:var(--line-soft,var(--line));--wt-surface:var(--surface);--wt-teal:var(--primary);--wt-teal-700:var(--primary-700);--wt-teal-50:var(--primary-50);color:var(--ink)}
 .wr-pane,#tplPanel,#bankPanel,#scorePanel,#dictationPanel{width:100%;max-width:1180px;margin:0 auto}
 .wr-pane[hidden],#tplPanel[hidden],#bankPanel[hidden],#scorePanel[hidden],#dictationPanel[hidden]{display:none!important}
@@ -152,9 +153,11 @@ body:not(.exam-fullscreen):not(.mock-immerse):not(.word-fullscreen):not(.hub-exa
 @media(max-width:860px){
   body[data-shell="top"]:not(.exam-fullscreen) main.container>.hub-shell>.hub-main{padding:0 12px 28px}
   #writeTabs,.page-head-row:has(>#writeTabs){display:none!important}
-  .wr-mobile-tabs{display:flex;gap:7px;margin:0 -12px 12px;padding:10px 12px;background:var(--bg);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:12;overflow:visible}
-  .wr-mobile-tabs button{flex:1;min-width:0;min-height:44px;padding:0 4px;border:1px solid var(--line);border-radius:22px;background:var(--surface);color:var(--muted);font:inherit;font-size:12px;font-weight:650;white-space:nowrap}
-  .wr-mobile-tabs button.on{background:var(--primary-50);border-color:var(--primary-200);color:var(--primary-700)}
+  /* BANK-UI-1117：手机子导航统一成分段控件，和机经 / 口语 / 句子 / 回顾同一套。 */
+  .wr-mobile-tabs{display:flex;gap:2px;margin:0 0 12px;padding:3px;background:var(--surface-2);border:1px solid var(--line);border-radius:12px;position:sticky;top:6px;z-index:12;overflow:visible;box-shadow:0 1px 2px rgba(28,55,48,.035)}
+  .wr-mobile-tabs button{flex:1;min-width:0;height:32px;padding:0 4px;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--muted);font:inherit;font-size:12px;font-weight:650;white-space:nowrap;transition:background .16s,border-color .16s,color .16s}
+  .wr-mobile-tabs button:hover{background:var(--n-100);color:var(--ink)}
+  .wr-mobile-tabs button.on{background:var(--primary-50);border-color:var(--primary-100);color:var(--primary-700);font-weight:700;box-shadow:0 1px 2px rgba(16,24,40,.06)}
   .wr-qbank-bar{flex-wrap:wrap;gap:8px}
   .wr-seg{order:0}
   .wr-own{order:1;margin-left:auto;min-height:40px}
@@ -203,3 +206,22 @@ body:not(.exam-fullscreen):not(.mock-immerse):not(.word-fullscreen):not(.hub-exa
 }
 @media(max-width:380px){.wr-seg button{padding:0 10px}.wr-own{font-size:11px;padding:0 9px}.wr-qrow{padding:12px;gap:8px}.wr-qrow-title{font-size:12.5px}}
 @media(prefers-reduced-motion:reduce){.wr-qrow,.wr-qsearch,.wr-field-search{transition:none}}
+
+/* UI-SEG-1117：写作页分段控件与机经 / 口语 / 句子 / 回顾同一套。
+   浅灰轨道 + 白色选中块 + 细边 + 极轻投影，不再用主色实底胶囊。 */
+.wr-mobile-tabs button{font-size:12px}
+.wr-mobile-tabs button.on{background:var(--surface);border-color:var(--line);color:var(--primary-700);box-shadow:0 1px 2px rgba(16,24,40,.06)}
+#wrQKind{height:38px;padding:3px;gap:2px;border-radius:10px;background:var(--surface-2);border-color:var(--line)}
+#wrQKind button{height:30px;min-height:30px;padding:0 12px;border:1px solid transparent;border-radius:7px}
+#wrQKind button.on{background:var(--surface);border-color:var(--line);color:var(--primary-700);box-shadow:0 1px 2px rgba(16,24,40,.06)}
+/* UI-EMPTY-1117：记录空态收到与机经同一档的矮卡，不再铺满整屏。 */
+.wr-empty{min-height:260px;padding:32px 24px;border-style:solid;border-radius:14px}
+.wr-empty b{font-size:14px;margin-bottom:6px}
+.wr-empty-actions{margin-top:16px}
+.wr-empty-actions .wr-btn{min-height:36px}
+body:not(.exam-fullscreen):not(.mock-immerse):not(.word-fullscreen):not(.hub-exam-locked) #wrRecordsBody .wr-empty.wr-empty{padding:32px 24px!important;border:1px solid var(--line)!important;border-radius:14px!important;background-image:none!important}
+html[data-theme="dark"] .wr-mobile-tabs button.on,
+html[data-theme="dark"] #wrQKind button.on{background:var(--primary-50);border-color:var(--primary-100);box-shadow:none}
+@media(max-width:860px){
+  .wr-empty{min-height:260px}
+}

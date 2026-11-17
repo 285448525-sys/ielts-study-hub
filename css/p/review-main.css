@@ -197,10 +197,12 @@ body{background:var(--rva-bg)}
 @media(max-width:860px){
   #reviewMain .hub-main{padding:8px 0 22px;overflow:visible}
   #reviewMain .rva-page{max-width:none}
-  #reviewMain #rvMobileTabs{position:sticky;top:0;z-index:12;display:flex!important;gap:6px;overflow-x:auto;padding:6px 12px 8px;margin:0 0 8px;background:var(--rva-bg);border-bottom:1px solid var(--rva-line);scrollbar-width:none}
+  /* BANK-UI-1117：手机子导航统一成分段控件，和机经 / 口语 / 写作 / 句子同一套。 */
+  #reviewMain #rvMobileTabs{position:sticky;top:6px;z-index:12;display:flex!important;gap:2px;overflow-x:auto;padding:3px;margin:0 0 8px;background:var(--surface-2);border:1px solid var(--rva-line);border-radius:12px;box-shadow:0 1px 2px rgba(28,55,48,.035);scrollbar-width:none}
   .rva-mobile-tabs::-webkit-scrollbar{display:none}
-  .rva-mobile-tabs button{flex:none;min-height:36px;padding:0 15px;border:1px solid var(--rva-line);border-radius:18px;background:var(--rva-surface);color:var(--rva-muted);font:inherit;font-size:12.5px;font-weight:650;cursor:pointer}
-  .rva-mobile-tabs button.on{border-color:#cde5e1;background:var(--rva-teal-50);color:var(--rva-teal-d);font-weight:750}
+  .rva-mobile-tabs button{flex:1;min-width:0;height:32px;padding:0 8px;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--rva-muted);font:inherit;font-size:12px;font-weight:650;cursor:pointer;transition:background .16s,border-color .16s,color .16s}
+  .rva-mobile-tabs button:hover{background:var(--n-100);color:var(--rva-ink)}
+  .rva-mobile-tabs button.on{border-color:#cde5e1;background:var(--rva-teal-50);color:var(--rva-teal-d);font-weight:750;box-shadow:0 1px 2px rgba(16,24,40,.06)}
   .rva-page[data-rv-pane="home"]{margin:0 12px}
   .rva-page[data-rv-pane="trend"],.rva-page[data-rv-pane="records"]{margin:0 12px}
   .rva-primary{min-height:40px;padding:0 13px;font-size:12px}
@@ -250,4 +252,26 @@ body{background:var(--rva-bg)}
 }
 @media(prefers-reduced-motion:reduce){
   .rva-page *{scroll-behavior:auto!important;transition:none!important}
+}
+
+/* UI-SEG-1117：回顾页手机子导航与面板筛选统一成同一套分段控件。
+   浅灰轨道 + 白色选中块 + 细边 + 极轻投影。 */
+.rva-mobile-tabs button{font-size:12px}
+.rva-mobile-tabs button.on{background:var(--rva-surface);border-color:var(--rva-line);color:var(--rva-teal-d);box-shadow:0 1px 2px rgba(16,24,40,.06)}
+.rva-seg{height:32px;padding:3px;gap:2px;border-radius:9px;background:#f7f9f9;border-color:var(--rva-line)}
+.rva-seg button{height:24px;min-height:24px;padding:0 10px;border:1px solid transparent;border-radius:6px;font-size:11.5px}
+.rva-seg button.active{background:var(--rva-surface);border-color:var(--rva-line);color:var(--rva-teal-d);font-weight:750;box-shadow:0 1px 2px rgba(16,24,40,.06)}
+/* UI-EMPTY-1117：空态字号与机经 / 口语 / 写作对齐。 */
+.rva-empty b{font-size:14px}
+.rva-empty p{font-size:12px}
+.rva-empty .rva-primary{min-height:36px;font-size:12px}
+@media(max-width:860px){
+  /* 卡片本来就在 24px；只把导航补到同一左缘，不再比卡片宽一圈。 */
+  #reviewMain .hub-main{padding:8px 0 22px}
+  #reviewMain .rva-page[data-rv-pane="home"],
+  #reviewMain .rva-page[data-rv-pane="trend"],
+  #reviewMain .rva-page[data-rv-pane="records"]{margin:0 12px}
+  #reviewMain #rvMobileTabs{margin:0 12px 8px;background:#f7f9f9;border-color:var(--rva-line)}
+  .rva-seg{height:36px}
+  .rva-panel-head .rva-seg button{height:28px;min-height:28px}
 }
