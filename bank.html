@@ -2985,11 +2985,10 @@ html[data-theme="dark"] .bk2-mobile{background:rgba(24,28,30,.96)}
 .bk2-bar-val b{font-size:12.5px;font-weight:750;color:var(--ink)}
 .bk2-bar-val small{display:block;font-size:9.5px;color:var(--muted);line-height:1.25}
 
-/* 页底「机经是什么？」小标 */
-.bk2-help{display:flex;justify-content:flex-start;width:min(100%,720px);margin:0 auto;padding:20px 2px 2px}
-.bk2-help button{display:inline-flex;align-items:center;gap:5px;padding:2px 0;border:0;background:transparent;color:var(--muted);font:inherit;font-size:10.5px;line-height:1.5;cursor:pointer}
-.bk2-help button:hover{color:var(--primary-700)}
-.bk2-help .q{width:16px;height:16px;border:1px solid var(--line);border-radius:50%;display:grid;place-items:center;font-size:9px;font-weight:800;line-height:1}
+/* 整套卡左下角的「机经是什么？」入口 */
+.bk2-help-link{display:inline-flex;align-items:center;gap:5px;margin:1px 0 0;padding:0;border:0;background:transparent;color:var(--muted);font:inherit;font-size:10px;line-height:1.5;text-align:left;cursor:pointer}
+.bk2-help-link:hover{color:var(--primary-700)}
+.bk2-help-link .q{width:14px;height:14px;border:1px solid var(--line);border-radius:50%;display:grid;place-items:center;font-size:8px;font-weight:800;line-height:1}
 .bk2-help-dialog{width:min(420px,calc(100vw - 32px));padding:0;border:1px solid var(--line);border-radius:17px;background:var(--surface);color:var(--ink);box-shadow:0 24px 80px -24px rgba(20,40,35,.45)}
 .bk2-help-dialog::backdrop{background:rgba(28,38,35,.28);backdrop-filter:blur(2px)}
 .bk2-help-body{padding:24px 24px 20px}
@@ -3100,7 +3099,7 @@ html[data-theme="dark"] .bk2-mobile{background:rgba(24,28,30,.96)}
       <div id="fullEntry">
         <div class="full-card">
           <span class="bk-tag">整套</span>
-          <div class="bk-m"><span class="bk2-kicker">整套模考</span><b>阅读整套</b><span>3 篇 · 40 题 · 60 分钟 · 随机组卷</span></div>
+          <div class="bk-m"><span class="bk2-kicker">整套模考</span><b>阅读整套</b><span>3 篇 · 40 题 · 60 分钟 · 随机组卷</span><button class="bk2-help-link" type="button" data-bk2-help><span class="q">?</span>机经是什么？</button></div>
           <button class="btn-primary" type="button" data-fullstart disabled>开始一套<span aria-hidden="true"> ›</span></button>
           <!-- 10/18 列表页留痕：上次完整模考成绩（JS 填 paintFullLast）。静态占位 = 首帧即有高度，不抖 -->
           <div class="fc-last" data-full-last="reading"></div>
@@ -3142,7 +3141,7 @@ html[data-theme="dark"] .bk2-mobile{background:rgba(24,28,30,.96)}
       <div id="listenFullEntry">
         <div class="full-card">
           <span class="bk-tag">整套</span>
-          <div class="bk-m"><span class="bk2-kicker">整套模考</span><b>听力整套</b><span>4 篇 · 40 题 · 30 分钟 · 随机组卷</span></div>
+          <div class="bk-m"><span class="bk2-kicker">整套模考</span><b>听力整套</b><span>4 篇 · 40 题 · 30 分钟 · 随机组卷</span><button class="bk2-help-link" type="button" data-bk2-help><span class="q">?</span>机经是什么？</button></div>
           <button class="btn-primary" type="button" data-lfullstart disabled>开始一套<span aria-hidden="true"> ›</span></button>
           <div class="fc-last" data-full-last="listening"></div>
         </div>
@@ -3180,7 +3179,6 @@ html[data-theme="dark"] .bk2-mobile{background:rgba(24,28,30,.96)}
         <section class="bk2-pane" data-bkpanel="wrong" id="bk2Wrong"></section>
         <section class="bk2-pane" data-bkpanel="stats" id="bk2Stats"></section>
       </div>
-      <div class="bk2-help"><button type="button" id="bk2HelpBtn"><span class="q">?</span>机经是什么？</button></div>
     </div><!-- /.hub-main -->
   </div><!-- /.hub-shell -->
 
@@ -3226,7 +3224,7 @@ html[data-theme="dark"] .bk2-mobile{background:rgba(24,28,30,.96)}
 <!-- 11-13 BANK-EXTEND-1 第 1 期：题目记录 / 错题集 / 正确率统计三板块。
      独立模块自带可见 5 个 tab、纯读 DATA.mockRecords[].detail，不碰判分、不改既有两科 DOM。
      放在业务脚本之后：软导航按 HTML 声明顺序 eval，此时 bank.js / DATA / manifest 都已就位。 -->
-<script defer src="js/bank-records.js?v=20261116h"></script>
+<script defer src="js/bank-records.js?v=20261117a"></script>
 <style id="rvCaInFix">
 .ex-ca-in{display:inline-block;font:inherit;color:#1f7a5c;line-height:1.4;vertical-align:middle;flex:none}
 </style>

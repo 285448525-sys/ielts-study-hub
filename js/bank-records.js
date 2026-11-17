@@ -361,14 +361,15 @@
   }
 
   function bindHelp() {
-    var btn = $('#bk2HelpBtn'), dlg = $('#bk2HelpDialog'), close = $('#bk2HelpClose');
-    if (btn && !btn.__bk2Bound) {
+    var btns = $$('[data-bk2-help], #bk2HelpBtn'), dlg = $('#bk2HelpDialog'), close = $('#bk2HelpClose');
+    btns.forEach(function (btn) {
+      if (btn.__bk2Bound) return;
       btn.__bk2Bound = true;
       btn.addEventListener('click', function () {
         if (dlg && typeof dlg.showModal === 'function') dlg.showModal();
         else if (dlg) dlg.setAttribute('open', '');
       });
-    }
+    });
     if (close && !close.__bk2Bound) {
       close.__bk2Bound = true;
       close.addEventListener('click', function () { if (dlg && typeof dlg.close === 'function') dlg.close(); else if (dlg) dlg.removeAttribute('open'); });
