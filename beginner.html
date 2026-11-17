@@ -59,6 +59,9 @@
 .bn-can li,.bn-cannot li{position:relative;padding-left:24px;margin-bottom:10px;list-style:none;color:var(--ink-2)}
 .bn-can li::before{content:"✓";position:absolute;left:2px;top:0;color:var(--primary-500);font-weight:800}
 .bn-cannot li::before{content:"—";position:absolute;left:2px;top:0;color:var(--n-500);font-weight:800}
+/* 第 7 节列表不再加点和勾，正文直接左对齐 */
+.bn-can li::before,.bn-cannot li::before{display:none}
+.bn-page .bn-can li,.bn-page .bn-cannot li{padding-left:0}
 .bn-cannot{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-top:4px}
 .bn-cannot li{color:var(--muted);margin-bottom:8px}
 .bn-cannot li:last-child{margin-bottom:0}
