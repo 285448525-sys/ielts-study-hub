@@ -235,6 +235,8 @@
     var host = document.getElementById('opts');
     if(!host || !cur) return;
     ACTIVE = null;
+    var previousInput = document.getElementById('wddInput');
+    if(previousInput) previousInput.blur();
     var answer = String(cur.en || '');
     var ipaText = fmtIpa(cur.ipa);
     host.className = 'opts-grid wdd-stage';
@@ -288,6 +290,8 @@
     var progressText = document.getElementById('wddProgressText');
     var actions = document.querySelector('#practiceBody .answer-btns');
     var state = 'answering';                        // answering | correct | wrong
+    var mountedAt = performance.now();
+    var earlyInput = '';
 
     /* 听写态不展示「不知道 / 已掌握 / 撤销 / 听写记录」这一行。
        只隐藏，不删节点与事件；非听写模式仍照常用。 */
@@ -360,13 +364,14 @@
         input.readOnly = true;
         answerCard.hidden = true;
         setStatus('good', '正确');
-        /* 保留答题反馈一拍，再进入下一题；必须现在清掉旧计时，不能等下一帧。 */
+        /* 保留正确反馈一拍再进题。judge 产生的旧计时立即取消，
+           防止它早于本题的交接动作，导致新旧输入框连续替换、首键丢失。 */
         try{
           if(typeof pq !== 'undefined' && pq && pq.advanceTimer){
             clearTimeout(pq.advanceTimer);
             pq.advanceTimer = null;
             var answered = cur;
-            setTimeout(function(){
+            setTimeout(function advance(){
               if(ACTIVE && ACTIVE.word === answer && pq && pq.revealed && pq.answer === answered) nextQuestion();
             }, 160);
           }
@@ -408,6 +413,21 @@
 
     input.addEventListener('keydown', function(e){
       var k = e.key;
+      if(performance.now() - mountedAt < 250){
+        if(k === 'Enter'){
+          e.preventDefault();
+          setTimeout(judgeNow, Math.max(0, 260 - (performance.now() - mountedAt)));
+          return;
+        }
+        if(k && k.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey){
+          e.preventDefault();
+          earlyInput += k;
+          input.value = earlyInput;
+          renderTyped();
+          keyClick(k, type);
+          return;
+        }
+      }
       if(k === 'Enter'){
         e.preventDefault();
         keyClick('Enter', type);
@@ -444,7 +464,10 @@
     ACTIVE = { word: answer, afterJudge: afterJudge, unknown: unknownAnswer };
     renderTyped();
     updateProgress();
-    setTimeout(focusInput, 60);
+    setTimeout(function(){
+      focusInput();
+      if(earlyInput){ input.value = earlyInput; renderTyped(); }
+    }, 60);
   }
 
   function afterJudge(_cur, ok){
