@@ -178,7 +178,8 @@
     try{Object.keys(window.__OB.banks||{}).forEach(function(id){var d=(window.__OB.banks[id].dayStats||{})[key];if(d)n+=num(d.totalWords);});}catch(e){}
     return n;
   }
-  function renderStat(){
+  var statSeq = 0, statTries = 0;
+  function paintStat(){
     var range=$('wbStatRange');if(range)range.innerHTML=[7,30].map(function(n){return '<button type="button" class="'+(n===statRange?'on':'')+'" data-wb-range="'+n+'">最近 '+n+' 天</button>';}).join('');
     var today=typeof todayKey==='function'?todayKey():'', days=[], sum=0, max=1;
     for(var i=statRange-1;i>=0;i--){var key=addDays(today,-i),n=dayWords(key);sum+=n;if(n>max)max=n;days.push({key:key,n:n});}
@@ -192,6 +193,27 @@
     setText('wbStatPct',pct+'%');setText('wbStatM',c.m);setText('wbStatL',c.l);setText('wbStatN',c.n);
     $('wbStatRing').style.strokeDasharray=circle+' 283';
     $('wbStatProg').innerHTML=books().map(function(b){var bc=counts(b.id),p=bc.t?Math.round(bc.m/bc.t*100):0;return '<div class="wv-stat-prow"><span>'+esc(b.nm)+'</span><i><b style="width:'+p+'%"></b></i><span>'+p+'%</span></div>';}).join('');
+  }
+  function renderStat(){
+    var seq = ++statSeq;
+    statTries = 0;
+    paintStat();
+    /* 官方词库是按需加载的：先画一帧现有值，等 7 本都就绪后重画，
+       否则「各词书进度」会整排 0%，环图也只算得到当前这本。 */
+    loadStatBanks(seq);
+  }
+  function loadStatBanks(seq){
+    var list = books();
+    if(!list.length){
+      /* 深链 #wb=data 会早于 __WM_BOOKS 初始化，稍等再取一次，最多约 3 秒。 */
+      if(statTries++ < 20) setTimeout(function(){ if(seq === statSeq) loadStatBanks(seq); }, 250);
+      return;
+    }
+    if(typeof obBankReady !== 'function') return;
+    Promise.all(list.map(function(b){
+      if(b.id === 'custom') return Promise.resolve();
+      try{ return obBankReady(b.id).catch(function(){}); }catch(e){ return Promise.resolve(); }
+    })).then(function(){ if(seq === statSeq) paintStat(); }).catch(function(){});
   }
   function openSettings(){renderSettings();$('wbSetDialog').hidden=false;}
   function renderSettings(){

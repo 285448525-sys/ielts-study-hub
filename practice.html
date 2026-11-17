@@ -330,6 +330,45 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
   .wb-mobile-tabs button.on{background:var(--primary,#5cb3ab);border-color:var(--primary,#5cb3ab);color:#fff;font-weight:650}
 }
 .wb-pane{padding:0;max-width:none}
+/* 侧栏今日任务：与写作/口语/机经共用一套 hub-td 结构。
+   字符串样式放在本页内并用 #hubTd 提权，避免依赖别处仍在改的共享壳。 */
+#hubTd{margin:12px 18px 0;padding:11px 12px 9px;border:1px solid var(--line,#e6e9ea);
+  border-radius:12px;background:var(--surface-2,#fafbfc);flex:none}
+#hubTd .hub-td-head{display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:0 2px;margin-bottom:3px}
+#hubTd .hub-td-head b{font-size:11.5px;font-weight:750;color:var(--ink,#24272c)}
+#hubTd .hub-td-count{padding:1px 7px;border:1px solid var(--line,#e6e9ea);border-radius:999px;
+  background:var(--surface,#fff);font-size:10px;font-weight:700;color:var(--muted,#71767e);
+  font-variant-numeric:tabular-nums;line-height:1.5}
+#hubTd .hub-task{display:flex;align-items:flex-start;gap:7px;width:100%;padding:7px 2px;
+  border:none;border-radius:8px;background:transparent;font:inherit;color:inherit;
+  text-align:left;cursor:pointer}
+#hubTd .hub-task:hover{background:var(--n-100,#f5f6f8)}
+#hubTd .hub-tick{width:17px;height:17px;margin-top:1px;border-radius:5px;
+  border:1.5px solid var(--n-400,#d4d7dc);flex:none;display:grid;place-items:center;
+  background:var(--surface,#fff);transition:border-color .15s,background .15s}
+#hubTd .hub-tick svg{width:11px;height:11px;opacity:0}
+#hubTd .hub-task.done .hub-tick{background:var(--primary,#3a9a93);border-color:var(--primary,#3a9a93)}
+#hubTd .hub-task.done .hub-tick svg{opacity:1}
+#hubTd .hub-tx{min-width:0;flex:1}
+#hubTd .hub-tx b{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+  font-size:12px;font-weight:600;line-height:1.55;color:var(--ink,#24272c);overflow-wrap:anywhere}
+#hubTd .hub-tx small{display:block;margin-top:1px;font-size:10px;line-height:1.5;color:var(--muted,#71767e)}
+#hubTd .hub-task.done .hub-tx b{color:var(--muted,#71767e);text-decoration:line-through}
+#hubTd .hub-task.done .hub-tx small{color:var(--muted,#9aa1a8)}
+#hubTd .hub-td-empty{padding:4px 2px 6px;font-size:11.5px;color:var(--muted,#71767e);flex:none}
+#hubTd .hub-td-more{display:flex;align-items:center;justify-content:space-between;margin-top:5px;
+  padding:7px 2px 2px;border-top:1px solid var(--line,#e6e9ea);font-size:10.5px;
+  font-weight:650;color:var(--primary-700,#2c7873);text-decoration:none}
+#hubTd .hub-td-more:hover{color:var(--primary,#3a9a93)}
+#hubTd .hub-td-more svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round}
+/* 错词页页头：与下方卡片同一条左基线，不再孤零零贴在容器右缘 */
+.wb-wrong-head{display:flex;align-items:center;justify-content:space-between;gap:12px;
+  margin:0 0 14px;padding:0 2px}
+.wb-wrong-heading{display:flex;align-items:baseline;gap:8px;min-width:0}
+.wb-wrong-heading b{font-size:15px;font-weight:750;color:var(--ink,#1f2328)}
+#wbWrongCount{font-size:11.5px;color:var(--muted,#71767e)}
 .wb-pane-head{margin-bottom:18px}
 .wb-pane-head h2{margin:0;font-size:20px;font-weight:750;color:var(--ink,#1f2328)}
 .wb-empty{padding:40px 18px;text-align:center;color:var(--muted,#9aa1a8);font-size:13.5px}
@@ -627,12 +666,12 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
         <div class="hub-subs" id="hubSubs"></div>
         <div class="hub-subs" id="wbNav"></div>
         <div class="hub-side-div"></div>
-        <div class="hub-td-head"><b>今天</b></div>
-        <div class="hub-td-prog" id="hubTdProg"></div>
-        <div class="hub-td-group" id="hubTdPending"></div>
-        <div class="hub-td-group" id="hubTdDone"></div>
-        <div class="hub-td-empty" id="hubTdEmpty" hidden>今天还没有任务</div>
-        <div class="hub-side-foot"><a href="plans.html">去计划页查看全部 ›</a></div>
+        <section class="hub-td" id="hubTd" aria-label="今日任务">
+          <div class="hub-td-head"><b>今日任务</b><span class="hub-td-count" id="hubTdCount" hidden>0/0</span></div>
+          <div class="hub-td-list" id="hubTdList"></div>
+          <div class="hub-td-empty" id="hubTdEmpty" hidden>今天还没有任务</div>
+          <a class="hub-td-more" href="plans.html">去计划页查看全部<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></a>
+        </section>
       </div>
     </aside>
     <div class="hub-main">
@@ -668,19 +707,16 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
       <div class="wd-card wd-today-card wv-study">
         <div class="wd-top">
           <span class="wv-kicker">今天</span>
-          <div class="wv-today-goal">目标 <b id="wdGoal">—</b><span class="wd-u">个词</span></div>
+          <h3 class="wv-hero-h">还剩 <b id="wdLeft">—</b> 个词</h3>
+          <p class="wv-hero-sub">已学 <b id="wdDone">0</b> / 目标 <b id="wdGoal">—</b></p>
         </div>
         <div class="wd-bar wv-progress"><i id="wdBar" style="width:0%"></i></div>
-        <div class="wd-tri">
-          <div class="wd-num" hidden><em><i class="wd-i-grey"></i>今日上限</em><b id="wdCap">—</b></div>
-          <div class="wd-num"><em><i class="wd-i-mint"></i>今日已学</em><b id="wdDone">0</b></div>
-          <div class="wd-num"><em><i class="wd-i-amber"></i>答错待巩固</em><b id="wdWrong">0</b></div>
-        </div>
+        <div class="wv-progress-label"><span id="wdPct">0%</span><span id="wdEta">—</span></div>
         <div class="wd-go-row">
           <button class="wd-btn wd-btn-p wd-btn-lg wv-primary" id="wdStartBtn" type="button">继续今天的练习</button>
         </div>
         <button class="wv-hero-card" id="wbPreviewCard" type="button">
-          <span class="wv-hero-card-top"><span>正在学</span><span>当前词书</span></span>
+          <span class="wv-hero-card-top"><span>正在学</span><span id="wbPreviewIndex">— / —</span></span>
           <span class="wv-hero-card-body"><span class="wv-hero-eyebrow">WORD OF THE MOMENT</span><span class="wv-hero-word" id="wbPreviewWord">—</span><span class="wv-hero-ipa" id="wbPreviewIpa"></span><span class="wv-hero-cn" id="wbPreviewCn"></span></span>
           <span class="wv-hero-card-foot"><span id="wbPreviewMode">看词选义</span><span>点击预览 →</span></span>
         </button>
@@ -843,7 +879,10 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
     <!-- 4 个功能视图：与 #vMall 并列，全部 hidden 起步，由 js/wb-tabs.js 的 show() 切 hidden。
          任务1 只给骨架 + 只读真值 + 诚实空态；交互与联动见任务 2~5 逐页补。 -->
     <section class="wb-pane wb-wrong-pane" data-wb-pane="wrong" hidden>
-      <div class="wb-wrong-tools"><span id="wbWrongCount"></span><button type="button" class="wv-secondary" id="wbWrongReview">重练这些词</button></div>
+      <div class="wb-wrong-head">
+        <div class="wb-wrong-heading"><b>错词本</b><span id="wbWrongCount"></span></div>
+        <button type="button" class="wv-secondary" id="wbWrongReview">重练这些词</button>
+      </div>
       <div class="wv-empty" id="wbWrongEmpty" hidden>还没有错词</div>
       <div class="wv-wrong-list" id="wbWrongList" hidden></div>
     </section>
@@ -1214,15 +1253,27 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
     }catch(e){}
     /* 上限 0 = 不限 → 大数字退回「到期口径」，与首页 wordPlan 同一条规则 */
     var goal = cap > 0 ? cap : dueOf();
+    var left = Math.max(0, goal - done), pct = goal > 0 ? Math.min(100, Math.round(done / goal * 100)) : 0;
     setTxt('wdCurName', bookLabel());
     setTxt('wdCurMeta', metaText());
     setTxt('wdExBook', bookLabel());
+    setTxt('wdLeft', goal > 0 ? left : '—');
     setTxt('wdGoal', goal > 0 ? goal : '—');
     setTxt('wdCap', cap > 0 ? cap : '不限');
     setTxt('wdDone', done);
     setTxt('wdWrong', wrongOf());
+    setTxt('wdPct', cap > 0 ? pct + '%' : '—');
+    var mins = Math.max(1, Math.round(left * .5));
+    setTxt('wdEta', goal > 0 ? (left > 0 ? (cap > 0 ? (mins >= 120 ? '约 ' + Math.round(mins / 60) + ' 小时' : '约 ' + mins + ' 分钟') : '今日不限') : '今天已完成') : '—');
+    var idx = $('wbPreviewIndex');
+    if (idx){
+      if (goal > 0){
+        var pos = Math.min(goal, done + 1);
+        idx.textContent = (pos < 10 ? '0' : '') + pos + ' / ' + (goal < 10 ? '0' : '') + goal;
+      } else idx.textContent = '— / —';
+    }
     var bar = $('wdBar');
-    if (bar) bar.style.width = (goal > 0 ? Math.min(100, Math.round(done / goal * 100)) : 0) + '%';
+    if (bar) bar.style.width = pct + '%';
     var btn = $('wdStartBtn');
     if (btn) btn.textContent = (cap > 0 && done >= cap) ? '今天的目标已完成 · 再练一轮' : '继续今天的练习';
     syncModeTxt();
@@ -2260,13 +2311,8 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
   }
   /* 「今日已学 / 上限」：与答题态底部 #wdQAll/#wdQLeft 同源，用现成的字段，不新算 */
   function todayNumbers(){
-    var done = 0, cap = 0;
-    try{
-      var d = $('wdDone'), c = $('wdCap');
-      done = d ? (parseInt(String(d.textContent).replace(/\D/g,''), 10) || 0) : 0;
-      cap  = c ? (parseInt(String(c.textContent).replace(/\D/g,''), 10) || 0) : 0;
-    }catch(e){}
-    return { done: done, cap: cap };
+    /* 直接复用今日卡的同一份口径，不再从已删掉的「今日上限」节点抠数字。 */
+    try{ return { done: doneOf(), cap: capOf() }; }catch(e){ return { done: 0, cap: 0 }; }
   }
 
   function paintSwitcher(){
@@ -2392,8 +2438,8 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
 
 <link rel="stylesheet" href="css/p/hub-shell.css?v=20261117a" />
 <script defer src="js/hub-side-shell.js?v=20261106b"></script>
-<link rel="stylesheet" href="css/p/word-master.css?v=20261117a" />
-<script defer src="js/wb-tabs.js?v=20261117b"></script>
+<link rel="stylesheet" href="css/p/word-master.css?v=20261117b" />
+<script defer src="js/wb-tabs.js?v=20261117c"></script>
 </body>
 </html>
 
