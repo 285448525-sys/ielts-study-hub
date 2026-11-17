@@ -74,14 +74,18 @@ body{
 .card .desc{margin:4px 0 12px;font-size:12.5px;color:var(--ink3);line-height:1.65}
 .card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
 .card-head .r{display:flex;gap:8px;align-items:center;flex:none}
-/* ---- 密钥门 ---- */
+/* ---- 账号门 ---- */
 #gate{max-width:400px;margin:14vh auto 0;text-align:center;padding:26px 26px 22px}
 #gate h2{font-size:17px;margin:0 0 4px}
+#gate .desc{margin:4px 0 16px}
 #gate input{width:100%;height:44px;border:1px solid var(--line2);border-radius:9px;padding:0 13px;font-size:15px;outline:none;margin-top:14px;
   background:var(--surface);color:var(--ink)}   /* B-NEW-DARK3b：原来没设底色 → 深色下是浏览器默认白框 */
 #gate input:focus{border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-50)}
 #gate .btn{margin-top:12px;width:100%;height:42px}
 #gate .tip{font-size:12px;color:var(--ink3);margin-top:14px;line-height:1.7}
+#gateRecover{margin-top:18px}
+#gateRecover summary{cursor:pointer;color:var(--ink3);font-size:12.5px}
+#gateRecover .tip{text-align:left}
 .err{color:var(--bad);font-size:12.5px;margin-top:8px;min-height:16px}
 /* ---- 控件 ---- */
 .btn{height:34px;padding:0 14px;border:1px solid var(--teal);border-radius:8px;background:var(--teal);
@@ -383,14 +387,18 @@ details.more .body{padding:0 16px 8px}
 </head>
 <body>
 
-<!-- 密钥门 -->
+<!-- 账号门 -->
 <div id="gate" class="card">
   <h2>站长面板</h2>
-  <p class="desc">输入管理员密钥（ADMIN_KEY）进入</p>
-  <input aria-label="站长后台密钥" id="keyInput" type="password" placeholder="ADMIN_KEY" autocomplete="off" />
+  <p class="desc" id="gateDesc">正在验证站长账号…</p>
+  <a class="btn ghost hidden" id="gateLogin" href="login.html">去登录</a>
   <div class="err" id="gateErr"></div>
-  <button class="btn" id="gateBtn" type="button">进 入</button>
-  <p class="tip">密钥 = Cloudflare 环境变量 ADMIN_KEY，只存在本浏览器 sessionStorage，关标签页即失效。<br />面板与学习站数据完全隔离，任何操作不影响用户数据。</p>
+  <details id="gateRecover">
+    <summary>找回权限</summary>
+    <input aria-label="站长后台密钥" id="keyInput" type="password" placeholder="ADMIN_KEY" autocomplete="off" />
+    <button class="btn" id="gateBtn" type="button">验证并进入</button>
+    <p class="tip">仅用于首次授权或找回权限。日常进入只需登录站长账号。</p>
+  </details>
 </div>
 
 <!-- 面板主体 -->
@@ -734,14 +742,40 @@ details.more .body{padding:0 16px 8px}
   var _fbLoading = {};     /* id → true（请求中，防连点） */
   var $ = function(id){ return document.getElementById(id); };
   var key = '';
+  var session = '';
   try{ key = sessionStorage.getItem(KEY) || ''; }catch(e){}
-  if(key){ enter(); }
+  try{ session = localStorage.getItem('hub_auth_token') || ''; }catch(e){}
 
   function enter(){
+    $('lockBtn').textContent = session ? '返回学习站' : '锁定退出';
     $('gate').classList.add('hidden');
     $('panel').classList.remove('hidden');
     load();
   }
+
+  function showGate(message, showLogin){
+    $('panel').classList.add('hidden');
+    $('gate').classList.remove('hidden');
+    $('gateDesc').textContent = message || '请使用站长账号登录。';
+    $('gateErr').textContent = '';
+    $('gateLogin').classList.toggle('hidden', !showLogin);
+  }
+
+  function boot(){
+    if(!session && !key){ showGate('请使用站长账号登录。', true); return; }
+    api('overview', {}, function(r){
+      if(r.ok){ enter(); return; }
+      if(r.status === 401){
+        session = '';
+        try{ localStorage.removeItem('hub_auth_token'); }catch(e){}
+      }
+      if(session && !key){ showGate((r.j && r.j.msg) || '当前账号没有站长权限', false); return; }
+      try{ sessionStorage.removeItem(KEY); }catch(e){}
+      key = '';
+      showGate(session ? '当前账号没有站长权限，可在下方找回权限。' : '请使用站长账号登录，或在下方找回权限。', !session);
+    }, true);
+  }
+  boot();
 
   function gateTry(){
     key = ($('keyInput').value || '').trim();
@@ -751,6 +785,7 @@ details.more .body{padding:0 16px 8px}
     api('overview', {}, function(r){
       $('gateBtn').disabled = false;
       if(r.ok){
+        session = '';
         try{ sessionStorage.setItem(KEY, key); }catch(e){}
         enter();
       } else {
@@ -762,9 +797,12 @@ details.more .body{padding:0 16px 8px}
   $('keyInput').addEventListener('keydown', function(e){ if(e.key === 'Enter') gateTry(); });
 
   function api(action, payload, cb, skipEnter){
+    var headers = { 'Content-Type':'application/json' };
+    if(session) headers['X-Session'] = session;
+    if(key) headers['X-Admin-Key'] = key;
     fetch('api/admin', {
       method:'POST',
-      headers:{ 'Content-Type':'application/json', 'X-Admin-Key': key },
+      headers:headers,
       body: JSON.stringify(Object.assign({ action: action }, payload || {}))
     }).then(function(r){
       return r.json().catch(function(){ return {}; }).then(function(j){ cb({ status:r.status, j:j, ok:r.ok && j.ok }); });
@@ -838,11 +876,13 @@ details.more .body{padding:0 16px 8px}
       if(!r.ok){
         if(cached){ showStale('fail', cached.ts); return; }
         showStale(null, 0);
-        if(r.status === 401){ /* 密钥失效：回密钥门 */
+        if(r.status === 401 || r.status === 403){ /* 身份失效：回账号门 */
           try{ sessionStorage.removeItem(KEY); }catch(e){}
-          $('panel').classList.add('hidden');
-          $('gate').classList.remove('hidden');
-          $('gateErr').textContent = (r.j && r.j.msg) || '密钥校验失败';
+          if(r.status === 401){
+            session = '';
+            try{ localStorage.removeItem('hub_auth_token'); }catch(e){}
+          }
+          showGate((r.j && r.j.msg) || '站长身份校验失败', !session);
           return;
         }
         alert('加载失败：' + ((r.j && r.j.msg) || ('HTTP ' + r.status)));
@@ -854,11 +894,13 @@ details.more .body{padding:0 16px 8px}
       render();
       showStale(null, 0);
       if(!r.ok){
-        if(r.status === 401){ /* 密钥失效：回密钥门 */
+        if(r.status === 401 || r.status === 403){ /* 身份失效：回账号门 */
           try{ sessionStorage.removeItem(KEY); }catch(e){}
-          $('panel').classList.add('hidden');
-          $('gate').classList.remove('hidden');
-          $('gateErr').textContent = (r.j && r.j.msg) || '密钥校验失败';
+          if(r.status === 401){
+            session = '';
+            try{ localStorage.removeItem('hub_auth_token'); }catch(e){}
+          }
+          showGate((r.j && r.j.msg) || '站长身份校验失败', !session);
           return;
         }
         alert('加载失败：' + ((r.j && r.j.msg) || ('HTTP ' + r.status)));
@@ -870,11 +912,12 @@ details.more .body{padding:0 16px 8px}
   }
   $('refreshBtn').addEventListener('click', load);
   $('lockBtn').addEventListener('click', function(){
+    if(session){ location.href = 'home.html'; return; }
     try{ sessionStorage.removeItem(KEY); }catch(e){}
     key = ''; DATA = null;
-    $('panel').classList.add('hidden');
-    $('gate').classList.remove('hidden');
     $('keyInput').value = '';
+    $('gateRecover').open = false;
+    boot();
   });
 
   function render(){

@@ -1,8 +1,8 @@
 ﻿// Cloudflare Pages Function: /api/admin —— 站长管理面板后端（她 10/1 要求：不进 CF 后台也能管站）
 // 页面入口 = admin.html（noindex，不进站内导航，不进 SW 预缓存）。
 //
-// 安全模型：全部 action 要求请求头 X-Admin-Key === 环境变量 ADMIN_KEY（密钥只在她的浏览器
-// sessionStorage 里，不落库、不进学习站数据）。面板与学习站完全独立（admin.html 不加载 common.js）。
+// 安全模型：已登录的 root 凭 X-Session 直接进入；首次授权 / 找回权限仍可用 X-Admin-Key。
+// 两种身份都在服务端逐项校验，任何读取异常均不放行。面板与学习站完全独立（admin.html 不加载 common.js）。
 //
 // 能力（她点名的「看到所有用户的数据」 + 商业化第一块基建）：
 //   overview       一次性拉全量：用户列表（账号+注册时间）、邀请码列表（码/限用/已用）、
@@ -40,7 +40,7 @@
 //                                          { user:{14 键 bool}, teacher:{14 键 bool} }，root 不进配置
 
 import { PERM_DEFAULTS, loadPermCfg } from './roles.js';   // 11-14 第三批：权限默认矩阵与配置校验唯一权威来源
-import { rotateAuthGen } from './auth.js';
+import { rotateAuthGen, readSession } from './auth.js';
 
 /* 会员档位只升不降：30 天会员续 7 天仍是月卡档，7 天卡续两次仍是周卡档。 */
 function vipTierDays(vip) {
@@ -63,7 +63,7 @@ function vipTierDays(vip) {
 const CORS = {
   'access-control-allow-origin': '*',
   'access-control-allow-methods': 'POST, OPTIONS',
-  'access-control-allow-headers': 'Content-Type, X-Admin-Key',
+  'access-control-allow-headers': 'Content-Type, X-Admin-Key, X-Session',
   'access-control-max-age': '86400',
 };
 const INV_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';   // 与旧恢复码同口径：去易混字符
@@ -306,12 +306,28 @@ export async function onRequest(context) {
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
   if (request.method !== 'POST') return json({ ok: false, error: '只支持 POST' }, 405);
   if (!env || !env.SYNC_KV) return json({ ok: false, error: 'kv_not_bound', msg: '云端存储未绑定（SYNC_KV）' }, 503);
-  if (!env.ADMIN_KEY) return json({ ok: false, error: 'no_admin_key', msg: '未配置 ADMIN_KEY 环境变量（Cloudflare 后台 → Settings → Environment variables）' }, 503);
+  const kv = env.SYNC_KV;
+  let root = false;
+  const sess = await readSession(kv, request, null, false);
+  if (sess) {
+    try { root = (await kv.get('role:' + sess.acct)) === 'root'; } catch (e) {}
+  }
+  if (root) {
+    let rootBody = {};
+    try { rootBody = await request.json(); } catch (e) {}
+    return handleAdmin(context, rootBody);
+  }
+  if (!env.ADMIN_KEY) return json({ ok: false, error: sess ? 'forbidden' : 'no_admin_key', msg: sess ? '当前账号没有站长权限' : '未配置 ADMIN_KEY 环境变量（Cloudflare 后台 → Settings → Environment variables）' }, sess ? 403 : 503);
   const key = String(request.headers.get('X-Admin-Key') || '');
-  if (!key || !secretEqual(key, env.ADMIN_KEY)) return json({ ok: false, error: 'forbidden', msg: '管理员密钥不正确' }, 401);
+  if (!key || !secretEqual(key, env.ADMIN_KEY)) return json({ ok: false, error: 'forbidden', msg: sess ? '当前账号没有站长权限' : '请登录站长账号，或使用找回权限' }, sess ? 403 : 401);
 
   let body = {};
   try { body = await request.json(); } catch (e) {}
+  return handleAdmin(context, body);
+}
+
+async function handleAdmin(context, body) {
+  const { env } = context;
   const kv = env.SYNC_KV;
   const action = body.action;
   const day = dayKeyUTC(new Date());
