@@ -91,7 +91,7 @@
   <script defer src="js/sp-diag.js?v=20261023a"></script>
   <!-- 10-24 T-009 S-5：F 区（详情页与保存，含 515 行 openDetail）拆出 js/sp-detail.js（761 行）。
        F 是最顶层的域（调用 A/I/G/J/H/E/K 七个域）→ 排在最后、紧邻 speaking.js 之前。 -->
-  <script defer src="js/sp-detail.js?v=20261116a"></script>
+  <script defer src="js/sp-detail.js?v=20261116d"></script>
   <script defer src="js/speaking.js?v=20261117c"></script>
   <!-- 10-22 她要求：「句型闯关」这个老引擎整个删掉（页面 / 引擎 / 数据全部下线）。
        已同步删掉 js/pattern-drill.js、pattern-drill.html、data/patterns.json 与 #pdView 界面；
@@ -1730,23 +1730,29 @@ body.mock-immerse #mockStage{border:0;box-shadow:none;background:transparent}
 .mat-add:hover{background:var(--primary-50);border-style:solid;border-color:var(--primary-200)}
 
 /* ============ T-017a 两栏骨架（精确 CSS 里没有，按任务书 §一 尺寸补） ============ */
-.mat-flow{display:grid;grid-template-columns:268px minmax(0,1fr);gap:20px;align-items:start;max-width:1160px}
+.mat-flow{display:grid;grid-template-columns:248px minmax(0,1fr);gap:22px;align-items:start;max-width:1180px}
 .mat-side{position:sticky;top:16px}
-.mat-steps{display:flex;flex-direction:column;gap:2px;margin:0 0 18px}
-.mat-step{display:flex;align-items:flex-start;gap:10px;padding:10px 12px 10px 14px;border-radius:var(--radius-sm);position:relative}
+.mat-steps{display:flex;flex-direction:column;gap:0;margin:0 0 16px}
+.mat-step{display:flex;align-items:flex-start;gap:10px;padding:9px 12px 9px 14px;border-radius:var(--radius-sm);position:relative}
+.mat-step + .mat-step::before{content:"";position:absolute;left:24px;top:-9px;width:2px;height:18px;background:var(--line)}
 .mat-step.on{background:var(--primary-50)}
-.mat-step.on::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:2px;background:var(--primary-500)}
+.mat-step.on + .mat-step::before{background:var(--primary-300)}
 .mat-step-n2{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;flex:none;border-radius:50%;
   background:var(--surface-2);border:1px solid var(--line);color:var(--muted);font-size:11px;font-weight:800}
 .mat-step.on .mat-step-n2{background:var(--primary-500);border-color:var(--primary-500);color:#fff}
 .mat-step b{display:block;font-size:13.5px;font-weight:800;color:var(--ink);line-height:1.5}
 .mat-step i{display:block;font-size:11.5px;font-style:normal;color:var(--muted);line-height:1.5;margin-top:1px}
-.mat-why-side{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px}
-.mat-why-side>b{display:block;font-size:12.5px;font-weight:800;color:var(--primary-800);margin-bottom:8px}
-.mat-why-side p{font-size:12.8px;line-height:1.75;color:var(--ink-2);margin:0 0 8px}
+.mat-why-side{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px}
+.mat-why-side>b{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:800;color:var(--primary-800);margin-bottom:7px}
+.mat-why-side>b::before{content:"";flex:none;width:6px;height:6px;border-radius:50%;background:var(--primary-500)}
+.mat-why-side p{font-size:12.5px;line-height:1.7;color:var(--ink-2);margin:0 0 7px}
 .mat-why-side p:last-child{margin-bottom:0}
 .mat-why-side b{color:var(--primary-800)}
 .mat-main{min-width:0}
+/* 生成区收尾盒（11-18 她批注 2）：突出主操作，统一收尾 */
+.mat-genbox{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px}
+.mat-genbox .mat-sec-title{margin:0 0 10px}
+.mat-genbox .mat-actions{margin:0}
 @media (max-width:960px){
   .mat-flow{grid-template-columns:1fr}
   .mat-side{position:static}
@@ -2215,6 +2221,20 @@ body.mock-immerse .hub-topbar{display:none !important}
 .mi-page .mi-note{border-radius:10px;background:var(--line2);padding:11px 14px;
   font-size:12.5px;color:var(--ink-2);line-height:1.75;margin-top:14px}
 .mi-page .mi-note b{color:var(--ink)}
+
+/* MAT-INTRO-COMPACT-1（11-18 她报「有点啰嗦」）：文案已缩短，这里把间距再收紧，
+   让整页在一屏内显示完；只调内距/字号，不删任何重点区块。 */
+.mi-page .mi-hero{padding:17px 22px;margin-bottom:11px}
+.mi-page .mi-hero h2{font-size:19px;margin:5px 0 3px}
+.mi-page .mi-hero .mi-nums{margin-top:10px}
+.mi-page .mi-pain{gap:11px;margin-bottom:11px}
+.mi-page .mi-pain .mi-col{padding:12px 16px}
+.mi-page .mi-pain ul{line-height:1.65}
+.mi-page .mi-card{padding:14px 16px}
+.mi-page .mi-step{padding:10px 11px}
+.mi-page .mi-step span{line-height:1.5}
+.mi-page .mi-vip-bar{padding:11px 15px;margin-top:11px}
+.mi-page .mi-has{margin-top:10px}
 </style>
 <!-- T-017d（2026-10-23）：串题页（详情页）打磨。
      设计稿 design/_mock-串题页-打磨方案-2026-10-23.html，她点头过的那版，1:1 落地。
@@ -2465,23 +2485,7 @@ html[data-theme="dark"] #detailBody .sp-ai-result .td-zhbox{background:rgba(255,
 }
 #detailBody .sp-tool-card-p3 .sp-tc-head .btn:hover{background:#6b4cc4}
 #detailBody .sp-tool-card-p3 .sp-p3-area{width:100%}
-#detailBody .sp-tool-card-p3[data-has-p3="1"],
-#detailBody .sp-tool-card-p3:has(.sp-p3-area:not([hidden])){display:block}
-
-/* ============ ⑤ 底部粘条 ============ */
-#detailBody .td-dock{
-  position:fixed;left:0;right:0;bottom:0;z-index:20;
-  background:rgba(255,255,255,.92);backdrop-filter:blur(10px);
-  border-top:1px solid var(--line);
-}
-#detailBody .td-dock-in{
-  max-width:1120px;margin:0 auto;padding:12px 24px;
-  display:flex;align-items:center;gap:10px;
-}
-#detailBody .td-dock .hint{font-size:12.5px;color:var(--muted)}
-#detailBody .td-dock .sp{margin-left:auto}
-/* 粘条占位：给 body 底部留出空间，免得最后一行被盖住 */
-body.td-dock-on{padding-bottom:72px}
+#detailBody .sp-tool-card-p3[data-has-p3="1"], #detailBody .sp-tool-card-p3:has(.sp-p3-area:not([hidden])){display:block}
 
 /* ============ 响应式 ============ */
 @media (max-width:820px){
@@ -2491,10 +2495,8 @@ body.td-dock-on{padding-bottom:72px}
   #detailBody .sp-tc-hint,#detailBody .sp-story-head,#detailBody .sp-ai-result{padding-left:16px;padding-right:16px}
   #detailBody .sp-p2-answer .td-anshead{padding:14px 16px}
   #detailBody .sp-p2-answer .td-ansbody{padding:16px}
-  #detailBody .td-dock-in{padding:10px 14px}
   #detailBody .sp-tool-card-p3{flex-wrap:wrap}
   #detailBody .sp-tool-card-p3 .sp-tc-head .btn{width:100%;justify-content:center;margin-left:0}
-  #detailBody .td-dock .hint{display:none}
 }
 
 /* ============ 深色兜底（每批必验项） ============ */
@@ -3405,7 +3407,7 @@ body.mock-immerse .spv-head,body.exam-fullscreen .spv-head{display:none!importan
   </div>
 
   <!-- 万能素材生成器（整合为口语页第 5 个 tab，复用 materials 生成逻辑） -->
-  <div id="matView" hidden data-late-src="js/materials.js?v=20261116c">
+  <div id="matView" hidden data-late-src="js/materials.js?v=20261116e">
     <div id="sptMatShell"></div>
     <div id="sptMatLegacyWrap" hidden>
       <div id="sptMatLegacy"></div>

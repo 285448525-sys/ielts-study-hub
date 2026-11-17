@@ -262,8 +262,8 @@
   <div id="introView">
     <div class="mi-hero">
       <div class="mi-k">雅思口语 P2 · 当季题库</div>
-      <h2>P2 有 56 道题卡，一道一道准备，你永远准备不完</h2>
-      <p>串题的做法是：把你自己的经历写成几个故事，考场上原样讲出来，只加一句过渡就能接到很多道题上。<b>不用背 56 篇范文</b>。</p>
+      <h2>P2 有 56 道题卡，一道一道准备，永远准备不完</h2>
+      <p>把自己的经历写成几个故事，考场原样讲出来，加一句过渡就能接很多题。<b>不用背 56 篇范文</b>。</p>
       <div class="mi-nums">
         <div class="mi-it"><b>56</b><span>当季 P2 题卡</span></div>
       </div>
@@ -273,33 +273,31 @@
       <div class="mi-col mi-old">
         <h3>老办法 <span class="mi-tag">一道一准备</span></h3>
         <ul>
-          <li>56 道题 = 56 篇素材，写到一半就坚持不下去</li>
-          <li>背过的换个问法就接不上（「描述地方」→「描述一次等待」）</li>
-          <li>考场上现场编，一紧张就只剩 and / and / and</li>
-          <li>时间全花在「写新素材」，没有时间练口语本身</li>
+          <li>56 道题 = 56 篇素材，写一半就放弃</li>
+          <li>换个问法就接不上</li>
+          <li>考场现场编，一紧张只剩 and</li>
         </ul>
       </div>
       <div class="mi-col mi-new">
         <h3>串题 <span class="mi-tag">一次准备，反复接题</span></h3>
         <ul>
-          <li>只写几个自己的真实故事，写一次就完</li>
-          <li>同一故事能接人物 / 地点 / 物品 / 事件一大类题</li>
-          <li>考场上直接背熟的内容，只加一句点题过渡</li>
-          <li>省下来的时间全部用来开口练</li>
+          <li>只写几个真实故事，写一次就完</li>
+          <li>一个故事能接一大类题</li>
+          <li>考场加一句过渡就接上</li>
         </ul>
       </div>
     </div>
 
     <div class="mi-card">
-      <p style="margin:0 0 14px;font-size:15px;font-weight:750">这套流程为什么高效</p>
+      <p style="margin:0 0 12px;font-size:15px;font-weight:750">这套流程为什么高效</p>
       <div class="mi-how">
-        <div class="mi-step"><div class="mi-n">1</div><b>写你自己的经历</b><span>14 个问题全是问你的生活（和谁、去哪、看见什么、什么感受），中文随便写，不用管英文。</span></div>
-        <div class="mi-step"><div class="mi-n">2</div><b>AI 对照当季题库</b><span>它读的是本站当季真实题库，出的问题就是你可能抽到的题。</span></div>
-        <div class="mi-step"><div class="mi-n">3</div><b>合成能背的故事</b><span>把十几段经历合并成几个连贯英文故事，130~180 词，带最小背诵骨架。</span></div>
-        <div class="mi-step"><div class="mi-n">4</div><b>算出每张卡能接哪些题</b><span>每张卡标出「能串 N 道当季题」+ 一句考场可直接念的英文点题句。</span></div>
+        <div class="mi-step"><div class="mi-n">1</div><b>写你的经历</b><span>14 个问题问你的生活，中文随便写。</span></div>
+        <div class="mi-step"><div class="mi-n">2</div><b>AI 对照题库</b><span>读本站当季真题库，问的就是你会抽到的。</span></div>
+        <div class="mi-step"><div class="mi-n">3</div><b>合成故事</b><span>合成几个 130~180 词英文故事，带背诵骨架。</span></div>
+        <div class="mi-step"><div class="mi-n">4</div><b>算出接题</b><span>标出每张卡能串几道题 + 一句点题句。</span></div>
       </div>
-      <div class="mi-note" style="background:var(--line2);border-radius:var(--r-sm);padding:11px 14px;font-size:12.5px;color:var(--ink2);line-height:1.75;margin-top:14px">
-        <b>核心口径：宁多勿漏。</b>判断标准不是「故事里有没有讲到这道题」，而是「把故事原样讲出来，能不能自然引到这道题」。每张卡能接多少题，以当季题库实际覆盖为准。
+      <div class="mi-note" style="background:var(--line2);border-radius:var(--r-sm);padding:10px 13px;font-size:12.5px;color:var(--ink2);line-height:1.7;margin-top:12px">
+        <b>核心口径：宁多勿漏。</b>看「故事能不能自然引到这道题」，每张卡能接多少题以当季题库实际覆盖为准。
       </div>
     </div>
 
@@ -525,8 +523,8 @@
       h += '</div>';
     }
 
-    h += '<div class="mat-sec-title"><span class="mat-step-n">3</span>生成</div>';
-    h += '<div class="mat-actions"><button class="btn btn-primary btn-lg" id="matGen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><path d="M5 15c-1.5 1.5-2 5-2 5s3.5-.5 5-2c.8-.8.8-2 0-2.8s-2-.8-3 0z"/><path d="M9 11l4 4"/><path d="M13 7l4 4 3-3a2 2 0 0 0-3-3l-4 2z"/><path d="M14 4l6 6"/></svg>生成我的专属素材</button></div>';
+    h += '<div class="mat-genbox"><div class="mat-sec-title"><span class="mat-step-n">3</span>生成</div>';
+    h += '<div class="mat-actions"><button class="btn btn-primary btn-lg" id="matGen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><path d="M5 15c-1.5 1.5-2 5-2 5s3.5-.5 5-2c.8-.8.8-2 0-2.8s-2-.8-3 0z"/><path d="M9 11l4 4"/><path d="M13 7l4 4 3-3a2 2 0 0 0-3-3l-4 2z"/><path d="M14 4l6 6"/></svg>生成我的专属素材</button></div></div>';
     root.innerHTML = '<div class="mat-page">' + h + '</div>';
 
     /* ===== 10/4 15:30 她拍板新增：导入我已有的素材 → AI 整理成万能素材 =====

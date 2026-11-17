@@ -264,14 +264,10 @@ function openDetail(id){
     html += '</section>';
     html += '</div>';
 
-    /* 🔴 SPK-BTN-DUP-1（10-29）：页内这对「完成 / 下一大题」整对移除。
-       原因（她 20:4x 截图报「两对按钮」）：底部粘条 .td-dock 里已经有一对
-       「标为已练 / 下一大题」，且粘条是 position:fixed 常驻 —— 用户往下滚时两对同时可见。
-       保留粘条那对（滚到哪都能点，是她点名要的形态），页内这对不再渲染。
-       ⚠️ id p2FinishBtn / p2NextBtn 仍要留在 DOM 里：下面的绑定段与 #p2BottomBar 的旧逻辑、
-          P3 提示文案都按这两个 id 找节点；这里是**不渲染可见按钮**，但留一对 hidden 占位节点，
-          保证 getElementById 永不返回 null（历史上就是因为拿不到节点才出的死按钮）。
-       注：真正给用户用的是 #tdDockDone / #tdDockNext，它们的事件在 innerHTML 赋值之后绑（见下）。 */
+    /* SPK-BTN-DUP-1（10-29）→ 11-18 更新：页内动作行以 #p2BottomBar 为准（见下，常显正常页流）。
+       这行 .sp-action-row 只作 hidden 占位保留 id（p2FinishBtn / p2NextBtn），不渲染可见按钮 ——
+       下面的绑定段与 P3 提示文案按这两个 id 找节点，历史上就是拿不到节点才出的死按钮，故节点不能删。
+       （原底部 fixed 粘条 .td-dock 已于 11-18 删除，不再需要它那对可见按钮。） */
     html += '<div class="sp-action-row" id="p2ActionRow" hidden>';
     html += '<div class="sp-action-row-right">';
     html += '<button class="btn btn-med" id="p2FinishBtn" type="button">完成</button>';
@@ -279,30 +275,21 @@ function openDetail(id){
     html += '</div>';
     html += '</div>';
 
-    /* 🔴 SPK-BTN-DUP-1（10-29）：原来这里有两行「给 tdDockDone / tdDockNext 绑 click」的代码，
-       但它们**写在 $('#detailBody').innerHTML = html 之前**（那次赋值在本函数第 ~296 行），
-       此刻 DOM 里还没有这两个元素 → getElementById 一律返回 null → 两个按钮从上线起就一个监听都没有。
-       她报的「标为已练点了没反应」就是这个，不是花瓶样式问题。
-       修法：绑定挪到 innerHTML 赋值**之后**的统一绑定段（见下方 P2 动作绑定块），
-       并且**不再需要转发**——底部粘条现在是页面上唯一的动作行，直接绑真实逻辑。 */
+    /* SPK-BTN-DUP-1（10-29）历史注记：曾给底部粘条 .td-dock 的 tdDockDone / tdDockNext 绑 click，
+       但绑定写在 innerHTML 赋值之前、节点尚不存在 → 永久死按钮（她报「标为已练点了没反应」）。
+       11-18：.td-dock 整条删除，这两个绑定随之移除；页面动作统一由下方 #p2BottomBar 承担（已绑真实逻辑）。 */
 
-    // 底部动作栏：next/finish（P3 展示完后出现在最底）—— 保留 id，兼容旧引用
-    html += '<div class="sp-bottom-bar" id="p2BottomBar" hidden>';
+    // 底部动作栏：完成 / 下一大题。11-18 起常显（正常页流，替换已删的 fixed 粘条 .td-dock），
+    // 滚到正文底部即可点，不再悬浮遮内容。保留 id，兼容旧引用。
+    html += '<div class="sp-bottom-bar" id="p2BottomBar">';
     html += '<button class="btn btn-med" id="p2FinishBtn2" type="button">完成</button>';
     html += '<button class="btn btn-primary" id="p2NextBtn2" type="button">下一大题 →</button>';
     html += '</div>';
 
-    /* T-017d：底部粘条 —— 滚到哪都够得着「标为已练 / 下一大题」。
-       按钮是**新建的兄弟节点**（tdDockDone / tdDockNext），点击时转发给原来的
-       p2FinishBtn / p2NextBtn，老按钮与其点击逻辑一行没改。 */
-    html += '<div class="td-dock" id="detailDock">'
-      +   '<div class="td-dock-in">'
-      +     '<span class="hint">这道题还没标熟练度</span>'
-      +     '<span class="sp"></span>'
-      +     '<button class="btn btn-med" id="tdDockDone" type="button">标为已练</button>'
-      +     '<button class="btn btn-primary" id="tdDockNext" type="button">下一大题 →</button>'
-      +   '</div>'
-      + '</div>';
+    /* 11-18 她报：底部 fixed 粘条 .td-dock 删掉——它 position:fixed 常驻底部，
+       往下滚时把正文下方内容全遮住了。动作不丢：改用页内正常流的 #p2BottomBar
+       （完成 / 下一大题，已绑 spBackToListWithFeedback / gotoNextTopic），
+       随内容滚到、不遮正文。p2ActionRow 仍是 hidden 占位，不重复渲染。 */
   }
 
   // 底部动作区：9/15 之之 — P1 删除「保存/删除此题/下一个话题」三按钮（草稿自动落库，无需保存）；
@@ -340,15 +327,6 @@ function openDetail(id){
     const nx2 = $('#p2NextBtn2');
     if(nx2) nx2.addEventListener('click', () => gotoNextTopic());
 
-    /* 🔴 SPK-BTN-DUP-1（10-29）：底部粘条 .td-dock 的两个按钮——**页面上唯一给用户点的那一对**。
-       原来它们的绑定写在本函数上面（innerHTML 赋值之前），那时节点还不存在 → 永久死按钮，
-       她点的「标为已练」「下一大题」都没反应。现在挪到这里（innerHTML 已赋值、节点已就位），
-       直接绑真实逻辑，不再走「转发给 p2FinishBtn」那一层（转发目标自己也是死的）。
-       「标为已练」= 完成本题并回列表（与「完成」同一语义：草稿自动落库 + toast + 定位回卡片）。 */
-    const tdDone = document.getElementById('tdDockDone');
-    if(tdDone) tdDone.addEventListener('click', () => spBackToListWithFeedback(curDetailId));
-    const tdNext = document.getElementById('tdDockNext');
-    if(tdNext) tdNext.addEventListener('click', () => gotoNextTopic());
   }
   if(s.type === 'P2'){
     /* 10/3 B 版（她 21:23 拍板）：「更多工具」灰盒拆掉，两个工具改成**并排常驻卡**（<section> 不是 <details>），
@@ -497,7 +475,6 @@ function openDetail(id){
     function showP3Area(){
       const area = $('#p3Area'); if(area){ area.hidden = false; area.dataset.p3State = 'generated'; }
       const saveWrap = $('#p3SaveWrap'); if(saveWrap) saveWrap.hidden = false;
-      const bottom = $('#p2BottomBar'); if(bottom) bottom.hidden = false;
       /* 10/3 B 版：底部「练下一大题」出口（她 21:26 拍板：「也可以选择直接练下一题」）。
          每出一题都常驻可见 —— 答完当前题后两个出口并排：再追问一题 / 练下一大题。 */
       const exitWrap = $('#p3ExitWrap'); if(exitWrap) exitWrap.hidden = false;
