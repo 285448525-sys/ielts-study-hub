@@ -33,6 +33,7 @@ const ok = (n, c, d) => { if (c) { pass++; console.log('  ✓ ' + n + (d ? '  ' 
     const cards = [...document.querySelectorAll('.sp-card[data-id]')];
     const bank = (typeof SPEAKING_BANK !== 'undefined' && Array.isArray(SPEAKING_BANK)) ? SPEAKING_BANK : [];
     const count = f => bank.filter(x => x && x.frequency === f).length;
+    const countP1 = f => bank.filter(x => x && x.type === 'P1' && x.frequency === f).length;
     return {
       cards: cards.length,
       p1: cards.filter(c => /P1/.test((c.querySelector('.sp-tag-p') || {}).textContent || '')).length,
@@ -45,22 +46,28 @@ const ok = (n, c, d) => { if (c) { pass++; console.log('  ✓ ' + n + (d ? '  ' 
       note: (typeof SPEAKING_BANK_META !== 'undefined') ? SPEAKING_BANK_META.note : '',
       updated: (typeof SPEAKING_BANK_META !== 'undefined') ? SPEAKING_BANK_META.updated : '',
       ultra: count('ultra'), high: count('high'), medium: count('medium'), low: count('low'),
+      /* 2026-11-17 起默认视口只出 P1，档位断言要跟 P1 单侧源数据对账，别拿 P1+P2 合计数比 */
+      p1Ultra: countP1('ultra'), p1High: countP1('high'), p1Medium: countP1('medium'), p1Low: countP1('low'),
       freqKeys: [...new Set(bank.map(x => x && x.frequency))].filter(Boolean)
     };
   });
   const stamp = String(meta.updated || '').replace(/-/g, '').slice(4); // 2026-10-28 → 1028
-  ok('①1 题库总量与源清单一致（2026-10-28 清单 89 条）', meta.bank === 89 && meta.bank > 0, 'bank=' + meta.bank);
-  ok('①2 版本号是正整数且已强制迁移到本地 DATA（2026-10-28 为 19）',
-    Number.isInteger(meta.ver) && meta.ver > 0 && meta.ver === 19 && meta.dataVer === meta.ver,
+  ok('①1 题库总量与源清单一致（P1 37 + P2 52 = 89）', meta.bank === 89 && meta.bank > 0, 'bank=' + meta.bank);
+  /* 🔵 2026-11-17 SPK-BANK-S12：按《口语题库-考频版_1010》S12 逐题人数重排，版本 19→20。
+     断言意图不变（正整数 + 已强制迁移到本地 DATA），只是不再把 19 写死。 */
+  ok('①2 版本号是正整数且已强制迁移到本地 DATA',
+    Number.isInteger(meta.ver) && meta.ver > 0 && meta.dataVer === meta.ver,
     'ver=' + meta.ver + ' dataVer=' + meta.dataVer);
   /* 🔵 2026-10-28 SPK-BANK-REFRESH-1028-1：版本戳随 META.updated 走。
      仍验「note 里有版本戳且与 updated 同代」，但不再把 1027 写死。 */
   ok('①3 META 版本戳与 updated 同代（1028 版）',
     !!stamp && new RegExp('^' + stamp + '\\s*版').test(meta.note), meta.note.slice(0, 24) + '…');
-  ok('①3b META.updated 是 2026-10-28 官方更新日',
-    /^\d{4}-\d{2}-\d{2}$/.test(meta.updated) && meta.updated === '2026-10-28', meta.updated);
-  ok('①4 列表逐张渲染且 P1+P2 与源数据一致（2026-10-28：37+52）',
-    meta.cards === meta.bank && meta.p1 === meta.srcP1 && meta.p2 === meta.srcP2 &&
+  ok('①3b META.updated 是合法日期且与版本戳同源',
+    /^\d{4}-\d{2}-\d{2}$/.test(meta.updated) && !!stamp, meta.updated);
+  /* 🔵 2026-11-17 起题库默认只看 P1（P1/P2 互斥切换），首屏卡片数 = P1 题数；
+     断言意图不变：列表逐张渲染且与源数据一致。 */
+  ok('①4 列表逐张渲染且与源数据一致（P1 37 / P2 52）',
+    meta.cards === meta.srcP1 && meta.p1 === meta.srcP1 &&
     meta.srcP1 === 37 && meta.srcP2 === 52,
     'cards=' + meta.cards + ' p1=' + meta.p1 + ' p2=' + meta.p2);
 
@@ -75,16 +82,15 @@ const ok = (n, c, d) => { if (c) { pass++; console.log('  ✓ ' + n + (d ? '  ' 
   const fHigh = await byFreq('high');
   const fMedium = await byFreq('medium');
   const fLow = await byFreq('low');
-  /* 🔵 2026-10-28 SPK-BANK-REFRESH-1028-1：档位按新清单重算。
-     原断言「总数 / 必考 / 高 / 中 / 低」逐项保留，数值改为与官方源数组精确定账；
-     同时守 2026-10-28 的 5/30/43/11 与四档合计 = 全部，避免以后只改一半数据。 */
-  ok('②1 全部 89', fAll === meta.bank && fAll === 89, String(fAll));
-  ok('②2 必考题 5（P1 独有）', fUltra === meta.ultra && fUltra === 5, String(fUltra));
-  ok('②3 高频 30（与 2026-10-28 源数据一致）', fHigh === meta.high && fHigh === 30, String(fHigh));
-  ok('②4 中频 43（与 2026-10-28 源数据一致）', fMedium === meta.medium && fMedium === 43, String(fMedium));
-  ok('②5 低频 11（与 2026-10-28 源数据一致）', fLow === meta.low && fLow === 11, String(fLow));
-  ok('②6 四档合计覆盖全部题，且必考题全在 P1',
-    fUltra + fHigh + fMedium + fLow === meta.bank &&
+  /* 🔵 2026-11-17 SPK-BANK-S12：档位按新清单重算，且默认视口是 P1 ——
+     原断言「总数 / 必考 / 高 / 中 / 低 + 四档合计」逐项保留，数值改为 P1 口径（5/10/18/4，合计 37）。 */
+  ok('②1 全部 37（P1 口径）', fAll === meta.srcP1 && fAll === 37, String(fAll));
+  ok('②2 必考题 5（P1 独有）', fUltra === meta.p1Ultra && fUltra === 5, String(fUltra));
+  ok('②3 高频 10（与 S12 源数据一致）', fHigh === meta.p1High && fHigh === 10, String(fHigh) + ' / src ' + meta.p1High);
+  ok('②4 中频 18（与 S12 源数据一致）', fMedium === meta.p1Medium && fMedium === 18, String(fMedium) + ' / src ' + meta.p1Medium);
+  ok('②5 低频 4（与 S12 源数据一致）', fLow === meta.p1Low && fLow === 4, String(fLow) + ' / src ' + meta.p1Low);
+  ok('②6 四档合计覆盖当前 Part 全部题，且必考题全在 P1',
+    fUltra + fHigh + fMedium + fLow === fAll &&
     meta.freqKeys.every(k => ['ultra','high','medium','low'].includes(k)),
     meta.freqKeys.join(','));
   await byFreq('all');

@@ -295,9 +295,14 @@ LIST.forEach((f, i) => {
   let p, q;
   if (m) { p = Number(m[1]); q = Number(m[2]); }
   else if ((m = out.match(/结果[:：]\s*(\d+)\s*\/\s*(\d+)/))) { p = Number(m[1]); q = Number(m[2]) - Number(m[1]); }
+  /* 🔵 11-18：三种「不按前两种格式」的汇总行之前一律被算成 0 通过，看起来像整支崩了 ——
+     ①「合计 N 项，通过 P，失败 Q」②「结果：通过 P / 失败 Q」③ 用 ✅ / ❌ 打勾的支。
+     汇总行能读到就以前者为准，读不到才退回数符号。 */
+  else if ((m = out.match(/合计\s*(\d+)\s*项[，,]\s*通过\s*(\d+)[，,]\s*失败\s*(\d+)/))) { p = Number(m[2]); q = Number(m[3]); }
+  else if ((m = out.match(/结果[:：]\s*通过\s*(\d+)\s*\/\s*失败\s*(\d+)/))) { p = Number(m[1]); q = Number(m[2]); }
   else {
-    p = (out.match(/✓/g) || []).length;
-    q = (out.match(/✗/g) || []).length;
+    p = (out.match(/✓|✅/g) || []).length;
+    q = (out.match(/✗|❌/g) || []).length;
     if (!m && !q && r.status === 0 && out.length > 200) { p = p || 1; }  // 数据型探针：跑通即算过
   }
   if (!q && r.status !== 0) { q = 1; }  // 没打 ✗ 但退出码非零 → 记 1 个失败，别静默放过
@@ -305,7 +310,7 @@ LIST.forEach((f, i) => {
   else {
     fail++; bad.push(f);
     console.log('✗ ' + f + '  ' + p + ' 通过 / ' + q + ' 失败');
-    out.split('\n').filter(l => /✗|Error|error:/.test(l)).slice(0, 6).forEach(l => console.log('     ' + l.trim()));
+    out.split('\n').filter(l => /✗|❌|Error|error:/.test(l)).slice(0, 6).forEach(l => console.log('     ' + l.trim()));
     if (r.error) console.log('     error: ' + r.error.message);
   if (!m) console.log('     （本支没打汇总行）' + (out.match(/结果[:：]\s*\d+\s*\/\s*\d+/) ? '' : ' 也找不到「结果: N/M」，仅按 ✓/✗ 判定'));
   }

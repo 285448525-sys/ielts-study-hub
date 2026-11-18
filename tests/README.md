@@ -277,3 +277,52 @@
 **第 42 条铁律（首页复查换来的）**：**深色注入绝不能只 `setItem(theme)` 覆盖整个数据对象。** 我写成 `localStorage.setItem("ielts_study_hub_v1", JSON.stringify({settings:{theme:"dark"}}))` → 分数/单词/目标全丢 → 页面被 `index.js` 判成「未进站」直接渲染落地页，h1 变成「雅思备考，从今天的清单开始」、hero 高 608px。我差点把这报成「首页塌了」。正解：先 `JSON.parse` 已有值、只改 `settings.theme`、再整体写回。
 
 **第 43 条铁律**：**首页四卡的选择器是 `.metrics > a.metric`，页头基线 CSS 在 `css/p/home.css`。** 我第一版猜 `.setup/.stat`（那是补齐条）和 `css/home.css`（不存在），四卡数量报 0、基线注入失败 → 「改前改后像素 diff 为 0」的假结论。**注入式基线必须先断言 `injected > 0`。**
+
+## 11-18 全量回归定性（60 支：34 全绿 / 25 红 → 定性后逐支收口）
+
+> 干净 HEAD（`9e47dc84`）全量跑一遍，25 支报红的逐支复跑定性，结论写在这里，**别再从头 triage**。
+> 判据口径变了就按新设计改断言，不许把旧数字留着当「产品坏了」。
+
+### 一、已修好并复跑全绿（探针自身过时，产品无问题）
+
+| 探针 | 原来为什么红 | 改了什么 | 复跑 |
+|---|---|---|---|
+| `_probe_role_1022.cjs` | 第五批 PERM-ENTRY-1 后 `admin.js` 多 import 了 `./auth.js`，探针只把 `roles.js` 那条 import 改指本地副本 → 加载即炸 | 复制 `admin.js` 时两条 import 一起改写 | 70 / 0 |
+| `_probe_teacher_1022.cjs` | 11-18 那次掉线窗口里跑，报「0 通过」，实为假红 | 无需改，干净机复跑 | 42 / 0 |
+| `_probe_speakbank_1020.cjs` | 数字停在 10-28 版：版本 19、89 题、5/30/43/11 | 改 11-17 S12 口径：版本不再写死、P1 37（5/10/18/4）、P2 52、默认只看 P1、档位与 P1 单侧源数据对账 | 17 / 0 |
+| `_probe_landing114_1021.cjs` | 还在找 `.hero .actions a.btn.primary[href="home.html"]`；现版落点是根路径 `/home`、`.hero` 层已无 | 选择器改 `.actions a.btn.primary[href="/home"]` | 13 / 0 |
+| `_probe_submitjump_1018.cjs` | 11-17 交卷弹窗按要求改全中文，探针仍断言英文（Go to the first unanswered / Marked for review / 全英文） | 判据改中文口径，旧英文说法同时容 | 19 / 0 |
+| `_probe_nextstep_1018.cjs` | 顶栏小字改「X 分 · Y 对 · Z 错」后仍按 `X correct · Y incorrect` 正则；另外点交卷时被 `#bootLoader` 开机遮罩吃掉点击 | 正则兼容中文；点前先等遮罩收起 | 16 / 0 |
+| `_probe_guide_1018.cjs` | 11-17 起加了全局一次闸 `hub_exam_guide_once`，只清按渠道的 v2 标记 → 完整模考那段等不到卡 | 两处清标记的地方都补清一次性闸 | 全绿 |
+| `_probe_perm_defaults_1114.mjs`（本机） | `readSession` 加严：账号必须真实存在 + 会话代次必须与 `authgen` 一致，夹具只放 sess → 整段假 401；KV 读计数也从 3 变 5 | 夹具补 `user:e:*` / `authgen:*`，读计数改 ≤5 | 20 / 0 |
+| `_probe_perm_cfg_1114.mjs`（本机） | 同上，`DEF` 取不到直接 TypeError | 同上补夹具 | 29 / 0 |
+| `_regress_1017.cjs`（汇总器） | 三种汇总行格式（`合计 N 项，通过 P，失败 Q` / `结果：通过 P / 失败 Q` / 用 ✅❌ 打勾）之前一律按 0 通过算，看起来像整支崩了 | 三种格式都认，符号补 ✅❌ | — |
+
+### 二、仍是红，原因已定性、**要按新设计重写判据**（不是产品 bug，但也别当已经验过）
+
+| 探针 | 红在哪 | 为什么 | 新口径要点 |
+|---|---|---|---|
+| `_probe_bars_1020.cjs` | 18 红：主行 44→40、按钮 30→28、底栏纯白→`#f1f2f3`、Pause 撤、品牌条整块删 | 11-18 三科机考壳统一（桌面 40 / 手机两行约 68） | 按 `exam-shell.css` 重写，不要旧 44/30/白底 |
+| `_probe_wrtbar_1020.cjs` | 0 通过（入口就崩） | 写作 11-16 四格改版 + 11-18 换壳 | 入口改「题库 → 计时写作」，底栏按新壳 |
+| `_probe_shell4_1022.cjs` | 8 红：进不去 `body.mock-immerse`、考场舞台 none、退出弹框不出现 | 口语 11-16 改「先示入口、会员校验前置、点开始才沉浸」 | 进入路径要按 `mock.js` 现流程重写 |
+| `_probe_shell5_1022.cjs` | 写作机考全屏那一段超时 | 写作入口卡改版，`#wrtFullStart` 懒加载 | 等入口卡渲染再点 |
+| `_probe_shell2_1022.cjs` | 设置页分区导航 sticky→static、吸顶起点 0 | 11-17 设置页还原原版 + 备考目标重排后不再吸顶 | **要不要保留吸顶属于产品决定，先问她**，再改断言 |
+| `_probe_r1review_1024.cjs` | 11 过 / 7 红：深链 `?sub=score|record|breakdown|overall|speaking` 都判「没落到对应栏」 | 11-16 回顾改三格「总览/趋势/记录」，探针还在找旧 `#tab-score` / `#tab-record` | 按 `rv-tabs.js` 现 tab 与深链映射重写 |
+| `_probe_wbdeck_1023.cjs` | 34 过 / 7 红：商城卡 0×0、375/390 书卡宽 0 | 11-13 商城视图退役 + 手机测量口径 | 手机要用触屏上下文（铁律 20），商城卡断言按现页删 |
+| `_probe_wbview_1023.cjs` | 375 胶囊 / 面包屑 0px | 同上，手机上下文 | 同上 |
+| `_probe_prac42_1023.cjs` | 25 过 / 6 红：操作条 3 行、按钮高 0 | 11-16 单词四页改版后批量条结构变了 | 按 `practice.html` 现结构重写 |
+| `_probe_pracdarks_1023.cjs` | 今日卡 0×0（两端） | 实测桌面有任务时 `#hubTd` 227×141、计数 `1/2` 正常 —— 是探针种子/选择器过期 | 种子按 `DATA.plans:[{date,items:[{id,text,done,updatedAt}]}]` |
+| `_probe_b6sweep_1023.cjs` | 21 过 / 2 红：chip `display` 期望 inline-flex 实得 flex；对比 4.12:1 | 前者是铁律 32 的「计算值≠声明值」陷阱（父级 flex 会 blockify）；后者是取底方式 | 读 CSSOM 声明值 + 沿祖先找不透明底 |
+| `_probe_latespk_1017.cjs` | 素材视图 0 字 / 模考 56 字 | 11-16/11-17 素材改双栏工作台、模考改入口卡 | 按现 DOM 重写 |
+| `_probe_latewrt_1017.cjs` | 超时 | 同上，写作改版 | 同上 |
+| `_probe_wrttpl_1021.cjs` | 模板 pane 等待超时 | 写作四格后模板 pane 入口变了 | 同上 |
+| `_probe_wordimport_1020.cjs` | 超时 | 单词页 11-16 改版 | 同上 |
+| `_probe_worddemote_1020.cjs` | 28 过 / 1 红：`openCurrentImport` 等不到导入条 | 单词页「导入」入口位置变了 | 同上 |
+| `_probe_noans2_1017.cjs` | 夹具篇目 id 找不到 | 11-17 题库重建后旧 id 失效 | 改成从 `bank/manifest.json` 动态取一篇无答案的 |
+| `_probe_qtype_1017.cjs` | 同上一支 + 卷面题号 | 同上 | 同上 |
+
+### 三、11-18 顺手核过的三处「疑似真坏」（都排除了）
+
+- 落地页手机主 CTA：实测 3 处可用（358×49），**看得见**；红是选择器过期。
+- 单词页桌面今日任务卡：有任务时 227×141、显示 `1/2`，**正常**；红是种子过期。
+- 首页 `.streak-chip`：无数据时本就隐藏（`display:none`），对比度那条是取底方式问题，**不是样式坏了**。

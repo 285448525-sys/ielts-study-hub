@@ -64,12 +64,12 @@ const guideState = () => {
   g = await page.evaluate(guideState);
   const b = await page.evaluate(() => {
     const e = document.getElementById('examRoot');
-    return { guideGone: !document.getElementById('exGuide'), examVisible: e ? !e.hidden : null, hasQ: !!document.querySelector('#examRoot .ex-flagq'), key: (() => { try { return localStorage.getItem('hub_exam_guide_v2_reading'); } catch (e2) { return 'ERR'; } })() };
+    return { guideGone: !document.getElementById('exGuide'), examVisible: e ? !e.hidden : null, hasQ: !!document.querySelector('#examRoot .ex-flagq'), once: (() => { try { return localStorage.getItem('hub_exam_guide_once'); } catch (e2) { return 'ERR'; } })() };
   });
   console.log('  ' + JSON.stringify(b));
   ck('B1 指南卡已消失', b.guideGone === true);
   ck('B2 真的进了考场且有题目', b.examVisible === true && b.hasQ === true);
-  ck('B3 看过标记已落本地（reading）', b.key === '1', 'key=' + b.key);
+  ck('B3 看过标记已落本地（全局一次闸）', b.once === '1', 'once=' + b.once);
 
   console.log('=== C. 退出再进同一科：不再弹 ===');
   await page.click('#examRoot [data-exit]');
@@ -82,9 +82,10 @@ const guideState = () => {
   const c2 = await page.evaluate(() => { const e = document.getElementById('examRoot'); return { v: e ? !e.hidden : null, q: !!document.querySelector('#examRoot .ex-flagq') }; });
   ck('C2 直接进了考场', c2.v === true && c2.q === true, JSON.stringify(c2));
 
-  console.log('=== D. 听力：自己的首次仍然会弹一次（分科独立）===');
+  console.log('=== D. 清掉一次性闸后再进（听力）：仍弹一次，Esc 关掉也算看过 ===');
   await page.click('#examRoot [data-exit]');
   await page.waitForTimeout(1500);
+  await page.evaluate(() => { try { localStorage.removeItem('hub_exam_guide_once'); } catch (e) {} });
   /* 11-15 T-001：隐藏页内 tab 仍保留 DOM 与 paintTab 转发，走产品自己的 click 通道。 */
   const listeningShown = await page.evaluate(() => {
     const t = document.querySelector('#mockTabs [data-mtab="listening"]');
@@ -97,23 +98,25 @@ const guideState = () => {
   await page.evaluate(() => document.querySelector('#listenList [data-unit]').click());
   await page.waitForTimeout(800);
   g = await page.evaluate(guideState);
-  ck('D1 听力第一次进仍然弹卡', g.exists === true && g.n === 4);
+  ck('D1 清了闸之后进听力仍然弹卡', g.exists === true && g.n === 4);
   // 用 Esc 关闭，验证「关掉也算看过」
   await page.keyboard.press('Escape');
   await page.waitForTimeout(2200);
   const d2 = await page.evaluate(() => ({
     gone: !document.getElementById('exGuide'),
     exam: (() => { const e = document.getElementById('examRoot'); return e ? !e.hidden : null; })(),
-    key: (() => { try { return localStorage.getItem('hub_exam_guide_v2_listening'); } catch (e) { return 'ERR'; } })(),
-    readKey: (() => { try { return localStorage.getItem('hub_exam_guide_v2_reading'); } catch (e) { return 'ERR'; } })()
+    once: (() => { try { return localStorage.getItem('hub_exam_guide_once'); } catch (e) { return 'ERR'; } })(),
+    legacyRead: (() => { try { return localStorage.getItem('hub_exam_guide_v2_reading'); } catch (e) { return 'ERR'; } })()
   }));
   console.log('  ' + JSON.stringify(d2));
-  ck('D2 Esc 也能关，且算作看过', d2.gone === true && d2.key === '1');
+  ck('D2 Esc 也能关，且算作看过（全局一次闸）', d2.gone === true && d2.once === '1');
   ck('D3 关掉后照样进考场', d2.exam === true);
-  ck('D4 阅读的标记没被写坏', d2.readKey === '1');
+  ck('D4 不再写按渠道的旧标记（一次性口径已取代）', d2.legacyRead === null, 'legacy=' + d2.legacyRead);
 
   console.log('=== E. 完整模考入口也走同一道闸（换新账号视角：清标记）===');
-  await page.evaluate(() => { try { localStorage.removeItem('hub_exam_guide_v2_reading'); localStorage.removeItem('hub_exam_guide_v2_listening'); } catch (e) { } });
+  /* 🔵 11-17「操作引导一次性，老用户不再弹」：新增全局一次闸 hub_exam_guide_once，
+     它会盖过按渠道的 v2 标记 —— 这里三个键都要清，否则完整模考那一段永远等不到卡。 */
+  await page.evaluate(() => { try { localStorage.removeItem('hub_exam_guide_v2_reading'); localStorage.removeItem('hub_exam_guide_v2_listening'); localStorage.removeItem('hub_exam_guide_once'); } catch (e) { } });
   await page.reload({ waitUntil: 'load' });
   await page.waitForTimeout(1300);
   await page.waitForSelector('[data-fullstart]:not([disabled])', { timeout: 30000 });
@@ -127,7 +130,7 @@ const guideState = () => {
   ck('E2 关掉后进完整模考', e2.gone && e2.exam === true && e2.q === true, JSON.stringify(e2));
 
   console.log('=== G. 卡片开着时软导航离开：不能留在屏幕上挡住全站 ===');
-  await page.evaluate(() => { try { localStorage.removeItem('hub_exam_guide_v2_reading'); } catch (e) { } });
+  await page.evaluate(() => { try { localStorage.removeItem('hub_exam_guide_v2_reading'); localStorage.removeItem('hub_exam_guide_once'); } catch (e) { } });
   await page.reload({ waitUntil: 'load' });
   await page.waitForTimeout(1300);
   await page.waitForSelector('#bankList [data-unit]', { timeout: 30000 });

@@ -71,6 +71,12 @@ async function reopenReading(page, unitId) {
   const unitId = await enterReading(page);
 
   console.log('=== A. 交卷后落在同页复盘，顶栏给对错与两开关 ===');
+  /* 开机遮罩 #bootLoader 收起前会吃掉点击（11-18 复跑踩：56 次 retry 全被它挡住），
+     点之前先等它不再 show，别把「遮罩没走完」误判成交卷按钮坏了。 */
+  await page.waitForFunction(() => {
+    const l = document.getElementById('bootLoader');
+    return !l || !l.classList.contains('show');
+  }, null, { timeout: 20000 }).catch(() => {});
   await page.click('#examRoot [data-submit]');
   await page.waitForSelector('#exSubmitModal [data-sok]', { timeout: 8000 });
   await page.click('#exSubmitModal [data-sok]');
@@ -93,7 +99,10 @@ async function reopenReading(page, unitId) {
   });
   console.log('  ' + JSON.stringify(st));
   ck('A1 交卷后仍在同篇题目页（成绩卡整删后的现版口径）', st.examVisible && st.qCount > 0, 'q=' + st.qCount);
-  ck('A2 顶栏对错小字显示 X correct · Y incorrect', /\d+\s*correct\s*·\s*\d+\s*incorrect/i.test(st.mini), st.mini);
+  /* 🔵 11-17 交卷与复盘全中文后，顶栏小字改成「X 分 · Y 对 · Z 错」；
+     判据同时容英文旧式，避免回退时误报。 */
+  ck('A2 顶栏对错小字显示 X 分 · Y 对 · Z 错',
+    /(\d+)\s*分\s*·\s*(\d+)\s*对\s*·\s*(\d+)\s*错/.test(st.mini) || /\d+\s*correct\s*·\s*\d+\s*incorrect/i.test(st.mini), st.mini);
   ck('A3 Answers / Highlights 两开关都在', st.tgs.includes('ans') && st.tgs.includes('hl'), JSON.stringify(st.tgs));
   ck('A4 旧成绩卡 / WHAT TO DO NEXT / 三卡整块不渲染', st.scoreCardGone);
   ck('A5 交卷态有 Exit 出口', st.hasExit);
@@ -106,7 +115,9 @@ async function reopenReading(page, unitId) {
     if (!r) return null;
     return { right: r.detail.filter(q => q.ok).length, wrong: r.detail.filter(q => !q.ok).length, total: r.detail.length };
   });
-  const nums = (st.mini.match(/(\d+)\s*correct\s*·\s*(\d+)\s*incorrect/i) || []).slice(1).map(Number);
+  const nums = ((st.mini.match(/(\d+)\s*分\s*·\s*(\d+)\s*对\s*·\s*(\d+)\s*错/) || []).slice(2).map(Number).length === 2
+    ? (st.mini.match(/(\d+)\s*分\s*·\s*(\d+)\s*对\s*·\s*(\d+)\s*错/) || []).slice(2).map(Number)
+    : (st.mini.match(/(\d+)\s*correct\s*·\s*(\d+)\s*incorrect/i) || []).slice(1).map(Number));
   ck('B1 落库记录带逐题明细', !!rec && rec.total > 0, JSON.stringify(rec));
   ck('B2 顶栏数字 == 落库逐题对错', !!rec && nums.length === 2 && nums[0] === rec.right && nums[1] === rec.wrong, nums.join('/') + ' vs ' + JSON.stringify(rec));
   /* 11-15 PERM-REG-1：EXAM-SCORE-COMPACT-1 / RV-FIX5-* 后，「显示正确答案」不再用

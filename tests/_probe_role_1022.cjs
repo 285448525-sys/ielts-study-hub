@@ -49,8 +49,12 @@ async function apiPart() {
   cp('functions/api/roles.js', '_roles.mjs', s => s.replace("from './auth.js'", "from './_auth.mjs'"));
   /* 11-14 第三批 PERM-CFG-1 后 admin.js 顶部 import 了 roles.js 的 PERM_DEFAULTS
      （校验权威共用一份）—— 复制时要把这条 import 一起改指本地副本，并把 roles.js 也拷进去，
-     否则模块加载直接炸「Cannot find module roles.js」。 */
-  cp('functions/api/admin.js', '_admin.mjs', s => s.replace("from './roles.js'", "from './_roles.mjs'"));
+     否则模块加载直接炸「Cannot find module roles.js」。
+     11-14 第五批 PERM-ENTRY-1 后 admin.js 又多了一条 `from './auth.js'`（rotateAuthGen / readSession），
+     同一坑第二次：只改 roles.js 那条会炸「Cannot find module auth.js」。两条一起改。 */
+  cp('functions/api/admin.js', '_admin.mjs', s => s
+    .replace("from './roles.js'", "from './_roles.mjs'")
+    .replace("from './auth.js'", "from './_auth.mjs'"));
   const rolesMod = await import(pathToFileURL(path.join(TMP, '_roles.mjs')).href);
   const adminMod = await import(pathToFileURL(path.join(TMP, '_admin.mjs')).href);
 

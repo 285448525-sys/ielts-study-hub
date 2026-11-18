@@ -79,11 +79,13 @@ async function enterReading(page) {
   });
   console.log('  ' + JSON.stringify(m));
   ck('B1 弹窗正常打开', m.open);
-  ck('B2 未答数仍在文案里', /unanswered question/.test(m.unansweredTxt), m.unansweredTxt.slice(0, 70));
-  ck('B3 多了「Go to the first unanswered」按钮且可见', m.hasJump && m.jumpVisible && /first unanswered/i.test(m.jumpText), m.jumpText);
+  /* 🔵 11-17 她点名「交卷弹窗全中文」后，文案由英文换成中文；
+     判据跟着改中文口径（旧英文文案同时容，防回退误报）。 */
+  ck('B2 未答数仍在文案里', /还有\s*\d+\s*题未作答/.test(m.unansweredTxt) || /unanswered question/.test(m.unansweredTxt), m.unansweredTxt.slice(0, 70));
+  ck('B3 有「回到第一道未作答」按钮且可见', m.hasJump && m.jumpVisible && (/第一道未作答|first unanswered/i.test(m.jumpText)), m.jumpText);
   ck('B4 标记清单只列我标的题号', m.chips.length === 2 && m.chips.join(',') === [marked.qns[0], marked.qns[1]].sort((a, b) => a - b).join(','), JSON.stringify(m.chips));
-  ck('B5 清单有小标题 Marked for review', /Marked for review/.test(m.markHeader), m.markHeader);
-  ck('B6 弹窗仍全英文', m.cjk === false);
+  ck('B5 清单有小标题「标记待检查」', /标记待检查|Marked for review/.test(m.markHeader), m.markHeader);
+  ck('B6 弹窗已按要求全中文（不再出现英文句）', m.cjk === true);
   ck('B7 Finish / Keep working 两个原按钮都还在', m.finishStill && m.cancelStill);
 
   console.log('=== C. 点标记题号 → 关弹窗并跳到那道题 ===');

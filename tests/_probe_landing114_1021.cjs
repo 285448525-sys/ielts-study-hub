@@ -72,8 +72,9 @@ const BAN = /免费|会员|¥|价格|收费|付费|提分|保过|包过|过线|�
       navlinksHidden: (() => { const el = document.querySelector('.nav .links'); return el ? getComputedStyle(el).display === 'none' : true; })(),
       overflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
       heroVis: (() => { const h = document.querySelector('h1'); if (!h) return false; const r = h.getBoundingClientRect(); return r.width > 200 && r.height > 40; })(),
-      /* 现版主 CTA 是 .hero .actions a.btn.primary[href="home.html"]（旧 .cta 容器已不存在）。 */
-      ctaVisible: (() => { const a = document.querySelector('.hero .actions a.btn.primary[href="home.html"]');
+      /* 现版主 CTA 是 .actions a.btn.primary，落点已统一写成站内根路径 /home
+         （旧 .hero .actions + href="home.html" 两处都不存在了）。 */
+      ctaVisible: (() => { const a = document.querySelector('.actions a.btn.primary[href="/home"], .actions a.btn.primary[href="home.html"]');
         if (!a) return false; const r = a.getBoundingClientRect(); const s = getComputedStyle(a);
         return r.height >= 44 && r.width > 100 && s.visibility === 'visible' && s.display !== 'none' && !a.disabled; })()
     }));
