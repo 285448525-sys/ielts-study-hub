@@ -49,8 +49,20 @@ const ok = (n, c, d) => { if (c) { pass++; console.log('  ✓ ' + n + (d ? '  ' 
     for (let y = 0; y < await p.evaluate(() => document.body.scrollHeight); y += 600) { await p.evaluate(y => scrollTo(0, y), y); await sleep(70); }
     await sleep(500);
     await p.waitForFunction(() => [...document.images].every(i => i.complete && i.naturalWidth > 0), null, { timeout: 6000 }).catch(() => {});
-    const imgs = await p.evaluate(() => [...document.images].map(i => ({ src: i.getAttribute('src'), ok: i.complete && i.naturalWidth > 0 })));
-    ok('全部图片加载成功', imgs.every(x => x.ok), JSON.stringify(imgs.filter(x => !x.ok)));
+    const imgs = await p.evaluate(() => [...document.images].map(i => {
+      const r = i.getBoundingClientRect();
+      const sc = i.closest('.screen');
+      const sr = sc ? sc.getBoundingClientRect() : null;
+      return {
+        src: i.getAttribute('src'), ok: i.complete && i.naturalWidth > 0,
+        ratio: i.offsetHeight ? i.offsetWidth / i.offsetHeight : 0,
+        natRatio: i.naturalWidth && i.naturalHeight ? i.naturalWidth / i.naturalHeight : 0,
+        fit: getComputedStyle(i).objectFit,
+        topGap: sr ? r.top - sr.top : 0
+      };
+    }));
+    const badImg = imgs.filter(x => !x.ok || Math.abs(x.ratio - x.natRatio) > .02 || x.fit === 'cover' || Math.abs(x.topGap) > 1.5);
+    ok('全部图片加载成功、按原比例、截图贴齐卡片', badImg.length === 0, JSON.stringify(badImg));
     const gone = await p.evaluate(() => ({
       residue: document.querySelectorAll('.try-section,#try,.quiz,.quiz-opt').length,
       text: document.body.innerText,
