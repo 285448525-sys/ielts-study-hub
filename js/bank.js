@@ -1960,12 +1960,6 @@ window.__reportExamState = reportExamState;
            三个动作按钮同款浅灰（截图里三者同色，Finish section 不再是主色蓝）。 */
     var full = !!(EX && EX.full);
     var showPause = !!(EX && !EX.submitted && EX.listenMode !== 'exam');
-    /* 第二行品牌条（她 22:5x：「跟他们一样在左下角弄一个自己网站的名字……弄成两行」）。
-       爱听写那条 = 左「爱听写 剑雅21 Test 4」+ 右系统时钟；我们右侧不放东西（整场计时在顶栏，
-       10/14 她拍板的位置，不重复），左边 = 站点名 + 当前科目。手机（≤860）由 CSS 整条隐藏。
-       牌子取 yasihub.com（她 22:5x 给的两个候选里选带域名的 —— 光写 yasihub 像内部代号，
-       带上 .com 顺便提醒用户这是哪）。 */
-    var chLabel = (EX && EX.channel === 'listening') ? '听力' : '阅读';
     /* RV-BOTTOM-23（她 11-02 三条口径）：交卷/复盘态底栏 = 题号行 + Exit 整行压底；
        做题态（!EX.submitted）一个字节不变。类名挂 .ex-bar 上，CSS 按 rv-done 分叉。 */
     var rvDone = !!(EX && EX.submitted);
@@ -1981,11 +1975,6 @@ window.__reportExamState = reportExamState;
       +        '<button class="btn-ghost" type="button" data-exit>Exit</button>'
       +        (!rvDone ? '<button class="btn-primary" type="button" data-submit>Finish section</button>' : '')
       +      '</div>'
-      +    '</div>'
-      +    '<div class="ex-strip">'
-      +      '<span class="ex-strip-b">yasihub.com</span>'
-      +      '<span class="ex-strip-d" aria-hidden="true">·</span>'
-      +      '<span class="ex-strip-t">' + chLabel + '</span>'
       +    '</div>'
       +    '</div>';
   }

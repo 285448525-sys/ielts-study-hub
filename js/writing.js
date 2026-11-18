@@ -2295,7 +2295,7 @@ function examTimeUp(){
   const min = wtMinWords(examTimer.cur && examTimer.cur.kind === 'big' ? '大作文' : '小作文');
   const w = $('#examTuWords');
   if(w) w.textContent = 'You wrote ' + n + ' words (min ' + min + ').' + (n < min ? ' Under the minimum — but it is your call.' : '');
-  const tb = $('#examTimerBtn'); if(tb) tb.textContent = 'Resume';
+  const tb = $('#examTimerBtn'); if(tb) tb.textContent = '继续';
   const m = $('#examTimeUpModal'); if(m) m.hidden = false;
 }
 /* 弹框两选：提交评分 / 继续写（切正计时，随时可 Finish，永不再锁） */
@@ -2378,7 +2378,7 @@ function examStartTimer(mode, limitMs){
   examResetLock();
   if(examTimer.tick) clearInterval(examTimer.tick);
   examTimer.tick = setInterval(examTick, 1000); examTick();
-  const tb = $('#examTimerBtn'); if(tb) tb.textContent = 'Pause';
+  const tb = $('#examTimerBtn'); if(tb) tb.textContent = '暂停';
 }
 function examPauseTimer(){
   if(!examTimer.running) return;
@@ -2823,6 +2823,7 @@ function openExamDirect(item, kind, timerMin){
   const _panel = $('#examPanel'); if(_panel) _panel.hidden = false;
   $('#examHome').hidden = true;
   $('#examPractice').hidden = false;
+  if(!document.getElementById('exOptionPanel')) wrtInjectOption();
   document.body.classList.add('exam-fullscreen');   // 进入全屏沉浸式
   examEnterLock();
   const isBig = kind === 'big';
@@ -3195,36 +3196,45 @@ function examShellHtml(){
      原 id 全部保留（examTimerText/examFinish/examExit/examStepLabel…）→ 逻辑零迁移。 */
   return `
     <header class="ex-top">
+      <a class="ex-brand" href="home.html" title="yasihub.com" aria-label="yasihub.com">
+        <i aria-hidden="true"><svg viewBox="0 0 512 512" width="16" height="16" fill="none"><g fill="#fff" stroke="#fff" stroke-width="38" stroke-linejoin="round" stroke-linecap="round"><path d="M256 136 L344 194 L256 252 L168 194 Z"/><path d="M160 304 L212 304 L256 362 L300 304 L352 304 L352 354 Q352 394 256 394 Q160 394 160 354 Z"/></g></svg></i>
+        <span>yasihub.com</span>
+      </a>
       <div class="ex-name">Writing</div>
       <span class="ex-timer" id="examTimerWrap"><span id="examTimerText">00:00:00</span></span>
       <div class="ex-icons">
+        <button class="ex-ico ex-top-pause" id="examTimerBtn" type="button" title="Pause">暂停</button>
         <span class="ex-saved" id="wtSaved" hidden>Saved</span>
         <button class="ex-ico ex-toolbtn" id="wrtFsBtn" type="button" title="Full screen" aria-label="Full screen">${wrtIcoFull()}</button>
         <button class="ex-ico ex-menubtn" type="button" title="Option"><svg class="p0-ic" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
       </div>
     </header>
 
-    <div class="exam-split">
-      <article class="exam-q">
-        <div class="exam-q-body-wrap" id="examQBodyWrap">
-          <h1 class="exam-part" id="examPartLabel">Task 2</h1>
-          <p class="exam-instr" id="examInstr">You should spend about 40 minutes on this task. Write at least 250 words.</p>
-          <p class="exam-q-lead">Write about the following topic:</p>
-          <div class="exam-q-body" id="examQuestion"></div>
-          <p class="exam-q-note" id="examQNote"></p>
-        </div>
-        <details class="exam-essay-fold" id="examEssayFold" hidden>
-          <summary class="exam-essay-fold-sum">My response</summary>
-          <div class="exam-essay-orig" id="examEssayOrig"></div>
-        </details>
-      </article>
+    <div class="exam-body">
+      <section class="task-band" aria-labelledby="examPartLabel">
+        <h1 class="exam-part" id="examPartLabel">Task 2</h1>
+        <p class="exam-instr" id="examInstr">You should spend about 40 minutes on this task. Write at least 250 words.</p>
+      </section>
+      <div class="exam-split">
+        <article class="exam-q">
+          <div class="exam-q-body-wrap" id="examQBodyWrap">
+            <p class="exam-q-lead">Write about the following topic:</p>
+            <div class="exam-q-body" id="examQuestion"></div>
+            <p class="exam-q-note" id="examQNote"></p>
+          </div>
+          <details class="exam-essay-fold" id="examEssayFold" hidden>
+            <summary class="exam-essay-fold-sum">My response</summary>
+            <div class="exam-essay-orig" id="examEssayOrig"></div>
+          </details>
+        </article>
 
-      <div class="exam-a">
-        <textarea id="examEssay" class="exam-textarea" placeholder="Type your response here..."></textarea>
-        <div class="exam-a-foot" id="examAFoot">
-          <span class="exam-wc" id="examWordCount">Word count: 0</span>
+        <div class="exam-a">
+          <textarea id="examEssay" class="exam-textarea" placeholder="Type your response here..."></textarea>
+          <div class="exam-a-foot" id="examAFoot">
+            <span class="exam-wc" id="examWordCount">Word count: 0</span>
+          </div>
+          <div id="examResult" class="tpl-score" hidden></div>
         </div>
-        <div id="examResult" class="tpl-score" hidden></div>
       </div>
     </div>
 
@@ -3240,17 +3250,9 @@ function examShellHtml(){
           <div class="ex-pgs" id="examBarLeft"><span class="ex-pg on ex-pg--static">Task 2</span></div>
         </div>
         <div class="ex-actions">
-          <button type="button" class="btn btn-ghost ex-pause" id="examTimerBtn">Pause</button>
           <button type="button" class="btn btn-ghost" id="examExit">Exit</button>
           <button type="button" class="btn btn-primary" id="examFinish">Finish section</button>
         </div>
-      </div>
-      <!-- W-WRTSHELL §1.3：品牌条 —— 她 10/20 22:5x 原话「跟他们一样在左下角弄一个自己网站的名字……
-           弄成两行」，「跟他们一样」= 三个 channel 一致；阅读/听力都有（bank.js:1412），写作漏了。 -->
-      <div class="ex-strip">
-        <span class="ex-strip-b">yasihub.com</span>
-        <span class="ex-strip-d" aria-hidden="true">·</span>
-        <span class="ex-strip-t">写作</span>
       </div>
     </footer>
 
@@ -3447,8 +3449,8 @@ function bindExam(){
 
   const tb = $('#examTimerBtn');
   if(tb) tb.addEventListener('click', () => {
-    if(examTimer.running){ examPauseTimer(); tb.textContent = '▶'; }
-    else { examResumeTimer(); tb.textContent = '⏸'; }
+    if(examTimer.running){ examPauseTimer(); tb.textContent = '继续'; }
+    else { examResumeTimer(); tb.textContent = '暂停'; }
   });
   /* 10/8：到点弹框两选（考场模式 checkbox 与解锁按钮已随强制停笔机制退役） */
   const tuSubmit = $('#examTuSubmit');

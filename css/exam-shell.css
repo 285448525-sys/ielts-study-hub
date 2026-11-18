@@ -1,0 +1,150 @@
+/* EXAM-SHELL-1118：三科共用上下栏；题目、音频与作答逻辑保持原样。 */
+#examRoot .ex-top, #examPractice .ex-top {
+  display: flex; align-items: center; gap: 12px; padding: 3px 14px;
+  background: #f7f2f1; border-bottom: 1px solid #e5dddd; flex: none;
+  min-height: 40px; height: 40px;
+}
+#examRoot .ex-brand, #examPractice .ex-brand {
+  display: flex; align-items: center; gap: 7px; text-decoration: none; flex: none;
+  font-size: 12.5px; font-weight: 800; letter-spacing: .02em; color: #000;
+}
+#examRoot .ex-brand i, #examPractice .ex-brand i {
+  width: 22px; height: 22px; border-radius: 6px; flex: none;
+  background: linear-gradient(135deg, var(--primary-400), var(--primary-600));
+  display: grid; place-items: center;
+}
+#examRoot .ex-brand svg, #examPractice .ex-brand svg { display: block; width: 16px; height: 16px; }
+#examRoot .ex-name, #examPractice .ex-name { font-size: 13px; color: #1c1c1c; }
+#examRoot .ex-timer, #examPractice .ex-timer {
+  margin: 0 auto; font-weight: 600; font-size: 13px; color: #272727;
+  white-space: nowrap; letter-spacing: .01em; padding: 0; background: none; border: 0;
+}
+#examRoot .ex-icons, #examPractice .ex-icons { gap: 6px; margin-left: auto; }
+#examRoot .ex-ico, #examPractice .ex-ico {
+  height: 32px; min-height: 32px; padding: 0 11px; border: 1px solid #dfe3e8;
+  border-radius: 7px; background: #fff; color: #000; font-size: 12.5px; font-weight: 500;
+}
+#examRoot .ex-ico.ex-toolbtn, #examPractice .ex-ico.ex-toolbtn { width: 32px; padding: 0; }
+#examRoot .ex-ico.ex-top-pause, #examPractice .ex-ico.ex-top-pause { font-size: 12.5px; padding: 0 11px; }
+#examRoot .ex-bar, #examPractice .ex-bar {
+  flex: none; background: #f1f2f3; border-top: 1px solid #d7dade;
+  display: flex; flex-direction: column; align-items: stretch; height: auto; padding: 0;
+}
+#examRoot .ex-bar-main, #examPractice .ex-bar-main,
+#examPractice.wt-bar > .ex-bar-main, #examPractice .wt-bar > .ex-bar-main {
+  height: 40px; max-height: 40px; min-height: 40px; width: 100%; padding: 0 12px;
+  display: flex; flex-direction: row; align-items: center; gap: 10px;
+}
+#examRoot .ex-nav, #examPractice .ex-nav { flex: 1; min-width: 0; min-height: 30px; }
+#examRoot .ex-pg, #examPractice .ex-pg {
+  display: inline-flex; align-items: center; justify-content: center; height: 28px;
+  padding: 0 12px; border: 1px solid #c9ced5; border-radius: 6px; background: #fff;
+  color: #111; font-size: 12px; font-weight: 700; line-height: 1;
+}
+#examRoot .ex-actions, #examPractice .ex-actions {
+  display: flex; gap: 6px; flex: none; justify-content: flex-end; align-items: center;
+}
+#examRoot .ex-actions button, #examPractice .ex-actions button {
+  min-height: 28px; height: 28px; padding: 0 12px; font-size: 12px; font-weight: 600;
+  line-height: 1; display: inline-flex; align-items: center; border-radius: 6px;
+  background: #e9ebee; border: 1px solid #d6dae0; color: #1a1d21;
+}
+#examRoot .ex-actions .btn-ghost[data-exit], #examPractice .ex-actions .btn-ghost[data-exit] {
+  border-color: #d6dae0; color: #1a1d21;
+}
+#examRoot .ex-strip, #examPractice .ex-strip { display: none; }
+#examPanel > .ex-option {
+  position: absolute; inset: 0; z-index: 95; display: none; overflow: auto; background: #fff;
+}
+#examPanel > .ex-option.on { display: block; }
+/* 听力单篇把音频控制并进顶栏，因此音频条承担同一层外壳的高度与底色。 */
+#examRoot .ex-audio {
+  height: 40px; min-height: 40px; padding: 3px 12px; box-sizing: border-box;
+  background: #f7f2f1; border-bottom: 1px solid #e5dddd;
+}
+
+/* 写作：题目说明独立成单行，正文尽可能留给题目与输入。 */
+#examPractice { background: #fff; }
+#examPractice .exam-body {
+  flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; padding: 0 28px;
+}
+#examPractice .task-band {
+  flex: none; margin: 8px 0 9px; border: 1px solid #c9cbce; border-radius: 6px;
+  background: #f8f8f8; padding: 3px 14px; display: flex; align-items: baseline;
+  gap: 16px; min-height: 36px; height: 36px;
+}
+#examPractice .task-band .exam-part {
+  margin: 0; font-size: 17px; font-weight: 400; color: var(--ink); line-height: 1.25; flex: none;
+}
+#examPractice .task-band .exam-instr { margin: 0; font-size: 12.5px; color: #4d5258; line-height: 1.4; }
+#examPractice .exam-split {
+  flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 20px; overflow: hidden;
+}
+#examPractice .exam-q { width: auto; min-width: 0; min-height: 0; overflow: auto; background: #fff; padding: 2px 18px 28px 0; }
+#examPractice .exam-q .exam-q-body-wrap { padding: 0; }
+#examPractice .exam-q-lead { margin: 0 0 16px; font-size: 17px; font-weight: 700; line-height: 1.65; }
+#examPractice .exam-q-body { margin: 0 0 18px; font-size: 18px; font-weight: 400; line-height: 1.65; }
+#examPractice .exam-q-note { margin: 0; font-size: 15px; color: var(--muted); line-height: 1.65; }
+#examPractice .exam-a {
+  width: auto; min-width: 0; min-height: 0; display: flex; flex-direction: column;
+  padding: 2px 0 0 20px; overflow: hidden; border-left: 1px solid #bfc2c5;
+}
+#examPractice .exam-textarea {
+  width: 100%; flex: 1; min-height: 0; resize: none; border: 1px solid #999da2;
+  border-radius: 3px; background: #fff; color: var(--ink); padding: 18px; line-height: 1.6;
+}
+#examPractice .exam-a-foot { min-height: 44px; padding: 10px 2px 12px; flex-wrap: nowrap; }
+#examPractice .exam-wc { font-size: 14px; color: #555b61; font-weight: 500; }
+
+#examRoot.ct-dark .ex-top, #examRoot.ct-dark .ex-bar,
+#examPractice.ct-dark .ex-top, #examPractice.ct-dark .ex-bar { background: #161616; border-color: #5a5f66; }
+#examRoot.ct-dark .ex-audio { background: #161616; border-color: #5a5f66; }
+#examRoot.ct-dark .ex-brand, #examRoot.ct-dark .ex-name, #examRoot.ct-dark .ex-timer,
+#examPractice.ct-dark .ex-brand, #examPractice.ct-dark .ex-name, #examPractice.ct-dark .ex-timer { color: #f2f2f2; }
+#examRoot.ct-yellow .ex-top, #examRoot.ct-yellow .ex-bar,
+#examPractice.ct-yellow .ex-top, #examPractice.ct-yellow .ex-bar { background: #161616; border-color: #4a4526; }
+#examRoot.ct-yellow .ex-audio { background: #161616; border-color: #4a4526; }
+#examRoot.ct-yellow .ex-brand, #examRoot.ct-yellow .ex-name, #examRoot.ct-yellow .ex-timer,
+#examPractice.ct-yellow .ex-brand, #examPractice.ct-yellow .ex-name, #examPractice.ct-yellow .ex-timer { color: #f0e3a8; }
+#examRoot.ct-dark .ex-ico, #examRoot.ct-dark .ex-pg, #examRoot.ct-dark .ex-actions button,
+#examPractice.ct-dark .ex-ico, #examPractice.ct-dark .ex-pg, #examPractice.ct-dark .ex-actions button {
+  background: #242628; color: #e8eaed; border-color: #5a5f66;
+}
+#examRoot.ct-yellow .ex-ico, #examRoot.ct-yellow .ex-pg, #examRoot.ct-yellow .ex-actions button,
+#examPractice.ct-yellow .ex-ico, #examPractice.ct-yellow .ex-pg, #examPractice.ct-yellow .ex-actions button {
+  background: #24241a; color: #f0e3a8; border-color: #6b6435;
+}
+#examPractice.ct-dark .exam-body, #examPractice.ct-dark .exam-q,
+#examPractice.ct-yellow .exam-body, #examPractice.ct-yellow .exam-q { background: #161616; }
+#examPractice.ct-dark .task-band, #examPractice.ct-yellow .task-band { background: #202020; border-color: #5a5f66; }
+
+@media (max-width: 860px) {
+  #examRoot .ex-top, #examPractice .ex-top { flex-wrap: nowrap; gap: 8px; min-height: 40px; height: 40px; padding: 4px 10px; }
+  #examRoot .ex-audio { height: 40px; min-height: 40px; padding: 3px 8px; }
+  #examRoot .ex-brand, #examPractice .ex-brand, #examPractice .ex-top-pause { display: none; }
+  #examRoot .ex-timer, #examPractice .ex-timer { margin-left: auto; margin-right: 0; }
+  #examRoot .ex-ico, #examPractice .ex-ico { height: 30px; min-height: 30px; padding: 0 9px; font-size: 12px; }
+  #examRoot .ex-ico.ex-toolbtn, #examPractice .ex-ico.ex-toolbtn { width: 30px; padding: 0; }
+  #examRoot .ex-icons, #examPractice .ex-icons { gap: 5px; }
+  #examRoot .ex-bar-main, #examPractice .ex-bar-main,
+  #examPractice.wt-bar > .ex-bar-main, #examPractice .wt-bar > .ex-bar-main {
+    height: auto; max-height: none; min-height: 68px; padding: 3px 8px; gap: 3px;
+    flex-direction: column; align-items: stretch;
+  }
+  #examRoot .ex-nav, #examPractice .ex-nav { width: 100%; min-height: 28px; }
+  #examRoot .ex-actions, #examPractice .ex-actions { width: 100%; gap: 6px; }
+  #examRoot .ex-actions button, #examPractice .ex-actions button { min-height: 30px; height: 30px; padding: 0 10px; }
+  #examPractice .exam-body { padding: 0; }
+  #examPractice .task-band { margin: 6px 10px 8px; padding: 3px 11px; display: block; min-height: 0; height: auto; }
+  #examPractice .task-band .exam-instr { font-size: 11.5px; line-height: 1.35; }
+  #examPractice .exam-split { grid-template-columns: 1fr; grid-template-rows: minmax(170px, 38%) minmax(0, 62%); gap: 0; }
+  #examPractice .exam-q { padding: 0 12px 10px; border-bottom: 1px solid #bfc2c5; }
+  #examPractice .exam-q-lead { font-size: 15px; margin-bottom: 12px; }
+  #examPractice .exam-q-body { font-size: 17px; line-height: 1.55; margin-bottom: 12px; }
+  #examPractice .exam-q-note { font-size: 14px; }
+  #examPractice .exam-a { padding: 10px 12px 0; border-left: 0; }
+  #examPractice .exam-textarea { font-size: 16px; padding: 12px; border-radius: 2px; }
+  #examPractice .exam-a-foot { min-height: 38px; padding: 8px 2px; }
+  #examPractice .exam-wc { font-size: 12px; }
+}
