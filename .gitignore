@@ -75,6 +75,7 @@ node_modules
 !/tests/_probe_softnav_guard_1029.cjs
 !/tests/_probe_softnav_queue_1031.cjs
 !/tests/_probe_speakbank_1020.cjs
+!/tests/_probe_statstruth_1118.cjs
 !/tests/_probe_submitjump_1018.cjs
 !/tests/_probe_taskcap_1022.cjs
 !/tests/_probe_teacher_1022.cjs
