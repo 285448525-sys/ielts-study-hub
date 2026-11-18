@@ -277,6 +277,11 @@ async function judgeAccounts(kv, users, usageMonth) {
     else verdict = 'idle';
     u.sig = sig;
     u.nameHint = nameProbe;
+    // 名字只是统计线索，不能单独成为不可逆删号的依据；有学习信号的账号必须保护。
+    const _manualReal = manual[a] === 1 || manual[a] === '1';
+    const _manualProbe = manual[a] === 0 || manual[a] === '0';
+    u.probeCleanEligible = !_manualReal
+      && (_manualProbe || u.src === 'probe' || (nameProbe && sig.length === 0));
     /* 人工标记覆盖自动判定；manual 为 1=真人 0=探针 */
     if (manual[a] != null) u.verdict = (manual[a] === 1 || manual[a] === '1') ? 'real' : 'probe';
     else u.verdict = verdict;
@@ -744,13 +749,12 @@ async function handleAdmin(context, body) {
        ① 默认 **dryRun**，只回「将要删的清单 + 数量」，让她先看清再决定；
        ② 真删必须回传 `confirm:'DELETE_PROBES'`，前端弹层要她手动输入确认；
        ③ 全程写审计（谁在什么时候删了多少）。
-     判定口径**直接复用 listUsers 的 verdict**（含她手动改判的 manual 覆盖）——
-     也就是说：面板上显示为「探针」的才会被删，**她手动标成「真人」的探针号安全**（10/5 定的优先级：manual > src > 名字 > 推断）。
+     清理使用比面板判定更严格的 probeCleanEligible：名字线索只能在零学习信号时参与删号；
+     明确 src:'probe' 仍可清理，人工标成「真人」的账号永远排除。
      顺带清掉这些账号名下的 AI 计数键，否则删了号、计数还留着，总览成本会虚高。 */
   if (action === 'probe_clean') {
     const _tp = Date.now();
-    /* 判定必须与面板显示**完全同一口径**，否则会出现「面板说是探针、删了却删错人」。
-       照抄 overview 的两步：先列 user: 造 users 数组 → judgeAccounts(kv, users, usageMonth) 打 verdict。 */
+     /* 复用 overview 的信号聚合，但最终删号必须另过 probeCleanEligible，不能只看 verdict。 */
     const userKeys = await listAll(kv, 'user:');
     const _uRecs = await kvGetMany(kv, userKeys);          // 10/6 并发读（原来 N 次串行）
     const users = [];
@@ -772,7 +776,7 @@ async function handleAdmin(context, body) {
        探针攒到几百个时单次请求会烧掉大把 KV 写配额 —— 她 10/5、10/6 各烧穿过一次（免费版 1000 写/天）。
        按 created 升序删（最陈旧的先走），连点几次自然把积压清完，也不会每次都反复删同一批。 */
     const CLEAN_LIMIT = 20;
-    const probes = judged.filter(u => u.verdict === 'probe').map(u => u.acct);
+     const probes = judged.filter(u => u.probeCleanEligible).map(u => u.acct);
     probes.sort((a, b) => (createdOf[a] || 0) - (createdOf[b] || 0));
     if (String(body.confirm || '') !== 'DELETE_PROBES') {
       return json({ ok: true, dryRun: true, count: probes.length, accts: probes.slice(0, 300),

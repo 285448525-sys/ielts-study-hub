@@ -6,7 +6,7 @@
 //
 // 存储：Cloudflare KV（复用 SYNC_KV 绑定），键名 `explain:<unitId>`，值形如：
 //   { "v": 1, "updatedAt": "2026-10-19T…", "items": {
-//       "1": { "text": "解析正文…", "tip": "可选一句话提示", "access": "free" },
+//       "1": { "text": "解析正文…", "tip": "可选一句话提示", "evidence": "原文定位句", "access": "free" },
 //       "2": { "text": "…", "access": "paid" } } }
 //   access 缺省 = free。**权限位是数据**：以后要改成付费墙，灌数据时写 paid 即可，不用改代码。
 //
@@ -56,7 +56,7 @@ async function paidAllowed(env, request) {
 }
 
 /* 纯函数：按权限裁剪 items —— 单独抽出便于本地单测（见 tests/_explain_api_test.mjs）。
-   返回 { items:{qno:{text,tip}}, locked:<付费且无权看的条数> } */
+   返回 { items:{qno:{text,tip,evidence}}, locked:<付费且无权看的条数> } */
 export function filterItems(items, allowPaid) {
   const out = {}, locked = { n: 0 };
   if (!items || typeof items !== 'object') return { items: out, locked: 0 };
@@ -67,6 +67,7 @@ export function filterItems(items, allowPaid) {
     if (access === 'paid' && !allowPaid) { locked.n++; continue; }
     const one = { text: String(it.text == null ? '' : it.text) };
     if (it.tip != null && String(it.tip) !== '') one.tip = String(it.tip);
+    if (it.evidence != null && String(it.evidence) !== '') one.evidence = String(it.evidence);
     out[qno] = one;              // ⚠️ 只搬 text/tip，绝不整条透传（防止未来加字段时误下发内部信息）
   }
   return { items: out, locked: locked.n };

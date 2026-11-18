@@ -37,7 +37,7 @@
 //   aiqmo:<acct>:<YYYY-MM>        ⛔ 退役：旧免费模考月键，不再读写
 //   aiqmo:<acct>:<YYYY-MM>:writing 免费写作批改月额度（TTL 40 天）
 //   aiqv2:<acct>:<group>:<period> 会员重活周期额度（TTL 40 天）
-//   aiqtask:<acct>:<group>:<period>:<token> 会员重活任务接力牌（TTL 40 天）
+//   aiqtask:<acct>:<group>:<period>:<token> 会员重活任务接力牌（24 小时，最多 40 次成功调用）
 //   aiqt:<acct>:writing           ⛔ 10-25 W-FREE-2 起不再读写（旧的终身写作计数，已废，别再用）
 //   aiqm:<acct>:<day>:<HHMM>      分钟风控（TTL 2 分钟自愈）
 //   aiqwv:<acct>:<YYYY-Www>       ⛔ 10/20 深夜起**不再写入**（面板已改用 aistat: 累加近 7 天，
@@ -71,6 +71,8 @@ const UPSTREAM_TIMEOUT_MS = 55000;  // Pages Function 上限 60s（免费版 CPU
 const DAY_MS = 86400000;
 const PERMANENT_VIP_EXPIRE = 9999999999999;
 const QUOTA_TTL = 3456000;
+const QUOTA_TASK_TTL = 86400;
+const QUOTA_TASK_MAX_CALLS = 40;
 const QUOTA_LIMITS = {
   mock_exam: { limit: 10, period: 'week', label: '口语模考' },
   chuan: { limit: 5, period: 'month', label: '串题' },
@@ -428,7 +430,7 @@ export async function onRequest(context) {
   if (rule.quota && validTaskToken(quotaTaskHeader)) {
     quotaTaskKey = taskPrefix + quotaTaskHeader;
     quotaTaskUsed = await readNumber(env.SYNC_KV, quotaTaskKey);
-    quotaTaskValid = quotaTaskUsed > 0;
+    quotaTaskValid = quotaTaskUsed > 0 && quotaTaskUsed < QUOTA_TASK_MAX_CALLS;
   }
   const quotaTotal = rule.quota ? limitOf(rule.quota, vipQuota) : 0;
   const quotaHit = !!(rule.quota && quotaUsed >= quotaTotal && !quotaTaskValid);
@@ -540,9 +542,12 @@ export async function onRequest(context) {
       jobs.push((async () => {
         try {
           if (!quotaTaskValid) {
-            await env.SYNC_KV.put(quotaTaskFinalKey, String(quotaTaskUsed + 1), { expirationTtl: QUOTA_TTL });
+            await env.SYNC_KV.put(quotaTaskFinalKey, String(quotaTaskUsed + 1), { expirationTtl: QUOTA_TASK_TTL });
             const cur = await readNumber(env.SYNC_KV, quotaPeriodKey);
             await env.SYNC_KV.put(quotaPeriodKey, String(cur + 1), { expirationTtl: QUOTA_TTL });
+          } else {
+            const taskCalls = await readNumber(env.SYNC_KV, quotaTaskFinalKey);
+            await env.SYNC_KV.put(quotaTaskFinalKey, String(taskCalls + 1), { expirationTtl: QUOTA_TASK_TTL });
           }
         } catch (e) {}
       })());
