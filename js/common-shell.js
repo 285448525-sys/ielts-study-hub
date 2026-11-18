@@ -1234,7 +1234,7 @@ async function softNavigate(t, isPop){
   }
 }
 
-/* 软导航时同步目标页的「页面专属样式」：内联 <style> + 外链样式表（css/p/*.css）。
+/* 软导航时同步目标页的「页面专属样式」：内联 <style> + 外链样式表（css/p/*.css + 共用机考壳）。
    🔴 10/18 修（她 9 张手机截图报「这些页面 UI 都有问题」的根因）：
    原实现只克隆 <head> 里的 <style>，对 <link rel="stylesheet" href="css/p/xxx.css"> 完全不管。
    于是从底栏/侧栏点进去的页面一直挂着**上一页**的专属样式表，本页的从未加载 ——
@@ -1248,10 +1248,17 @@ async function swapPageStyles(doc, pageId){
     clone.setAttribute('data-hub-style', pageId + '-' + idx);
     document.head.appendChild(clone);
   });
-  const isPageCss = el => (el.getAttribute('href') || '').indexOf('css/p/') >= 0;
+  /* EXAM-SHELL-1118：exam-shell.css 只挂在写作 / 机经两页，但它不是 css/p/ 下的页面样式。
+     若这里只搬 css/p/*.css，从首页或别的页面软导航进写作时，整套机考壳样式不会加载，
+     顶栏品牌、任务说明条、左右分栏和 Option 覆盖层会全部退回无样式裸 DOM。
+     直接把这份共用壳样式纳入软导航同步，不再要求用户整页刷新。 */
+  const isNavCss = el => {
+    const href = el.getAttribute('href') || '';
+    return href.indexOf('css/p/') >= 0 || href.indexOf('css/exam-shell.css') >= 0;
+  };
   const nextHrefs = [...doc.querySelectorAll('link[rel="stylesheet"]')]
-    .map(l => l.getAttribute('href') || '').filter(h => h.indexOf('css/p/') >= 0);
-  const oldLinks = [...document.querySelectorAll('link[rel="stylesheet"]')].filter(isPageCss);
+    .map(l => l.getAttribute('href') || '').filter(h => h.indexOf('css/p/') >= 0 || h.indexOf('css/exam-shell.css') >= 0);
+  const oldLinks = [...document.querySelectorAll('link[rel="stylesheet"]')].filter(isNavCss);
   if(nextHrefs.join('|') === oldLinks.map(l => l.getAttribute('href')).join('|')) return;
   await Promise.all(nextHrefs.map(href => new Promise(res => {
     const l = document.createElement('link');
@@ -1269,9 +1276,14 @@ async function swapPageStyles(doc, pageId){
        跟网速无关、跟缓存无关，只要走软导航就必现 —— 她一直是点导航进来的，所以只有她看得见。
        修法：插到第一条内联 <style> 之前，让「外链 CSS 在前、页面内联在后」这个顺序
        与直开完全一致；无内联样式时才退回 appendChild。这是一处修所有同类页的结构层改动。 */
-    const firstInline = document.head.querySelector('style');
-    if(firstInline) document.head.insertBefore(l, firstInline);
-    else document.head.appendChild(l);
+    if(href.indexOf('css/exam-shell.css') >= 0){
+      /* 直开两页时 exam-shell.css 就在 head 最后；软导航保持同一顺序，避免与页内补丁打架。 */
+      document.head.appendChild(l);
+    } else {
+      const firstInline = document.head.querySelector('style');
+      if(firstInline) document.head.insertBefore(l, firstInline);
+      else document.head.appendChild(l);
+    }
     setTimeout(fin, 4000);   // 兜底：慢网/加载失败也不让软导航卡住
   })));
   oldLinks.forEach(el => el.remove());

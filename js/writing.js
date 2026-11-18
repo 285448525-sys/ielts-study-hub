@@ -3546,7 +3546,13 @@ function wrtBindOption(){
     mb.addEventListener('click', function(ev){
       ev.stopPropagation();
       panel.classList.toggle('on');
-      if(panel.classList.contains('on')) wrtOptionSync();
+      if(panel.classList.contains('on')){
+        /* 从子菜单再次打开时回到根层；根层没有可返回的上一级，Back 必须收起。 */
+        var m = document.getElementById('exOptMain'); if(m) m.style.display = '';
+        panel.querySelectorAll('.ex-opsub').forEach(function(x){ x.style.display = 'none'; });
+        var back = panel.querySelector('[data-opback]'); if(back) back.style.display = 'none';
+        wrtOptionSync();
+      }
     });
   }
   panel.querySelectorAll('input[name="exCt"]').forEach(function(r){
