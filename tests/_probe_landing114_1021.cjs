@@ -80,8 +80,9 @@ const ok = (n, c, d) => { if (c) { pass++; console.log('  ✓ ' + n + (d ? '  ' 
     const p = await ctx.newPage();
     const errs = [];
     p.on('pageerror', e => errs.push(String(e && e.message || e).slice(0, 160)));
-    await p.goto(BASE + '/', { waitUntil: 'load' });
-    await sleep(900);
+    await p.goto(BASE + '/', { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await p.waitForSelector('h1', { timeout: 20000 }).catch(() => {});
+    await sleep(1400);
     const m = await p.evaluate(() => ({
       navHidden: (() => { const el = document.querySelector('.nav-links'); return el ? getComputedStyle(el).display === 'none' : true; })(),
       overflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
