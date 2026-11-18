@@ -24,7 +24,11 @@
   function todayItems() {
     try {
       var day = typeof todayKey === 'function' ? todayKey() : '';
-      var p = (typeof DATA !== 'undefined' && DATA && DATA.plans && DATA.plans[day]) || null;
+      var plans = (typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.plans)) ? DATA.plans : [];
+      var p = null;
+      for (var i = 0; i < plans.length; i++) {
+        if (plans[i] && plans[i].date === day) { p = plans[i]; break; }
+      }
       return (p && Array.isArray(p.items)) ? p.items : [];
     } catch (e) { return []; }
   }
