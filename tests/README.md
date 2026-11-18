@@ -353,3 +353,17 @@
 **一处曾被怀疑是真坏、用现场实测排除的疑点（①12）**：报 `{"how":"chip+drop","done1":false,"cnt1":"0 of 13"}`。写三个一次性诊断脚本现场验，结论：第一次/第二次 `label.ex-opt` 的 programmatic `.click()` 点不出选中态、交卷落库 `right:0 / wrong:13`；**第三次用真实鼠标 `page.click('#examRoot label.ex-opt')` 后 `input.checked === true`** —— 答题是记的，只是程序化 `label.click()` 不转发给内部 `input`，且新壳题号行只出数字，`.ex-num--done` 与 `.ex-pt-n`（x of y 计数）在现版 DOM 里已经不存在。据此 ①12 改成「真实点击 → 输入 checked；切到 Passage 2 再回来仍 checked」，当前篇若没有单选/填空控件则明确跳过、把覆盖算在 `fulllast` / `qtype` 身上。诊断脚本用完即删。
 
 **同类未改**：`_probe_qtype_1017` ④「填了 0/9」是同一类填充方法过期（走的是旧 `.ex-chip/.ex-drop/.ex-lohb` 组合），下次动它时一并按真实点击重写。
+
+### 七、收尾第四段（11-18 深夜，提交 `0e1fcc1b`）
+
+| 探针 | 结论 | 处理 |
+| --- | --- | --- |
+| `_probe_pracdarks_1023` | 旧版量的是商城视图里已退役的 `.wb-today`，`0×0` 是选择器过期 | 重写成量现版侧栏 `#hubTd`：夹具按 `DATA.plans:[{date, items:[{text,done}]}]` 造今天两条任务；比 `#hubTd` 底与首行文字的对比；手机档按她 11-18 决定改成「今日任务卡不该显示」。**15 / 0** |
+
+**这三支没能在本段收掉，原因是它们都要先重建「现版视图」，不是改个选择器的事**：
+
+1. `_probe_r1review_1024`（11 过 / 7 红）——11-16 回顾改三格后，深链语义从「切 tab」变成「滚到块 + record 家族清筛选」（`js/hub-side-shell.js reviewGo`、`js/rvx-data.js deepLink`）。我在本地试了两版判据，稳定复现：**夹具里没有真实成绩 / mockRecords 时 `#rv2Summary` 与 `#recAll` 高度都是 0**，`inView` 恒为假——继续调断言就是在测空块。要真定性，得先造成绩夹具（至少 4 科 + 一条 mockRecord），再验滚动。已 `git checkout` 还原，未留半成品改动。
+2. `_probe_wbdeck_1023`（34 过 / 7 红）——它量的是被 11-13 商城退役后人为展开的 `#wmLegacy / #wbDeckGrid`，手机档那层布局是 0 宽 0 高，所以 375/390 三条必红。要么按现版词书页（`#vBook` + 当前 deck 列表）重写，要么整支退役、覆盖交给 `wbview`。**这是产品视图取舍，得她点头，我不擅自删。**
+3. `_probe_prac42_1023`（25 过 / 6 红）——11-16 单词四页改版后批量条结构换了，同样要按现结构重建。
+
+**余下未动 11 支**：`latewrt`、`latespk`、`wrtbar`、`wrttpl`、`wordimport`、`worddemote`、`shell4`、`shell5`、`prac42`、`wbdeck`、`wbview`、`qtype`（26/3）。
