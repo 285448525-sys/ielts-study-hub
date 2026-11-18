@@ -77,7 +77,9 @@ const ok = (n, c, x) => { if (c) { pass++; console.log('  ok  ' + n + (x !== und
   ok('①7 首页 chip 文字对比 ≥4.5（透明 hero 下取 body 底）',
     ratio(home.c, home.heroBg === 'rgba(0, 0, 0, 0)' ? home.bodyBg : home.heroBg) >= 4.5,
     ratio(home.c, home.heroBg === 'rgba(0, 0, 0, 0)' ? home.bodyBg : home.heroBg) + ':1');
-  ok('①8 首页 chip 仍是 inline-flex 且未破版', home.display === 'inline-flex' && home.w > 40 && home.h >= 16 && home.ovf <= 0, home);
+  /* 🔵 11-18：铁律 32 —— 父级 .hero-sub 是 flex 容器时，子元素 inline-flex 会被 blockify 成 flex，
+     getComputedStyle 拿到的是计算值不是声明值。断言改成「两种都算」，别把 blockify 当破版。 */
+  ok('①8 首页 chip 仍是 inline-flex 语义且未破版', (home.display === 'inline-flex' || home.display === 'flex') && home.w > 40 && home.h >= 16 && home.ovf <= 0, 'display=' + home.display + ' ' + home.w + '×' + home.h);
 
   /* ---------- ② 背词页 .word-stats 里的连击 chip ---------- */
   await p.goto(BASE + '/practice.html', { waitUntil: 'load' });

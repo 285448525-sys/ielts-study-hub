@@ -28,6 +28,9 @@ async function seedExamBypass(pg) {
     try {
       localStorage.setItem('hub_exam_guide_v2_reading', '1');
       localStorage.setItem('hub_exam_guide_v2_listening', '1');
+      /* 🔵 11-17 起换成「全局只弹一次」的 hub_exam_guide_once，只写按渠道的 v2 键已经不够 ——
+         卡片会照弹，后面所有等考场渲染的步骤全部超时（11-18 一批旧探针就是这么集体变红的）。 */
+      localStorage.setItem('hub_exam_guide_once', '1');
       localStorage.setItem('hub_exam_timer_auto', '20');
       for (let i = localStorage.length - 1; i >= 0; i--) {
         const k = localStorage.key(i);
@@ -62,6 +65,9 @@ async function openUnit(pg, unitId) {
            所以只在弹层真的出现时点「再做一次」。没弹层时绝不误点。 */
         const redo = await pg.$('#bkDonePick [data-bdp="redo"]');
         if (redo) await redo.click();
+        /* 保底：万一一次性闸没生效，卡片已经弹出来了也顺手点掉，别让后面的步骤干等。 */
+        const go = await pg.$('.exg-go');
+        if (go) await go.click();
         await pg.waitForSelector('#examRoot .ex-group, #examRoot .ex-top', { timeout: 20000 });
         await pg.waitForTimeout(1200);
         return true;
