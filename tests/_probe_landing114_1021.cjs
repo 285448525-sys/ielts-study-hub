@@ -1,88 +1,87 @@
-/* 10-21 design/114A1「真诚务实」落地页落地批（她 14:59 点名「接下去做这个」）：
-   ① 线上 index.html = 114A1 内容重写版：零价格零会员零提分承诺（她的原话：不要过度宣传 / 不要过度承诺 /
-      不要把会员效果放进去 / 落地页不要写收费的内容）；
-   ② 数据带只放站内真口径（627 篇真题 / 89 条口语题卡 / 42 套模板 / 4 科 AI 反馈）；
-   ③ 老用户自动跳过行为一字不动（有学习数据 → home.html；?landing=1 例外）。
+/* LANDING-C-1118（11-18 上线）首页回归：暖白备考工作台整页，站点学士帽图标，四张真页面图。
+   口径变化：旧版「有学习数据自动跳 /home」随新落地页撤掉；根路径对所有访问者展示新首页。
    用法：node tests/_with_server.cjs tests/_probe_landing114_1021.cjs 8867 */
 const { chromium } = require('playwright-core');
-const fs = require('fs');
-const path = require('path');
-const ROOT = path.resolve(__dirname, '..');
-const EDGE = 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
+const EDGE = process.env.PW_EXECUTABLE || 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
 const BASE = process.env.BASE || process.argv[2] || 'http://127.0.0.1:8867';
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 let pass = 0, fail = 0;
 const ok = (n, c, d) => { if (c) { pass++; console.log('  ✓ ' + n + (d ? '  ' + d : '')); } else { fail++; console.log('  ✗ ' + n + (d ? '  <<< ' + d : '')); } };
-const BAN = /免费|会员|¥|价格|收费|付费|提分|保过|包过|过线|承诺\s*\d/;
 
 (async () => {
   const b = await chromium.launch({ executablePath: EDGE, headless: true, args: ['--proxy-server=direct://', '--proxy-bypass-list=*'] });
-
-  console.log('■ 桌面 1440×900：内容与合规');
+  console.log('■ 桌面 1440×1000：整页、图片、图标、试一题');
   {
-    const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } });
+    const ctx = await b.newContext({ viewport: { width: 1440, height: 1000 }, serviceWorkers: 'block', reducedMotion: 'reduce' });
+    await ctx.addInitScript(() => { try { localStorage.setItem('ielts_study_hub_v1', 'x'.repeat(300)); } catch (e) {} });
     const p = await ctx.newPage();
     const errs = [], bad = [];
     p.on('pageerror', e => errs.push(String(e && e.message || e).slice(0, 160)));
-    /* 线上 CF 会自己注入 Web Analytics 的 beacon（static.cloudflareinsights.com），那是平台行为、不是本站引入的
-       外部依赖 → 允许这一条；其余任何外部请求仍判红（本站零外链是硬要求）。 */
-    p.on('request', r => { const u = r.url(); if (!u.startsWith(BASE) && !u.startsWith('data:') && !/cloudflareinsights.com/.test(u)) bad.push(u); });
-    await p.goto(BASE + '/index.html?landing=1', { waitUntil: 'load' });
-    await sleep(1000);
+    p.on('request', r => {
+      const u = r.url();
+      if (!u.startsWith(BASE) && !u.startsWith('data:') && !/miaoda\.feishu\.cn|feishucdn\.com|cloudflareinsights\.com/.test(u)) bad.push(u);
+    });
+    await p.goto(BASE + '/', { waitUntil: 'load' });
+    await sleep(1200);
     const m = await p.evaluate(() => ({
+      title: document.title,
       h1: (document.querySelector('h1') || {}).innerText || '',
-      sections: document.querySelectorAll('section').length,
-      sectionIds: [...document.querySelectorAll('section')].map(s => s.id || s.className || '(无)').join(','),
-      links: [...new Set([...document.querySelectorAll('a[href]')].map(a => a.getAttribute('href')).filter(h => /\.html/.test(h)))],
+      h1count: document.querySelectorAll('h1').length,
+      sections: document.querySelectorAll('main section').length,
+      sectionIds: [...document.querySelectorAll('main section')].map(s => s.id || s.className).join(','),
       body: document.body.innerText,
-      band: ['627', '89', '42'].every(x => document.body.innerText.includes(x)),
-      overflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth
+      overflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      logo: (() => { const x = document.querySelector('.brand-mark img'); return x ? { src: x.getAttribute('src'), ok: x.complete && x.naturalWidth > 0 } : null; })(),
+      imgs: [...document.images].map(i => ({ src: i.getAttribute('src'), ok: i.complete && i.naturalWidth > 0 })),
+      links: [...new Set([...document.querySelectorAll('a[href]')].map(a => a.getAttribute('href')))]
     }));
-    ok('标题落在「从今天的清单开始」', /从\s*今天的清单\s*开始/.test(m.h1.replace(/\n/g, '')), JSON.stringify(m.h1));
-    /* P1-2（11-11）+ WBCLEAR（11-12）：落地页现版是 5 个 <section>（功能/AI/对比/三步/结尾），
-       数据带与 hero 仍是 <div>。按现版真实结构验五段和四枚锚点，不凭空补第六个 section。 */
-    ok('五段内容结构（功能/AI/对比/三步/结尾）', m.sections === 5 && m.sectionIds === 'feat,ai,vs,start,final', 'got ' + m.sections + '，ids=' + m.sectionIds);
-    ok('数据带是真口径（627 / 89 / 42）', m.band);
-    /* 品牌链接 index.html 是现版真实页面；清单仍逐项查文件存在，避免把外链/死链放绿。 */
-    ok('链接只指向站内真页面', m.links.every(h => fs.existsSync(path.join(ROOT, h))), JSON.stringify(m.links));
-    ok('无任何商业字样 / 提分承诺', !BAN.test(m.body), (m.body.match(BAN) || [])[0] || '');
+    ok('标题是新落地页', /雅思备考 Hub｜今天该练什么，打开就知道/.test(m.title), m.title);
+    ok('唯一 h1 + 新主张', m.h1count === 1 && /雅思机考/.test(m.h1) && /打开就知道/.test(m.h1), JSON.stringify(m.h1));
+    ok('七段结构完整', m.sections === 7 && m.sectionIds === 'hero,try,features,proof,more,free,final', 'got ' + m.sections + '，' + m.sectionIds);
+    ok('真数据带 627 / 89 / 42', ['627', '89', '42'].every(x => m.body.includes(x)));
+    ok('免费与会员边界明确', m.body.includes('免费') && m.body.includes('会员') && !/¥|价格|收费|提分|保过|包过/.test(m.body));
+    ok('站点学士帽图标真实加载', m.logo && m.logo.src === '/favicon.svg?v=7' && m.logo.ok, JSON.stringify(m.logo));
+    ok('四张产品图引用正式资源', new Set(m.imgs.filter(x => x.src && x.src.startsWith('img/landing/')).map(x => x.src)).size === 4, JSON.stringify(m.imgs.map(x => x.src)));
+    ok('/home 与 /login 接线在', m.links.includes('/home') && m.links.includes('/login'), JSON.stringify(m.links));
+    ok('无旧版 home.html 链接', !m.links.includes('home.html'));
     ok('桌面无横向溢出', m.overflowX <= 0, 'overflowX=' + m.overflowX);
-    ok('零 pageerror / 零外部请求', errs.length === 0 && bad.length === 0, errs.concat(bad).join(' | '));
 
-    // 老用户自动跳过（有数据 → home.html）；?landing=1 例外
-    const p2 = await ctx.newPage();
-    await p2.addInitScript(() => { try { localStorage.setItem('ielts_study_hub_v1', JSON.stringify({ settings: { name: 'Probe' }, words: Array(40).fill(1).map((_, i) => ({ id: 'w' + i, en: 'e' + i, cn: 'c' })), sessions: [], plans: [] })); } catch (e) {} });
-    await p2.goto(BASE + '/index.html', { waitUntil: 'domcontentloaded' });
-    await sleep(1500);
-    const dest = await p2.evaluate(() => location.pathname);
-    ok('老用户访问 / 自动进 home', /home/.test(dest), dest);
-    await p2.close();
+    for (let y = 0; y < await p.evaluate(() => document.body.scrollHeight); y += 600) { await p.evaluate(y => scrollTo(0, y), y); await sleep(70); }
+    await sleep(500);
+    await p.waitForFunction(() => [...document.images].every(i => i.complete && i.naturalWidth > 0), null, { timeout: 6000 }).catch(() => {});
+    const imgs = await p.evaluate(() => [...document.images].map(i => ({ src: i.getAttribute('src'), ok: i.complete && i.naturalWidth > 0 })));
+    ok('全部图片加载成功', imgs.every(x => x.ok), JSON.stringify(imgs.filter(x => !x.ok)));
+    await p.locator('.quiz-opt').nth(1).click();
+    const wrong = await p.locator('.quiz-feedback').innerText();
+    await p.locator('.quiz-opt').nth(0).click();
+    const right = await p.locator('.quiz-feedback').innerText();
+    await p.locator('.quiz-again').click();
+    const reset = await p.locator('.quiz-feedback').innerText();
+    ok('试一题正误与重置', /还差一点/.test(wrong) && /对了/.test(right) && reset === '', wrong + ' / ' + right + ' / ' + reset);
+    ok('老用户有本机数据也不再自动跳走', /yasihub\.com|127\.0\.0\.1/.test(await p.evaluate(() => location.host)) && !/\/home/.test(await p.evaluate(() => location.pathname)));
+    ok('零 pageerror / 零禁止外链', errs.length === 0 && bad.length === 0, errs.concat(bad).join(' | '));
     await ctx.close();
   }
 
-  console.log('■ 手机 390×844：排版');
-  {
-    const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  for (const v of [{ w: 390, h: 844, n: '390' }, { w: 360, h: 800, n: '360' }]) {
+    console.log('■ 手机 ' + v.n);
+    const ctx = await b.newContext({ viewport: { width: v.w, height: v.h }, isMobile: true, hasTouch: true, serviceWorkers: 'block', reducedMotion: 'reduce' });
     const p = await ctx.newPage();
     const errs = [];
     p.on('pageerror', e => errs.push(String(e && e.message || e).slice(0, 160)));
-    await p.goto(BASE + '/index.html?landing=1', { waitUntil: 'load' });
+    await p.goto(BASE + '/', { waitUntil: 'load' });
     await sleep(900);
     const m = await p.evaluate(() => ({
-      navlinksHidden: (() => { const el = document.querySelector('.nav .links'); return el ? getComputedStyle(el).display === 'none' : true; })(),
+      navHidden: (() => { const el = document.querySelector('.nav-links'); return el ? getComputedStyle(el).display === 'none' : true; })(),
       overflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
       heroVis: (() => { const h = document.querySelector('h1'); if (!h) return false; const r = h.getBoundingClientRect(); return r.width > 200 && r.height > 40; })(),
-      /* 现版主 CTA 是 .actions a.btn.primary，落点已统一写成站内根路径 /home
-         （旧 .hero .actions + href="home.html" 两处都不存在了）。 */
-      ctaVisible: (() => { const a = document.querySelector('.actions a.btn.primary[href="/home"], .actions a.btn.primary[href="home.html"]');
-        if (!a) return false; const r = a.getBoundingClientRect(); const s = getComputedStyle(a);
-        return r.height >= 44 && r.width > 100 && s.visibility === 'visible' && s.display !== 'none' && !a.disabled; })()
+      cta: (() => { const a = document.querySelector('.actions a[href="/home"]'); if (!a) return false; const r = a.getBoundingClientRect(); return r.height >= 44 && r.width > 100 && getComputedStyle(a).display !== 'none'; })()
     }));
-    ok('手机隐藏顶部锚点链接', m.navlinksHidden);
-    ok('手机无横向溢出', m.overflowX <= 0, 'overflowX=' + m.overflowX);
-    ok('hero 标题可见', m.heroVis);
-    ok('主 CTA 可见且可点', m.ctaVisible, 'got ' + m.ctaVisible);
-    ok('手机零 pageerror', errs.length === 0, errs.join(' | '));
+    ok(v.n + ' 导航折叠', m.navHidden);
+    ok(v.n + ' 无横向溢出', m.overflowX <= 0, 'overflowX=' + m.overflowX);
+    ok(v.n + ' 首屏标题可见', m.heroVis);
+    ok(v.n + ' 主 CTA 可见可点', m.cta);
+    ok(v.n + ' 零 pageerror', errs.length === 0, errs.join(' | '));
     await ctx.close();
   }
 
