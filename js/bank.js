@@ -3537,22 +3537,24 @@ window.__reportExamState = reportExamState;
     /* RV-TOP-24（她口径③）：用时数字搬进顶栏中间原「已用几分钟/计时」位 ——
        值取本场实际用时（EX._usedSec 交卷时已结算；只读复盘 rec.usedSec 传入 mountReviewTools 前已还原进 EX）。 */
     var usedSec = Math.max(0, Math.round(EX._usedSec || 0));
-    var usedTxt = usedSec ? (Math.floor(usedSec / 60) + ' min') : '';
+    /* RV-TOP-CN-1（11-18 她「除了网址和题目其他都改成中文…省空间」）：
+       用时 / 对错 / 四个开关全部中文化并收短，网址与篇名原样保留。 */
+    var usedTxt = usedSec ? (Math.floor(usedSec / 60) + ' 分') : '';
     var mini = document.createElement('span');
     mini.className = 'ex-score-mini';
     mini.setAttribute('data-rvmini', '1');
     mini.innerHTML = (usedTxt ? '<b>' + usedTxt + '</b> · ' : '')
-      + '<b class="ok">' + (res.total - wrong) + '</b> correct · <b class="no">' + wrong + '</b> incorrect';
+      + '<b class="ok">' + (res.total - wrong) + '</b> 对 · <b class="no">' + wrong + '</b> 错';
     var tg = document.createElement('span');
     tg.className = 'ex-toggles';
      /* RV-SW-26：第三钮「答案句」（默认开）—— 听力按 timeline 答案句，阅读按题库定位句。 */
     if(EX._rvShowAnsQ == null) EX._rvShowAnsQ = true;    /* 她口径：默认开 */
     if(EX._rvShowCn == null) EX._rvShowCn = false;       /* 她口径：默认关 */
-    tg.innerHTML = '<button type="button" class="ex-tg' + (EX._rvShowAns ? ' on' : '') + '" data-rvtg="ans">Answers</button>'
-      + '<button type="button" class="ex-tg' + (EX._rvShowHl ? ' on' : '') + '" data-rvtg="hl">Highlights</button>'
+    tg.innerHTML = '<button type="button" class="ex-tg' + (EX._rvShowAns ? ' on' : '') + '" data-rvtg="ans">答案</button>'
+      + '<button type="button" class="ex-tg' + (EX._rvShowHl ? ' on' : '') + '" data-rvtg="hl">高亮</button>'
       + '<button type="button" class="ex-tg' + (EX._rvShowAnsQ ? ' on' : '') + '" data-rvtg="ansq">答案句</button>'
       /* RV-SW-26 2：中文翻译钮听力/阅读都出，读取题库同源的固定译文。 */
-      + '<button type="button" class="ex-tg' + (EX._rvShowCn ? ' on' : '') + '" data-rvtg="cn">中文翻译</button>';
+      + '<button type="button" class="ex-tg' + (EX._rvShowCn ? ' on' : '') + '" data-rvtg="cn">中文</button>';
     var icons = top.querySelector('.ex-icons');
     var nameEl = top.querySelector('.ex-name');
     /* RV-TOP390-1（11-02）：多出两个开关后手机 390 一行放不下（实测 .ex-toggles x=476 出屏），
@@ -3682,14 +3684,98 @@ window.__reportExamState = reportExamState;
     var node = answerSentenceNode(d, evidence);
     if(!node) return false;
     if(EX._rvShowAnsQ === false){ EX._rvShowAnsQ = true; applyReviewAnsQ(); }
-    node.classList.add('ex-answer-evidence', 'ex-answer-current');
+    /* ANS-SENT-1：current 也收句子级；Highlight API 不可用才退回整块加类。 */
+    var range = sentenceRangeOf(node, evidence);
     var scroller = node.closest('.ex-article, .ex-qcol, .ex-script');
-    if(scroller){
-      var target = node.getBoundingClientRect(), box = scroller.getBoundingClientRect();
-      scroller.scrollTo({ top: scroller.scrollTop + target.top - box.top - box.height / 2 + target.height / 2, behavior: 'smooth' });
-    }else node.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    if(ensureHighlights() && range){
+      _hlCur.clear(); _hlCur.add(range);
+      var rect = range.getBoundingClientRect();
+      if(rect && rect.height && scroller){
+        var box = scroller.getBoundingClientRect();
+        scroller.scrollTo({ top: scroller.scrollTop + rect.top - box.top - box.height / 2 + rect.height / 2, behavior: 'smooth' });
+      }else if(scroller){
+        var target = node.getBoundingClientRect(), box2 = scroller.getBoundingClientRect();
+        scroller.scrollTo({ top: scroller.scrollTop + target.top - box2.top - box2.height / 2 + target.height / 2, behavior: 'smooth' });
+      }
+    }else{
+      node.classList.add('ex-answer-evidence', 'ex-answer-current');
+      if(scroller){
+        var target2 = node.getBoundingClientRect(), box3 = scroller.getBoundingClientRect();
+        scroller.scrollTo({ top: scroller.scrollTop + target2.top - box3.top - box3.height / 2 + target2.height / 2, behavior: 'smooth' });
+      }else node.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
     if(entry) scrollToQ(d.qn);
     return true;
+  }
+  /* ANS-SENT-1（11-18 她「高亮不用整段，要定位到具体那句话」）：
+     用 CSS Custom Highlight API 把答案句按 Range 标出来，不动段落 DOM、不拆句子；
+     浏览器不支持（或句子定位失败）时退回原整段高亮，功能不丢。 */
+  var _hlAns = null, _hlCur = null, _hlDark = false;
+  function highlightOk(){
+    return !!(window.CSS && CSS.highlights && typeof window.Highlight === 'function' && typeof document.createRange === 'function');
+  }
+  function hlName(base){
+    var r = document.getElementById('examRoot');
+    return (r && (r.classList.contains('ct-dark') || r.classList.contains('ct-yellow'))) ? base + '-d' : base;
+  }
+  function ensureHighlights(){
+    if(!highlightOk()) return false;
+    var root = document.getElementById('examRoot');
+    var dark = !!(root && (root.classList.contains('ct-dark') || root.classList.contains('ct-yellow')));
+    if(_hlAns && _hlCur && _hlDark === dark) return true;
+    ['ex-ans','ex-ans-cur','ex-ans-d','ex-ans-d-cur'].forEach(function(k){ CSS.highlights.delete(k); });
+    _hlAns = new Highlight(); _hlCur = new Highlight(); _hlDark = dark;
+    CSS.highlights.set(hlName('ex-ans'), _hlAns);
+    CSS.highlights.set(hlName('ex-ans-cur'), _hlCur);
+    return true;
+  }
+  function textBoundaryAt(block, index){
+    if(!block) return null;
+    var walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT, null);
+    var pos = 0, n;
+    while((n = walker.nextNode())){
+      var len = n.nodeValue ? n.nodeValue.length : 0;
+      if(pos + len >= index) return { node: n, offset: Math.max(0, Math.min(len, index - pos)) };
+      pos += len;
+    }
+    return null;
+  }
+  function rangeFromOffsets(block, start, end){
+    var s = textBoundaryAt(block, start), e = textBoundaryAt(block, end);
+    if(!s || !e) return null;
+    var r = document.createRange();
+    try{ r.setStart(s.node, s.offset); r.setEnd(e.node, e.offset); }catch(err){ return null; }
+    return r;
+  }
+  function sentenceRangeOf(block, evidence){
+    if(!block || !highlightOk()) return null;
+    if(block.classList && (block.classList.contains('sc-line') || block.classList.contains('sc-ans'))) return null;  /* 听力已句子级 */
+    var text = String(block.textContent || '');
+    if(!text || !/[A-Za-z]{3}/.test(text)) return null;
+    var parts = evidenceParts(evidence), needle = '';
+    for(var i = 0; i < parts.length && !needle; i++){ if(text.indexOf(parts[i]) > -1) needle = parts[i]; }
+    if(!needle){
+      for(var j = 0; j < parts.length && !needle; j++){
+        var words = parts[j].toLowerCase().match(/[a-z0-9]+/g) || [];
+        if(words.length > 5){
+          var prefix = words.slice(0, 8).join(' ');
+          var at0 = text.toLowerCase().indexOf(prefix);
+          if(at0 > -1) needle = text.substr(at0, prefix.length);
+        }
+      }
+    }
+    if(!needle) return null;
+    var at = text.indexOf(needle);
+    if(at < 0) return null;
+    var re = /[^.!?]+[.!?]+(?:["'’”]+)?|[^.!?]+$/g, m, s = 0, e = text.length;
+    while((m = re.exec(text))){
+      var a = m.index, b = a + m[0].length;
+      if(at >= a && at < b){ s = a; e = b; break; }
+    }
+    var lead = text.slice(s, e).match(/^[A-H][\s.:]+/); if(lead) s += lead[0].length;   /* 段落字母 A/B/C 不进高亮 */
+    var tail = text.slice(s, e).match(/\s+$/); if(tail) e -= tail[0].length;
+    if(e <= s) return null;
+    return rangeFromOffsets(block, s, e);
   }
   function applyReadingEvidence(){
     var root = document.getElementById('examRoot'); if(!root) return;
@@ -3697,11 +3783,15 @@ window.__reportExamState = reportExamState;
       n.classList.remove('ex-answer-evidence');
       if(n.hasAttribute('data-rv-evidence')){ n.classList.remove('sc-ans'); n.removeAttribute('data-rv-evidence'); }
     });
+    if(ensureHighlights()) _hlAns.clear();
     if(!EX || !EX.result || !EX._rvShowAnsQ) return;
     (EX.result.detail || []).forEach(function(d){
       if(!d || d.right == null) return;
-      var node = answerSentenceNode(d, fixedExplanation(d.qn).evidence);
+      var ev = fixedExplanation(d.qn).evidence;
+      var node = answerSentenceNode(d, ev);
       if(!node) return;
+      var range = sentenceRangeOf(node, ev);
+      if(range && _hlAns){ _hlAns.add(range); return; }
       node.classList.add('ex-answer-evidence');
       if(!node.classList.contains('sc-ans')){ node.classList.add('sc-ans'); node.setAttribute('data-rv-evidence', '1'); }
     });
@@ -3727,7 +3817,8 @@ window.__reportExamState = reportExamState;
       card = document.createElement('section');
       card.innerHTML = '<button type="button" class="ex-ai-handle" id="exAiHandle" role="separator" aria-orientation="horizontal" aria-label="拖动调整讲解区高度" tabindex="0"></button>'
         + '<div class="ex-ai-h"><b id="exAiTitle">答案解析</b>'
-        + '<button type="button" class="ex-ai-x" data-aiexpclose aria-label="Close">✕</button></div>'
+        + '<span class="ex-ai-h-r"><button type="button" class="ex-ai-btn" data-aiexpai>AI 讲解</button>'
+        + '<button type="button" class="ex-ai-x" data-aiexpclose aria-label="Close">✕</button></span></div>'
         + '<div class="ex-ai-b" id="exAiBody"></div>';
       card.className = 'ex-ai-panel'; card.id = 'exAiCard'; card.hidden = true;
       qcol.appendChild(card);
@@ -3798,6 +3889,7 @@ window.__reportExamState = reportExamState;
   function openAiExplain(hit){
     var root = document.getElementById('examRoot'); if(!root) return;
     var card = root.querySelector('#exAiCard'); if(!card) return;
+    EX._aiHit = hit;                                        /* AI 讲解按钮取当前题（按需调用，不自动） */
     card.hidden = false;
     /* RV-FIX5-6：点开讲解才分栏（右栏上下两块）；✕ 关闭摘 ai-open 还原单列滚动 */
     var qcol = root.querySelector('#exQCol'); if(qcol) qcol.classList.add('ai-open');
@@ -3806,6 +3898,8 @@ window.__reportExamState = reportExamState;
     if(window.innerWidth <= 860 && card.scrollIntoView){ try{ card.scrollIntoView({ block: 'start', behavior: 'smooth' }); }catch(e){} }
     var title = card.querySelector('#exAiTitle');
     if(title) title.textContent = '第 ' + hit.qn + ' 题 · 固定解析';
+    var aiBtn = card.querySelector('[data-aiexpai]');
+    if(aiBtn){ aiBtn.disabled = false; aiBtn.textContent = 'AI 讲解'; }
     var body = card.querySelector('#exAiBody'); if(!body) return;
     /* 高亮当前题：题号徽章优先；填空题等无徽章的退到 .ex-blankw 容器（只留当前题） */
     root.querySelectorAll('.ai-cur').forEach(function(n){ n.classList.remove('ai-cur'); });
@@ -3823,9 +3917,9 @@ window.__reportExamState = reportExamState;
     }
     var d = hit.detail;
     var fixed = fixedExplanation(hit.qn);
-    var html = '<div class="ex-fixed-result ' + (d.ok ? 'ok' : 'no') + '">' + (d.ok ? '回答正确' : '回答错误') + '</div>'
-      + '<dl class="ex-fixed-answers"><div><dt>正确答案</dt><dd>' + esc(d.right == null ? '—' : d.right) + '</dd></div>'
-      + '<div><dt>你的答案</dt><dd>' + esc(d.user == null || d.user === '' ? '未作答' : d.user) + '</dd></div></dl>';
+    /* RV-FIXED-TRIM-1（11-18 她口径⑤）：题区已有对错与正答，「回答错误」「正确答案 / 你的答案」
+       不再在解析卡里重复一遍；固定解析直接从定位句开始。 */
+    var html = '';
     if(fixed.evidence) html += '<section class="ex-fixed-evidence"><h5>定位句</h5><p>' + esc(fixed.evidence) + '</p></section>';
     if(fixed.text) html += '<section class="ex-fixed-text"><h5>答案解析</h5><p>' + esc(fixed.text).replace(/\n/g, '<br>') + '</p></section>';
     if(fixed.tip) html += '<section class="ex-fixed-tip"><h5>易错点</h5><p>' + esc(fixed.tip) + '</p></section>';
@@ -3835,11 +3929,61 @@ window.__reportExamState = reportExamState;
     applyReviewAnsQ(); applyReadingEvidence();
     focusAnswerSentence(d, fixed.evidence);
   }
+  /* AI-EXPLAIN-BTN-1（11-18 她口径⑦）：解析卡标题栏「AI 讲解」——只在点击后调一次，
+     固定解析始终本地零请求；讲解带上题干原文、正确答案与她的错误答案。 */
+  function aiStemOf(qn){
+    var ctl = document.querySelector('#examRoot [data-q="' + qn + '"]');
+    var host = ctl && ctl.closest ? ctl.closest('.ex-q') : null;
+    var txt = host ? host.textContent : '';
+    if(!txt){
+      var q = reviewQuestion(qn);
+      txt = q && q.question ? String(q.question) : '';
+    }
+    return String(txt || '').replace(/<input\b[^>]*>/ig, '＿＿').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 700);
+  }
+  function askAiExplain(){
+    var root = document.getElementById('examRoot');
+    var body = root && root.querySelector('#exAiBody');
+    var hit = EX && EX._aiHit;
+    if(!body || !hit) return;
+    var qn = String(hit.qn), d = hit.detail;
+    var btn = root.querySelector('[data-aiexpai]');
+    var box = body.querySelector('.ex-ai-out');
+    if(!box){
+      box = document.createElement('section');
+      box.className = 'ex-ai-out';
+      box.innerHTML = '<h5>AI 讲解</h5><div class="ex-ai-out-b"></div>';
+      body.appendChild(box);
+    }
+    var out = box.querySelector('.ex-ai-out-b');
+    if(!out) return;
+    if(EX._aiCache && EX._aiCache[qn]){ out.innerHTML = String(EX._aiCache[qn]).replace(/\n/g, '<br>'); return; }
+    if(typeof callRelay !== 'function'){ out.textContent = 'AI 这会儿不可用，稍后再点一次。'; return; }
+    var stem = aiStemOf(qn);
+    if(btn){ btn.disabled = true; btn.textContent = '讲解中…'; }
+    out.innerHTML = '<span class="ex-ai-wait">正在按你的答案讲这道题…</span>';
+    Promise.resolve().then(function(){
+      return callRelay('errorbook', [
+        { role: 'system', content: '你是雅思阅读老师。用中文精讲一道阅读题，按三小段写：①答案怎么来的（引用原文定位句的关键词，指出同义替换）；②正确答案为什么成立；③学生的错误答案错在哪。不要空话，不超过 220 字。' },
+        { role: 'user', content: '题型：' + (d.t || '阅读题') + '\n题干：' + (stem || '（见题区）') + '\n正确答案：' + (d.right || '—') + '\n学生答案：' + (d.user || '未作答') + '\n请讲解这道题。' }
+      ], 0.3);
+    }).then(function(text){
+      var clean = String(text || '').trim();
+      if(!clean) throw new Error('empty');
+      EX._aiCache = EX._aiCache || {}; EX._aiCache[qn] = clean;
+      out.innerHTML = clean.replace(/\n/g, '<br>');
+    }).catch(function(err){
+      out.textContent = 'AI 没讲成，过一分钟再点一次。' + (err && err.message ? '（' + String(err.message).slice(0, 40) + '）' : '');
+    }).then(function(){
+      if(btn){ btn.disabled = false; btn.textContent = 'AI 讲解'; }
+    });
+  }
   function closeAiExplain(){
     var root = document.getElementById('examRoot'); if(!root) return;
     var card = root.querySelector('#exAiCard'); if(card) card.hidden = true;
     var qcol = root.querySelector('#exQCol'); if(qcol) qcol.classList.remove('ai-open');   /* RV-FIX5-6：关讲解 = 撤分栏还原单列 */
     root.querySelectorAll('.ai-cur').forEach(function(n){ n.classList.remove('ai-cur'); });
+    if(_hlCur) _hlCur.clear();                                   /* ANS-SENT-1：current 高亮随卡关闭 */
   }
   /* 开关落内容：答案 = .right/.wrong 上色 + 结论条 Show/Hide 显隐 + 空格填正答；
      高亮 = ex-hl/ex-nt 显隐（visibility 而非 remove —— 再点开要原样回来，replayMarks 不重跑）。 */
@@ -3967,6 +4111,11 @@ window.__reportExamState = reportExamState;
      克隆一份摘干净再取文字，不动真 DOM。 */
   function rvCnTextOf(el){
     var c = el.cloneNode(true);
+    /* BR-CN-1（11-18）：Python 产物把 <br> 当 ". " 分词（strip_html），浏览器 textContent 不换行；
+       不复刻这一条，含 <br> 的题干/表格格永远 hash 不上。 */
+    Array.prototype.forEach.call(c.querySelectorAll('br'), function(n){
+      if(n.parentNode) n.parentNode.replaceChild(document.createTextNode('. '), n);
+    });
     if(el.classList && el.classList.contains('ex-opt')) Array.prototype.forEach.call(c.querySelectorAll('span > b'), function(n){ n.remove(); });
     else if(el.classList && el.classList.contains('ex-chip')){
       var word = c.querySelector('b');
@@ -3975,16 +4124,21 @@ window.__reportExamState = reportExamState;
     else Array.prototype.forEach.call(c.querySelectorAll('.ex-blankw,.sc-cn,.sc-q,.ex-flagq,.ex-qn,.ex-ai-panel,.ex-score-mini,.ex-opts,.ex-pills'), function(n){ n.remove(); });
     return (c.textContent || '').replace(/\s+/g, ' ').trim();
   }
+  /* CN-MATCH-1（11-18 她报「中文翻译还是用不了」）：译文 key 是 scripts/fill-bank-translations.py
+     用「HTML 实体解码成直引号 + 正则切句」算的 FNV；浏览器 textContent 把 &lsquo; 解码成弯引号 ‘，
+     且 Intl.Segmenter 的句界与预生成正则不一致 —— 两处都会让 hash 落空、整句没译文。
+     这里把归一与切句严格对齐产物口径（弯引号→直引号、空白归一、同一条切句正则）。 */
+  function rvCnNorm(text){
+    return String(text || '').replace(/[\u2018\u2019]/g, "'").replace(/[\u201c\u201d]/g, '"').replace(/\s+/g, ' ').trim();
+  }
   function rvCnHash(text){
-    var h = 2166136261;
-    for(var i = 0; i < text.length; i++){ h ^= text.charCodeAt(i); h = Math.imul(h, 16777619); }
+    var t = rvCnNorm(text), h = 2166136261;
+    for(var i = 0; i < t.length; i++){ h ^= t.charCodeAt(i); h = Math.imul(h, 16777619); }
     return (h >>> 0).toString(36);
   }
   function rvCnSentences(text){
-    if(typeof Intl !== 'undefined' && Intl.Segmenter){
-      return Array.from(new Intl.Segmenter('en', { granularity: 'sentence' }).segment(text), function(s){ return s.segment.trim(); }).filter(Boolean);
-    }
-    return String(text).match(/[^.!?]+[.!?]+(?:["'’”]+)?|[^.!?]+$/g).map(function(s){ return s.trim(); }).filter(Boolean);
+    return (String(text || '').match(/[^.!?]+[.!?]+(?:["'’”]+)?|[^.!?]+$/g) || [])
+      .map(function(s){ return s.replace(/\s+/g, ' ').trim(); }).filter(Boolean);
   }
   function loadReviewCn(){
     var unit = reviewUnit();
@@ -5542,6 +5696,10 @@ window.__reportExamState = reportExamState;
   /* RV-AI-EXPLAIN-1：解析卡 ✕ = 只收卡（不动作答/判分数据） */
       if((el = t.closest && t.closest('[data-aiexpclose]'))){
         e.preventDefault(); closeAiExplain(); return;
+      }
+  /* AI-EXPLAIN-BTN-1：解析卡「AI 讲解」= 按需调用（固定解析仍零请求） */
+      if((el = t.closest && t.closest('[data-aiexpai]'))){
+        e.preventDefault(); askAiExplain(); return;
       }
   /* RV-AI-EXPLAIN-1：复盘态点作答控件/题号 → 右栏固定解析（仅复盘；做题态 EX.submitted 为 false 自然不触发） */
       if(EX && EX.submitted && EX.result){

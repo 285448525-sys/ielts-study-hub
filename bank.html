@@ -18,7 +18,7 @@
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
 <title>机经 · 雅思备考 Hub</title>
-<link rel="preload" as="script" href="js/bank.js?v=20261118a" /> <!-- W1-PRELOAD-1 (373KB)：与下方 defer 同串防双下载 -->
+<link rel="preload" as="script" href="js/bank.js?v=20261118b" /> <!-- W1-PRELOAD-1 (373KB)：与下方 defer 同串防双下载 -->
 <link rel="preload" as="script" href="js/common-shell.js?v=20261116a" /> <!-- W1-PRELOAD-1 (113KB)：与下方 defer 同串防双下载 -->
 <link rel="stylesheet" href="css/common.css?v=20261116a" />
 <link rel="stylesheet" href="css/p/bank.css?v=20261116i" />
@@ -652,7 +652,7 @@ html[data-theme="dark"] .full-card{background:var(--surface);border-color:var(--
 @media (max-width:860px){
   #examRoot .ex-blankw.rv-open{max-width:100%;flex-wrap:wrap;row-gap:2px}
   #examRoot .ex-blankw.rv-open input.ex-blank{flex:0 1 auto;min-width:0;max-width:100%}
-  #examRoot .ex-blankw.rv-open .ex-ca-in{flex:0 1 auto;max-width:100%;white-space:normal;overflow-wrap:break-word;margin-left:0}
+  #examRoot .ex-blankw.rv-open .ex-ca-in{flex:0 1 auto;max-width:100%;white-space:normal;overflow-wrap:break-word;margin-left:.6em}
   #examRoot .ex-html td .ex-blankw.rv-open{flex-wrap:wrap;max-width:100%}
 }
 /* RV-FIX5-11（她 11-03 晚：「未勾的正答绿不用这么淡，跟勾对的绿一个浓度，靠前面框没打勾区分」）：
@@ -2448,13 +2448,17 @@ main.container:has(> .hub-shell){
 #examRoot .ex-pause-mask small{font-size:14px;color:#536661;letter-spacing:0}
 #examRoot.ct-dark .ex-pause-mask,#examRoot.ct-yellow .ex-pause-mask{background:rgba(20,22,22,.72);color:#f2f2f2}
 #examRoot.ct-dark .ex-pause-mask small,#examRoot.ct-yellow .ex-pause-mask small{color:#ccd3d1}
-#examRoot .ex-fixed-result{display:inline-flex;padding:3px 8px;border-radius:5px;font-size:12px;font-weight:600;margin-bottom:8px}
-#examRoot .ex-fixed-result.ok{background:#e7f5ee;color:#147548}
-#examRoot .ex-fixed-result.no{background:#fff0ed;color:#bd493c}
-#examRoot .ex-fixed-answers{display:flex;gap:18px;margin:0 0 13px;padding:0 0 12px;border-bottom:1px solid #e8ecea}
-#examRoot .ex-fixed-answers div{min-width:0}
-#examRoot .ex-fixed-answers dt{font-size:11px;color:#7a8581;margin-bottom:3px}
-#examRoot .ex-fixed-answers dd{margin:0;font-weight:600;color:#253b37;overflow-wrap:anywhere}
+/* RV-FIXED-TRIM-1（11-18 口径⑤）：「回答错误」「正确答案 / 你的答案」随 DOM 一并退役。 */
+/* AI-EXPLAIN-BTN-1（11-18 口径⑦）：标题栏按需讲解按钮 + 结果区；固定解析仍本地零请求。 */
+.ex-ai-h-r{display:inline-flex;align-items:center;gap:6px;flex:none}
+.ex-ai-btn{appearance:none;border:1px solid #cfe0db;background:#f2f8f6;color:#1f6f5c;font-size:12px;font-weight:700;border-radius:6px;padding:4px 10px;line-height:1;cursor:pointer}
+.ex-ai-btn:hover{background:#e3f1ec;border-color:#a9cdc3}
+.ex-ai-btn:disabled{opacity:.6;cursor:default}
+#examRoot.ct-dark .ex-ai-btn, #examRoot.ct-yellow .ex-ai-btn{background:#232b28;border-color:#3c4a45;color:#8fd3bc}
+#examRoot .ex-ai-out{margin-top:14px;padding-top:12px;border-top:1px dashed #dbe4e1}
+#examRoot .ex-ai-out h5{color:#1f6f5c}
+#examRoot .ex-ai-wait{color:#71807b}
+#examRoot.ct-dark .ex-ai-out, #examRoot.ct-yellow .ex-ai-out{border-top-color:#3c4542}
 #examRoot .ex-ai-b section{margin:0 0 14px}
 #examRoot .ex-ai-b h5{font-size:12px;color:#71807b;margin:0 0 4px;font-weight:600}
 #examRoot .ex-ai-b p{margin:0;white-space:normal;overflow-wrap:anywhere}
@@ -2462,13 +2466,17 @@ main.container:has(> .hub-shell){
 #examRoot .ex-fixed-evidence p{font-size:12px;color:#52645e}
 #examRoot .ex-fixed-tip{color:#796139}
 #examRoot .ex-fixed-empty{color:#71807b}
-#examRoot.ct-dark .ex-fixed-answers,#examRoot.ct-yellow .ex-fixed-answers{border-color:#3c4542}
-#examRoot.ct-dark .ex-fixed-answers dd,#examRoot.ct-yellow .ex-fixed-answers dd{color:#f2f2f2}
 #examRoot.ct-dark .ex-fixed-evidence,#examRoot.ct-yellow .ex-fixed-evidence{background:#232b28}
 #examRoot .ex-answer-evidence{background:#fff1b9;border-radius:3px;box-shadow:0 0 0 3px #fff1b9}
 #examRoot .ex-answer-current{box-shadow:0 0 0 3px #f2ce60}
 #examRoot.rv-noansq .ex-answer-evidence:not(.ex-answer-current){background:transparent;box-shadow:none}
 #examRoot.ct-dark .ex-answer-evidence,#examRoot.ct-yellow .ex-answer-evidence{background:#695b27;box-shadow:0 0 0 3px #695b27}
+/* ANS-SENT-1（11-18 她「高亮不用整段，要定位到具体那句话」）：句子级 Range 高亮，
+   亮/暗两套名字由 JS 按当前主题选；不支持 Highlight API 时退回上面的整段类高亮。 */
+::highlight(ex-ans){background:#fff1b9;color:#1f2328}
+::highlight(ex-ans-cur){background:#f2ce60;color:#1f2328}
+::highlight(ex-ans-d){background:#6a5c26;color:#f4f4f2}
+::highlight(ex-ans-d-cur){background:#8d7830;color:#ffffff}
 @media(max-width:640px){#examRoot .ex-pause-mask b{font-size:21px}#examRoot .ex-pause-mask span{padding:20px}}
 </style>
 <style id="bootLoaderStyle">
@@ -3184,7 +3192,7 @@ html[data-theme="dark"] .hub-main #bankRoot .partbar .pill-tab.active{background
 <script defer src="js/common-shell.js?v=20261116a"></script>
 <script defer src="js/common-pwa.js?v=20261117a"></script>
 <script defer src="js/exam-timer.js?v=20261102c"></script>
-<script defer src="js/bank.js?v=20261118a"></script>
+<script defer src="js/bank.js?v=20261118b"></script>
 <!-- RV-FIX5-10/11（11-03 合流修正）：bank.js 内容改了但引用串此前漏 bump（串还是 g，与上一版撞）——
      按 11-02 判据「bump 不覆盖页面 js 引用串」人工改 h；bank.css 保持 g（本笔未再动它）。 -->
 <!-- M-2（10-24）：模考页「没做过/做过」分组 + 展开更多。
@@ -3201,7 +3209,9 @@ html[data-theme="dark"] .hub-main #bankRoot .partbar .pill-tab.active{background
      放在业务脚本之后：软导航按 HTML 声明顺序 eval，此时 bank.js / DATA / manifest 都已就位。 -->
 <script defer src="js/bank-records.js?v=20261118a"></script>
 <style id="rvCaInFix">
-.ex-ca-in{display:inline-block;font:inherit;color:#1f7a5c;line-height:1.4;vertical-align:middle;flex:none}
+/* RV-CA-GAP-1（11-18 她「正确答案得是绿色的，前面两个空格就够」）：绿字保绿、与红字之间留约两个空格的间距。 */
+.ex-ca-in{display:inline-block;font:inherit;color:#1f7a5c;line-height:1.4;vertical-align:middle;flex:none;margin-left:.6em}
+#examRoot.ct-dark .ex-ca-in, #examRoot.ct-yellow .ex-ca-in{color:#63d2a6}
 </style>
 </body>
 </html>
