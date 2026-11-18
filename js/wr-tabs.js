@@ -342,6 +342,8 @@
       hideNew();
     }
     syncActive();syncBadges();renderPane(id);renderViewHeads();
+    /* 🔧 11-18：进真题模考 pane 时补画一次「完整写作模考」入口卡（boot 那次画的时候写作数据可能还没到位） */
+    if(id==='exam'&&typeof window.ensureWritingFullEntry==='function'){try{window.ensureWritingFullEntry()}catch(e){}}
     try{var hm=document.querySelector('.hub-main');if(hm)hm.scrollTop=0;var main=document.querySelector('main.container');if(main)main.scrollTop=0}catch(e){}
     try{if(typeof window.hubResetPageScroll==='function')window.hubResetPageScroll();if(typeof window.hubFitPageScroll==='function')window.hubFitPageScroll()}catch(e){}
     if(!(opts&&opts.silent)){try{history.replaceState(null,'','#wr='+id)}catch(e){}}

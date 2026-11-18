@@ -2475,6 +2475,20 @@ function renderWritingFullEntry(){
   if(btn) btn.addEventListener('click', startWritingFull);
 }
 
+/* 🔧 11-18 修（回归探针发现的产品问题）：11-16 写作四格改版后，「完整写作模考」入口卡整块不见。
+   实测 #writingFullEntry 里有 0 字内容，而 WRITING_PROMPTS 数据齐（big 70 / small 25）——
+   说明 boot 时那一次 renderWritingFullEntry() 画的时候数据还没到位（画出来立刻被 !nBig||!nSmall 清空）。
+   这里补一条兜底：脚本就绪后、load 后各重画一次；exam pane 打开时由 wr-tabs 侧再兜（见 wr-tabs.js）。 */
+function ensureWritingFullEntry(){
+  try{ if(typeof renderWritingFullEntry === 'function') renderWritingFullEntry(); }catch(e){}
+}
+window.ensureWritingFullEntry = ensureWritingFullEntry;
+if(document.readyState !== 'loading'){ setTimeout(ensureWritingFullEntry, 0); }
+else { document.addEventListener('DOMContentLoaded', ensureWritingFullEntry); }
+window.addEventListener('load', ensureWritingFullEntry);
+window.addEventListener('pageshow', ensureWritingFullEntry);
+document.addEventListener('hub:data-merged', ensureWritingFullEntry);
+
 /* ===== EXAM-TIMER-CHOICE-1（10-31）写作侧的「要不要计时」=====
    她 11-01 0:0x 最终口径：写作模考可以计时、练习不计时 → 实际执行口径（B 定）：
    写作完整模考与写作单篇（Task 1 / Task 2）都弹选择框，时长可自调。

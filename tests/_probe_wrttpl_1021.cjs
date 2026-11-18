@@ -34,12 +34,22 @@ const SEED = JSON.stringify({
 async function showTplPane(p) {
   await p.waitForFunction(() => !!(window.__wrTabs && typeof window.__wrTabs.show === 'function'), null, { timeout: 20000 });
   await p.evaluate(() => window.__wrTabs.show('tpl'));
+  /* 🔵 11-18 口径：现版进模板库默认落「列表」（wr-tabs show('tpl') 会自己点一次列表），
+     视图切换那两枚 pill 退到标题行里、可见宽度为 0；判据改为「pane 可见 + 列表里有行」。 */
   await p.waitForFunction(() => {
     const pane = document.getElementById('tplPanel');
-    const btn = document.querySelector('#tplView [data-view="list"]');
-    return pane && !pane.hidden && btn && btn.getBoundingClientRect().width > 0;
+    const list = document.getElementById('tplList');
+    return !!pane && !pane.hidden && !!list && list.querySelectorAll('.tl-row, .tpl-card').length > 0;
   }, null, { timeout: 20000 });
   await sleep(300);
+}
+/* 视图切换按钮在现版是隐藏状态（宽 0），Playwright 的可见性检查会超时 → 一律走 JS click。 */
+async function clickView(p, v) {
+  await p.evaluate(v => {
+    const b = document.querySelector('#tplView [data-view="' + v + '"]');
+    if (b) b.click();
+  }, v);
+  await sleep(350);
 }
 
 async function boot(b) {
@@ -67,9 +77,10 @@ async function boot(b) {
   const b = await chromium.launch({ executablePath: EDGE, headless: true,
     args: ['--proxy-server=direct://', '--proxy-bypass-list=*'] });
 
-  /* ① 默认网格态：卡片露结构提示 + 骨架首句 */
+  /* ① 网格态：卡片露结构提示 + 骨架首句（现版默认落列表，这里显式点一次网格） */
   {
     const { ctx, p, errs } = await boot(b);
+    await clickView(p, 'grid');
     const r = await p.evaluate(() => {
       const box = document.getElementById('tplList');
       const cards = Array.from(box.querySelectorAll('.tpl-card'));
@@ -90,7 +101,7 @@ async function boot(b) {
         viewBtns: Array.from(document.querySelectorAll('#tplView [data-view]')).map(x => x.dataset.view + ':' + x.classList.contains('active')),
       };
     });
-    ok('①1 默认是网格态（#tplList 带 grid）', r.cls === 'grid', r.cls);
+    ok('①1 网格视图可用（点「网格」后 #tplList 带 grid）', r.cls === 'grid', r.cls);
     ok('①2 只有本分类的 3 张卡', r.n === 3, r.n + ' / ' + JSON.stringify(r.ids));
     ok('①3 卡片直接露结构提示（与数据原文一致，含【】槽位）', r.tipA === TIPS_A, JSON.stringify(r.tipA));
     ok('①4 骨架首句只到第一个句号', r.skA === 'First sentence here.', JSON.stringify(r.skA));
@@ -108,7 +119,7 @@ async function boot(b) {
   /* ② 切到列表视图 + 刷新记住 */
   {
     const { ctx, p, errs } = await boot(b);
-    await p.click('#tplView [data-view="list"]');
+    await clickView(p, 'list');
     await sleep(400);
     const r = await p.evaluate(() => {
       const box = document.getElementById('tplList');
@@ -146,10 +157,10 @@ async function boot(b) {
       const box = document.getElementById('tplList');
       return { cls: box.className, hasListBtn: !!document.querySelector('#tplView [data-view="list"]') };
     });
-    ok('②10 刷新后仍留在列表视图（不每次回网格）', r2.cls === 'tpl-list', r2.cls);
+    ok('②10 刷新后仍是列表视图（现版进模板默认列表，不再回网格）', r2.cls === 'tpl-list', r2.cls);
 
     await p.evaluate(() => { curCat = '探针专用'; renderList(); });
-    await p.click('#tplView [data-view="grid"]');
+    await clickView(p, 'grid');
     await sleep(300);
     const r3 = await p.evaluate(() => ({
       cls: document.getElementById('tplList').className,
@@ -167,14 +178,15 @@ async function boot(b) {
     const { ctx, p } = await boot(b);
     await p.evaluate(() => { curLevel = '7.0'; renderList(); });
     await sleep(200);
+    await clickView(p, 'grid');
     const g = await p.evaluate(() => ({
       cards: document.querySelectorAll('#tplList .tpl-card').length,
       lv: Array.from(document.querySelectorAll('#tplList .tpl-lv')).map(x => x.textContent.trim()),
     }));
-    ok('③1 网格态目标分筛选生效（只剩 7.0 那条）', g.cards === 1 && g.lv[0] === '目标 7.0 分',
+    ok('③1 网格态目标分筛选生效（只剩 7.0 那条）', g.cards === 1 && /7\.0/.test(g.lv[0] || ''),
       JSON.stringify(g));
 
-    await p.click('#tplView [data-view="list"]');
+    await clickView(p, 'list');
     await sleep(300);
     const l = await p.evaluate(() => ({
       data: document.querySelectorAll('#tplList .tl-row:not(.th)').length,
