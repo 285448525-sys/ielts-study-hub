@@ -387,3 +387,21 @@
 | `_probe_latespk_1017` | 点旧 `#tabs [data-type="MAT"]` / `MOCK` 切视图 | 11-16 起桌面真入口是侧栏 `#hubSubs .hub-sub[data-spt-tab="materials"|"mock"]`（点旧 tab 实测 `show()` 没跑、hash 不变、`#sptMatShell` 空壳 0 字）；素材按结构判（`#sptMatShell` 有子节点＝空态卡也算渲染完成），模考判 `#sptPaneMock` 可见 + 正文 > 40 字（入口卡） | 21 / 0 |
 
 余下未动 6 支：`r1review`（需先造四科成绩 + 一条 mockRecord 夹具）、`latewrt`、`wrttpl`、`wordimport`、`worddemote`、`qtype`（26/3，剩 3 红在统计页「近十天」）。
+
+### 11-18 第九段：剩余 6 支全绿 + 两处真产品 bug 修掉（提交 `bc56a553`、`ca29ea67`、`67d15449`、`864a53ed`）
+
+| 探针 | 旧口径（已过期） | 现版口径 / 修法 | 结果 |
+| --- | --- | --- | --- |
+| `_probe_latewrt_1017` | 等 `#writingFullEntry #wrtFullStart` + `#examList` | 改等现版题行 `#wrQList .wr-qrow` | 22 / 0 |
+| `_probe_wrttpl_1021` | 模板页默认网格 + 视图 pill 可见（p.click） | 现版进模板默认「列表」、pill 宽 0 → 视图切换改 JS click，默认态判据改成「网格可点出来」，③1 先点网格再判筛选 | 26 / 0 |
+| `_probe_wordimport_1020` | 从商城 `#wmDealAdd` 进导入区 | 现版唯一可达入口是设置页 `#wbSettingsImport`（`importBook()` → `show(home)` 展开 `#wlImpBody`） | 15 / 0 |
+| `_probe_worddemote_1020` | 同上 | 同上 | 31 / 0 |
+| `_probe_qtype_1017` | 「近十天」下拉 `#mkFilter` 接在题型统计上 | 11-16 回顾改版后 `#mkFilter` 已撤，题型统计恒按「全部」聚合 → E 段改守「控件确实不存在 + 40 天前记录仍计入 + 范围选择在趋势卡 `[data-home-range]`」 | 30 / 0 |
+| `_probe_r1review_1024` | 深链切 pane（`cur`/`scoreOn`/`recordOn` 读 `__rvCur`） | 现版是单页多块，深链靠滚动定位；探针先种一条四科成绩（空态会把 `#rvaHomeData` 收起），四科格判 `.rva-subject[data-subject-card]×4` | 18 / 0 |
+
+**顺带修掉的两处真产品 bug（不是探针口径问题）：**
+
+1. **写作「完整写作模考」入口卡整块不渲染**：`js/writing.js` 的 boot 只画一次，画的时候 `WRITING_PROMPTS` 还没到 → 被 `!nBig||!nSmall` 清空。修法：新增 `ensureWritingFullEntry()`，脚本就绪 / DOMContentLoaded / load / pageshow / `hub:data-merged` 各补画一次，并挂到 `window` 上；`js/wr-tabs.js` 在进 exam pane 时再兜一次。实测卡片 412 字符、Start Test 在、点进去照旧走机考壳。资源串 `writing.js?v=20261118e`、`wr-tabs.js?v=20261118a`、SW `v922`。
+2. **回顾页 `?sub=record` 深链失效**：11-16 重写后 `js/rvx-data.js` 已被 review.html 移除，它的 `deepLink()` 一起消失 → 顶栏/侧栏「轨迹」进来只停在总览块。修法：把 deep link 收回 `js/rv-tabs.js`（`subPane()` 读 `?sub=` 选 pane，`deepLinkScroll()` 滚到 `#recAll` / `#rv2Summary`，老值 breakdown/overall/speaking 仍归成绩）。资源串 `rv-tabs.js?v=20261118a`。
+
+全量回归：`node tests/_regress_1017.cjs` 本机连跑至 40+ 支全 ✓、零 ✗（中途被工具窗口打断，未读到最终合计行；已修 6 支单独复跑均绿）。
