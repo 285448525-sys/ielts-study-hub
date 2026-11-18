@@ -219,7 +219,6 @@
   .form-row > .ai-btn{flex:0 0 auto;min-width:0;width:48px}
   #tplCopyBtn{flex:0 0 auto;min-width:0}
   #practice .ph-input:focus{outline:none;border-bottom-color:var(--primary)}
-  .skeleton-box{white-space:pre-wrap;line-height:1.9;font-size:15px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px}
   .preview-box{white-space:pre-wrap;line-height:1.9;font-size:15px;border:1px dashed var(--primary);border-radius:var(--radius);padding:14px;margin-top:8px}
   .preview-box u{text-decoration:underline;color:var(--primary-d);font-weight:600}
   .tips-box{margin-top:10px;font-size:13px;color:var(--muted);line-height:1.7}
@@ -235,7 +234,7 @@
   .tpl-guide .tg-body{padding:0 14px 13px}
   .tpl-guide.collapsed .tg-body{display:none}
   .tpl-guide.collapsed .tg-head{padding-bottom:11px}
-  @media(max-width:860px){ .write-layout{flex-direction:column} .cat-nav{width:100%;flex-direction:row;flex-wrap:wrap} }
+  @media(max-width:860px){ .write-layout{flex-direction:column} }
   /* 10/2（她反馈）：手机端四枚 Tab 挤在一起——照口语页已验证口径，窄屏平分一行不挤压 */
   @media(max-width:560px){
     .write-tabs{display:flex;width:100%}
@@ -257,11 +256,7 @@
   .score-essay:focus{border-color:var(--primary)}
   .score-essay::placeholder{color:var(--muted)}
   .score-result{margin-top:16px;display:none}
-  .score-overall{font-size:28px;font-weight:700;color:var(--primary)}
   .score-breakdown{display:flex;gap:16px;margin:8px 0 16px;flex-wrap:wrap}
-  .score-item{padding:8px 14px;border:1px solid var(--line);border-radius:var(--radius);text-align:center}
-  .score-item b{display:block;font-size:18px;color:var(--primary)}
-  .score-item span{font-size:12px;color:var(--muted)}
   .score-section{margin-bottom:14px}
   .score-section h4{font-size:14px;margin:0 0 6px;color:var(--ink)}
   .score-section ul{margin:0;padding-left:20px;line-height:1.8;font-size:14px}
@@ -321,7 +316,7 @@
   .ts-loc{border:none;background:none;color:var(--primary);cursor:pointer;font-size:12px;padding:0}
   .ts-loc:hover{text-decoration:underline}
   #practice .ph-loc{outline:2px solid var(--primary);outline-offset:1px;border-radius:3px}
-  .exam-essay-orig mark,mark{background:var(--primary-soft);color:inherit;padding:0 2px;border-radius:3px}
+  .exam-essay-orig mark, mark{background:var(--primary-soft);color:inherit;padding:0 2px;border-radius:3px}
   .hist-summary{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface);padding:10px 12px;margin-bottom:10px}
   .hist-spark{flex-shrink:0}
   .hist-sum-t{display:flex;flex-direction:column;gap:4px;font-size:13px;min-width:0}
@@ -346,7 +341,7 @@
 
   /* ===== 10/10 批③：评分结果「左作文 / 右批改」（她点头的样子稿 → design/95）===== */
   .sr-wrap{display:grid;grid-template-columns:minmax(0,1.32fr) minmax(0,1fr);gap:14px;align-items:start}
-  .sr-left,.sr-right{min-width:0}
+  .sr-left, .sr-right{min-width:0}
   .sr-left{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
   .sr-left-h{font-size:13px;font-weight:700;color:var(--muted);padding:11px 16px;border-bottom:1px solid var(--line);background:var(--surface-2)}
   .sr-essay{padding:16px 18px;font-size:15.5px;line-height:1.95;color:var(--n-800);white-space:pre-wrap;word-break:break-word}
@@ -355,7 +350,7 @@
   .sr-legend .sw{width:20px;height:0;border-top-width:1.5px;border-top-style:solid}
   .sr-legend .sw.bad{border-color:var(--danger);border-top-style:wavy}
   .sr-legend .sw.good{border-color:var(--ok)}
-  /* 内联标注：覆盖全局 mark 底色（.exam-essay-orig mark,mark 有 teal 底） */
+  /* 内联标注：覆盖全局 mark 底色（.exam-essay-orig mark, mark 有 teal 底） */
   mark.mk{background:none;padding:0 .5px;border-radius:0;cursor:help;position:relative}
   mark.mk-bad{text-decoration:underline wavy var(--danger);text-underline-offset:4px;text-decoration-thickness:1.5px}
   mark.mk-good{text-decoration:underline solid var(--ok);text-underline-offset:4px;text-decoration-thickness:1.5px}
@@ -476,27 +471,15 @@
   .exam-a-foot{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-start;padding:10px 2px 14px}
   /* 10/14 字数不足时醒目（暖色）——与 bank.html 同款同口径 */
 .exam-wc.low{color:#b45309;font-weight:600}
-  /* 10/8 官方机考界面重排（对齐 IELTS on computer 真实布局，官方依据：IDP 官网「How IELTS on Computer works」
-     + 官方 Quick Guide：计时器在屏幕顶部中央；右上角 options 图标管 Text Size 三档 Regular/Large/Extra Large；
-     词数在作答区左下；上下深色栏、内容区白底）。 */
-  .exam-head{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;background:#f7f8f9;padding:8px 16px;border-bottom:1px solid var(--line)}
-  .exam-head-right{justify-self:end;display:flex;align-items:center;gap:8px}
-  .exam-timer-inline{display:inline-flex;align-items:center;gap:8px;background:#fff;color:#111;border:1px solid var(--n-400);border-radius:4px;padding:4px 14px;font-weight:700;font-size:15px;font-variant-numeric:tabular-nums}
   .exam-timer-inline.warn{background:var(--danger);color:#fff}
   .exam-timer-inline.over{background:var(--danger-text);color:#fff}
-  .exam-timer-inline button{background:transparent;border:0;color:inherit;cursor:pointer;font-size:13px;line-height:1;padding:0 2px}
-  /* 右上角控制钮（官方深栏上的白描边幽灵钮：Text Size / Exit full screen） */
-  .exam-font-btn,.exam-head .exam-exit-full{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid var(--n-400);color:#111;border-radius:6px;padding:6px 11px;font-size:12.5px;font-weight:600;cursor:pointer;transition:.15s;white-space:nowrap}
-  .exam-font-btn:hover,.exam-head .exam-exit-full:hover{border-color:#111}
   /* 官方三档字号（Regular 20 / Large 23 / Extra large 27，IDP 官方口径）。
      10/8 晚她反馈：三档必须覆盖左右两栏全部文字（深色顶栏/底栏不管），否则题目面板里「一些大一些小」。
      层级保持：Part 标题 > 正文 > 引导行/指令 > 词数。 */
   #examPractice.exam-fs-0 .exam-part{font-size:24px}
   #examPractice.exam-fs-0 .exam-instr{font-size:15.5px}
   #examPractice.exam-fs-0 .exam-q-lead{font-size:17px}
-  #examPractice.exam-fs-0 .exam-q-body,
-  #examPractice.exam-fs-0 .exam-q-body .ei-en,
-  #examPractice.exam-fs-0 .exam-q-body .ei-zh{font-size:20px}
+  #examPractice.exam-fs-0 .exam-q-body, #examPractice.exam-fs-0 .exam-q-body .ei-en, #examPractice.exam-fs-0 .exam-q-body .ei-zh{font-size:20px}
   #examPractice.exam-fs-0 .exam-q-note{font-size:16.5px}
   #examPractice.exam-fs-0 .exam-essay-fold-sum{font-size:17px}
   #examPractice.exam-fs-0 .exam-essay-orig{font-size:19px}
@@ -505,9 +488,7 @@
   #examPractice.exam-fs-1 .exam-part{font-size:27px}
   #examPractice.exam-fs-1 .exam-instr{font-size:18px}
   #examPractice.exam-fs-1 .exam-q-lead{font-size:20px}
-  #examPractice.exam-fs-1 .exam-q-body,
-  #examPractice.exam-fs-1 .exam-q-body .ei-en,
-  #examPractice.exam-fs-1 .exam-q-body .ei-zh{font-size:23px}
+  #examPractice.exam-fs-1 .exam-q-body, #examPractice.exam-fs-1 .exam-q-body .ei-en, #examPractice.exam-fs-1 .exam-q-body .ei-zh{font-size:23px}
   #examPractice.exam-fs-1 .exam-q-note{font-size:19px}
   #examPractice.exam-fs-1 .exam-essay-fold-sum{font-size:20px}
   #examPractice.exam-fs-1 .exam-essay-orig{font-size:22px}
@@ -516,9 +497,7 @@
   #examPractice.exam-fs-2 .exam-part{font-size:31px}
   #examPractice.exam-fs-2 .exam-instr{font-size:21px}
   #examPractice.exam-fs-2 .exam-q-lead{font-size:24px}
-  #examPractice.exam-fs-2 .exam-q-body,
-  #examPractice.exam-fs-2 .exam-q-body .ei-en,
-  #examPractice.exam-fs-2 .exam-q-body .ei-zh{font-size:27px}
+  #examPractice.exam-fs-2 .exam-q-body, #examPractice.exam-fs-2 .exam-q-body .ei-en, #examPractice.exam-fs-2 .exam-q-body .ei-zh{font-size:27px}
   #examPractice.exam-fs-2 .exam-q-note{font-size:22px}
   #examPractice.exam-fs-2 .exam-essay-fold-sum{font-size:24px}
   #examPractice.exam-fs-2 .exam-essay-orig{font-size:26px}
@@ -533,11 +512,6 @@
   .exam-bar .exam-step-label{color:#fff}
   .exam-bar .btn-exam-ghost{border-color:rgba(255,255,255,.5);background:transparent;color:#fff}
   .exam-bar .btn-exam-ghost:hover{background:rgba(255,255,255,.12);background-clip:padding-box}
-  @media(max-width:760px){
-    .exam-head{padding:6px 10px;gap:8px}
-    .exam-font-btn,.exam-head .exam-exit-full{padding:5px 8px;font-size:11.5px}
-    .exam-timer-inline{padding:4px 10px;font-size:14px}
-  }
   /* 10/8 晚她反馈三修（截图实抓）：①往下滑整页在滚、底栏跑到内容中间（整页滚动漏出）；
      ②AI 评分结果没占满右栏、右边留白一大块；③写作时留白也偏大。
      修法 = 全屏钉成「顶栏 / 内容 / 底栏」三段（flex 列 + overflow hidden），左右栏各自内部滚；
@@ -575,12 +549,7 @@
   .ex-pg:hover:not([disabled]):not(.on){background:rgba(255,255,255,.14);color:#fff}
   .ex-pg.on{background:#fff;border-color:#fff;color:#26343C}
   .ex-pg[disabled]{opacity:.42;cursor:default}
-  .ex-pgbtn{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:6px;
-    border:1px solid rgba(255,255,255,.28);background:transparent;color:#fff;font-size:14px;line-height:1;cursor:pointer}
-  .ex-pgbtn:hover:not([disabled]){background:rgba(255,255,255,.14)}
-  .ex-pgbtn[disabled]{opacity:.35;cursor:default}
-  .ex-pginfo{font-size:12px;color:rgba(255,255,255,.6);margin-left:2px}
-  @media(max-width:860px){.ex-pginfo{display:none}.ex-pg{padding:0 9px;font-size:12px}.ex-pgbtn{width:24px;height:24px}}
+  @media(max-width:860px){.ex-pg{padding:0 9px;font-size:12px}}
 
   /* Option 面板（☰）：铺满考试壳的覆盖层，形态与阅读/听力一致（写作无 Audio 项） */
   .ex-menubtn{font-size:16px}
@@ -594,7 +563,7 @@
   #examPractice .ex-option.on{display:block}
   #examPractice .ex-option .ex-opx{position:absolute;top:18px;right:22px;border:none;background:#f1f3f5;color:#333;width:38px;height:38px;border-radius:50%;font-size:17px;cursor:pointer}
   #examPractice .ex-option h3{text-align:center;font-size:20px;font-weight:600;margin:34px 0 22px;color:#111}
-  #examPractice .ex-oplist,#examPractice .ex-opsub{max-width:560px;margin:0 auto;border:1px solid #e3e5e8}
+  #examPractice .ex-oplist, #examPractice .ex-opsub{max-width:560px;margin:0 auto;border:1px solid #e3e5e8}
   #examPractice .ex-opsub{display:none}
   #examPractice .ex-oprow{display:flex;align-items:center;gap:14px;padding:15px 22px;border-bottom:1px solid #e3e5e8;font-size:16px;cursor:pointer;background:#fff;color:#111}
   #examPractice .ex-oprow:last-child{border-bottom:none}
@@ -606,29 +575,25 @@
   #examPractice .ex-opback button{border:1px solid #c6ccd4;background:#fff;border-radius:7px;padding:7px 18px;font:inherit;font-size:13.5px;cursor:pointer}
 
   /* 配色三档（Option → Colour）：白底 / 黑底白字 / 黄底黑字；作用范围 = 考试壳 */
-  #examPractice.ct-dark,#examPractice.ct-dark .exam-split,#examPractice.ct-dark .exam-a{background:#1b1b1b}
+  #examPractice.ct-dark, #examPractice.ct-dark .exam-split, #examPractice.ct-dark .exam-a{background:#1b1b1b}
   #examPractice.ct-dark .exam-head{background:#111;border-bottom-color:#3a3f45}
-  #examPractice.ct-dark .exam-part,#examPractice.ct-dark .exam-instr,#examPractice.ct-dark .exam-q-lead,
-  #examPractice.ct-dark .exam-q-body,#examPractice.ct-dark .exam-q-body .ei-en,#examPractice.ct-dark .exam-q-body .ei-zh,
-  #examPractice.ct-dark .exam-q-note,#examPractice.ct-dark .exam-group-title{color:#e8eaed}
+  #examPractice.ct-dark .exam-part, #examPractice.ct-dark .exam-instr, #examPractice.ct-dark .exam-q-lead, #examPractice.ct-dark .exam-q-body, #examPractice.ct-dark .exam-q-body .ei-en, #examPractice.ct-dark .exam-q-body .ei-zh, #examPractice.ct-dark .exam-q-note, #examPractice.ct-dark .exam-group-title{color:#e8eaed}
   #examPractice.ct-dark .exam-textarea{background:#141414;color:#e8eaed;border-color:#3a3f45}
   #examPractice.ct-dark .exam-wc{color:#9aa0a6}
   #examPractice.ct-dark .ex-option{background:#1b1b1b}
   #examPractice.ct-dark .ex-option *{color:#e8eaed}
-  #examPractice.ct-dark .ex-oplist,#examPractice.ct-dark .ex-opsub{border-color:#3a3f45}
+  #examPractice.ct-dark .ex-oplist, #examPractice.ct-dark .ex-opsub{border-color:#3a3f45}
   #examPractice.ct-dark .ex-oprow{background:#1b1b1b;border-bottom-color:#3a3f45}
   #examPractice.ct-dark .ex-oprow:hover{background:#242628}
   #examPractice.ct-dark .ex-opback button{background:#1b1b1b;border-color:#4a4f55;color:#e8eaed}
-  #examPractice.ct-yellow,#examPractice.ct-yellow .exam-split,#examPractice.ct-yellow .exam-a{background:#1b1b1b}
+  #examPractice.ct-yellow, #examPractice.ct-yellow .exam-split, #examPractice.ct-yellow .exam-a{background:#1b1b1b}
   #examPractice.ct-yellow .exam-head{background:#111;border-bottom-color:#4a4526}
-  #examPractice.ct-yellow .exam-part,#examPractice.ct-yellow .exam-instr,#examPractice.ct-yellow .exam-q-lead,
-  #examPractice.ct-yellow .exam-q-body,#examPractice.ct-yellow .exam-q-body .ei-en,#examPractice.ct-yellow .exam-q-body .ei-zh,
-  #examPractice.ct-yellow .exam-q-note,#examPractice.ct-yellow .exam-group-title{color:#f0e3a8}
+  #examPractice.ct-yellow .exam-part, #examPractice.ct-yellow .exam-instr, #examPractice.ct-yellow .exam-q-lead, #examPractice.ct-yellow .exam-q-body, #examPractice.ct-yellow .exam-q-body .ei-en, #examPractice.ct-yellow .exam-q-body .ei-zh, #examPractice.ct-yellow .exam-q-note, #examPractice.ct-yellow .exam-group-title{color:#f0e3a8}
   #examPractice.ct-yellow .exam-textarea{background:#141414;color:#f0e3a8;border-color:#4a4526}
   #examPractice.ct-yellow .exam-wc{color:#c9b978}
   #examPractice.ct-yellow .ex-option{background:#1b1b1b}
   #examPractice.ct-yellow .ex-option *{color:#f0e3a8}
-  #examPractice.ct-yellow .ex-oplist,#examPractice.ct-yellow .ex-opsub{border-color:#4a4526}
+  #examPractice.ct-yellow .ex-oplist, #examPractice.ct-yellow .ex-opsub{border-color:#4a4526}
   #examPractice.ct-yellow .ex-oprow{background:#1b1b1b;border-bottom-color:#4a4526}
   #examPractice.ct-yellow .ex-oprow:hover{background:#252317}
   #examPractice.ct-yellow .ex-opback button{background:#1b1b1b;border-color:#6a6132;color:#f0e3a8}
@@ -645,7 +610,7 @@ body.exam-fullscreen .hub-topbar{display:none !important}
 /* ===== WRITING-TABS-1 任务1（11-08）：写作页 5 tab 壳 + 总览页精致皮肤 =====
    她「开始做写作的设计稿页面，最好还原一些」。复用已点头设计稿 WRITING-TABS-1 那套皮肤，
    用站点变量跟随深色主题；既有 .write-* / #tplPanel 等样式一字不动，新组件全用 .wr-* 独立类名。 */
-.wr-pane,.wr-mobile-tabs{--wt-teal:var(--primary,#5cb3ab);--wt-teal-700:var(--primary-700,#2f7d76);
+.wr-pane, .wr-mobile-tabs{--wt-teal:var(--primary,#5cb3ab);--wt-teal-700:var(--primary-700,#2f7d76);
   --wt-teal-50:var(--primary-50,#e8f3f1);--wt-ink:var(--ink,#1f2328);
   --wt-ink-2:var(--ink-2,#3f464d);--wt-muted:var(--muted,#71767e);
   --wt-muted-2:var(--muted-2,#9aa0a6);--wt-line:var(--line,#e6e9ea);
@@ -680,7 +645,7 @@ body.exam-fullscreen .hub-topbar{display:none !important}
   background:linear-gradient(90deg,var(--wt-line),var(--wt-teal-50) 78%,#cfe6e1)}
 .wr-ruler-track i{position:absolute;left:0;top:0;height:100%;border-radius:8px;
   background:linear-gradient(90deg,var(--wt-teal-50),rgba(92,179,171,.32))}
-.wr-ruler-goal,.wr-ruler-cur{position:absolute;top:-4px;width:2px;height:22px;border-radius:2px}
+.wr-ruler-goal, .wr-ruler-cur{position:absolute;top:-4px;width:2px;height:22px;border-radius:2px}
 .wr-ruler-goal{background:var(--wt-teal-700)}
 .wr-ruler-goal:after{content:"目标";position:absolute;top:-15px;left:50%;transform:translateX(-50%);
   font-size:10px;color:var(--wt-teal-700);white-space:nowrap}
@@ -716,10 +681,6 @@ body.exam-fullscreen .hub-topbar{display:none !important}
 .wr-pill{flex:none;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:750;font-variant-numeric:tabular-nums}
 .wr-pill.key{background:var(--wt-teal-50);color:var(--wt-teal-700)}
 .wr-pill.warn{background:var(--wt-amber-50);color:var(--wt-amber)}
-.wr-rec-row{display:flex;align-items:center;gap:12px;padding:11px 16px;border-top:1px solid var(--wt-line);font-size:12.5px}
-.wr-rec-date{flex:none;width:88px;color:var(--wt-muted);font-variant-numeric:tabular-nums}
-.wr-rec-mode{flex:none;width:76px;color:var(--wt-ink-2);font-weight:600}
-.wr-rec-brief{flex:1;min-width:0;color:var(--wt-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .wr-empty{padding:40px 20px;text-align:center;border:1px dashed var(--wt-line);
   border-radius:var(--wt-radius);background:var(--wt-surface);font-size:12.5px;color:var(--wt-muted);line-height:1.6}
 .wr-empty b{display:block;font-size:14px;color:var(--wt-ink);margin-bottom:6px}
@@ -728,7 +689,6 @@ body.exam-fullscreen .wr-pane{display:none!important}
   .wr-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .wr-two-col{grid-template-columns:minmax(0,1fr)}
   .wr-vhead h1{font-size:18px}
-  .wr-rec-date{width:74px}.wr-rec-mode{width:64px}
 }
 
 /* MODULE-MOVE-1（11-08）：从机经搬来的「完整模考 / 完整写作」入口卡皮肤，类名原样。 */
@@ -766,10 +726,10 @@ body.exam-fullscreen .wr-pane{display:none!important}
 .wrv-stat{margin-left:auto;font-size:11.5px;font-weight:700;color:var(--primary-700,#2f7d76);
   background:var(--primary-50,#e8f3f1);padding:4px 11px;border-radius:999px;white-space:nowrap}
 #tplPanel:has(#detailCard:not([hidden])) > .wrv-head{display:none}
-#tplPanel .card,#bankPanel .card,#scorePanel .card{border-radius:14px;
+#tplPanel .card, #bankPanel .card, #scorePanel .card{border-radius:14px;
   box-shadow:0 1px 2px rgba(24,40,48,.04),0 6px 18px -12px rgba(24,40,48,.18)}
-#tplPanel .lst-hd h3,#bankPanel .card > h2,#scorePanel .card > h2{font-size:14px;font-weight:750}
-#bankPanel .card > p.muted,#scorePanel .card > p.muted{font-size:12px}
+#tplPanel .lst-hd h3, #bankPanel .card > h2, #scorePanel .card > h2{font-size:14px;font-weight:750}
+#bankPanel .card > p.muted, #scorePanel .card > p.muted{font-size:12px}
 #tplPanel .wb-filters .fchip{height:30px;padding:0 12px;border:1px solid var(--line,#e6e9ea);
   border-radius:16px;background:var(--surface,#fff);color:var(--ink-2,#3f464d);font-size:12.5px;font-weight:600}
 #tplPanel .wb-filters .fchip:hover{border-color:var(--primary,#5cb3ab);color:var(--primary-700,#2f7d76)}
@@ -780,7 +740,7 @@ body.exam-fullscreen .wr-pane{display:none!important}
   box-shadow:0 1px 2px rgba(24,40,48,.04),0 6px 18px -12px rgba(24,40,48,.18)}
 #tplPanel #tplList.grid .tpl-card > b{font-size:14px;font-weight:750;line-height:1.35}
 #tplPanel #tplList.grid .tpl-card .tpl-meta{order:-1;display:flex;gap:6px}
-#tplPanel #tplList.grid .tpl-card .tpl-lv,#tplPanel #tplList.grid .tpl-card .tpl-cat{
+#tplPanel #tplList.grid .tpl-card .tpl-lv, #tplPanel #tplList.grid .tpl-card .tpl-cat{
   font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:999px;
   background:var(--primary-50,#e8f3f1);color:var(--primary-700,#2f7d76)}
 #tplPanel #tplList.grid .tpl-card .tpl-cat{background:var(--bg,#f6f9fb);color:var(--muted,#71767e)}
@@ -804,19 +764,6 @@ body.exam-fullscreen .wr-pane{display:none!important}
 #bankPanel .bank-del:hover{border-color:var(--primary,#5cb3ab);color:var(--primary-700,#2f7d76)}
 #scorePanel .sr-scorehead .sr-overall{font-size:32px;font-weight:800;color:var(--primary-700,#2f7d76);letter-spacing:-.03em}
 #scorePanel .score-result{border-radius:14px}
-.wr-tbl-scroll{overflow-x:auto}
-.wr-rec-table{width:100%;min-width:660px;border-collapse:collapse;font-size:12.5px}
-.wr-rec-table th{text-align:left;font-size:11px;color:var(--wt-muted);font-weight:650;
-  padding:10px 14px;border-bottom:1px solid var(--wt-line);white-space:nowrap;background:#fbfdfc}
-.wr-rec-table td{padding:11px 14px;border-bottom:1px solid var(--wt-line);white-space:nowrap}
-.wr-rec-table tr:last-child td{border-bottom:0}
-.wr-rec-table tbody tr:hover{background:#fbfdfc}
-.wr-rec-table .wr-rt-sc{font-variant-numeric:tabular-nums;font-weight:700}
-.wr-rec-table .wr-rt-low{color:var(--wt-amber)}
-.wr-rec-table .wr-rt-overall{font-size:15px;font-weight:800;color:var(--wt-teal-700)}
-.wr-rec-table .wr-rt-date{color:var(--wt-muted);font-size:12px}
-.wr-rec-table .wr-rt-brief{max-width:220px;overflow:hidden;text-overflow:ellipsis}
-.wr-gram-row{display:flex;align-items:center;gap:10px;padding:9px 16px;border-top:1px solid var(--wt-line)}
 .wr-gram-row .grow{flex:1;min-width:0}
 .wr-gram-row .t{font-size:12.5px;font-weight:650}
 .wr-gram-row .d{font-size:11.5px;color:var(--wt-muted)}
@@ -902,7 +849,7 @@ body.exam-fullscreen .wr-pane{display:none!important}
    不动 box-shadow，投影 / hover 过渡 / 圆角都不受影响。
    注：这里用 border-left 而不是像机经页那样用 inset box-shadow —— 机经页的行本来没有边框、
    加边框会挤内容，所以走 inset；卡片本来就有 1px 边框，直接加粗这条边框才是最小改动。 */
-.tpl-card,.tpl-card:hover{border-left:3px solid var(--primary)}
+.tpl-card, .tpl-card:hover{border-left:3px solid var(--primary)}
 
 /* ③ 筛选 chip 选中态改浅青底（原来是实心主青 + 白字，按定版口径收成浅底深字）。
    chip 由 js/writing.js:452/455 渲染、只切 .on 类，这里纯 CSS 覆盖；font-weight:700 等其余声明保留。 */

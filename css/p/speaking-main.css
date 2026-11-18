@@ -8,10 +8,10 @@ body[data-shell="top"] .hub-main{min-width:0;padding:14px 20px 36px;overflow:aut
 .spt-board-head{display:none!important}
 .spt-board-body{display:block}
 .spt-board-main{min-width:0;min-height:0}
-.spt-pane,#listView,#detailView,#mockView,#matView,#sentView,#coachView{padding:0;max-height:none;overflow:visible}
-.spt-pane[hidden],#listView[hidden],#detailView[hidden],#mockView[hidden],#matView[hidden],#sentView[hidden],#coachView[hidden]{display:none!important}
+.spt-pane, #listView, #detailView, #mockView, #matView, #sentView, #coachView{padding:0;max-height:none;overflow:visible}
+.spt-pane[hidden], #listView[hidden], #detailView[hidden], #mockView[hidden], #matView[hidden], #sentView[hidden], #coachView[hidden]{display:none!important}
 .spt-mobile-tabs{display:none}
-#tabs,.page-head-row{display:none!important}
+#tabs, .page-head-row{display:none!important}
 .spt-board .spt-btn{min-height:36px;padding:7px 13px;border-radius:9px;font-size:11.5px}
 .spt-board .spt-btn.primary{box-shadow:none}
 .spt-empty{margin:46px auto!important;padding:0!important;border:0!important;background:transparent!important}
@@ -36,16 +36,14 @@ body[data-shell="top"] .hub-main{min-width:0;padding:14px 20px 36px;overflow:aut
 #hubTd .hub-task.done .hub-tx b{color:var(--muted);text-decoration:line-through}
 #hubTd .hub-task.done .hub-tx small{color:var(--muted)}
 #hubTd .hub-td-empty{padding:4px 2px 6px;font-size:11.5px;color:var(--muted);flex:none}
-#hubTd .hub-td-more{display:none;align-items:center;justify-content:space-between;margin-top:5px;padding:7px 2px 2px;border-top:1px solid var(--line);font-size:10.5px;font-weight:650;color:var(--primary-700);text-decoration:none}
+#hubTd .hub-td-more{display:flex;align-items:center;justify-content:space-between;margin-top:5px;padding:7px 2px 2px;border-top:1px solid var(--line);font-size:10.5px;font-weight:650;color:var(--primary-700);text-decoration:none}
 #hubTd .hub-td-more:hover{color:var(--primary)}
 #hubTd .hub-td-more svg{width:13px;height:13px;max-width:13px;max-height:13px;flex:0 0 13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-#hubTd:not(:has(.hub-task)){display:none}
-#hubTd:has(.hub-task) .hub-td-more{display:flex}
 
 /* 题库 */
-#listView .sp-cockpit,#listView .spk-info{display:none!important}
+#listView .sp-cockpit, #listView .spk-info{display:none!important}
 #listView .sp-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:0 0 10px;padding:0;border:0;background:transparent;box-shadow:none}
-#listView .sp-toolbar .sp-tb-row1,#listView .sp-toolbar .sp-tb-row2{display:contents}
+#listView .sp-toolbar .sp-tb-row1, #listView .sp-toolbar .sp-tb-row2{display:contents}
 #listView .sp-toolbar .sp-part-seg{order:1;height:34px;border-radius:9px;background:var(--surface);border:1px solid var(--line);overflow:hidden}
 #listView .sp-toolbar .sp-part-seg button{display:inline-flex;align-items:center;justify-content:center;height:32px;min-width:66px;padding:0 10px;font-size:11.5px;text-align:center}
 #listView .sp-toolbar .sp-search-wrap{order:2;flex:1 1 220px;max-width:none;min-width:170px;height:34px;min-height:0;border-radius:9px}
@@ -76,13 +74,13 @@ body[data-shell="top"] .hub-main{min-width:0;padding:14px 20px 36px;overflow:aut
 #spList .sp-card-row{display:flex;align-items:center;gap:12px;min-height:45px;padding:6px 15px 6px 32px;border:0;border-top:1px solid var(--line-soft,var(--line));border-radius:0;background:var(--surface);cursor:pointer}
 #spList .sp-card-row:first-child{border-top:0}
 #spList .sp-card-row:hover{background:var(--primary-50)}
-#spList .sp-card-row::before,#spList .sp-card-rail{display:none!important}
+#spList .sp-card-row::before, #spList .sp-card-rail{display:none!important}
 #spList .sp-card-main{display:flex;flex-direction:row;align-items:baseline;gap:8px;flex-wrap:wrap;flex:1;min-width:0}
 #spList .sp-card-main{order:1}
 .spt-bank-go{order:2}
 #spList .sp-card-row .sp-card-title{display:block;font-size:12.5px;font-weight:620;line-height:1.45;color:var(--ink);letter-spacing:0}
 #spList .sp-card-row .sp-card-zh{display:block!important;flex:none;font-size:10.5px;line-height:1.5;color:var(--muted)}
-#spList .sp-card-row .sp-card-tags,#spList .sp-card-row .sp-score-badge,#spList .sp-card-row .sp-last-practice{display:none!important}
+#spList .sp-card-row .sp-card-tags, #spList .sp-card-row .sp-score-badge, #spList .sp-card-row .sp-last-practice{display:none!important}
 .spt-bank-go{display:inline-flex;align-items:center;justify-content:center;gap:4px;flex:none;min-width:60px;height:32px;padding:0 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--primary-700);font:inherit;font-size:10.5px;font-weight:700;cursor:pointer;transition:.15s}
 .spt-bank-go svg{width:10px;height:10px;max-width:10px;max-height:10px;flex:0 0 10px}
 .sp-card-row:hover .spt-bank-go{border-color:var(--primary-200);background:var(--primary-50)}
@@ -92,23 +90,14 @@ body[data-shell="top"] .hub-main{min-width:0;padding:14px 20px 36px;overflow:aut
 /* 详情 */
 #detailView{width:100%;max-width:none;margin:0}
 #detailView .site-back{display:none!important}
-#detailBody .sp-topic-block,#detailBody .sp-p2-answer{border-radius:13px;box-shadow:0 1px 2px rgba(24,40,48,.025)}
+#detailBody .sp-topic-block, #detailBody .sp-p2-answer{border-radius:13px;box-shadow:0 1px 2px rgba(24,40,48,.025)}
 #detailBody .sp-detail-title{font-size:24px;letter-spacing:-.025em}
 #detailBody .sp-tc-head{padding-top:12px;padding-bottom:12px}
-
-/* 陪练 */
-#sptPracticeModes{display:block;margin:0 0 10px;padding:0;background:transparent}
-#sptPracticeModes[hidden]{display:none!important}
-.spt-practice-tabs{display:inline-flex;gap:2px;padding:2px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2)}
-.spt-practice-tabs button{min-height:29px;padding:0 12px;border:0;border-radius:6px;background:transparent;color:var(--muted);font:inherit;font-size:11px;font-weight:650;cursor:pointer}
 .spt-practice-tabs button.on{background:var(--surface);color:var(--primary-700);box-shadow:0 1px 2px rgba(24,40,48,.08)}
 #coachView #coachChips{height:auto;margin-top:0;margin-bottom:12px;gap:5px}
 #coachView #coachChips button{height:28px;min-height:28px;padding:0 9px;font-size:10.5px}
 #detailBody .sp-q-btns{gap:6px;margin-bottom:6px}
-#detailBody .sp-q-btns .sp-ai-helper,
-#detailBody .sp-q-btns .sp-ans-clear,
-#detailBody .sp-q-btns .sp-diag,
-#detailBody .sp-q-btns .sp-timer-btn{height:32px;min-height:32px;padding:0 12px;font-size:11.5px;box-shadow:none}
+#detailBody .sp-q-btns .sp-ai-helper, #detailBody .sp-q-btns .sp-ans-clear, #detailBody .sp-q-btns .sp-diag, #detailBody .sp-q-btns .sp-timer-btn{height:32px;min-height:32px;padding:0 12px;font-size:11.5px;box-shadow:none}
 #detailBody .sp-q-btns .sp-diag{padding:0 14px;font-size:12px}
 #detailBody .sp-q-btns svg{width:13px!important;height:13px!important;max-width:13px!important;max-height:13px!important;flex:0 0 13px!important}
 #coachView{flex:0 0 auto!important;height:calc(100dvh - 136px)!important;min-height:520px}
@@ -123,7 +112,6 @@ body[data-shell="top"] .hub-main{min-width:0;padding:14px 20px 36px;overflow:aut
 
 /* 素材 */
 #matView{min-width:0}
-.spt-material-shell{min-width:0}
 .spt-mat-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
 .spt-mat-toolbar .spt-btn{height:34px;min-height:34px}
 .spt-mat-toolbar .spt-mat-count{margin-left:auto;font-size:10.5px;color:var(--muted)}
@@ -131,7 +119,7 @@ body[data-shell="top"] .hub-main{min-width:0;padding:14px 20px 36px;overflow:aut
 .spt-mat-search{flex:1 1 220px;min-width:170px;max-width:420px;height:34px;display:flex;align-items:center;gap:7px;padding:0 10px;border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--muted)}
 .spt-mat-search:focus-within{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-50)}
 .spt-mat-search svg{width:14px;height:14px;max-width:14px;max-height:14px;flex:0 0 14px}
-.spt-mat-search input,#sptMatSearch{min-width:0;width:100%;height:100%;min-height:0;padding:0;border:0;border-radius:0;background:transparent;color:var(--ink);font:inherit;font-size:11px;outline:0;box-shadow:none}
+.spt-mat-search input, #sptMatSearch{min-width:0;width:100%;height:100%;min-height:0;padding:0;border:0;border-radius:0;background:transparent;color:var(--ink);font:inherit;font-size:11px;outline:0;box-shadow:none}
 .spt-mat-grid{display:grid;grid-template-columns:270px minmax(0,1fr);gap:12px;align-items:start}
 .spt-mat-index{border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden}
 .spt-mat-index-head{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-bottom:1px solid var(--line-soft,var(--line));font-size:10.5px;color:var(--muted)}
@@ -242,7 +230,7 @@ body[data-shell="top"] .hub-main{min-width:0;padding:14px 20px 36px;overflow:aut
   .spt-mat-detail-col{min-height:0;overflow:auto;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
   .spt-mat-detail-col--support{padding:18px 4px 22px 20px;border-right:1px solid var(--line-soft,var(--line))}
   .spt-mat-detail-col--story{padding:18px 20px 22px 18px}
-  .spt-mat-detail-tabs,.spt-mat-detail-narrow{display:none}
+  .spt-mat-detail-tabs, .spt-mat-detail-narrow{display:none}
 }
 @media(max-width:1239px){
   .spt-mat-detail-body{display:flex;flex-direction:column;overflow:hidden}
@@ -265,12 +253,12 @@ body[data-shell="top"] .hub-main{min-width:0;padding:14px 20px 36px;overflow:aut
   .spt-mat-list::-webkit-scrollbar{display:none}
   .spt-mat-item{flex:0 0 auto;min-height:44px;max-width:230px;border:1px solid var(--line-soft,var(--line));border-radius:8px;padding:8px 10px;white-space:nowrap}
   .spt-mat-item.on:before{display:none}
-  .spt-mat-item small,.spt-mat-pin{display:none}
+  .spt-mat-item small, .spt-mat-pin{display:none}
   .spt-mat-item b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .spt-mat-detail-head{padding:14px 14px 12px}
   .spt-mat-detail-title h2{font-size:16px}
   .spt-mat-actions button{min-height:34px}
-  .spt-mat-detail-body,.spt-mat-detail-narrow{overflow:visible}
+  .spt-mat-detail-body, .spt-mat-detail-narrow{overflow:visible}
   .spt-mat-npane{height:auto;overflow:visible;padding:15px 14px 18px}
   .spt-mat-story{font-size:12.5px;line-height:1.9}
   .spt-mat-logic{grid-template-columns:1fr}
@@ -286,7 +274,6 @@ body[data-shell="top"] .hub-main{min-width:0;padding:14px 20px 36px;overflow:aut
 }
 #sptMatLegacy .mat-page{max-width:none;margin:0}
 #sptMatLegacy .mat-mgrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-#sptMatLegacy .mat-mat-card{border-radius:12px}
 
 /* 模考 */
 .spt-mock-shell{display:flex;flex-direction:column;min-height:clamp(460px,62vh,560px);border:1px solid var(--line);border-radius:13px;overflow:hidden;background:#fff;box-shadow:0 12px 34px -30px rgba(20,42,40,.4)}
@@ -445,8 +432,7 @@ body[data-shell="top"] .hub-main{min-width:0;padding:14px 20px 36px;overflow:aut
 .spt-mobile-tabs.spt-mobile-tabs button{font-size:12px}
 .spt-mobile-tabs.spt-mobile-tabs button.on{background:var(--surface);border-color:var(--line);color:var(--primary-700);box-shadow:0 1px 2px rgba(16,24,40,.06)}
 #listView .sp-toolbar .sp-part-seg{height:38px;padding:3px;gap:2px;border-radius:10px;background:var(--surface-2);border:1px solid var(--line);overflow:visible}
-#listView .sp-toolbar .sp-part-seg button,
-#listView .sp-toolbar .sp-part-seg button + button{height:30px;min-height:30px;padding:0 12px;border:1px solid transparent;border-radius:7px;background:transparent;color:var(--muted);font-size:12px;font-weight:650}
+#listView .sp-toolbar .sp-part-seg button, #listView .sp-toolbar .sp-part-seg button + button{height:30px;min-height:30px;padding:0 12px;border:1px solid transparent;border-radius:7px;background:transparent;color:var(--muted);font-size:12px;font-weight:650}
 #listView .sp-toolbar .sp-part-seg button:hover{background:var(--n-100);color:var(--ink)}
 #listView .sp-toolbar .sp-part-seg button.active{background:var(--surface);border-color:var(--line);color:var(--primary-700);font-weight:700;box-shadow:0 1px 2px rgba(16,24,40,.06)}
 #sptPaneRecords .spt-record-tabs{height:38px;padding:3px;gap:2px;border-radius:10px;background:var(--surface-2)}
@@ -461,10 +447,7 @@ body[data-shell="top"] .hub-main{min-width:0;padding:14px 20px 36px;overflow:aut
 #sptPaneRecords .spt-record-empty .spt-empty-ic svg{width:22px;height:22px;max-width:22px;max-height:22px}
 #sptPaneRecords .spt-record-empty b{font-size:14px}
 #sptPaneRecords .spt-record-empty p{margin:6px 0 16px;font-size:12px;line-height:1.7}
-html[data-theme="dark"] .spt-mobile-tabs.spt-mobile-tabs button.on,
-html[data-theme="dark"] #listView .sp-toolbar .sp-part-seg button.active,
-html[data-theme="dark"] #sptPaneRecords .spt-record-tabs button.on,
-html[data-theme="dark"] .spt-record-toolbar .spt-seg button.on{background:var(--primary-50);border-color:var(--primary-100);box-shadow:none}
+html[data-theme="dark"] .spt-mobile-tabs.spt-mobile-tabs button.on, html[data-theme="dark"] #listView .sp-toolbar .sp-part-seg button.active, html[data-theme="dark"] #sptPaneRecords .spt-record-tabs button.on, html[data-theme="dark"] .spt-record-toolbar .spt-seg button.on{background:var(--primary-50);border-color:var(--primary-100);box-shadow:none}
 @media(max-width:860px){
   #listView .sp-toolbar .sp-part-seg{height:38px}
   #listView .sp-toolbar .sp-part-seg button{height:30px;min-height:30px;padding:0 13px}

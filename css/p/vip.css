@@ -142,7 +142,7 @@ details.kv-faq p{ color: var(--kv-muted); font-size: 13px; margin: 0px 0px 16px;
 
 /* ===== 加固副本：选择器统一加 .kv-page（具体度 +1 级） =====
    为什么有这一段：common.css 有两条标签选择器直接写在元素上、优先于继承——
-     :470 input:not([type=checkbox]):not([type=radio]):not([type=range]) → 具体度 0,3,1
+     :470 input:not([type=checkbox]):not([type=radio]):not([type=range]) → 具体度 0, 3, 1
      :490 label → 全局把 font-size 压成 13px、color 压成 muted、margin-bottom 4px
    本文件里 (0,2,1) 的规则打不过它们 → 输入框出现「外框包一层、内层又多一个框」，
    字号也会被压成 13px。这一段靠提高具体度 + 排在最后来压住。
@@ -224,8 +224,6 @@ details.kv-faq p{ color: var(--kv-muted); font-size: 13px; margin: 0px 0px 16px;
 .kv-page .kv-plan .kv-tag{ display: inline-block; margin: 0px 0px 0px 3px; }
 .kv-page .kv-plan s{ display: inline; margin-left: 5px; }
 }
-@media (prefers-reduced-motion: reduce){
-}
 
 /* ===== 站点全局标签规则（common.css:470 input / :490 label）的冲突钉死 =====
    这两条标签选择器直接写在元素上，会盖掉未显式声明的 font-size / line-height。
@@ -259,7 +257,7 @@ details.kv-faq p{ color: var(--kv-muted); font-size: 13px; margin: 0px 0px 16px;
 }
 /* ② 选中档：js/vip.js 用 .on 类（不是 aria-pressed），按稿子选中态补一条 */
 .kv-page .kv-plan.on{border:2px solid var(--kv-teal);padding:14px 11px;background:var(--kv-teal-s)}
-/* ③ 章标签：稿子是描边小标签，旧 .semi-plan .nm .tag 是实底青（具体度 0,3,0）——
+/* ③ 章标签：稿子是描边小标签，旧 .semi-plan .nm .tag 是实底青（具体度 0, 3, 0）——
       提具体度改回描边，否则会「实底 + 描边」两副面孔 */
 .kv-page .kv-plan .kv-nm .kv-tag{background:transparent;color:var(--kv-teal-d);border:1px solid var(--kv-line);font-weight:500}
 /* ④ 名称行字号对齐稿子 14px（旧 .semi-plan .nm 是 13.5px） */

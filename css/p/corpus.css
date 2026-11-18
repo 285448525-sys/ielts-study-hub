@@ -10,9 +10,6 @@
 .corpus-item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-top:1px dashed var(--line)}
 .corpus-item:first-child{border-top:none}
 .corpus-text{flex:1;font-size:14px;line-height:1.5}
-.flex-none{flex:none}
-.mt-10{margin-top:10px}
-.row-end{align-items:flex-end}
 /* 语料库紧凑表格：第1列序号 / 左列中文 / 右列英文 */
 .corpus-table{width:100%;border-collapse:collapse;font-size:13.5px}
 .corpus-table th{text-align:left;color:var(--muted);font-size:12px;font-weight:700;padding:7px 10px;border-bottom:2px solid var(--line)}
@@ -41,7 +38,7 @@
    这一组现在只剩**错题卡**（js/corpus.js 的 eb 渲染：题干拆解·同声传译）在用，别当死样式删。 */
 .ls-wbw-grid{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch}
 .ls-wbw-item{display:flex;flex-direction:column;gap:3px;padding:8px 10px;border-radius:10px;background:var(--surface);border:1px solid var(--line);min-width:42px;cursor:pointer;transition:background .15s,border-color .15s,box-shadow .15s}
-.ls-wbw-item:hover,.ls-wbw-item:focus{background:var(--surface-2);border-color:var(--primary);outline:none;box-shadow:0 2px 8px rgba(58,154,147,.12)}
+.ls-wbw-item:hover, .ls-wbw-item:focus{background:var(--surface-2);border-color:var(--primary);outline:none;box-shadow:0 2px 8px rgba(58,154,147,.12)}
 .ls-wbw-en{font-size:14px;font-weight:700;color:var(--ink);line-height:1.3}
 .ls-wbw-cn{font-size:12px;color:var(--muted);line-height:1.3}
 
@@ -190,7 +187,7 @@
 
 /* ===== 加固副本：选择器统一加 .kc-page（具体度 +1 级） =====
    为什么有这一段：common.css 有两条标签选择器直接写在元素上、优先于继承——
-     :470 input:not([type=checkbox]):not([type=radio]):not([type=range]) → 具体度 0,3,1
+     :470 input:not([type=checkbox]):not([type=radio]):not([type=range]) → 具体度 0, 3, 1
      :490 label → 全局把 font-size 压成 13px、color 压成 muted、margin-bottom 4px
    本文件里 (0,2,1) 的规则打不过它们 → 输入框出现「外框包一层、内层又多一个框」，
    字号也会被压成 13px。这一段靠提高具体度 + 排在最后来压住。
@@ -288,24 +285,20 @@
   --kc-ink:var(--ink);
   --kc-soft:var(--surface-2);
 }
-[data-theme="dark"] .kc-page .kc-eb-input,
-[data-theme="dark"] .kc-page textarea{ background:var(--surface-2); border-color:var(--line); color:var(--ink); }
+[data-theme="dark"] .kc-page .kc-eb-input, [data-theme="dark"] .kc-page textarea{ background:var(--surface-2); border-color:var(--line); color:var(--ink); }
 [data-theme="dark"] .kc-page .kc-btn{ background:var(--surface); border-color:var(--line); color:var(--ink); }
-[data-theme="dark"] .kc-page .kc-btn-primary,
-[data-theme="dark"] .kc-page .kc-btn-primary:hover{ background:var(--primary); border-color:var(--primary); color:var(--on-primary); }
+[data-theme="dark"] .kc-page .kc-btn-primary, [data-theme="dark"] .kc-page .kc-btn-primary:hover{ background:var(--primary); border-color:var(--primary); color:var(--on-primary); }
 [data-theme="dark"] .kc-page .kc-view-switch{ background:var(--surface); border-color:var(--line); }
 [data-theme="dark"] .kc-page .kc-view-switch button.kc-active{ background:var(--primary-soft); color:var(--primary-text); }
 [data-theme="dark"] .kc-page .kc-card{ background:var(--surface); border-color:var(--line); }
 
 /* 🔴 tab 按钮：js/corpus.js 用 .active 切换（:738），稿子用 .kc-active —— 两个都认 */
-.kc-page .kc-view-switch button.kc-active,
-.kc-page .kc-view-switch button.active{
+.kc-page .kc-view-switch button.kc-active, .kc-page .kc-view-switch button.active{
   background:var(--primary-soft); color:var(--kc-pd); font-weight:700;
 }
 
 /* 🔴 add-tabs：js/corpus.js:67 用 .active 切换 */
-.kc-page .kc-add-tabs button.kc-active,
-.kc-page .kc-add-tabs button.active{
+.kc-page .kc-add-tabs button.kc-active, .kc-page .kc-add-tabs button.active{
   background:var(--primary-soft); color:var(--kc-pd); font-weight:700;
 }
 
@@ -346,7 +339,6 @@
 .lsr-composer textarea::placeholder{color:var(--muted)}
 .lsr-composer-foot{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-top:12px}
 .lsr-foot-l{display:flex;align-items:center;gap:12px;flex-wrap:wrap;min-width:0}
-.lsr-hint{font-size:12px;color:var(--muted)}
 .lsr-status{font-size:12px;color:var(--muted)}
 .lsr-status.is-ok{color:var(--primary-d)}
 .lsr-status.is-err{color:var(--danger-text)}
@@ -412,7 +404,7 @@
 .lsr-word small{display:block;font-size:12px;color:var(--muted);margin-top:4px}
 .lsr-save-word{flex:none;border:1px solid var(--line);background:var(--surface);border-radius:7px;padding:5px 12px;font-size:12px;min-height:34px;color:var(--primary-d);cursor:pointer}
 /* 收录成功态：js/corpus.js 的 _ebMarkSaved 统一加的是 .is-done（全站既有口径），不是 .done */
-.lsr-save-word:hover,.lsr-save-word.is-done{border-color:var(--primary);background:var(--primary-soft)}
+.lsr-save-word:hover, .lsr-save-word.is-done{border-color:var(--primary);background:var(--primary-soft)}
 .lsr-word.is-done b{color:var(--primary-d)}
 .lsr-collect-hint{color:var(--muted);font-size:11px;margin-top:13px}
 
@@ -439,8 +431,7 @@
 .lsr-history-actions .lsr-btn{min-height:34px}
 
 /* ---- 12. 深色：两个辅助色阶在深底偏暗，提亮一档（同色系 aux-*-400） ---- */
-[data-theme="dark"] .lsr-subj,
-[data-theme="dark"] .lsr-legend i{color:var(--aux-slate-400)}
+[data-theme="dark"] .lsr-subj, [data-theme="dark"] .lsr-legend i{color:var(--aux-slate-400)}
 [data-theme="dark"] .lsr-legend i{background:var(--aux-slate-400)}
 [data-theme="dark"] .lsr-obj{color:var(--aux-clay-400)}
 [data-theme="dark"] .lsr-legend span:nth-child(3) i{background:var(--aux-clay-400)}

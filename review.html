@@ -25,11 +25,6 @@
   --radius:14px; --shadow:0 1px 2px rgba(24,40,48,.04), 0 6px 18px -12px rgba(24,40,48,.18);
 }
 #hubSubs{display:none!important}
-.rv-pane-block{margin:16px 0 0}
-.rv-pane-block[hidden]{display:none}
-.rv-stat-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}
-.rv-two-col{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;margin:14px 0}
-.rv-stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;min-height:92px;box-shadow:var(--shadow)}
 .rv-stat.ok{border-color:#cde5e1;background:linear-gradient(180deg,#f4faf9,var(--surface))}
 .rv-stat .k{font-size:11.5px;color:var(--muted);font-weight:600}
 .rv-stat .v{font-size:26px;font-weight:800;letter-spacing:-.03em;color:var(--ink);line-height:1.25;margin-top:5px}
@@ -37,22 +32,7 @@
 .rv-stat .v.teal{color:var(--teal-700)}
 .rv-stat .v.warn{color:var(--amber)}
 .rv-stat .d{font-size:11px;color:var(--muted-2);margin-top:2px}
-.rv-panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
-.rv-panel-h{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;padding:15px 18px 4px;margin-bottom:0}
-.rv-panel-h b{font-size:13.5px;font-weight:750}
-.rv-panel-h span{font-size:11.5px;color:var(--muted)}
 .rv-panel-h .right{margin-left:auto}
-.rv-ruler-head{display:flex;align-items:baseline;gap:10px;padding:15px 18px 0;margin-bottom:0}
-.rv-ruler-head b{font-size:13.5px;font-weight:750}
-.rv-ruler-head span{font-size:11.5px;color:var(--muted)}
-.rv-ruler-track{position:relative;height:14px;border-radius:8px;background:linear-gradient(90deg,#e9eef0,#dbe9e6 70%,#cfe6e1);margin:24px 20px 0;overflow:visible}
-.rv-ruler-track i{position:absolute;left:0;top:0;bottom:0;border-radius:8px;background:var(--teal);opacity:.28}
-.rv-ruler-goal{position:absolute;top:-7px;bottom:-7px;width:2px;background:var(--teal-700)}
-.rv-ruler-goal::after{content:"目标";position:absolute;top:-19px;left:50%;transform:translateX(-50%);font-size:10.5px;font-weight:750;color:var(--teal-700);white-space:nowrap}
-.rv-ruler-cur{position:absolute;top:-6px;width:4px;height:26px;border-radius:3px;background:var(--ink);transform:translateX(-2px)}
-.rv-ruler-cur::after{content:"当前";position:absolute;bottom:-19px;left:50%;transform:translateX(-50%);font-size:10.5px;font-weight:750;color:var(--ink);white-space:nowrap}
-.rv-ruler-ticks{display:flex;justify-content:space-between;margin:26px 20px 16px;font-size:10.5px;color:var(--muted-2)}
-.rv-callout{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:14px 18px;border-radius:var(--radius);background:linear-gradient(100deg,var(--teal-50),#f2f9f7 65%,var(--surface));border:1px solid #dceeea;margin:14px 0 0}
 .rv-callout .ic{width:38px;height:38px;border-radius:11px;background:var(--surface);color:var(--teal-700);display:flex;align-items:center;justify-content:center;flex:0 0 auto;box-shadow:var(--shadow)}
 .rv-callout .ic svg{width:20px;height:20px}
 .rv-callout .tx{min-width:0;flex:1}
@@ -60,62 +40,22 @@
 .rv-callout .tx span{display:block;font-size:12px;color:var(--muted);margin-top:3px}
 .rv-callout .btn{margin-left:auto;display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:36px;padding:0 13px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink-2);font-size:12.5px;font-weight:700;white-space:nowrap}
 .rv-callout .btn:hover{border-color:var(--teal);color:var(--teal-700)}
-.rv-subj-row{display:flex;align-items:center;gap:14px;padding:12px 18px;border-bottom:1px solid var(--line-2)}
-.rv-subj-row:last-child{border-bottom:0}
-.rv-subj-n{width:52px;flex:0 0 auto;font-size:12.5px;font-weight:700}
-.rv-subj-track{position:relative;flex:1;height:12px;border-radius:6px;background:var(--bg);overflow:visible}
-.rv-fill{position:absolute;left:0;top:0;bottom:0;border-radius:6px;background:var(--teal);opacity:.85}
 .rv-fill.weak{background:var(--amber);opacity:.9}
-.rv-goal{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--teal-700)}
-.rv-subj-v{width:74px;flex:none;text-align:right;font-size:12.5px;font-weight:750}
-.rv-subj-v small{display:block;font-size:10.5px;font-weight:600;color:var(--muted)}
-.rv-radar-box{padding:8px 10px 14px}
-.rv-radar-box svg{width:280px;max-width:100%;height:auto;display:block;margin:0 auto}
-.rv-radar-lab{font-size:12px;fill:var(--muted)}
-.rv-radar-legend{display:flex;gap:16px;justify-content:center;margin-top:6px;font-size:11px;color:var(--muted)}
-.rv-radar-legend i{display:inline-block;width:16px;height:0;border-top:2px solid var(--teal);vertical-align:middle;margin-right:5px}
 .rv-radar-legend i.first{border-top:2px dashed var(--muted-2)}
-.rv-heat{display:grid;grid-template-rows:repeat(7,13px);grid-auto-flow:column;grid-auto-columns:13px;gap:3px}
-.rv-heat i{width:13px;height:13px;border-radius:3px;background:#eef2f2;display:block}
 .rv-heat i.l1{background:#dcefeb}.rv-heat i.l2{background:#b8ded7}.rv-heat i.l3{background:#86c7bd}.rv-heat i.l4{background:var(--teal)}
-.rv-heat-legend{display:flex;align-items:center;gap:6px;justify-content:flex-end;margin-top:10px;font-size:10.5px;color:var(--muted-2)}
-.rv-heat-legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
-.rv-chart{padding:18px 20px 16px}
-.rv-bars{display:flex;align-items:flex-end;gap:6px;height:140px;padding:0 2px;border-bottom:1px solid var(--line)}
-.rv-bar{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center}
-.rv-bar i{width:100%;max-width:26px;border-radius:5px 5px 0 0;background:var(--teal);opacity:.85}
 .rv-bar.today i{background:var(--teal-d);opacity:1}
-.rv-bar em{font-size:10px;font-style:normal;color:var(--muted-2);margin-bottom:2px}
-.rv-bar-labels{display:flex;gap:6px;margin-top:7px}
-.rv-bar-labels span{flex:1;text-align:center;font-size:10px;color:var(--muted-2)}
-.rv-empty{padding:34px 18px;font-size:12.5px;color:var(--muted);text-align:center}
-.rv-mobile-tabs{display:none}
-.rv2-content.rv-one-col{grid-template-columns:minmax(0,1fr)}
-
-/* 设计稿标志性细节：sparkline / 最近三次 / 可见页头 */
-.rv-spark{padding:14px 18px 18px}
-.rv-spark svg{width:100%;height:76px;display:block}
-.rv-spark-foot{display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted-2);margin-top:4px}
-.rv-line-grid{stroke:var(--line-2);stroke-width:1;stroke-dasharray:3 4}
-.rv-line-dot{fill:var(--surface);stroke:var(--teal);stroke-width:2.4}
-.rv-mini-row{display:flex;align-items:center;gap:14px;padding:13px 18px;border-bottom:1px solid var(--line-2);min-height:64px}
-.rv-mini-row:last-child{border-bottom:0}
 .rv-mini-row .grow{min-width:0;flex:1}
 .rv-mini-row .t{font-size:13.5px;font-weight:700}
 .rv-mini-row .d{font-size:11.5px;color:var(--muted);margin-top:2px}
-.rv-mini-pill{font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:999px;background:var(--bg);color:var(--muted);white-space:nowrap}
 .rv-mini-pill.key{background:var(--teal-50);color:var(--teal-700)}
 .rv-mini-pill.warn{background:var(--amber-50);color:var(--amber)}
-.rv-link{font-size:11.5px;color:var(--teal-700);font-weight:700;text-decoration:none;cursor:pointer}
-.rv-vhead{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:2px 0 16px}
-.rv-vhead h1{margin:0;font-size:20px;font-weight:800;letter-spacing:-.02em}
 .rv-vhead .hint{font-size:12.5px;color:var(--muted)}
 .rv-vhead .right{margin-left:auto}
 
 /* 旧 .rv2-* 卡片统一重皮：去彩色四科边 / warn 混色 / 48px 大号总分，换设计稿 teal 精致皮肤 */
 .hub-main .rv2-summary{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px 20px;display:grid;grid-template-columns:1fr 2fr;gap:18px;align-items:center;margin:0}
 .hub-main .rv2-latest{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
-.hub-main .rv2-muted,.hub-main .rv2-hint{font-size:11.5px;color:var(--muted)}
+.hub-main .rv2-muted, .hub-main .rv2-hint{font-size:11.5px;color:var(--muted)}
 .hub-main .rv2-score{font-size:26px;font-weight:800;letter-spacing:-.03em;color:var(--teal-700);line-height:1.2}
 .hub-main .rv2-score small{font-size:12px;font-weight:600;color:var(--muted);margin-left:3px}
 .hub-main .rv2-target{font-size:12.5px;color:var(--muted)}
@@ -136,7 +76,7 @@
 .hub-main .rv2-segment{display:inline-flex;gap:2px;padding:3px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
 .hub-main .rv2-segment button{min-height:30px;padding:0 11px;border:0;border-radius:7px;background:transparent;font-size:12px;font-weight:650;color:var(--muted)}
 .hub-main .rv2-segment button.active{background:var(--surface);color:var(--teal-700);font-weight:750;box-shadow:var(--shadow)}
-.hub-main .rv2-chart,.hub-main #recAll,.hub-main .rv2-perf-grid,.hub-main .rv2-more{padding:14px 18px}
+.hub-main .rv2-chart, .hub-main #recAll, .hub-main .rv2-perf-grid, .hub-main .rv2-more{padding:14px 18px}
 .hub-main .rv2-chart-foot{display:flex;gap:12px;flex-wrap:wrap;padding:0 18px 14px;font-size:11px;color:var(--muted)}
 .hub-main .rv2-insight{background:var(--surface)}
 .hub-main .rv2-weak{background:linear-gradient(100deg,var(--teal-50),#f2f9f7 70%,var(--surface));border-bottom:1px solid var(--line-2);padding:16px 18px}
@@ -159,29 +99,22 @@
 .hub-main #rv2Summary .rv2-empty h2{margin:0 0 6px;font-size:14px;font-weight:750;color:var(--ink)}
 .hub-main #rv2Summary .rv2-empty p{margin:0;font-size:12px}
 .hub-main #rv2Summary .rv2-empty .rv2-primary{margin-top:14px;margin-left:0}
-.hub-main .rv2-dialog-shell input,.hub-main .rv2-dialog-shell select,.hub-main .rv2-card-head select{border:1px solid var(--line);border-radius:9px;padding:7px 10px;font-size:12.5px;background:var(--surface);color:var(--ink)}
-.hub-main .rv2-records,.hub-main .rv2-performance{margin-top:14px}
+.hub-main .rv2-dialog-shell input, .hub-main .rv2-dialog-shell select, .hub-main .rv2-card-head select{border:1px solid var(--line);border-radius:9px;padding:7px 10px;font-size:12.5px;background:var(--surface);color:var(--ink)}
+.hub-main .rv2-records, .hub-main .rv2-performance{margin-top:14px}
 /* 旧 css/p/review.css 用 .rv2-head>div 的 clip-path 把 h1 藏了、用 .rv2-subjects>#rvxCellX 的 id 特异度给四科上蓝紫黄粉底色。
    本页样式以更高特异度压回设计稿：h1 可见、四科中性卡（只按达标/未达标给 teal / amber 描边）。 */
 .hub-main .rv2-head>div{position:static;width:auto;height:auto;overflow:visible;clip-path:none;white-space:normal}
-.hub-main .rv2-subjects>.rv2-subject,
-.hub-main .rv2-subjects>#rvxCellL,.hub-main .rv2-subjects>#rvxCellR,
-.hub-main .rv2-subjects>#rvxCellW,.hub-main .rv2-subjects>#rvxCellS{background:var(--bg);border:1px solid var(--line);border-left:1px solid var(--line);border-radius:10px;padding:10px 12px}
-.hub-main .rv2-subjects>#rvxCellL>span,.hub-main .rv2-subjects>#rvxCellR>span,
-.hub-main .rv2-subjects>#rvxCellW>span,.hub-main .rv2-subjects>#rvxCellS>span{color:var(--muted)}
+.hub-main .rv2-subjects>.rv2-subject, .hub-main .rv2-subjects>#rvxCellL, .hub-main .rv2-subjects>#rvxCellR, .hub-main .rv2-subjects>#rvxCellW, .hub-main .rv2-subjects>#rvxCellS{background:var(--bg);border:1px solid var(--line);border-left:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.hub-main .rv2-subjects>#rvxCellL>span, .hub-main .rv2-subjects>#rvxCellR>span, .hub-main .rv2-subjects>#rvxCellW>span, .hub-main .rv2-subjects>#rvxCellS>span{color:var(--muted)}
 .hub-main .rv2-subjects>.rv2-subject>b{font-size:19px;font-weight:800;color:var(--ink)}
 .hub-main .rv2-subjects>.rv2-subject>small{display:block;margin-top:0;padding:0;border-radius:0;background:none;font-size:10.5px;color:var(--muted-2)}
-.hub-main .rv2-subjects>.rv2-subject.rvx-ok>small,.hub-main .rv2-subjects>.rv2-subject.rvx-weak>small{background:none}
+.hub-main .rv2-subjects>.rv2-subject.rvx-ok>small, .hub-main .rv2-subjects>.rv2-subject.rvx-weak>small{background:none}
 .hub-main .rv2-subjects>.rv2-subject.rvx-ok{border-color:#cde5e1;background:var(--teal-50)}
 .hub-main .rv2-subjects>.rv2-subject.rvx-ok>b{color:var(--teal-700)}
 .hub-main .rv2-subjects>.rv2-subject.rvx-weak{border-color:#ecd9b6;background:var(--amber-50)}
 .hub-main .rv2-subjects>.rv2-subject.rvx-weak>b{color:var(--amber)}
 @media(max-width:860px){
-  .rv-mobile-tabs{display:flex;gap:6px;overflow-x:auto;padding:8px 0;margin-bottom:4px;-webkit-overflow-scrolling:touch}
-  .rv-mobile-tabs button{flex:none;min-height:44px;padding:0 14px;border:1px solid var(--line);border-radius:22px;background:var(--surface);font-size:13px;font-weight:600;color:var(--ink)}
   .rv-mobile-tabs button.on{background:var(--teal-50);border-color:#cde5e1;color:var(--teal-700)}
-  .rv-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .rv-two-col{grid-template-columns:minmax(0,1fr)}
   .hub-main .rv2-summary{grid-template-columns:1fr}
   .hub-main .rv2-subjects{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
@@ -220,7 +153,7 @@
 @keyframes rve-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 @keyframes rve-breathe{0%,100%{opacity:.12;transform:scale(1)}50%{opacity:.22;transform:scale(1.07)}}
 .rve-halo{transform-box:fill-box;transform-origin:center;animation:rve-breathe 3.6s ease-in-out infinite}
-@media(prefers-reduced-motion:reduce){.rve--hero,.rve-halo{animation:none}}
+@media(prefers-reduced-motion:reduce){.rve--hero, .rve-halo{animation:none}}
 /* 空账号时 #rv2Summary 外壳让位给 hero：去掉卡中卡的双边框和 grid 压缩。
    页头那枚「录入成绩」由既有 :has 规则认 rv2-empty 类收掉，功能由 hero 里那枚承担。 */
 .hub-main .rv2-summary:has(> .rv2-empty.rve--hero){display:block;background:transparent;border:0;box-shadow:none;padding:0;margin:0}
@@ -248,8 +181,8 @@
 .hub-main .rv2-segment{display:inline-flex;gap:5px;flex-wrap:wrap;padding:0;border:0;background:transparent;border-radius:0}
 .hub-main .rv2-segment button{min-height:32px;padding:0 13px;border:1px solid var(--line);border-radius:16px;background:var(--surface);color:var(--ink-2);font-size:12.5px;font-weight:600}
 .hub-main .rv2-segment button.active{background:var(--ink,#1f2328);border-color:var(--ink,#1f2328);color:#fff;font-weight:700;box-shadow:none}
-.hub-main .rv2-card-head select,.hub-main .rv2-head-tools select,.hub-main #recordFilter,.hub-main #rv2StatRange{height:36px;padding:0 30px 0 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink-2);font:inherit;font-size:12.5px;font-weight:650;appearance:none;-webkit-appearance:none;cursor:pointer;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2371767e' stroke-width='2.4' stroke-linecap='round'><path d='M6 9l6 6 6-6'/></svg>");background-repeat:no-repeat;background-position:right 10px center}
-.hub-main .rv2-card,.hub-main .rv2-insight,.hub-main .rv2-performance,.hub-main .rv2-records{border-radius:14px}
+.hub-main .rv2-card-head select, .hub-main .rv2-head-tools select, .hub-main #recordFilter, .hub-main #rv2StatRange{height:36px;padding:0 30px 0 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink-2);font:inherit;font-size:12.5px;font-weight:650;appearance:none;-webkit-appearance:none;cursor:pointer;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2371767e' stroke-width='2.4' stroke-linecap='round'><path d='M6 9l6 6 6-6'/></svg>");background-repeat:no-repeat;background-position:right 10px center}
+.hub-main .rv2-card, .hub-main .rv2-insight, .hub-main .rv2-performance, .hub-main .rv2-records{border-radius:14px}
 @media(max-width:860px){.hub-main .rv2-card-head{gap:8px}.hub-main .rv2-head-tools{width:100%;margin-left:0}.hub-main .rv2-segment button{padding:0 10px;font-size:12px}}
 </style>
 
@@ -307,7 +240,7 @@ return {hero:hero,inline:inline,ic:ic};
    零 DOM/id/数据落点删除，全部靠 re-* 重皮与 hidden/details；颜色只用站点 token，深浅两档自动跟随。 */
 /* 侧栏：11-16 她定「所有有侧栏的页面，分栏下面都列今日任务」，这里不再隐藏任务卡 */
 /* 左上角论文式标题/副标语、卡片大标题一律不摆；录入成绩按钮与卡内说明照留 */
-.hub-main .rv2-head h1,.hub-main .rv2-head p{display:none}
+.hub-main .rv2-head h1, .hub-main .rv2-head p{display:none}
 .hub-main .rv2-head{justify-content:flex-end;min-height:36px;margin:0 0 12px}
 .hub-main .rv2-card-head h2{display:none}
 /* 数据态概览 = 大总分卡 + 四科 2×2（沿用 rvx-data.js 现填的 id，一个不删） */
@@ -327,8 +260,7 @@ return {hero:hero,inline:inline,ic:ic};
 .hub-main .rv2-summary:has(.rv2-latest) .rv2-subjects>.rv2-subject.rvx-ok>small{color:var(--ok-text)}
 .hub-main .rv2-summary:has(.rv2-latest) .rv2-subjects>.rv2-subject.rvx-weak>small{color:var(--warn-ink)}
 /* 重复数据：4 数卡 / 水平标尺不再单独占格；趋势页 4 数卡收成 2 */
-.hub-main .rv-pane-block[data-rv-pane="home"] #rvHomeStats,
-.hub-main .rv-pane-block[data-rv-pane="home"] #rvRuler{display:none!important}
+.hub-main .rv-pane-block[data-rv-pane="home"] #rvHomeStats, .hub-main .rv-pane-block[data-rv-pane="home"] #rvRuler{display:none!important}
 .hub-main #rvTrendStats{grid-template-columns:repeat(2,minmax(0,1fr))}
 .hub-main #rvTrendStats .rv-stat:nth-child(n+3){display:none}
 /* 行动条：结论条收成一条 teal 行动带，去练按钮照留 */
@@ -337,22 +269,11 @@ return {hero:hero,inline:inline,ic:ic};
 .hub-main #rvCallout .rv-callout .ic svg{width:16px;height:16px}
 .hub-main #rvCallout .rv-callout .tx b{font-size:12.5px}
 .hub-main #rvCallout .rv-callout .tx span{font-size:11.5px}
-/* 折叠：学习投入 / 表现统计默认收起，展开即用，功能一件不删 */
-.re-fold{margin:14px 0 0;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
-.re-fold>summary{list-style:none;cursor:pointer;padding:13px 16px;font-size:12.5px;font-weight:700;color:var(--ink-2);display:flex;align-items:center;gap:9px}
-.re-fold>summary::-webkit-details-marker{display:none}
 .re-fold>summary .chev{width:14px;height:14px;flex:0 0 auto;color:var(--muted);transition:transform .18s ease-out}
 .re-fold[open]>summary .chev{transform:rotate(90deg)}
-.re-fold>summary .re-fold-tag{margin-left:auto;font-size:10.5px;font-weight:600;color:var(--muted)}
-.re-fold>summary:focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:8px}
-.re-fold>.rv-pane-block,.re-fold>.rv2-card{margin:0;border:0;border-top:1px solid var(--line);border-radius:0;box-shadow:none;overflow:visible}
-.re-fold>.rv2-card.rv2-insight{margin:0}
-.re-fold .rv-two-col,.re-fold .rv-stat-grid{margin:0}
 /* 空账号：B 卡照旧当首屏，折叠与趋势数卡不冒出来 */
-.hub-main:has(#rv2Summary > .es-box) #reHomeFold,
-.hub-main:has(#rv2Summary > .rv2-empty.rve--hero) #reHomeFold{display:none!important}
-.hub-main:has(#rv2Summary > .es-box) #reRecFold,
-.hub-main:has(#rv2Summary > .rv2-empty.rve--hero) #reRecFold{display:none!important}
+.hub-main:has(#rv2Summary > .es-box) #reHomeFold, .hub-main:has(#rv2Summary > .rv2-empty.rve--hero) #reHomeFold{display:none!important}
+.hub-main:has(#rv2Summary > .es-box) #reRecFold, .hub-main:has(#rv2Summary > .rv2-empty.rve--hero) #reRecFold{display:none!important}
 @media(max-width:860px){
   .hub-main .rv2-summary:has(.rv2-latest){grid-template-columns:1fr}
   .hub-main .rv2-summary .rv2-latest .rv2-score{font-size:52px}
@@ -371,68 +292,8 @@ return {hero:hero,inline:inline,ic:ic};
 /* 三页共用一张 board 后，左栏子 tab 与页头切换重复；整页只留顶部这个切换键 */
 /* 11-16 定版：左栏恢复（分栏 + 今日任务卡），不再整页铺满；板上那排 tab 与左栏重复，桌面收掉 */
 @media(min-width:861px){ .hub-main #rvMobileTabs{display:none!important} }
-.rv-board{
-  max-width:1180px;margin:0 auto;height:560px;display:grid;
-  grid-template-columns:minmax(0,1fr) 320px;grid-template-rows:76px minmax(0,1fr);
-  border:1px solid var(--line);border-radius:16px;background:var(--surface);
-  box-shadow:var(--shadow);overflow:hidden
-}
-.rv-board-head{
-  grid-column:1/-1;grid-row:1;display:flex;align-items:center;gap:20px;
-  padding:0 24px;border-bottom:1px solid var(--line-2);min-width:0
-}
-.rv-board-head-txt{min-width:0}
-.rv-board-head h2{margin:0;font-size:15px;font-weight:750;letter-spacing:.01em;color:var(--ink)}
-.rv-board-head p{margin:4px 0 0;font-size:11.5px;line-height:1.5;color:var(--muted)}
-.rv-board-add{
-  margin-left:0;display:inline-flex;align-items:center;justify-content:center;gap:8px;flex:none;
-  min-height:40px;padding:0 16px;border:0;border-radius:10px;background:var(--teal);
-  color:#fff;font:inherit;font-size:13px;font-weight:700;cursor:pointer
-}
-.rv-board-add:hover{background:var(--teal-d)}
-.rv-board-add svg{width:16px;height:16px;max-width:16px;max-height:16px;flex:0 0 16px}
-.rv-board-body{
-  grid-column:1/-1;grid-row:2;display:grid;grid-template-columns:minmax(0,1fr) 320px;
-  min-width:0;min-height:0
-}
-.rv-board-left{min-width:0;min-height:0;display:flex;flex-direction:column}
-.rv-page{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
-.rv-page[hidden]{display:none!important}
-.rv-toolbar{
-  flex:0 0 56px;min-height:56px;display:flex;align-items:center;gap:24px;
-  flex-wrap:wrap;align-content:center;padding:12px 24px;
-  border-bottom:1px solid var(--line-2);min-width:0;box-sizing:border-box
-}
-.rv-toolbar-note{font-size:12px;line-height:1.6;color:var(--muted);min-width:0}
-.rv-badge{
-  display:inline-flex;align-items:center;gap:6px;flex:none;padding:4px 10px;border-radius:999px;
-  background:var(--teal-50);color:var(--teal-700);font-size:11px;font-weight:800;letter-spacing:.02em
-}
-.rv-badge svg{width:13px;height:13px;max-width:13px;max-height:13px;flex:0 0 13px}
-.rv-badge-empty{display:none}
-.hub-main:has(#rv2Summary > .es-box) .rv-badge-empty,
-.hub-main:has(#rv2Summary > .rv2-empty) .rv-badge-empty{display:inline-flex}
-.hub-main:has(#rv2Summary > .es-box) .rv-badge-data,
-.hub-main:has(#rv2Summary > .rv2-empty) .rv-badge-data{display:none}
-.rv-canvas{
-  flex:1 1 auto;min-height:0;overflow:auto;padding:20px 24px;scrollbar-gutter:stable;
-  scrollbar-width:thin;scrollbar-color:var(--line) transparent
-}
-.rv-canvas::-webkit-scrollbar{width:8px;height:8px}
-.rv-canvas::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px}
-.rv-canvas::-webkit-scrollbar-track{background:transparent}
-.rv-canvas-home{display:flex;flex-direction:column;gap:14px}
-.rv-canvas-label{font-size:11.5px;color:var(--muted);margin:0 0 6px}
-.rv-board-rail{
-  grid-column:2;grid-row:1;min-height:0;overflow:auto;
-  background:var(--surface-2);border-left:1px solid var(--line-2);padding:0
-}
-.rv-rail-in{padding:26px 24px}
-.rv-rail-sum{display:none}
-@media(min-width:861px){
-  .rv-rail-fold>summary{display:none}
-  .rv-rail-fold>.rv-rail-in{display:block!important}
-}
+.hub-main:has(#rv2Summary > .es-box) .rv-badge-empty, .hub-main:has(#rv2Summary > .rv2-empty) .rv-badge-empty{display:inline-flex}
+.hub-main:has(#rv2Summary > .es-box) .rv-badge-data, .hub-main:has(#rv2Summary > .rv2-empty) .rv-badge-data{display:none}
 
 /* 861–1024 的窄桌面：把工具栏控件收一档，保证三页都只占一行、板高不变 */
 @media(min-width:861px) and (max-width:1024px){
@@ -457,80 +318,37 @@ return {hero:hero,inline:inline,ic:ic};
   background:var(--surface);color:var(--teal-700);font-weight:750;
   box-shadow:0 1px 3px rgba(24,40,48,.10)
 }
-.rv-toolbar .rv-select{
-  min-height:36px;width:auto;max-width:none;padding:0 30px 0 12px;
-  border:1px solid var(--line);border-radius:10px;background-color:var(--surface);
-  color:var(--ink);font:inherit;font-size:12px;font-weight:600;cursor:pointer;
-  appearance:none;-webkit-appearance:none;
-  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2371767e' stroke-width='2.4' stroke-linecap='round'><path d='M6 9l6 6 6-6'/></svg>");
-  background-repeat:no-repeat;background-position:right 10px center
-}
 
 /* 空账号：首屏只留一句价值 + 插图；B 卡留在 DOM 但不再重复占位 */
 .hub-main #rv2Summary > .es-box{display:none!important}
-.hub-main:has(#rv2Summary > .es-box) #rv2Summary,
-.hub-main:has(#rv2Summary > .rv2-empty) #rv2Summary{display:none!important}
-.rv-home-empty{display:none;width:100%;max-width:420px;margin:auto;text-align:center}
-.hub-main:has(#rv2Summary > .es-box) .rv-home-empty,
-.hub-main:has(#rv2Summary > .rv2-empty) .rv-home-empty{display:block}
-.hub-main:has(#rv2Summary > .es-box) .rv-canvas-home,
-.hub-main:has(#rv2Summary > .rv2-empty) .rv-canvas-home{justify-content:center;align-items:center;overflow:hidden}
-.hub-main:has(#rv2Summary > .es-box) .rv-home-extra,
-.hub-main:has(#rv2Summary > .rv2-empty) .rv-home-extra{display:none!important}
-.rv-home-empty .rv-empty-ic{
-  width:52px;height:52px;margin:0 auto 18px;border-radius:14px;
-  background:var(--teal-50);color:var(--teal);display:grid;place-items:center
-}
-.rv-home-empty .rv-empty-ic svg{width:24px;height:24px;max-width:24px;max-height:24px}
-.rv-home-empty h3{margin:0 0 10px;font-size:20px;font-weight:750;line-height:1.4;color:var(--ink)}
-.rv-home-empty p{margin:0;font-size:12.5px;line-height:1.8;color:var(--muted)}
+.hub-main:has(#rv2Summary > .es-box) #rv2Summary, .hub-main:has(#rv2Summary > .rv2-empty) #rv2Summary{display:none!important}
+.hub-main:has(#rv2Summary > .es-box) .rv-home-empty, .hub-main:has(#rv2Summary > .rv2-empty) .rv-home-empty{display:block}
+.hub-main:has(#rv2Summary > .es-box) .rv-canvas-home, .hub-main:has(#rv2Summary > .rv2-empty) .rv-canvas-home{justify-content:center;align-items:center;overflow:hidden}
+.hub-main:has(#rv2Summary > .es-box) .rv-home-extra, .hub-main:has(#rv2Summary > .rv2-empty) .rv-home-extra{display:none!important}
 
 /* 空态控件按稿子保留：趋势两个分段、记录下拉都显示；表现统计仍收起 */
-.hub-main:has(#rv2Summary > .es-box) .rv-page[data-rv-pane="trend"] #rvxTrendView,
-.hub-main:has(#rv2Summary > .es-box) .rv-page[data-rv-pane="trend"] #rvxTrendChips,
-.hub-main:has(#rv2Summary > .rv2-empty) .rv-page[data-rv-pane="trend"] #rvxTrendView,
-.hub-main:has(#rv2Summary > .rv2-empty) .rv-page[data-rv-pane="trend"] #rvxTrendChips{display:inline-flex!important}
-.hub-main:has(#rv2Summary > .es-box) .rv-page[data-rv-pane="records"] #recordFilter,
-.hub-main:has(#rv2Summary > .rv2-empty) .rv-page[data-rv-pane="records"] #recordFilter{display:inline-block!important}
-.hub-main:has(#rv2Summary > .es-box) .rv-page[data-rv-pane="trend"] .rv2-chart-foot,
-.hub-main:has(#rv2Summary > .rv2-empty) .rv-page[data-rv-pane="trend"] .rv2-chart-foot{display:flex!important}
-.hub-main:has(#rv2Summary > .es-box) .rv-page[data-rv-pane="trend"] #rvTrendStats,
-.hub-main:has(#rv2Summary > .rv2-empty) .rv-page[data-rv-pane="trend"] #rvTrendStats{display:none!important}
-.hub-main:has(#rv2Summary > .es-box) .rv-canvas-label,
-.hub-main:has(#rv2Summary > .rv2-empty) .rv-canvas-label{display:none!important}
+.hub-main:has(#rv2Summary > .es-box) .rv-page[data-rv-pane="trend"] #rvxTrendView, .hub-main:has(#rv2Summary > .es-box) .rv-page[data-rv-pane="trend"] #rvxTrendChips, .hub-main:has(#rv2Summary > .rv2-empty) .rv-page[data-rv-pane="trend"] #rvxTrendView, .hub-main:has(#rv2Summary > .rv2-empty) .rv-page[data-rv-pane="trend"] #rvxTrendChips{display:inline-flex!important}
+.hub-main:has(#rv2Summary > .es-box) .rv-page[data-rv-pane="records"] #recordFilter, .hub-main:has(#rv2Summary > .rv2-empty) .rv-page[data-rv-pane="records"] #recordFilter{display:inline-block!important}
+.hub-main:has(#rv2Summary > .es-box) .rv-page[data-rv-pane="trend"] .rv2-chart-foot, .hub-main:has(#rv2Summary > .rv2-empty) .rv-page[data-rv-pane="trend"] .rv2-chart-foot{display:flex!important}
+.hub-main:has(#rv2Summary > .es-box) .rv-page[data-rv-pane="trend"] #rvTrendStats, .hub-main:has(#rv2Summary > .rv2-empty) .rv-page[data-rv-pane="trend"] #rvTrendStats{display:none!important}
+.hub-main:has(#rv2Summary > .es-box) .rv-canvas-label, .hub-main:has(#rv2Summary > .rv2-empty) .rv-canvas-label{display:none!important}
 
 /* 空态内联卡（趋势/记录）按稿子放大、居中，不再像一张小提示条 */
-.hub-main #rv2TrendCanvas:has(> .rve),
-.hub-main #recAll:has(> .rve){display:flex;align-items:center;justify-content:center;min-height:280px;padding:0}
-.hub-main #rv2TrendCanvas > .rve--inline,
-.hub-main #recAll > .rve--inline{
+.hub-main #rv2TrendCanvas:has(> .rve), .hub-main #recAll:has(> .rve){display:flex;align-items:center;justify-content:center;min-height:280px;padding:0}
+.hub-main #rv2TrendCanvas > .rve--inline, .hub-main #recAll > .rve--inline{
   width:100%;max-width:420px;margin:0 auto;padding:0;text-align:center
 }
-.hub-main #rv2TrendCanvas > .rve--inline .rve-ic,
-.hub-main #recAll > .rve--inline .rve-ic{
+.hub-main #rv2TrendCanvas > .rve--inline .rve-ic, .hub-main #recAll > .rve--inline .rve-ic{
   width:52px;height:52px;border-radius:14px;margin-bottom:18px
 }
-.hub-main #rv2TrendCanvas > .rve--inline .rve-ic svg,
-.hub-main #recAll > .rve--inline .rve-ic svg{width:24px;height:24px}
-.hub-main #rv2TrendCanvas > .rve--inline .rve-title,
-.hub-main #recAll > .rve--inline .rve-title{font-size:20px;font-weight:750;line-height:1.4;color:var(--ink)}
-.hub-main #rv2TrendCanvas > .rve--inline .rve-desc,
-.hub-main #recAll > .rve--inline .rve-desc{max-width:420px;margin-top:10px;font-size:12.5px;line-height:1.8}
-.hub-main #rv2TrendCanvas > .rve--inline .rve-foot,
-.hub-main #recAll > .rve--inline .rve-foot{margin-top:14px;font-size:11.5px}
-.hub-main .rv-page[data-rv-pane="trend"] .rv2-card:has(#rv2TrendCanvas > .rve),
-.hub-main .rv-page[data-rv-pane="records"] .rv2-records:has(#recAll > .rve){
+.hub-main #rv2TrendCanvas > .rve--inline .rve-ic svg, .hub-main #recAll > .rve--inline .rve-ic svg{width:24px;height:24px}
+.hub-main #rv2TrendCanvas > .rve--inline .rve-title, .hub-main #recAll > .rve--inline .rve-title{font-size:20px;font-weight:750;line-height:1.4;color:var(--ink)}
+.hub-main #rv2TrendCanvas > .rve--inline .rve-desc, .hub-main #recAll > .rve--inline .rve-desc{max-width:420px;margin-top:10px;font-size:12.5px;line-height:1.8}
+.hub-main #rv2TrendCanvas > .rve--inline .rve-foot, .hub-main #recAll > .rve--inline .rve-foot{margin-top:14px;font-size:11.5px}
+.hub-main .rv-page[data-rv-pane="trend"] .rv2-card:has(#rv2TrendCanvas > .rve), .hub-main .rv-page[data-rv-pane="records"] .rv2-records:has(#recAll > .rve){
   border:0;background:transparent;box-shadow:none;margin:0;overflow:visible
 }
-.hub-main .rv-page[data-rv-pane="trend"] .rv2-card:has(#rv2TrendCanvas > .rve) .rv-card-body,
-.hub-main .rv-page[data-rv-pane="records"] .rv2-records:has(#recAll > .rve) .rv-card-body{padding:0}
-
-/* 数据态：首页摘要与下钻保持原数据，只换统一容器 */
-.rv-page[data-rv-pane="home"] #rvHomeStats,
-.rv-page[data-rv-pane="home"] #rvRuler,
-.rv-page[data-rv-pane="home"] #rvCallout,
-.rv-page[data-rv-pane="home"] .rv-home-extra > .rv-pane-block{display:none!important}
-.rv-home-extra{display:flex;flex-direction:column;gap:14px;min-width:0}
+.hub-main .rv-page[data-rv-pane="trend"] .rv2-card:has(#rv2TrendCanvas > .rve) .rv-card-body, .hub-main .rv-page[data-rv-pane="records"] .rv2-records:has(#recAll > .rve) .rv-card-body{padding:0}
 .rv-page[data-rv-pane="home"] .rv2-summary:has(.rv2-latest){
   display:grid;grid-template-columns:minmax(0,.92fr) minmax(0,1.35fr);gap:14px;
   padding:0;border:0;box-shadow:none;background:transparent;margin:0
@@ -550,30 +368,12 @@ return {hero:hero,inline:inline,ic:ic};
 .rv-page[data-rv-pane="home"] .rv2-summary .rv2-latest .rv2-score{font-size:56px;color:var(--ink)}
 .rv-page[data-rv-pane="home"] .rv2-summary .rv2-latest .rv2-score small{font-size:15px}
 .rv-page[data-rv-pane="home"] .rv2-summary .rv2-subjects>.rv2-subject>b{font-size:24px}
-.rv-home-extra .rv-pane-block{margin:0}
-.rv-home-extra .rv-two-col{margin:0}
-.rv-home-extra .rv-stat-grid{margin-bottom:0}
-.rv-home-extra #rvCallout .rv-callout{margin:0}
-
-/* 趋势与记录：卡片融入画布，不再套第二层大边 */
-.rv-page[data-rv-pane="trend"] .rv-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr));margin:0 0 14px}
-.rv-page[data-rv-pane="trend"] .rv-stat-grid .rv-stat:nth-child(n+3){display:none}
-.rv-page[data-rv-pane="trend"] .rv2-card,
-.rv-page[data-rv-pane="records"] .rv2-card{
-  margin:0;border:1px solid var(--line);border-radius:14px;box-shadow:none;overflow:hidden;background:var(--surface)
-}
-.rv-card-body{padding:14px 18px}
-.rv-page[data-rv-pane="trend"] .rv-canvas-label{display:none!important}
 .rv-page[data-rv-pane="trend"] .rv2-chart{height:200px}
 .rv-page[data-rv-pane="trend"] .rv2-chart-foot{padding:8px 0 0;margin-top:0}
 .rv-page[data-rv-pane="records"] .rv2-records .rv-card-body{padding:0}
-.rv-page[data-rv-pane="records"] #recAll{padding:4px 18px}
 .rv-page[data-rv-pane="records"] .rv2-rec-row{grid-template-columns:116px minmax(0,1fr) 82px auto 58px;gap:12px;padding:14px 2px}
 .rv-page[data-rv-pane="records"] .rv2-rec-row[data-cat]{box-shadow:none}
 .rv-page[data-rv-pane="records"] .rv2-rec-row:first-child{border-top:0}
-.rv-page[data-rv-pane="records"] #reRecFold{margin:14px 0 0}
-.rv-page[data-rv-pane="records"] #reRecFold .rv2-card{border:0;border-top:1px solid var(--line);border-radius:0;box-shadow:none}
-.rv-page[data-rv-pane="records"] #reRecFold .rv2-card:first-child{border-top:0}
 
 /* 窄桌面（861–1024）：记录行改成两列，避免日期/标题/分数挤在一起换行 */
 @media(min-width:861px) and (max-width:1024px){
@@ -584,116 +384,34 @@ return {hero:hero,inline:inline,ic:ic};
   .rv-page[data-rv-pane="records"] .rv2-detail{grid-column:2;grid-row:2;align-self:start}
   .rv-page[data-rv-pane="records"] .rv2-rec-acts{grid-column:1/-1;grid-row:3}
 }
-
-/* 右栏：空账号给预告，存了成绩就换成真实洞察；三页始终同一位置同一内容 */
-.rv-rail-empty{display:none}
-.hub-main:has(#rv2Summary > .es-box) .rv-rail-empty,
-.hub-main:has(#rv2Summary > .rv2-empty) .rv-rail-empty{display:block}
-.hub-main:has(#rv2Summary > .es-box) #rv2Insight,
-.hub-main:has(#rv2Summary > .rv2-empty) #rv2Insight{display:none!important}
-.rv-rail-h{margin:0 0 14px;font-size:12px;font-weight:750;color:var(--ink)}
-.rv-rail-row{padding:14px 0;border-bottom:1px solid var(--line-2)}
-.rv-rail-row:last-child{border-bottom:0}
-.rv-rail-row span{display:block;font-size:11.5px;color:var(--muted)}
-.rv-rail-row b{display:block;margin-top:5px;font-size:13.5px;font-weight:700;color:var(--ink)}
-.rv-board-rail .rv2-insight{
-  margin:0;padding:0;border:0;border-radius:0;box-shadow:none;background:transparent;
-  display:block;overflow:visible
-}
-.rv-board-rail .rv2-weak{
-  padding:0;border:0;border-radius:0;background:transparent
-}
-.rv-board-rail .rv2-weak>span{display:block;font-size:11.5px;font-weight:650;color:var(--muted)}
-.rv-board-rail .rv2-weak h2{margin:6px 0 6px;font-size:22px;font-weight:800;letter-spacing:-.02em;color:var(--ink)}
-.rv-board-rail .rv2-weak p{margin:0;font-size:11.5px;line-height:1.75;color:var(--muted)}
+.hub-main:has(#rv2Summary > .es-box) .rv-rail-empty, .hub-main:has(#rv2Summary > .rv2-empty) .rv-rail-empty{display:block}
+.hub-main:has(#rv2Summary > .es-box) #rv2Insight, .hub-main:has(#rv2Summary > .rv2-empty) #rv2Insight{display:none!important}
 .rv-board-rail .rv2-weak .rv2-primary{width:auto;margin-top:14px;min-height:36px;padding:0 14px;font-size:12px}
-.rv-board-rail .rv2-facts{display:flex;flex-direction:column;gap:0;margin:8px 0 0;padding:0}
-.rv-board-rail .rv2-facts>div{
-  display:flex;align-items:baseline;justify-content:space-between;gap:12px;
-  padding:14px 0;border:0;border-top:1px solid var(--line-2);border-radius:0;background:transparent
-}
-.rv-board-rail .rv2-facts b{font-size:19px;font-weight:800;color:var(--ink);order:2;text-align:right}
-.rv-board-rail .rv2-facts span{font-size:11.5px;color:var(--muted)}
-.rv-board-rail .rv2-note{
-  margin:0;padding:14px 0 0;border:0;border-top:1px solid var(--line-2);
-  font-size:11px;line-height:1.7;color:var(--muted-2)
-}
 
 /* 折叠箭头统一 14px；页头「更多」也收小 */
-summary .chev,details > summary svg,.chev,.tb-more-btn svg{
+summary .chev, details > summary svg, .chev, .tb-more-btn svg{
   width:14px!important;height:14px!important;max-width:14px!important;max-height:14px!important;flex:0 0 14px
 }
-.re-fold>summary{padding:13px 16px}
 
 @media(max-width:860px){
   .hub-main{padding:0 0 24px;overflow:visible}
-  .rv-board{
-    margin:0;height:max(760px,calc(100dvh - 76px));display:grid;
-    grid-template-columns:minmax(0,1fr);grid-template-rows:112px minmax(0,1fr)
-  }
-  .rv-board-head{
-    grid-column:1;grid-row:1;display:grid;grid-template-columns:minmax(0,1fr) auto;
-    grid-template-rows:44px 48px;align-content:center;gap:6px 10px;padding:8px 16px 10px
-  }
-  .rv-board-head-txt{grid-column:1;grid-row:1}
-  .rv-board-head h2{font-size:14px}
-  .rv-board-head p{font-size:11px;line-height:1.4}
   #rvMobileTabs{
     grid-column:1/-1;grid-row:2;justify-self:stretch;display:flex;margin:0;
     padding:3px;background:var(--surface-2)
   }
-  .rv-board-add{grid-column:2;grid-row:1;margin-left:0;min-height:38px;padding:0 13px;font-size:12.5px;gap:6px}
-  .rv-board-add svg{width:14px;height:14px;max-width:14px;max-height:14px;flex-basis:14px}
-  .rv-board-body{grid-column:1;grid-row:2;grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto;min-height:0}
-  .rv-board-left{grid-column:1;grid-row:1;min-height:0}
-  .rv-toolbar{
-    flex:0 0 122px;height:122px;min-height:122px;padding:12px 16px;
-    gap:14px;row-gap:12px;align-content:flex-start;align-items:center;overflow:hidden
-  }
-  .rv-toolbar-note{flex:1 1 100%;width:100%;font-size:11.5px;line-height:1.6}
-  .rv-toolbar .rv-select{flex:0 0 100%;width:100%;max-width:none}
   .rv-toolbar .rv2-segment{max-width:100%}
   .rv-toolbar .rv2-segment button{padding:0 10px;font-size:11.5px}
-  .rv-canvas{padding:18px 16px 14px}
-  .rv-board-rail{
-    grid-column:1;grid-row:2;border-left:0;border-top:1px solid var(--line-2);
-    padding:0;overflow:visible
-  }
-  .rv-rail-fold{display:block}
-  .rv-rail-sum{
-    display:flex;align-items:center;gap:10px;padding:13px 18px;
-    font-size:12px;font-weight:750;color:var(--ink);cursor:pointer;
-    list-style:none;user-select:none
-  }
-  .rv-rail-sum::-webkit-details-marker{display:none}
-  .rv-rail-sum-hint{
-    margin-left:auto;font-size:11px;font-weight:500;color:var(--muted);
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis
-  }
   .rv-rail-sum .chev{color:var(--muted);transition:transform .18s}
   .rv-rail-fold[open] .rv-rail-sum .chev{transform:rotate(90deg)}
-  .re-fold>summary .re-fold-tag{display:none}
-  .re-fold>summary{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .rv-rail-in{padding:0 18px 16px}
-  .rv-rail-h{margin-bottom:6px}
-  .rv-rail-row{padding:9px 0}
-  .rv-rail-row span{font-size:11px}
-  .rv-rail-row b{margin-top:3px;font-size:12.5px}
-  .rv-board-rail .rv2-weak h2{font-size:19px}
-  .rv-board-rail .rv2-facts>div{padding:10px 0}
   .rv-page[data-rv-pane="home"] .rv2-summary:has(.rv2-latest){grid-template-columns:1fr}
   .rv-page[data-rv-pane="home"] .rv2-summary:has(.rv2-latest) .rv2-latest{min-height:132px}
   .hub-main .rv-page[data-rv-pane="home"] .rv2-summary:has(.rv2-latest) .rv2-subjects>.rv2-subject{padding:10px 8px}
   .rv-page[data-rv-pane="home"] .rv2-summary .rv2-latest .rv2-score{font-size:48px}
   .rv-page[data-rv-pane="trend"] .rv2-chart{height:220px}
   .rv-page[data-rv-pane="records"] .rv2-rec-row{grid-template-columns:1fr auto;gap:6px 12px}
-  .rv-home-empty h3{font-size:18px}
-  .hub-main #rv2TrendCanvas:has(> .rve),
-  .hub-main #recAll:has(> .rve){min-height:220px}
-  .hub-main #rv2TrendCanvas > .rve--inline .rve-title,
-  .hub-main #recAll > .rve--inline .rve-title{font-size:18px}
+  .hub-main #rv2TrendCanvas:has(> .rve), .hub-main #recAll:has(> .rve){min-height:220px}
+  .hub-main #rv2TrendCanvas > .rve--inline .rve-title, .hub-main #recAll > .rve--inline .rve-title{font-size:18px}
 }
-@media(prefers-reduced-motion:reduce){.rv-board *{scroll-behavior:auto!important;transition:none!important}}
 </style>
 </head>
 <body data-shell="top">

@@ -131,8 +131,6 @@
 .mat-why-side{ font-size: 12px; }
 }
 @media (max-width: 640px){
-.mat-head h1{ font-size: 22px; }
-.mat-head p{ font-size: 12px; }
 .mat-flow, .mat-side, .mat-mgrid{ grid-template-columns: minmax(0px, 1fr); }
 .mat-side{ gap: 12px; }
 .mat-steps{ padding: 14px; gap: 6px; }
@@ -156,7 +154,7 @@
 
 /* ===== 加固副本：选择器统一加 .mat-page（具体度 +1 级） =====
    为什么有这一段：common.css 有两条标签选择器直接写在元素上、优先于继承——
-     :470 input:not([type=checkbox]):not([type=radio]):not([type=range]) → 具体度 0,3,1
+     :470 input:not([type=checkbox]):not([type=radio]):not([type=range]) → 具体度 0, 3, 1
      :490 label → 全局把 font-size 压成 13px、color 压成 muted、margin-bottom 4px
    本文件里 (0,2,1) 的规则打不过它们 → 输入框出现「外框包一层、内层又多一个框」，
    字号也会被压成 13px。这一段靠提高具体度 + 排在最后来压住。
@@ -252,8 +250,6 @@
 .mat-page .mat-body{ padding: 0px 16px; }
 .mat-page .mat-mat-actions{ padding: 12px 16px; margin-left: -16px; margin-right: -16px; }
 }
-@media (prefers-reduced-motion: reduce){
-}
 
 /* ===== 站点全局标签规则（common.css:470 input / :490 label）的冲突钉死 =====
    这两条标签选择器直接写在元素上，会盖掉未显式声明的 font-size / line-height。
@@ -305,7 +301,7 @@
    稿子 --radius = 14px，站点 --radius = 16px；导出件 .mat-card / 旧内联 .mat-mat
    都写 var(--radius) → 实测 16px，与稿子差 2px（与 timer/vip/login 各页同一条成例）。
    页内作用域钉回 14，不动站点 token。 */
-.mat-page .mat-card,.mat-page .mat-mat,.mat-page .mat-persona{border-radius:14px}
+.mat-page .mat-card, .mat-page .mat-mat, .mat-page .mat-persona{border-radius:14px}
 .mat-page .mat-q{border-radius:11px}
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -344,5 +340,4 @@
    59px（桌面与窄档都是 59px）的高度，收页头就白收了。
    用 clip-path 不用 display:none / visibility:hidden —— h1「万能素材 · 串题」是本页
    唯一一级标题，后两者会把它从无障碍树摘掉。 */
-#introView .mi-head,
-#introView .mi-hero{position:absolute;width:1px;height:1px;padding:0;margin:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;background:none;box-shadow:none;border-radius:0 !important}
+#introView .mi-head, #introView .mi-hero{position:absolute;width:1px;height:1px;padding:0;margin:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;background:none;box-shadow:none;border-radius:0 !important}

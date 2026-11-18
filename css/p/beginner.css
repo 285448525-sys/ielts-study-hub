@@ -94,8 +94,6 @@
 .bn-nav a{ font-size: 12px; }
 }
 @media (max-width: 640px){
-.bn-head h1{ font-size: 22px; }
-.bn-head p{ font-size: 12px; }
 .bn-head-act .bn-btn{ padding: 7px 10px; font-size: 12px; }
 .bn-nav{ grid-template-columns: minmax(0px, 1fr); padding: 10px; }
 .bn-nav-label{ padding: 3px 9px 6px; }
@@ -129,7 +127,7 @@
 
 /* ===== 加固副本：选择器统一加 .bn-page（具体度 +1 级） =====
    为什么有这一段：common.css 有两条标签选择器直接写在元素上、优先于继承——
-     :470 input:not([type=checkbox]):not([type=radio]):not([type=range]) → 具体度 0,3,1
+     :470 input:not([type=checkbox]):not([type=radio]):not([type=range]) → 具体度 0, 3, 1
      :490 label → 全局把 font-size 压成 13px、color 压成 muted、margin-bottom 4px
    本文件里 (0,2,1) 的规则打不过它们 → 输入框出现「外框包一层、内层又多一个框」，
    字号也会被压成 13px。这一段靠提高具体度 + 排在最后来压住。
@@ -199,8 +197,6 @@
 .bn-page .bn-cannot{ padding: 14px; }
 .bn-page .bn-cta{ padding: 23px 18px; }
 }
-@media (prefers-reduced-motion: reduce){
-}
 
 /* ===== 站点全局标签规则（common.css:470 input / :490 label）的冲突钉死 =====
    这两条标签选择器直接写在元素上，会盖掉未显式声明的 font-size / line-height。
@@ -219,10 +215,7 @@
    ② .bn-page 的 gap=28px（稿子 .bn 是 grid-template-columns:204px 1fr + gap:28px），
       导出件把 margin/display 搬过来了但 gap 掉了 → 显式补 */
 .bn-page{ --radius:14px; --radius-sm:10px; gap:28px; }
-.bn-page .bn-nav,
-.bn-page .bn-hero,
-.bn-page .bn-sec,
-.bn-page .bn-cta{ border-radius:14px; }
+.bn-page .bn-nav, .bn-page .bn-hero, .bn-page .bn-sec, .bn-page .bn-cta{ border-radius:14px; }
 
 
 
@@ -244,8 +237,7 @@
 [data-theme="dark"] .bn-page .bn-nav a{ color:var(--ink-2); }
 [data-theme="dark"] .bn-page .bn-nav a:hover{ background:var(--primary-50); color:var(--primary-text); }
 [data-theme="dark"] .bn-page .bn-btn{ background:var(--surface); border-color:var(--line); color:var(--ink); }
-[data-theme="dark"] .bn-page .bn-btn-p,
-[data-theme="dark"] .bn-page .bn-btn-p:hover{ background:var(--primary); border-color:var(--primary); color:var(--on-primary); }
+[data-theme="dark"] .bn-page .bn-btn-p, [data-theme="dark"] .bn-page .bn-btn-p:hover{ background:var(--primary); border-color:var(--primary); color:var(--on-primary); }
 [data-theme="dark"] .bn-page .bn-no{ background:var(--primary); color:var(--on-primary); }
 
 /* 手机 ≤859：章节导航从侧栏变成横向折叠（稿子 @media 860 已经写了，这里补站点容器下的处理） */

@@ -47,7 +47,6 @@
    口语模考（口语页第 4 tab，speaking.html；历史在回顾页）
    ========================================================================= */
 .mock-intro{margin:8px 0 0;padding-left:18px;color:var(--ink)}
-.mock-intro li{margin:4px 0;font-size:14px}
 /* 考试舞台 */
 .mock-phase{display:inline-block;font-size:13px;font-weight:700;color:var(--on-primary);background:var(--primary);border-radius:999px;padding:4px 14px;margin-bottom:12px}
 .mock-qcard{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px}
@@ -110,8 +109,6 @@
 .mock-manual{margin-top:12px}
 .mock-manual label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
 .mock-manual textarea{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);font-size:14px;resize:vertical;font-family:inherit}
-/* 10/2 她拍板：「下一题」从左下角挪到右下角（动作行右对齐） */
-.mock-controls{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;justify-content:flex-end}
 .mock-hint{margin:10px 0 0;font-size:13px;color:var(--muted);min-height:1px}
 .mock-p2-prompt{font-size:18px;font-weight:700;color:var(--ink);line-height:1.5}
 .mock-p2-zh{font-size:14px;font-weight:600;color:var(--muted);margin-top:4px}
@@ -214,11 +211,10 @@
   body.mock-immerse #mockView .mock-bar .btn{max-width:58%;padding:0 12px;font-size:12px;white-space:normal;text-align:center;line-height:1.25}
 }
 @media (max-width:720px) and (max-height:740px){
-  body.mock-immerse .mock-examiner,
-  body.mock-immerse #mockStage.p2-mode .mock-examiner{height:56px;flex-basis:56px;grid-template-columns:76px minmax(0,1fr)}
+  body.mock-immerse .mock-examiner, body.mock-immerse #mockStage.p2-mode .mock-examiner{height:56px;flex-basis:56px;grid-template-columns:76px minmax(0,1fr)}
   body.mock-immerse .me-video{width:76px;height:56px}
   body.mock-immerse #mockStage{gap:6px}
-  body.mock-immerse #mockMain,body.mock-immerse .mock-left{gap:5px}
+  body.mock-immerse #mockMain, body.mock-immerse .mock-left{gap:5px}
   body.mock-immerse .mock-qcard{padding:10px;gap:5px}
   body.mock-immerse .mock-p2-say ul{display:grid;grid-template-columns:1fr 1fr;column-gap:12px;padding-left:18px}
 }
@@ -234,3 +230,171 @@
   .sp-card-row .sp-score-badge{margin-left:5px}
   .sp-card-tags{margin-top:6px!important}
 }
+
+/* ==========================================================================
+   SPEAKING-UNIFIED-1 · 单张工作台 / 2026-11-16
+   只改变承载与外观；真正模考的沉浸规则保持在最后单独覆盖。
+   ========================================================================== */
+/* 11-16 定版：左栏恢复；板上那排 tab 收进左栏（手机左栏不可见，仍用板上这排） */
+.spt-board, .spt-pane{--spt-line-2:var(--n-100);--spt-soft:var(--primary-50)}
+.spt-pane[hidden]{display:none!important}
+#tabs, .page-head-row:has(> #tabs), #spvHead{display:none!important}
+.spt-mobile-tabs.spt-mobile-tabs{display:none;margin:0}
+.spt-mobile-tabs button{border:0}
+.spt-board svg{width:16px;height:16px;max-width:16px;max-height:16px;flex:0 0 16px}
+.spt-board button:focus-visible, .spt-board summary:focus-visible{outline:2px solid var(--primary-700);outline-offset:3px}
+.spt-board button{transition:background .15s,color .15s,border-color .15s,box-shadow .15s}
+.spt-board-title h1{margin:0;font-size:17px;font-weight:800;letter-spacing:-.02em;color:var(--ink)}
+.spt-board-title p{margin:5px 0 0;font-size:11.5px;line-height:1.4;color:var(--muted)}
+.spt-board-head{grid-column:1/-1;display:flex;align-items:center;gap:22px;padding:0 24px;border-bottom:1px solid var(--line);min-width:0}
+.spt-board-head>.spt-btn{margin-left:0;min-height:38px;padding:8px 15px}
+.spt-mobile-tabs.spt-mobile-tabs{margin-left:auto;align-items:center;gap:3px;padding:4px;background:var(--surface-2);border:1px solid var(--line);border-radius:999px;flex:none}
+.spt-mobile-tabs button{min-height:32px;padding:0 15px;border-radius:999px;background:transparent;color:var(--muted);font:inherit;font-size:12px;font-weight:650;white-space:nowrap;cursor:pointer}
+.spt-mobile-tabs button:hover{color:var(--ink);background:var(--n-100)}
+.spt-mobile-tabs.spt-mobile-tabs button.on{background:var(--surface);color:var(--primary-900);box-shadow:0 1px 3px rgba(20,22,26,.10)}
+.spt-board-body{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 292px}
+.spt-board-main{min-width:0;min-height:0;display:flex;flex-direction:column;position:relative}
+.spt-pane{flex:1;min-height:0;overflow:auto;padding:26px;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+#listView, #detailView, #mockView, #matView, #sentView, #coachView{min-width:0;min-height:0;max-height:100%;overflow:auto;padding:24px;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+#listView:not([hidden]), #detailView:not([hidden]), #matView:not([hidden]), #sentView:not([hidden]), #coachView:not([hidden]){flex:1}
+#listView .sp-cockpit{box-shadow:none;margin-bottom:16px;padding:16px 18px;background:var(--surface-2);border-color:var(--line)}
+#listView .sp-cockpit-num{font-size:26px}
+#listView .sp-toolbar{padding:0;margin:0 0 16px;border:0;box-shadow:none;background:transparent}
+#listView .sp-tb-row1, #listView .sp-tb-row2{gap:16px;margin-bottom:12px}
+#listView .sp-tb-row2{margin-bottom:0}
+#listView .sp-select, #listView .ui-field-search{min-height:42px}
+#listView .sp-part-seg button{min-height:36px}
+#listView .sp-panel{box-shadow:none;margin-bottom:12px}
+#listView .sp-card-rail{display:none!important}
+#listView .sp-card-row{gap:10px;padding:13px 16px;border-bottom:1px solid var(--n-100)}
+#listView .sp-card-row:hover{background:var(--primary-50)}
+#listView .sp-panel-head{padding:13px 16px;background:var(--surface)}
+#listView .spk-info{margin-bottom:16px;box-shadow:none}
+#listView .sp-empty, #detailBody .sp-empty{border:0;min-height:260px;display:grid;place-content:center}
+#detailView .sp-detail-title{font-size:26px;line-height:1.3}
+#detailView #backBtn{margin-bottom:20px}
+#coachView{padding-top:16px}
+#matView .mi-page{max-width:none}
+.spt-record-tabs{display:inline-flex;align-items:center;gap:4px;padding:4px;border:1px solid var(--line);border-radius:999px;background:var(--surface-2)}
+.spt-record-tabs button{min-height:32px;padding:0 15px;border:0;border-radius:999px;background:transparent;color:var(--muted);font:inherit;font-size:12px;font-weight:650;cursor:pointer}
+.spt-practice-tabs button.on, .spt-record-tabs button.on{background:var(--surface);color:var(--primary-900);box-shadow:0 1px 3px rgba(20,22,26,.10)}
+.spt-record-tabs{margin-bottom:22px}
+.spt-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:8px 15px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;text-decoration:none}
+.spt-btn:hover{border-color:var(--primary-400);color:var(--primary-900);background:var(--primary-50)}
+.spt-board .spt-btn.primary{background:var(--primary);border-color:var(--primary);color:var(--on-primary);box-shadow:none}
+.spt-board .spt-btn.primary:hover{background:var(--primary-600);color:var(--on-primary)}
+.spt-btn svg, .spt-text-link svg{width:14px;height:14px;max-width:14px;max-height:14px;flex-basis:14px}
+.spt-topic-foot .spt-btn{min-height:44px;padding:10px 18px}
+.spt-text-link{display:inline-flex;align-items:center;gap:5px;color:var(--primary-900);font-size:12px;font-weight:700;white-space:nowrap}
+.spt-section-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:14px}
+.spt-section-h h2, .spt-section-h h3{margin:0;font-size:13px;font-weight:750;color:var(--ink)}
+.spt-section-h>span{font-size:11px;color:var(--muted);line-height:1.5;text-align:right}
+.spt-mock-mini .spt-btn{width:100%}
+.spt-board .spt-empty{max-width:400px;margin:60px auto;padding:20px!important;text-align:center;border:0!important;background:transparent!important;background-image:none!important;color:var(--muted);box-shadow:none}
+.spt-empty-ic{display:grid;place-items:center;width:50px;height:50px;margin:0 auto 18px;border-radius:14px;background:var(--primary-50);color:var(--primary-700)}
+.spt-empty-ic svg{width:23px;height:23px;max-width:23px;max-height:23px}
+.spt-empty h3{margin:0 0 9px;font-size:19px;line-height:1.45;color:var(--ink)}
+.spt-empty p{margin:0;font-size:12.5px;line-height:1.8}
+.spt-empty .spt-btn{margin-top:20px}
+.spt-record-toolbar{display:flex;align-items:center;gap:16px;margin-bottom:18px;flex-wrap:wrap}
+.spt-seg{display:inline-flex;gap:3px;padding:3px;border-radius:10px;background:var(--surface-2);border:1px solid var(--line)}
+.spt-seg button{min-height:30px;padding:0 13px;border:0;border-radius:8px;background:transparent;color:var(--muted);font:inherit;font-size:12px;cursor:pointer}
+.spt-seg button.on{background:var(--surface);color:var(--primary-900);box-shadow:0 1px 2px rgba(20,22,26,.08)}
+.spt-select{width:auto;min-width:132px;min-height:38px;padding:0 30px 0 11px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);font:inherit;font-size:12px}
+.spt-record-toolbar>span{margin-left:auto;font-size:11.5px;color:var(--muted)}
+.spt-record-list{border-top:1px solid var(--line)}
+.spt-record-row{display:grid;grid-template-columns:70px minmax(0,1fr) auto;gap:18px;align-items:center;padding:20px 0;border-bottom:1px solid var(--line)}
+.spt-record-row[hidden]{display:none}
+.spt-record-main{min-width:0}
+.spt-record-main>div{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.spt-record-main h3{margin:9px 0 5px;font-size:14px;line-height:1.5;color:var(--ink);overflow-wrap:anywhere}
+.spt-record-main p{margin:0;font-size:11.5px;line-height:1.7;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.spt-record-row>.spt-btn{min-height:36px;padding:6px 11px}
+.spt-weak-section{margin-bottom:30px;padding-bottom:28px;border-bottom:1px solid var(--line)}
+.spt-weak-section:last-child{margin-bottom:0;border-bottom:0}
+.spt-weak-section .spt-empty{margin:24px auto}
+.spt-dim-list{margin:18px 0}
+.spt-dim{display:grid;grid-template-columns:150px minmax(90px,1fr) 42px;align-items:center;gap:18px;padding:16px 0;border-bottom:1px solid var(--line)}
+.spt-dim>div b{display:block;font-size:12.5px;color:var(--ink)}
+.spt-dim>div span{display:block;margin-top:4px;font-size:10.5px;line-height:1.5;color:var(--muted)}
+.spt-dim-track{position:relative;height:8px;border-radius:4px;background:var(--surface-2)}
+.spt-dim-track>i{position:absolute;left:0;top:0;height:100%;border-radius:4px;background:var(--primary-400)}
+.spt-dim-track>i.spt-goal{left:0;width:2px!important;height:16px;top:-4px;background:var(--primary-900)}
+.spt-dim>strong{font-size:18px;color:var(--ink);text-align:right}
+.spt-note{font-size:11px;line-height:1.7;color:var(--muted)}
+.spt-weak-topics{border-top:1px solid var(--line)}
+.spt-weak-topics>button{display:grid;grid-template-columns:minmax(0,1fr) 45px auto;gap:16px;align-items:center;width:100%;padding:16px 0;border:0;border-bottom:1px solid var(--line);background:transparent;text-align:left;color:var(--ink);cursor:pointer}
+.spt-weak-topics>button>span:first-child{min-width:0}
+.spt-weak-topics b{display:block;font-size:13px;line-height:1.5;overflow-wrap:anywhere}
+.spt-weak-topics small{display:block;margin-top:4px;font-size:11px;color:var(--muted)}
+.spt-weak-topics strong{font-size:19px;color:var(--ink);text-align:right}
+#sptMockHistoryList .mock-hist-card{border:1px solid var(--line);border-radius:14px;box-shadow:none;margin-bottom:12px;overflow:hidden}
+#sptMockHistoryList .mock-hist-head{padding:15px 16px}
+
+@media(min-width:861px){
+  body .hub-main{padding:22px 26px 26px;display:flex;min-height:0;overflow:hidden}
+  .spt-board{flex:1;width:100%;max-width:1180px;min-height:0;margin:0 auto;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:16px;background:var(--surface);box-shadow:var(--shadow);overflow:hidden}
+  .spt-board-head{flex:0 0 74px}
+}
+@media(min-width:861px) and (max-width:1180px){
+  body .hub-main{padding:16px}
+  .spt-board-head{padding:0 18px;gap:14px}
+  .spt-mobile-tabs button{padding:0 11px}
+  .spt-board-body{grid-template-columns:minmax(0,1fr) 250px}
+  .spt-pane, #listView, #detailView, #mockView, #matView, #sentView, #coachView{padding:20px}
+  .spt-home-side .spt-section-h{grid-column:1/-1}
+}
+@media(max-width:860px){
+  body .hub-main{padding:0;overflow:visible}
+  .spt-board{height:max(680px,calc(100dvh - 102px));display:flex;flex-direction:column;border:1px solid var(--line);border-radius:16px;background:var(--surface);overflow:hidden}
+  .spt-board-head{flex:0 0 114px;display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:48px 46px;align-content:center;gap:4px 10px;padding:8px 15px}
+  .spt-board-title h1{font-size:15px}
+  .spt-board-title p{font-size:10.5px;margin-top:3px}
+  .spt-board-head>.spt-btn{grid-column:2;grid-row:1;min-height:38px;padding:7px 11px;font-size:11.5px}
+  .spt-mobile-tabs.spt-mobile-tabs{grid-column:1/-1;grid-row:2;margin:0;display:flex;justify-self:stretch}
+  .spt-mobile-tabs button{flex:1;min-width:0;min-height:36px;padding:0 5px;border-radius:9px;font-size:12px}
+  .spt-board-body{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto}
+  .spt-board-main{grid-row:1;min-height:0}
+  .spt-pane, #listView, #detailView, #mockView, #matView, #sentView, #coachView{padding:18px 16px}
+  .spt-topic-foot .spt-btn{min-height:44px}
+  .spt-empty{margin:35px auto}
+  .spt-empty h3{font-size:18px}
+  .spt-record-toolbar{gap:12px}
+  .spt-record-toolbar>span{margin-left:0}
+  .spt-record-row{grid-template-columns:minmax(0,1fr) auto;gap:10px 12px;padding:17px 0}
+  .spt-record-main{grid-column:1;grid-row:2}
+  .spt-record-row>.spt-btn{grid-column:2;grid-row:2;align-self:start;margin-top:24px}
+  .spt-dim{grid-template-columns:minmax(0,1fr) 36px;gap:10px 12px}
+  .spt-dim-track{grid-column:1/-1;grid-row:2}
+  .spt-dim>strong{grid-column:2;grid-row:1}
+  .spt-weak-topics>button{grid-template-columns:minmax(0,1fr) 35px;gap:8px 12px}
+  .spt-weak-topics .spt-text-link{grid-column:1/-1}
+  #listView .sp-tb-row1, #listView .sp-tb-row2{gap:12px}
+  #listView .sp-tb-row1{margin-bottom:12px}
+  #listView .sp-tb-row2 .sp-fsel{min-width:0}
+  #listView .sp-select{width:100%;font-size:12px}
+  #listView .sp-cockpit{padding:14px}
+  #listView .sp-card-row{padding:13px 12px}
+  #listView .sp-card-title{font-size:14px}
+  #detailView .sp-detail-title{font-size:23px}
+  #sptMockHistoryList .mock-hist-head{flex-wrap:wrap;gap:10px}
+  #sptMockHistoryList .mock-hist-meta{flex-wrap:wrap}
+}
+@media(max-width:390px){
+  .spt-board-head{padding-left:12px;padding-right:12px}
+  .spt-board-title p{max-width:190px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .spt-topic-foot .spt-btn{width:100%}
+  .spt-recent .spt-text-link{display:none}
+}
+@media(prefers-reduced-motion:reduce){.spt-board *{scroll-behavior:auto!important;transition:none!important}}
+
+/* 真正的考试不占 board；保留原计时、考官、固定底栏与移动全屏布局。 */
+body.mock-immerse .spt-board{height:100%;min-height:0;border:0;border-radius:0;box-shadow:none;display:flex}
+body.mock-immerse .spt-board-head, body.mock-immerse .spt-board-rail, body.mock-immerse .spt-practice-modes{display:none!important}
+body.mock-immerse .hub-main{padding:0!important;overflow:hidden!important;display:flex;min-height:0;flex:1}
+body.mock-immerse .hub-shell{display:flex;flex-direction:column;min-height:0}
+body.mock-immerse .spt-board-body{display:block;flex:1;min-height:0}
+body.mock-immerse .spt-board-main{display:flex;height:100%;min-height:0}
+body.mock-immerse #mockView:not([hidden]){display:flex;flex:1;min-height:0;max-height:none;overflow:hidden;padding:0;flex-direction:column}
+body.mock-immerse #mockStage{margin:0;flex:1;min-height:0}
+@media(max-width:720px){body.mock-immerse .container{padding:8px 8px 0!important}}

@@ -1,24 +1,24 @@
 /* 11-16 写作四格：题库 / 模板 / 语料 / 记录。只覆写本页旧皮肤，DOM 与业务函数保持原样。 */
 body[data-shell="top"]:not(.exam-fullscreen) main.container>.hub-shell>.hub-main{padding:16px 22px 40px}
-#writeTabs,.page-head-row:has(>#writeTabs){display:none!important}
+#writeTabs, .page-head-row:has(>#writeTabs){display:none!important}
 .wr-mobile-tabs{display:none}
-.wr-pane,.wr-mobile-tabs,#tplPanel,#bankPanel,#scorePanel,#dictationPanel{--wt-ink:var(--ink);--wt-ink-2:var(--ink-2);--wt-muted:var(--muted);--wt-line:var(--line);--wt-soft:var(--line-soft,var(--line));--wt-surface:var(--surface);--wt-teal:var(--primary);--wt-teal-700:var(--primary-700);--wt-teal-50:var(--primary-50);color:var(--ink)}
-.wr-pane,#tplPanel,#bankPanel,#scorePanel,#dictationPanel{width:100%;max-width:1180px;margin:0 auto}
-.wr-pane[hidden],#tplPanel[hidden],#bankPanel[hidden],#scorePanel[hidden],#dictationPanel[hidden]{display:none!important}
-#wrPaneExam .wr-vhead,#wrPaneRecords .wr-vhead,#tplPanel>.wrv-head,#bankPanel>.wrv-head,#scorePanel>.wrv-head,#tplPanel .lst-hd h3,#tplCountText,#tplView,#bankPanel>section>h2,#bankPanel>section>p.muted,#scorePanel>section>h2,#scorePanel>section>p.muted{display:none!important}
+.wr-pane, .wr-mobile-tabs, #tplPanel, #bankPanel, #scorePanel, #dictationPanel{--wt-ink:var(--ink);--wt-ink-2:var(--ink-2);--wt-muted:var(--muted);--wt-line:var(--line);--wt-soft:var(--line-soft,var(--line));--wt-surface:var(--surface);--wt-teal:var(--primary);--wt-teal-700:var(--primary-700);--wt-teal-50:var(--primary-50);color:var(--ink)}
+.wr-pane, #tplPanel, #bankPanel, #scorePanel, #dictationPanel{width:100%;max-width:1180px;margin:0 auto}
+.wr-pane[hidden], #tplPanel[hidden], #bankPanel[hidden], #scorePanel[hidden], #dictationPanel[hidden]{display:none!important}
+#wrPaneExam .wr-vhead, #wrPaneRecords .wr-vhead, #tplPanel>.wrv-head, #bankPanel>.wrv-head, #scorePanel>.wrv-head, #tplPanel .lst-hd h3, #tplCountText, #tplView, #bankPanel>section>h2, #bankPanel>section>p.muted, #scorePanel>section>h2, #scorePanel>section>p.muted{display:none!important}
 .wr-qbank-bar{display:flex;align-items:center;gap:12px;margin-bottom:12px;min-width:0}
 .wr-seg{display:inline-flex;align-items:center;gap:3px;padding:4px;border:1px solid var(--line);border-radius:11px;background:var(--surface);flex:none}
 .wr-seg button{min-height:32px;padding:0 13px;border:0;border-radius:7px;background:transparent;color:var(--muted);font:inherit;font-size:12px;font-weight:650;cursor:pointer}
 .wr-seg button.on{background:var(--primary-50);color:var(--primary-700)}
 .wr-own{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink-2);font:inherit;font-size:12px;font-weight:650;cursor:pointer}
 .wr-own:hover{border-color:var(--primary);color:var(--primary-700)}
-.wr-own svg,.wr-qsearch svg,.wr-field-search svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
-.wr-qsearch,.wr-field-search{height:40px;min-width:160px;display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:0 12px;color:var(--muted);transition:border-color .15s,box-shadow .15s}
+.wr-own svg, .wr-qsearch svg, .wr-field-search svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.wr-qsearch, .wr-field-search{height:40px;min-width:160px;display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:0 12px;color:var(--muted);transition:border-color .15s,box-shadow .15s}
 .wr-qsearch{flex:1}
-.wr-qsearch:focus-within,.wr-field-search:focus-within{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-50)}
-.wr-qsearch input,.wr-field-search input{width:100%;min-width:0;border:0;outline:0;box-shadow:none;background:transparent;color:var(--ink);font:inherit;font-size:12.5px}
-.wr-qsearch input:not([type=checkbox]):not([type=radio]):not([type=range]),.wr-field-search input:not([type=checkbox]):not([type=radio]):not([type=range]){height:auto;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none}
-.wr-qsearch input:not([type=checkbox]):not([type=radio]):not([type=range]):focus,.wr-field-search input:not([type=checkbox]):not([type=radio]):not([type=range]):focus,.wr-qsearch input:not([type=checkbox]):not([type=radio]):not([type=range]):hover,.wr-field-search input:not([type=checkbox]):not([type=radio]):not([type=range]):hover{border:0;background:transparent;box-shadow:none}
+.wr-qsearch:focus-within, .wr-field-search:focus-within{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-50)}
+.wr-qsearch input, .wr-field-search input{width:100%;min-width:0;border:0;outline:0;box-shadow:none;background:transparent;color:var(--ink);font:inherit;font-size:12.5px}
+.wr-qsearch input:not([type=checkbox]):not([type=radio]):not([type=range]), .wr-field-search input:not([type=checkbox]):not([type=radio]):not([type=range]){height:auto;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none}
+.wr-qsearch input:not([type=checkbox]):not([type=radio]):not([type=range]):focus, .wr-field-search input:not([type=checkbox]):not([type=radio]):not([type=range]):focus, .wr-qsearch input:not([type=checkbox]):not([type=radio]):not([type=range]):hover, .wr-field-search input:not([type=checkbox]):not([type=radio]):not([type=range]):hover{border:0;background:transparent;box-shadow:none}
 .wr-qsubs{display:flex;align-items:center;gap:4px;flex-wrap:wrap;padding:12px 16px;border:1px solid var(--line);border-radius:14px 14px 0 0;background:var(--surface)}
 .wr-qsubs button{min-height:32px;padding:0 12px;border:0;border-radius:7px;background:transparent;color:var(--muted);font:inherit;font-size:12px;font-weight:600;cursor:pointer}
 .wr-qsubs button:hover{color:var(--ink);background:var(--bg)}
@@ -32,10 +32,10 @@ body[data-shell="top"]:not(.exam-fullscreen) main.container>.hub-shell>.hub-main
 .wr-qrow-cn{font-size:10.5px;font-weight:400;color:var(--muted)}
 .wr-qstart{display:inline-flex;align-items:center;gap:4px;min-width:86px;justify-content:center;min-height:36px;padding:0 10px;border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--primary-700);font-size:11.5px;font-weight:700;flex:none}
 .wr-qrow:hover .wr-qstart{border-color:var(--primary-200);background:var(--primary-50)}
-.wr-qstart svg,.wr-record-go svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.wr-qstart svg, .wr-record-go svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .wr-qempty{padding:50px 20px;text-align:center;color:var(--muted);font-size:12px}
 .wr-qempty b{display:block;margin-bottom:7px;color:var(--ink-2);font-size:14px}
-#wrPaneExam .exam-filter-bar,#wrPaneExam #examList,#wrPaneExam #writingFullEntry{display:none!important}
+#wrPaneExam .exam-filter-bar, #wrPaneExam #examList, #wrPaneExam #writingFullEntry{display:none!important}
 
 /* 模板：先按名称浏览，点进去才练，取消网格卡和重复表头。 */
 #tplPanel .card{border-radius:14px;background:var(--surface);border:1px solid var(--line);box-shadow:0 1px 2px rgba(24,40,48,.04)}
@@ -49,15 +49,14 @@ body[data-shell="top"]:not(.exam-fullscreen) main.container>.hub-shell>.hub-main
 .wr-tpl-filters select{height:38px;min-height:38px;min-width:0;padding:0 28px 0 10px;border:1px solid var(--line);border-radius:9px;background-color:var(--surface);color:var(--ink-2);font:inherit;font-size:12px}
 #tplPanel .wb-filters .fchip{height:30px;padding:0 11px;border:0;border-radius:7px;background:transparent;color:var(--muted);font-size:12px;font-weight:600}
 #tplPanel .wb-filters .fchip:hover{color:var(--primary-700);background:var(--primary-50)}
-#tplPanel .wb-filters .fchip.on,#wbFilters .fchip.on{background:var(--primary-50);border:0;color:var(--primary-700);font-weight:700}
-#tplPanel .fchip-sep{display:none}
+#tplPanel .wb-filters .fchip.on, #wbFilters .fchip.on{background:var(--primary-50);border:0;color:var(--primary-700);font-weight:700}
 #tplPanel #tplList.tpl-list{flex:1 0 100%;border:0;border-top:1px solid var(--line);border-radius:0;overflow:visible}
 #tplPanel #empty{flex:1 0 100%}
 #tplPanel #tplList.tpl-list .tl-row.th{display:none}
 #tplPanel #tplList.tpl-list .tl-row{grid-template-columns:minmax(0,1fr) 64px;gap:12px;min-height:56px;padding:11px 20px;border:0;border-bottom:1px solid var(--line-soft,var(--line));background:var(--surface);cursor:pointer;transition:background .15s}
 #tplPanel #tplList.tpl-list .tl-row:hover{background:var(--primary-50)}
 #tplPanel #tplList.tpl-list .tl-row>span:first-child{display:none}
-#tplPanel #tplList.tpl-list .tl-row .tl-cat,#tplPanel #tplList.tpl-list .tl-row .tl-pa,#tplPanel #tplList.tpl-list .tl-row .tl-sub{display:none}
+#tplPanel #tplList.tpl-list .tl-row .tl-cat, #tplPanel #tplList.tpl-list .tl-row .tl-pa, #tplPanel #tplList.tpl-list .tl-row .tl-sub{display:none}
 #tplPanel #tplList.tpl-list .tl-row .tl-t{font-size:14px;font-weight:650;color:var(--ink);line-height:1.55}
 #tplPanel #tplList.tpl-list .tl-row .tl-go{font-size:12px;font-weight:650;color:var(--primary-700);text-align:right}
 #tplPanel #tplList.tpl-list .tl-row .tl-go{font-size:0!important}
@@ -70,7 +69,7 @@ body[data-shell="top"]:not(.exam-fullscreen) main.container>.hub-shell>.hub-main
 #tplPanel #practice{line-height:1.8}
 #tplPanel #tplScoreBtn{display:inline-flex!important;width:auto!important;flex:0 0 auto!important;align-items:center;min-height:38px}
 #tplPanel .ai-btn{display:none!important}
-#tplPanel #dictationPanel .card,#dictationPanel .card{border-radius:14px}
+#tplPanel #dictationPanel .card, #dictationPanel .card{border-radius:14px}
 
 /* 语料：英文可见，点中文/例句切换自测，新增保留在页尾。 */
 #bankPanel>section.card{padding:0;overflow:hidden;border:1px solid var(--line);border-radius:14px;background:var(--surface);box-shadow:0 1px 2px rgba(24,40,48,.04)}
@@ -205,7 +204,7 @@ body:not(.exam-fullscreen):not(.mock-immerse):not(.word-fullscreen):not(.hub-exa
   .wr-empty{min-height:calc(100dvh - 188px)}
 }
 @media(max-width:380px){.wr-seg button{padding:0 10px}.wr-own{font-size:11px;padding:0 9px}.wr-qrow{padding:12px;gap:8px}.wr-qrow-title{font-size:12.5px}}
-@media(prefers-reduced-motion:reduce){.wr-qrow,.wr-qsearch,.wr-field-search{transition:none}}
+@media(prefers-reduced-motion:reduce){.wr-qrow, .wr-qsearch, .wr-field-search{transition:none}}
 
 /* UI-SEG-1117：写作页分段控件与机经 / 口语 / 句子 / 回顾同一套。
    浅灰轨道 + 白色选中块 + 细边 + 极轻投影，不再用主色实底胶囊。 */
