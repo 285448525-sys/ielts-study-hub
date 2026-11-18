@@ -707,7 +707,9 @@ function _mergeMaterials(local, cloud){
     if(Array.isArray(cloud.gaps) && cloud.gaps.length && JSON.stringify(cloud.gaps) !== JSON.stringify(local.gaps)) out.gaps = cloud.gaps;
     out.answers = Object.assign({}, cloud.answers||{}, local.answers||{});   // 答案本机优先，避免云端旧快照覆盖用户刚改的内容
     _mergeDetailBitsInto(local, cloud, out);   // v7.2：细节碎片库跨设备并集（epoch 重生成也不丢碎片）
-    const changes = Math.max(0, data.length - (local.materials||[]).length);
+    const pin = _unionPins(local.materials, cloud.materials, out.materials);
+    out.materials = pin.data;
+    const changes = Math.max(0, data.length - (local.materials||[]).length) + pin.changes;
     return { data: out, changes };
   }
   // 旧数据（无 epoch）：维持原按 id 并集去重逻辑
@@ -727,8 +729,32 @@ function _mergeMaterials(local, cloud){
   // 答案本机优先（与上方 epoch 分支对齐）：云端旧快照不应覆盖用户刚在本机改的内容
   out.answers = Object.assign({}, cloud.answers||{}, local.answers||{});
   _mergeDetailBitsInto(local, cloud, out);   // v7.2：细节碎片库跨设备并集
-  const changes = Math.max(0, out.materials.length - (local.materials||[]).length);
+  const pin = _unionPins(local.materials, cloud.materials, out.materials);
+  out.materials = pin.data;
+  const changes = Math.max(0, out.materials.length - (local.materials||[]).length) + pin.changes;
   return { data: out, changes };
+}
+/* PIN-SYNC-1118（11-18）：置顶（pinned）是她的「最熟」标记，跨设备必须同向传播。
+   旧口径同 id 一律留本机 → 在另一台设备上置的顶，拉回来时被本机无 pin 的同 id 卡静默覆盖，
+   表现为「置顶不云同步」。这里改成按 id 取并集：任一侧置顶即置顶，并把置顶卡挪到最前
+   （与 js/materials.js 置顶后 filter(pinned).concat(其余) 的重排口径一致）；
+   changes 只在「钉位真的变了 / 顺序真的变了」时 +1，避免每次轮询都报已合并。 */
+function _unionPins(localList, cloudList, data){
+  const pinnedById = new Map();
+  [localList, cloudList].forEach(list => (list||[]).forEach(m => {
+    if(!m || m.id == null) return;
+    pinnedById.set(m.id, !!pinnedById.get(m.id) || m.pinned === true);
+  }));
+  let n = 0;
+  const arr = data || [];
+  arr.forEach(m => {
+    if(!m || m.id == null) return;
+    const want = pinnedById.get(m.id) === true;
+    if((m.pinned === true) !== want){ m.pinned = want; n++; }
+  });
+  const ordered = arr.filter(m => m && m.pinned === true).concat(arr.filter(m => !m || m.pinned !== true));
+  if(ordered.some((m, i) => m !== arr[i])) n++;   // 置顶卡前移本身也是用户可见变化
+  return { data: ordered, changes: n };
 }
 /* v7.2 细节碎片库（DATA.materials.detailBits）跨设备合并：按 id 并集（无 id 用内容哈希），
    同 id 取 ts 较新者；单侧缺失照常并另一侧——她补的/AI 代补的细节不因重生成或换设备丢失 */
