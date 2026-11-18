@@ -28,19 +28,17 @@ function addDaysLocal(dateStr, n) {
 const FAKE = '[{"en":"apple","cn":"苹果","pos":"n.","ipa":"/ˈæpl/"}]';
 
 /* 2026-10-31 / 11-13 词书商城改造 + WORDBOOK-TABS-1（11-07）：
-   老 [data-wtab="bank"] / 单独点 #wlImpBar 已不是产品入口；默认 #vMall，
-   #wmLegacy 隐藏。当前从 #wmDealAdd 进入导入区，保留「导入即完全体」的断言。 */
+   老 [data-wtab="bank"] / 单独点 #wlImpBar 已不是产品入口。
+   🔵 11-18 复核：现版唯一可达入口是「设置」pane 的 `#wbSettingsImport`
+   （`importBook()` → `show('home')` + `#wmDealAdd`，实测展开 `#wlImpBody` / `#smartInput`）。 */
 async function openCurrentImport(p) {
+  await p.waitForFunction(() => !!(window.__wbTabs && typeof window.__wbTabs.show === 'function'), null, { timeout: 20000 });
+  await p.evaluate(() => window.__wbTabs.show('set'));
   await p.waitForFunction(() => {
-    const mall = document.getElementById('vMall');
-    const add = document.getElementById('wmDealAdd');
-    return mall && !mall.hidden && add && add.getClientRects().length > 0;
+    const b = document.getElementById('wbSettingsImport');
+    return !!b && b.getClientRects().length > 0;
   }, null, { timeout: 15000 });
-  await p.evaluate(() => {
-    const bv = document.getElementById('bankView');
-    if (bv) bv.hidden = false;
-  });
-  await p.click('#wmDealAdd');
+  await p.evaluate(() => document.getElementById('wbSettingsImport').click());
   await p.waitForFunction(() => {
     const legacy = document.getElementById('wmLegacy');
     const body = document.getElementById('wlImpBody');

@@ -16,21 +16,17 @@ const FAKE = '[{"en":"apple","cn":"苹果","pos":"n.","ipa":"/ˈæpl/"},{"en":"b
 
 /* 2026-10-31 / 11-13 词书商城改造 + WORDBOOK-TABS-1（11-07）：
    老 [data-wtab="bank"] 已撤，wb-tabs.js 默认 #vMall 且把 #wmLegacy 收进 hidden。
-   当前真实导入入口是商城里的 #wmDealAdd：点击后会调 wmShowLegacy()、展开 #wlImpBody
-   并在 260ms 后聚焦 #smartInput。下面只走这条产品路径，不手工伪造隐藏 DOM。 */
+   🔵 11-18 复核：现版唯一可达的导入入口是「设置」pane 里的 `#wbSettingsImport`
+   （`importBook()` → `show('home')` + `#wmDealAdd`，实测展开 `#wlImpBody` / `#smartInput`）。
+   商城里的 `#wmDealAdd` 属于 nobody 打开的旧树，点它没有可见结果，所以改走设置页这条真路径。 */
 async function openCurrentImport(p) {
+  await p.waitForFunction(() => !!(window.__wbTabs && typeof window.__wbTabs.show === 'function'), null, { timeout: 20000 });
+  await p.evaluate(() => window.__wbTabs.show('set'));
   await p.waitForFunction(() => {
-    const mall = document.getElementById('vMall');
-    const add = document.getElementById('wmDealAdd');
-    return mall && !mall.hidden && add && add.getClientRects().length > 0;
+    const b = document.getElementById('wbSettingsImport');
+    return !!b && b.getClientRects().length > 0;
   }, null, { timeout: 15000 });
-  await p.evaluate(() => {
-    /* practice.js 的 300ms 初始化默认切到 bankView；这里只补一次显隐，
-       保证商城入口在旧探针的 1440 上下文里确实可点。 */
-    const bv = document.getElementById('bankView');
-    if (bv) bv.hidden = false;
-  });
-  await p.click('#wmDealAdd');
+  await p.evaluate(() => document.getElementById('wbSettingsImport').click());
   await p.waitForFunction(() => {
     const legacy = document.getElementById('wmLegacy');
     const body = document.getElementById('wlImpBody');
