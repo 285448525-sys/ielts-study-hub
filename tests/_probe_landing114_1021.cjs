@@ -1,5 +1,5 @@
 /* LANDING-C-1118（11-18 上线）首页回归：暖白备考工作台整页，站点学士帽图标，四张真页面图。
-   口径变化：旧版「有学习数据自动跳 /home」随新落地页撤掉；根路径对所有访问者展示新首页。
+   口径变化：旧版「有学习数据自动跳 /home」随新落地页撤掉；首屏后的语法试一题已整段删除，副 CTA 指向 #today。
    用法：node tests/_with_server.cjs tests/_probe_landing114_1021.cjs 8867 */
 const { chromium } = require('playwright-core');
 const EDGE = process.env.PW_EXECUTABLE || 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
@@ -37,7 +37,7 @@ const ok = (n, c, d) => { if (c) { pass++; console.log('  ✓ ' + n + (d ? '  ' 
     }));
     ok('标题是新落地页', /雅思备考 Hub｜今天该练什么，打开就知道/.test(m.title), m.title);
     ok('唯一 h1 + 新主张', m.h1count === 1 && /雅思机考/.test(m.h1) && /打开就知道/.test(m.h1), JSON.stringify(m.h1));
-    ok('七段结构完整', m.sections === 7 && m.sectionIds === 'hero,try,features,proof,more,free,final', 'got ' + m.sections + '，' + m.sectionIds);
+    ok('六段结构完整', m.sections === 6 && m.sectionIds === 'hero,features,proof,more,free,final', 'got ' + m.sections + '，' + m.sectionIds);
     ok('真数据带 627 / 89 / 42', ['627', '89', '42'].every(x => m.body.includes(x)));
     ok('免费与会员边界明确', m.body.includes('免费') && m.body.includes('会员') && !/¥|价格|收费|提分|保过|包过/.test(m.body));
     ok('站点学士帽图标真实加载', m.logo && m.logo.src === '/favicon.svg?v=7' && m.logo.ok, JSON.stringify(m.logo));
@@ -51,13 +51,12 @@ const ok = (n, c, d) => { if (c) { pass++; console.log('  ✓ ' + n + (d ? '  ' 
     await p.waitForFunction(() => [...document.images].every(i => i.complete && i.naturalWidth > 0), null, { timeout: 6000 }).catch(() => {});
     const imgs = await p.evaluate(() => [...document.images].map(i => ({ src: i.getAttribute('src'), ok: i.complete && i.naturalWidth > 0 })));
     ok('全部图片加载成功', imgs.every(x => x.ok), JSON.stringify(imgs.filter(x => !x.ok)));
-    await p.locator('.quiz-opt').nth(1).click();
-    const wrong = await p.locator('.quiz-feedback').innerText();
-    await p.locator('.quiz-opt').nth(0).click();
-    const right = await p.locator('.quiz-feedback').innerText();
-    await p.locator('.quiz-again').click();
-    const reset = await p.locator('.quiz-feedback').innerText();
-    ok('试一题正误与重置', /还差一点/.test(wrong) && /对了/.test(right) && reset === '', wrong + ' / ' + right + ' / ' + reset);
+    const gone = await p.evaluate(() => ({
+      residue: document.querySelectorAll('.try-section,#try,.quiz,.quiz-opt').length,
+      text: document.body.innerText,
+      cta: (() => { const a = document.querySelector('.actions a:nth-child(2)'); return a ? { text: a.textContent.trim(), href: a.getAttribute('href') } : null; })()
+    }));
+    ok('试一题已整段移除，副 CTA 指向今日清单', gone.residue === 0 && !/先别注册|点一题试试|would like to|先试一题/.test(gone.text) && gone.cta && gone.cta.href === '#today' && /看看怎么练/.test(gone.cta.text), JSON.stringify(gone.cta) + ' / residue=' + gone.residue);
     ok('老用户有本机数据也不再自动跳走', /yasihub\.com|127\.0\.0\.1/.test(await p.evaluate(() => location.host)) && !/\/home/.test(await p.evaluate(() => location.pathname)));
     ok('零 pageerror / 零禁止外链', errs.length === 0 && bad.length === 0, errs.concat(bad).join(' | '));
     await ctx.close();
