@@ -10,9 +10,13 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 let pass = 0, fail = 0;
 const ok = (n, c, d) => { if (c) { pass++; console.log('  ✓ ' + n + (d ? '  ' + d : '')); } else { fail++; console.log('  ✗ ' + n + (d ? '  <<< ' + d : '')); } };
 
-const todayKey = (() => { const d = new Date(); const p = x => String(x).padStart(2, '0'); return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()); })();
+const dayKey = d => { const p = x => String(x).padStart(2, '0'); return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()); };
+const todayKey = dayKey(new Date());
+/* 10-21 原探针写死 2026-11-02，跑到 11-15 之后首页按设计显示「机考已结束」，
+   就无法再验「距机考还有 N 天」的一行化倒计时；改成相对今天 +30 天，断言意图不变。 */
+const examDate = dayKey(new Date(Date.now() + 30 * 86400000));
 const SEED = JSON.stringify({
-  settings: { name: 'Camille', examDate: '2026-11-02', dailyGoalHours: 3, practiceCfg: { dailyCap: 40 } },
+  settings: { name: 'Camille', examDate, dailyGoalHours: 3, practiceCfg: { dailyCap: 40 } },
   sessions: [{ id: 's1', date: todayKey, moduleId: 'vocab', moduleName: '背单词', durationSec: 3600 }],
   words: [{ id: 'w1', en: 'probe', cn: '探针', level: 0, nextReview: todayKey, hardWord: true, dh: 1, cleared: false }],
   plans: [{ date: todayKey, items: [{ id: 'p1', text: '探针任务甲', done: true }, { id: 'p2', text: '探针任务乙', done: false }] }],
@@ -48,15 +52,21 @@ async function boot(b, opts) {
       moreBtn: !!document.getElementById('tbMoreBtn'),
       search: !!document.getElementById('sideSearch'),
       kbd: !!document.querySelector('.tb-search kbd'),
-      hstat: document.querySelectorAll('.hstat').length,
+      /* HOME-VISUAL-1（10-26）：四数字卡现版 = .metrics > a.metric，不再是 .hstat。 */
+      metrics: document.querySelectorAll('.metrics > a.metric').length,
+      metricCols: (() => { const m = document.querySelector('.metrics'); return m ? getComputedStyle(m).gridTemplateColumns.split(/\s+/).length : 0; })(),
       rail: !!document.getElementById('homeRail'),
       railPct: (document.getElementById('railPct') || {}).textContent || '',
       dots: document.querySelectorAll('#railDots i').length,
       week7: document.querySelectorAll('#homeWeek7 .c, #homeWeek7 .w7 .c, #homeWeek7 > *').length,
       threeHidden: (() => { const t = document.getElementById('threeThings'); return !!t && t.hidden; })(),
       tasksShown: (() => { const t = document.getElementById('dashTodayTasks'); return !!t && t.offsetHeight > 0; })(),
-      hline: !!document.querySelector('.hline'),
-      helper: !!document.getElementById('dashHeroNum') && /距机考还有/.test(document.getElementById('dashHeroNum').textContent),
+      /* 11-05 PAGEHEAD-SLIM-1 收口：旧的 .hline 包装已撤，倒计时本体是 .countdown；
+         一行化断言改为验 .countdown 的 white-space:nowrap + 文案「距机考还有 N 天」+ 无换行。 */
+      countdownNowrap: (() => { const n = document.getElementById('dashHeroNum');
+        return !!n && n.classList.contains('countdown') && getComputedStyle(n).whiteSpace === 'nowrap'; })(),
+      helper: (() => { const n = document.getElementById('dashHeroNum');
+        return !!n && /^距机考还有\s*\d+\s*天$/.test((n.textContent || '').replace(/\s+/g, ' ').trim()) && !/\n/.test(n.textContent || ''); })(),
       mods: document.querySelectorAll('.hmod').length,
       bodyHome: document.body.classList.contains('hub-home'),
       padL: getComputedStyle(document.body).paddingLeft
@@ -65,7 +75,7 @@ async function boot(b, opts) {
     ok('胶囊 9 项（T-014 把回顾提为一级）', m.caps === 9, 'got ' + m.caps);
     ok('「更多」按钮', m.moreBtn);
     ok('A3b 搜索框 + Ctrl K 角标', m.search && m.kbd);
-    ok('四数字卡', m.hstat === 4, 'got ' + m.hstat);
+    ok('四数字卡（现版 .metrics > a.metric）', m.metrics === 4 && m.metricCols === 4, 'got ' + m.metrics + '，桌面列数 ' + m.metricCols);
     ok('侧轨 + 完成度环（% 文本）', m.rail && /%$/.test(m.railPct), m.railPct);
     /* HOME-STREAK-DEL（10-26）：侧轨「连续天数」整块已删（她拍板「没什么用」），#railDots 跟着没了。
        旧断言「近 7 天点阵 7 个」是旧口径 → 按新事实反过来判：点阵必须不存在，
@@ -73,7 +83,7 @@ async function boot(b, opts) {
     ok('连续天数点阵已删（HOME-STREAK-DEL）', m.dots === 0, 'got ' + m.dots);
     ok('7 格周历仍在（完成度卡内）', m.week7 > 0, 'got ' + m.week7);
     ok('有今日计划 → 三件事收起、任务卡上场', m.threeHidden && m.tasksShown);
-    ok('倒计时一行化文案', m.hline && m.helper);
+    ok('倒计时一行化文案（现版 .countdown）', m.countdownNowrap && m.helper);
     ok('常用模块 2×2', m.mods === 4, 'got ' + m.mods);
     ok('body.hub-home + 左侧留白归零', m.bodyHome && m.padL === '0px', m.padL);
 
@@ -140,12 +150,14 @@ async function boot(b, opts) {
       openBefore: document.getElementById('homeRail').classList.contains('open'),
       bodyH: 0,
       dock: !!document.getElementById('hubDock'),
-      hstat: document.querySelectorAll('.hstat').length
+      metrics: document.querySelectorAll('.metrics > a.metric').length,
+      metricCols: (() => { const m = document.querySelector('.metrics'); return m ? getComputedStyle(m).gridTemplateColumns.split(/\s+/).length : 0; })()
     }));
     ok('手机隐藏胶囊与搜索框', m.capsHidden && m.searchHidden);
     ok('侧轨折叠条可见且默认收起', m.toggleShown && !m.openBefore);
     ok('底部 dock 仍在', m.dock);
-    ok('数字卡 2×2 布局（4 张）', m.hstat === 4);
+    /* 保留「四张数字卡 + 手机 2×2」原意图，选择器与网格列数都按 HOME-VISUAL-1 现版量。 */
+    ok('数字卡 2×2 布局（4 张）', m.metrics === 4 && m.metricCols === 2, 'got ' + m.metrics + '，列数 ' + m.metricCols);
 
     await p.click('#railToggle');
     await sleep(300);

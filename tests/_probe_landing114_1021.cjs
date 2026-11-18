@@ -5,6 +5,9 @@
    ③ 老用户自动跳过行为一字不动（有学习数据 → home.html；?landing=1 例外）。
    用法：node tests/_with_server.cjs tests/_probe_landing114_1021.cjs 8867 */
 const { chromium } = require('playwright-core');
+const fs = require('fs');
+const path = require('path');
+const ROOT = path.resolve(__dirname, '..');
 const EDGE = 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
 const BASE = process.env.BASE || process.argv[2] || 'http://127.0.0.1:8867';
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -29,15 +32,19 @@ const BAN = /免费|会员|¥|价格|收费|付费|提分|保过|包过|过线|�
     const m = await p.evaluate(() => ({
       h1: (document.querySelector('h1') || {}).innerText || '',
       sections: document.querySelectorAll('section').length,
+      sectionIds: [...document.querySelectorAll('section')].map(s => s.id || s.className || '(无)').join(','),
       links: [...new Set([...document.querySelectorAll('a[href]')].map(a => a.getAttribute('href')).filter(h => /\.html/.test(h)))],
       body: document.body.innerText,
       band: ['627', '89', '42'].every(x => document.body.innerText.includes(x)),
       overflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth
     }));
     ok('标题落在「从今天的清单开始」', /从\s*今天的清单\s*开始/.test(m.h1.replace(/\n/g, '')), JSON.stringify(m.h1));
-    ok('六段结构（数据带/功能/AI/对比/三步/结尾）', m.sections === 6, 'got ' + m.sections);
+    /* P1-2（11-11）+ WBCLEAR（11-12）：落地页现版是 5 个 <section>（功能/AI/对比/三步/结尾），
+       数据带与 hero 仍是 <div>。按现版真实结构验五段和四枚锚点，不凭空补第六个 section。 */
+    ok('五段内容结构（功能/AI/对比/三步/结尾）', m.sections === 5 && m.sectionIds === 'feat,ai,vs,start,final', 'got ' + m.sections + '，ids=' + m.sectionIds);
     ok('数据带是真口径（627 / 89 / 42）', m.band);
-    ok('链接只指向站内真页面', m.links.every(h => ['home.html', 'login.html', 'legal.html'].includes(h)), JSON.stringify(m.links));
+    /* 品牌链接 index.html 是现版真实页面；清单仍逐项查文件存在，避免把外链/死链放绿。 */
+    ok('链接只指向站内真页面', m.links.every(h => fs.existsSync(path.join(ROOT, h))), JSON.stringify(m.links));
     ok('无任何商业字样 / 提分承诺', !BAN.test(m.body), (m.body.match(BAN) || [])[0] || '');
     ok('桌面无横向溢出', m.overflowX <= 0, 'overflowX=' + m.overflowX);
     ok('零 pageerror / 零外部请求', errs.length === 0 && bad.length === 0, errs.concat(bad).join(' | '));
@@ -62,15 +69,18 @@ const BAN = /免费|会员|¥|价格|收费|付费|提分|保过|包过|过线|�
     await p.goto(BASE + '/index.html?landing=1', { waitUntil: 'load' });
     await sleep(900);
     const m = await p.evaluate(() => ({
-      navlinksHidden: (() => { const el = document.querySelector('.navlinks'); return el ? getComputedStyle(el).display === 'none' : true; })(),
+      navlinksHidden: (() => { const el = document.querySelector('.nav .links'); return el ? getComputedStyle(el).display === 'none' : true; })(),
       overflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
       heroVis: (() => { const h = document.querySelector('h1'); if (!h) return false; const r = h.getBoundingClientRect(); return r.width > 200 && r.height > 40; })(),
-      ctaVisible: [...document.querySelectorAll('.cta a')].filter(a => a.getBoundingClientRect().height > 30).length
+      /* 现版主 CTA 是 .hero .actions a.btn.primary[href="home.html"]（旧 .cta 容器已不存在）。 */
+      ctaVisible: (() => { const a = document.querySelector('.hero .actions a.btn.primary[href="home.html"]');
+        if (!a) return false; const r = a.getBoundingClientRect(); const s = getComputedStyle(a);
+        return r.height >= 44 && r.width > 100 && s.visibility === 'visible' && s.display !== 'none' && !a.disabled; })()
     }));
     ok('手机隐藏顶部锚点链接', m.navlinksHidden);
     ok('手机无横向溢出', m.overflowX <= 0, 'overflowX=' + m.overflowX);
     ok('hero 标题可见', m.heroVis);
-    ok('主 CTA 可见且可点', m.ctaVisible >= 2, 'got ' + m.ctaVisible);
+    ok('主 CTA 可见且可点', m.ctaVisible, 'got ' + m.ctaVisible);
     ok('手机零 pageerror', errs.length === 0, errs.join(' | '));
     await ctx.close();
   }

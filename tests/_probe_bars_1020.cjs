@@ -9,6 +9,9 @@
      · 三个动作按钮同款浅灰 30px
      · 底栏两行：主行 44px + 品牌条 20px —— ⚠️ 10-23 口径已变：她 10-22 按官方机考截图把品牌条整块收掉
       （bank.html:1480 #examRoot .ex-strip{display:none}），本支相关断言改成「品牌条存在但隐藏」
+   11-15 PERM-REG-1 / T-001 + EXAM-QNBAR-LEFT-1（11-02）+ MODULE-MOVE-1（11-08）：
+   页内 #mockTabs 收进顶栏二级（DOM 保留供程序点击）；单篇题号行统一左对齐 / safe center，
+   原「居中」判据改成「贴左起排 + 可横滑不裁切 + 动作按钮仍在」；写作改用 writing.html#wr=exam。
    用法: node tests/_with_server.cjs tests/_probe_bars_1020.cjs 8899 */
 const { chromium } = require('playwright-core');
 const EDGE = 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
@@ -29,6 +32,16 @@ async function page(b, w, h) {
     } catch (e) {}
   });
   return { ctx, p, errs };
+}
+/* 11-15 T-001：隐藏的页内 tab 仍保留 DOM 与 paintTab 事件绑定；
+   用产品自己的按钮 .click() 转发，不再要求 Playwright 可见点击。 */
+async function showBankTab(p, tab) {
+  return await p.evaluate((name) => {
+    const btn = document.querySelector('#mockTabs [data-mtab="' + name + '"]');
+    if (!btn) return false;
+    btn.click();
+    return document.getElementById('bankRoot').getAttribute('data-mock-tab') === name;
+  }, tab);
 }
 async function startFull(p, btnSel) {
   await p.waitForFunction((s) => { const b = [...document.querySelectorAll(s)].find(x => x.offsetParent); return !!(b && !b.disabled); }, btnSel, { timeout: 25000 }).catch(() => {});
@@ -52,7 +65,7 @@ async function startFull(p, btnSel) {
     const { ctx, p, errs } = await page(b);
     await p.goto(BASE + '/bank.html', { waitUntil: 'domcontentloaded' });
     await sleep(2800);
-    await p.click('#mockTabs .pill-tab[data-mtab="reading"]').catch(() => {});
+    await showBankTab(p, 'reading');
     await sleep(1500);
     const entered = await startFull(p, '[data-fullstart]');
     ok('①0 进入阅读整卷', entered);
@@ -156,7 +169,7 @@ async function startFull(p, btnSel) {
     const { ctx, p, errs } = await page(b);
     await p.goto(BASE + '/bank.html', { waitUntil: 'domcontentloaded' });
     await sleep(2800);
-    await p.click('#mockTabs .pill-tab[data-mtab="listening"]').catch(() => {});
+    ok('②0a 顶栏二级切到听力（隐藏页内 tab 仍可转发）', await showBankTab(p, 'listening'));
     await sleep(1500);
     const entered = await startFull(p, '[data-lfullstart]');
     ok('②0 进入听力整卷', entered);
@@ -172,6 +185,8 @@ async function startFull(p, btnSel) {
           rev: !!bar.querySelector('#exReviewBtn'),
           barArrows: bar.querySelectorAll('.ex-arrow').length,
           topArrows: document.querySelectorAll('#examRoot .ex-step .ex-arrow').length,
+          /* 11-15：②4b 原来读 Node 作用域里不存在的 g.topPause；这里补真实 DOM 读数。 */
+          topPause: (() => { const b = document.getElementById('exTopPauseBtn'); return !!(b && b.offsetParent !== null); })(),
           stripTxt: strip ? strip.textContent.replace(/\s+/g, ' ').trim() : ''
         };
       });
@@ -214,26 +229,46 @@ async function startFull(p, btnSel) {
     const { ctx, p, errs } = await page(b);
     await p.goto(BASE + '/bank.html', { waitUntil: 'domcontentloaded' });
     await sleep(2800);
-    await p.click('#mockTabs .pill-tab[data-mtab="reading"]').catch(() => {});
+    await showBankTab(p, 'reading');
     await sleep(1500);
     await p.click('#partTabs .pill-tab[data-part="Part 1"]').catch(() => {});
     await sleep(900);
-    await p.evaluate(() => { const el = document.querySelector('.bank-item'); if (el) { el.scrollIntoView({ block: 'center' }); el.click(); } });
-    await p.waitForSelector('#examRoot .ex-group', { timeout: 20000 }).catch(() => {});
+    await p.evaluate(() => {
+      /* 11-15：BANK-DONE-ROW-1 的「做过了」留痕清掉，避免点篇目先弹重做选择。 */
+      try {
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+          const k = localStorage.key(i);
+          if (/^hub_bank_last_/.test(k || '')) localStorage.removeItem(k);
+        }
+      } catch (e) {}
+      const el = document.querySelector('.bank-item');
+      if (el) { el.scrollIntoView({ block: 'center' }); el.click(); }
+    });
+    const redo = await p.$('#bkDonePick [data-bdp="redo"]');
+    if (redo) await redo.click();
+    await p.waitForSelector('#examRoot .ex-group, #examRoot .ex-bar', { timeout: 20000 }).catch(() => {});
     await sleep(1400);
     const g = await p.evaluate(() => {
       const bar = document.querySelector('#examRoot .ex-bar');
       if (!bar) return null;
       const nums = [...bar.querySelectorAll('.ex-num')];
-      const navBox = bar.querySelector('.ex-nav').getBoundingClientRect();
-      const numsBox = bar.querySelector('.ex-nums').getBoundingClientRect();
+      const nav = bar.querySelector('.ex-nav');
+      const numsBox = bar.querySelector('.ex-nums');
+      if (!nav || !numsBox) return null;
+      const navBox = nav.getBoundingClientRect();
+      const nb = numsBox.getBoundingClientRect();
       const strip = bar.querySelector('.ex-strip');
       return {
         n: nums.length, parts: bar.querySelectorAll('.ex-pt').length,
         pause: !!bar.querySelector('#exPauseBtn'), rev: !!bar.querySelector('#exReviewBtn'),
         barArrows: bar.querySelectorAll('.ex-arrow').length,
         topArrows: document.querySelectorAll('#examRoot .ex-step .ex-arrow').length,
-        centered: Math.abs((numsBox.left - navBox.left) - (navBox.right - numsBox.right)) < 30,
+        /* 11-02 EXAM-QNBAR-LEFT-1：单篇题号行统一左起，溢出靠 overflow-x:auto 横滑；
+           保留「不裁切、动作按钮仍在」的原意图，不再要求几何居中。 */
+        leftAligned: nb.left - navBox.left < 30,
+        scrollable: getComputedStyle(numsBox).overflowX === 'auto' || numsBox.scrollWidth <= numsBox.clientWidth + 1,
+        noClip: nb.width > 0 && nb.right <= navBox.right + 1,
+        actions: bar.querySelectorAll('.ex-actions button').length,
         stripTxt: strip ? strip.textContent.replace(/\s+/g, ' ').trim() : ''
       };
     });
@@ -242,7 +277,9 @@ async function startFull(p, btnSel) {
     ok('③3 单篇保留 Pause（练习可暂停）', g && g.pause === true);
     /* W-EXTOP-1（10-25）：顶栏箭头已删（她点名）→ 这条改成「必须没有」。 */
     ok(g && !g.rev && g.barArrows === 0 && g.topArrows === 0, '③4 单篇无 Review、底栏无箭头、**顶栏也没有箭头**（W-EXTOP-1 已删）');
-    ok('③5 单篇题号行居中', g && g.centered, g ? 'centered=' + g.centered : '');
+    ok('③5 单篇题号行现版左起、不裁切、动作按钮仍在',
+      g && g.leftAligned && g.scrollable && g.noClip && g.actions === 3,
+      g ? JSON.stringify({ left: g.leftAligned, scrollable: g.scrollable, noClip: g.noClip, actions: g.actions }) : '');
     ok('③6 单篇也有品牌条', g && /yasihub\.com/.test(g.stripTxt), g ? g.stripTxt : '');
     ok('③7 无 JS 报错', errs.length === 0, errs.join(' | '));
     await ctx.close();
@@ -253,7 +290,7 @@ async function startFull(p, btnSel) {
     const { ctx, p, errs } = await page(b);
     await p.goto(BASE + '/bank.html', { waitUntil: 'domcontentloaded' });
     await sleep(2800);
-    await p.click('#mockTabs .pill-tab[data-mtab="reading"]').catch(() => {});
+    await showBankTab(p, 'reading');
     await sleep(1500);
     const entered = await startFull(p, '[data-fullstart]');
     ok('④0 进入阅读整卷', entered);
@@ -293,7 +330,7 @@ async function startFull(p, btnSel) {
     const { ctx, p, errs } = await page(b);
     await p.goto(BASE + '/bank.html', { waitUntil: 'domcontentloaded' });
     await sleep(2800);
-    await p.click('#mockTabs .pill-tab[data-mtab="reading"]').catch(() => {});
+    await showBankTab(p, 'reading');
     await sleep(1500);
     const entered = await startFull(p, '[data-fullstart]');
     ok('⑤0 进入阅读整卷', entered);
@@ -317,7 +354,7 @@ async function startFull(p, btnSel) {
     const { ctx, p, errs } = await page(b, 390, 844);
     await p.goto(BASE + '/bank.html', { waitUntil: 'domcontentloaded' });
     await sleep(2800);
-    await p.click('#mockTabs .pill-tab[data-mtab="reading"]').catch(() => {});
+    await showBankTab(p, 'reading');
     await sleep(1500);
     const entered = await startFull(p, '[data-fullstart]');
     ok('⑥0 进入阅读整卷（390 宽）', entered);
@@ -399,14 +436,12 @@ async function startFull(p, btnSel) {
     await ctx.close();
   }
 
-  /* ===== ⑧ 写作底栏未被破坏（写作走 bank.html 的 writing tab + #wrtFullStart） ===== */
+  /* ===== ⑧ 写作底栏未被破坏（11-08 MODULE-MOVE-1 后走 writing.html#wr=exam） ===== */
   {
     const { ctx, p, errs } = await page(b);
-    await p.goto(BASE + '/bank.html', { waitUntil: 'domcontentloaded' });
-    await sleep(3200);
-    await p.click('[data-mtab="writing"]').catch(() => {});
-    await sleep(2200);
-    await p.click('#wrtFullStart').catch(() => {});
+    await p.goto(BASE + '/writing.html#wr=exam', { waitUntil: 'domcontentloaded' });
+    await p.waitForSelector('#writingFullEntry #wrtFullStart', { state: 'visible', timeout: 30000 });
+    await p.click('#wrtFullStart');
     await sleep(2500);
     const g = await p.evaluate(() => {
       const host = document.getElementById('examPractice');

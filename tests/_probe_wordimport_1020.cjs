@@ -14,6 +14,32 @@ const ok = (n, c, d) => { if (c) { pass++; console.log('  ✓ ' + n + (d ? '  ' 
 
 const FAKE = '[{"en":"apple","cn":"苹果","pos":"n.","ipa":"/ˈæpl/"},{"en":"banana","cn":"香蕉","pos":"n.","ipa":"/bəˈnɑːnə/"}]';
 
+/* 2026-10-31 / 11-13 词书商城改造 + WORDBOOK-TABS-1（11-07）：
+   老 [data-wtab="bank"] 已撤，wb-tabs.js 默认 #vMall 且把 #wmLegacy 收进 hidden。
+   当前真实导入入口是商城里的 #wmDealAdd：点击后会调 wmShowLegacy()、展开 #wlImpBody
+   并在 260ms 后聚焦 #smartInput。下面只走这条产品路径，不手工伪造隐藏 DOM。 */
+async function openCurrentImport(p) {
+  await p.waitForFunction(() => {
+    const mall = document.getElementById('vMall');
+    const add = document.getElementById('wmDealAdd');
+    return mall && !mall.hidden && add && add.getClientRects().length > 0;
+  }, null, { timeout: 15000 });
+  await p.evaluate(() => {
+    /* practice.js 的 300ms 初始化默认切到 bankView；这里只补一次显隐，
+       保证商城入口在旧探针的 1440 上下文里确实可点。 */
+    const bv = document.getElementById('bankView');
+    if (bv) bv.hidden = false;
+  });
+  await p.click('#wmDealAdd');
+  await p.waitForFunction(() => {
+    const legacy = document.getElementById('wmLegacy');
+    const body = document.getElementById('wlImpBody');
+    const ta = document.getElementById('smartInput');
+    return legacy && !legacy.hidden && body && !body.hidden && ta && ta.getClientRects().length > 0;
+  }, null, { timeout: 15000 });
+  await sleep(350);
+}
+
 async function boot(b, withToken) {
   const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } });
   const p = await ctx.newPage();
@@ -58,13 +84,12 @@ async function boot(b, withToken) {
   /* ② 登录态下「AI 导入」真的会调 AI + 合并重复词 + 补全翻译 */
   {
     const { ctx, p, errs, aiCalls } = await boot(b, true);
-    /* 切到词库标签 */
-    await p.evaluate(() => { const t = document.querySelector('[data-wtab="bank"]'); if (t) t.click(); });
-    await sleep(900);
-    /* 导入区默认是 44px 折叠条，先点开 */
-    await p.evaluate(() => { const bar = document.getElementById('wlImpBar'); if (bar) bar.click(); });
-    await sleep(500);
-    const hasBox = await p.evaluate(() => !!document.querySelector('#smartInput'));
+    /* 当前商城 #wmDealAdd → 旧词库导入区（wmShowLegacy + 展开折叠条） */
+    await openCurrentImport(p);
+    const hasBox = await p.evaluate(() => {
+      const ta = document.querySelector('#smartInput');
+      return !!ta && ta.getClientRects().length > 0;
+    });
     ok('②1 词库页的导入框在', hasBox);
 
     /* 输入里故意放两条 apple（大小写不同）+ 一条 banana */
@@ -108,10 +133,7 @@ async function boot(b, withToken) {
   /* ④ 未登录时仍走降级（不能因为改了判据就对着未登录用户报错） */
   {
     const { ctx, p, errs } = await boot(b, false);
-    await p.evaluate(() => { const t = document.querySelector('[data-wtab="bank"]'); if (t) t.click(); });
-    await sleep(800);
-    await p.evaluate(() => { const bar = document.getElementById('wlImpBar'); if (bar) bar.click(); });
-    await sleep(500);
+    await openCurrentImport(p);
     await p.evaluate(() => {
       const ta = document.getElementById('smartInput');
       ta.value = 'cherry\ncherry';

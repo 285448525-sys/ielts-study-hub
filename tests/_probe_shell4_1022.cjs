@@ -3,9 +3,9 @@
      ① 桌面 1440：三页真的渲染顶栏壳、body 无 288px 侧栏留白、内容不被 44px 顶栏压住、无侧栏 DOM 残留、无横向溢出
      ② 单词页全屏沉浸背词（body.word-fullscreen）：进全屏时顶栏壳收掉、body 的 44px 让位撤掉；退出后两样都回来
      ③ 口语页：陪练 tab 的吸顶段（#coachTop）实测停在顶栏下面；模考沉浸（body.mock-immerse）顶栏收掉、
-        考场底栏不被挤出视口、退出模考（#mockExitBtn → 清除记录退出）后壳恢复
-     ④ 写作页：模板列表表头（#tplList .tl-row.th）吸顶实测；机考全屏（body.exam-fullscreen）顶栏收掉、
-        main.container 高度回到一屏、机考底栏（Exit）不被挤出视口、Exit 后壳恢复
+        考场底栏不被挤出视口、退出模考（#mockExitBtn → 清除记录退出）后回题库并恢复壳
+     ④ 写作页：现版 WRITING-TABS-1 先切「模板库」再验列表表头（#tplList .tl-row.th）；机考全屏
+        （body.exam-fullscreen）顶栏收掉、main.container 高度回到一屏、机考底栏（Exit）不被挤出视口、Exit 后壳恢复
      ⑤ 手机 390：三页仍是顶栏壳、胶囊与搜索隐藏（导航走底部 dock）、内容不被压住、沉浸态同样收顶栏
      ⑥ 软导航跨壳：首页 → 单词（顶栏→顶栏，壳不动）· 单词 → 计划 → 模考 bank（顶栏→侧栏，换壳）· bank → 口语（侧栏→顶栏）
    跑法：NODE_PATH=C:\\Users\\Camille\\.workbuddy\\binaries\\node\\workspace\\node_modules node tests/_with_server.cjs tests/_probe_shell4_1022.cjs 8954
@@ -14,10 +14,14 @@
    ⚠️ 沉浸态一律用**产品自己的入口**驱动，不手改类名：单词 setWordFullscreen(true)（= 页面 ⛶ 按钮点的那一个）、
       口语 window.__mockEnter()（=「模考」tab 点的那一个）、写作点 #scoreTopicSave（= 评分 tab「保存题目，开始练」）。
       模考题库取自 data.js 静态数据（探针只拦 /api，静态题库照常可用）。
+   ⚠️ EXAM-TIMER-CHOICE-1（10-31）后写作进考场先弹计时框；探针按官方旁路写
+      localStorage['hub_exam_timer_auto']，仍由 #scoreTopicSave → openExamCustom() 直达考场，不手改 class。
    ⚠️ 口语 / 写作两页的原生内容不一定滚得动（滚不动就量不到吸顶）→ 探针临时往 main 末尾塞一个撑高块来造滚动，
       那是探针自用件（id=__probeSpacer），量完立刻删，不进产品。 */
 const { chromium } = require('playwright-core');
-const ancSeed = require('./_anc_seed.cjs');   // 10-25 W-UI-1：关掉「未读公告」这个变量
+/* P0-BANNER-A（11-12，她拍板撤干净全站开发播报横幅）：common.js ancPending() 恒 return null，
+   34px 公告条整块下线；本探针不再需要 _anc_seed.cjs 的「预标已读」夹具，也不写 helper 文件。
+   手机段直接验「顶栏让位归零 + 内容贴顶」，与现版等价。 */
 const BASE = process.env.BASE || 'http://127.0.0.1:8954';
 const EXE = 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
 let pass = 0, fail = 0;
@@ -247,8 +251,9 @@ async function stickyAtBottom(p, sel) {
     ok('模考沉浸：无横向溢出', m.scrollW <= m.docW + 1, { sw: m.scrollW, dw: m.docW });
     /* 退出：右上角「✕ 退出模考」→ 弹框。三种结果都要实测：
        ① 「继续模考」= 关掉弹框、留在沉浸里；
-       ② 「不保存，清除记录退出」= 按设计回到「模考」tab 并当场再开一场（不是离开模考）；
-       ③ 真正离开沉浸 = 点别的 tab（speaking.js 的 tab 处理器会摘掉 mock-immerse）。 */
+       ② 「不保存，清除记录退出」= 10-23 她拍板改成「回题库」（js/mock.js exitToBank），
+          不再当场重开一场；原断言意图改成「确实退出沉浸、清掉考场残留、题库可重新开始」；
+       ③ 真正离开沉浸并恢复顶栏 = 点题库 tab（speaking.js 的 tab 处理器会摘掉 mock-immerse）。 */
     await p.evaluate(() => { const b1 = document.getElementById('mockExitBtn'); if (b1) b1.click(); });
     await p.waitForTimeout(700);
     const modal = await p.evaluate(() => {
@@ -265,15 +270,29 @@ async function stickyAtBottom(p, sel) {
     await p.evaluate(() => { const b1 = document.getElementById('mockExitBtn'); if (b1) b1.click(); });
     await p.waitForTimeout(600);
     await p.evaluate(() => { const b2 = document.getElementById('mockExitClear'); if (b2) b2.click(); });
-    /* 2-1d 复跑补丁：等重开后的考场舞台就位（固定 1800ms 不够 —— 要重拉题库） */
-    await p.waitForFunction(() => { const s2 = document.getElementById('mockStage'); return !!s2 && !s2.hidden && s2.getBoundingClientRect().height > 50; }, null, { timeout: 15000 }).catch(() => {});
+    /* 10-23 口语模考退出改版：清除记录后 exitToStart() → exitToBank()，一律回题库，
+       让用户从题库那颗「模考」按钮重新开始；不应再自动重开一场、也不该滞留沉浸态。 */
+    await p.waitForFunction(() => !document.body.classList.contains('mock-immerse') && !document.getElementById('mockExitModal'), null, { timeout: 15000 }).catch(() => {});
     await p.waitForTimeout(400);
-    const afterClear = await p.evaluate(() => ({
-      imm: document.body.classList.contains('mock-immerse'),
-      stage: (() => { const s = document.getElementById('mockStage'); return !!s && !s.hidden; })(),
-      exitBtn: !!document.getElementById('mockExitBtn')
-    }));
-    ok('清除记录并退出：回到「模考」当场再开一场（按设计，不是滞留）', afterClear.stage && afterClear.exitBtn, afterClear);
+    const afterClear = await p.evaluate(() => {
+      const list = document.getElementById('listView');
+      const bankTab = document.querySelector('#tabs [data-type="BANK"]');
+      const jump = document.getElementById('spMockJumpBtn');
+      return {
+        imm: document.body.classList.contains('mock-immerse'),
+        stage: (() => { const s = document.getElementById('mockStage'); return !!s && !s.hidden; })(),
+        report: (() => { const s = document.getElementById('mockReport'); return !!s && !s.hidden; })(),
+        exitBtn: !!document.getElementById('mockExitBtn'),
+        modal: !!document.getElementById('mockExitModal'),
+        bankActive: !!(bankTab && bankTab.classList.contains('active')),
+        listVisible: !!list && !list.hidden && list.getBoundingClientRect().height > 0,
+        restart: !!jump || !!document.querySelector('#tabs [data-type="MOCK"]')
+      };
+    });
+    ok('清除记录并退出：回题库、清干净考场、可重新开始（10-23 现版设计）',
+      afterClear.imm === false && afterClear.stage === false && afterClear.report === false
+        && afterClear.exitBtn === false && afterClear.modal === false
+        && (afterClear.bankActive || afterClear.listVisible) && afterClear.restart, afterClear);
     /* ③ 真正离开沉浸：切到题库 tab */
     await p.evaluate(() => { const bt = document.querySelector('#tabs [data-type="BANK"]'); if (bt) bt.click(); });
     await p.waitForTimeout(1100);
@@ -293,7 +312,16 @@ async function stickyAtBottom(p, sel) {
     p.on('pageerror', e => errs.push(String(e).slice(0, 140)));
     await p.goto(BASE + '/writing.html', { waitUntil: 'domcontentloaded' });
     await p.waitForTimeout(1600);
-    /* 切到列表视图（表头 .tl-row.th 只在列表视图里有意义） */
+    /* WRITING-TABS-1 / WRITING-VIEWS-2（11-08 / 11-09）：现版默认落新「总览」pane，
+       旧 #tplPanel 被 wr-tabs.js 隐藏；必须先点现版左栏「模板库」入口（走产品 show('tpl')），
+       再切列表视图（表头 .tl-row.th 只在列表视图里有意义）。不手改 hidden、不伪造尺寸。 */
+    await p.waitForFunction(() => typeof window.__wrTabs === 'object' && typeof window.__wrTabs.show === 'function', null, { timeout: 15000 }).catch(() => {});
+    await p.evaluate(() => {
+      const nav = document.querySelector('#wrNav [data-wr-tab="tpl"]');
+      if (nav) nav.click();
+      else if (window.__wrTabs && window.__wrTabs.show) window.__wrTabs.show('tpl');
+    });
+    await p.waitForFunction(() => { const t = document.querySelector('#tplPanel'); return !!t && !t.hidden && t.getBoundingClientRect().height > 0; }, null, { timeout: 15000 }).catch(() => {});
     await p.evaluate(() => { const b2 = document.querySelector('#tplView button[data-view="list"]'); if (b2) b2.click(); });
     /* 2-1d 复跑补丁：等列表视图 + 表头行真正渲染出来（固定 900ms 在慢机/冷缓存下不够） */
     await p.waitForFunction(() => { const t = document.querySelector('#tplList.tpl-list .tl-row.th'); return !!t && t.getBoundingClientRect().height > 0; }, null, { timeout: 15000 }).catch(() => {});
@@ -331,9 +359,20 @@ async function stickyAtBottom(p, sel) {
     p.on('pageerror', e => errs.push(String(e).slice(0, 140)));
     await p.goto(BASE + '/writing.html', { waitUntil: 'domcontentloaded' });
     await p.waitForTimeout(1600);
-    /* 2-1d 批 B：#writeTabs 桌面 display:none → Playwright 可见性 click 超时。改 JS click（切分栏逻辑不变）。 */
-    await p.evaluate(() => { const b3 = document.querySelector('button[data-tab="score"]'); if (b3) b3.click(); });
-    await p.waitForTimeout(700);
+    /* EXAM-TIMER-CHOICE-1（10-31）：#scoreTopicSave → openExamCustom() 之前会弹计时选择框。
+       js/exam-timer.js 的官方自动化旁路键 hub_exam_timer_auto 让探针沿用产品自己的入口直达考场；
+       真实用户永不写这个键，仍每次被问。只 seed 探针上下文，不改产品。 */
+    await p.evaluate(() => { try { localStorage.setItem('hub_exam_timer_auto', '40'); } catch (e) {} });
+    /* WRITING-TABS-1（11-08）：默认「总览」pane，旧评分面板 #scorePanel 是隐藏的；
+       先走现版左栏「AI 评分」入口（wr-tabs.js show('score') → #writeTabs click 跑 renderScoreHist），
+       等 #scoreTopic 真可见再填题，仍是 #scoreTopicSave 产品入口，不手改 class。 */
+    await p.waitForFunction(() => typeof window.__wrTabs === 'object' && typeof window.__wrTabs.show === 'function', null, { timeout: 15000 }).catch(() => {});
+    await p.evaluate(() => {
+      const nav = document.querySelector('#wrNav [data-wr-tab="score"]');
+      if (nav) nav.click();
+      else if (window.__wrTabs && window.__wrTabs.show) window.__wrTabs.show('score');
+    });
+    await p.waitForFunction(() => { const s = document.getElementById('scorePanel'); return !!s && !s.hidden && s.getBoundingClientRect().height > 0; }, null, { timeout: 15000 }).catch(() => {});
     await p.fill('#scoreTopic', 'Probe topic: some people think cities should ban cars in the centre. To what extent do you agree?');
     await p.evaluate(() => document.getElementById('scoreTopicSave').click());
     await p.waitForFunction(() => document.body.classList.contains('exam-fullscreen'), null, { timeout: 8000 }).catch(() => {});
@@ -373,18 +412,15 @@ async function stickyAtBottom(p, sel) {
   console.log('== ⑤ 手机 390：第 4 批三页 ==');
   const cm = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   await cm.addInitScript(t => { try { localStorage.setItem('hub_auth_token', t); localStorage.setItem('hub_role_v1', 'teacher'); } catch (e) {} }, TOKEN);
-  /* 🔴 10-25 W-UI-1：测「顶栏 44px 让位归零」前先把未读公告关掉 —— 公告条是 sticky、
-     在文档流里真实占 34px，不关掉这条测到的是「被公告顶了一下」，两件事混着判分不清。
-     夹具见 tests/_anc_seed.cjs。 */
+  /* P0-BANNER-A（11-12）：34px 开发播报横幅已整体下线，手机端不再有「预标已读」变量要关；
+     直接验顶栏让位归零 + 内容贴顶，与现版等价（不动 _anc_seed.cjs helper）。 */
   await mockRoutes(cm);
-  await ancSeed.seedAncRead(cm, BASE);
   for (const f of Object.keys(want)) {
     const p = await cm.newPage();
     const errs = [];
     p.on('pageerror', e => errs.push(String(e).slice(0, 140)));
     await p.goto(BASE + '/' + f, { waitUntil: 'domcontentloaded' });
     await p.waitForTimeout(1500);
-    await ancSeed.waitAncGone(p);
     const m = await shellState(p);
     /* 🔴 10-23 全站口径改：手机端整条顶栏不渲染（她 08:1x「手机上栏全部摘掉」的**全站**范围，
        原来只在 T-011 的三个组页成立）→ body 那 44px 让位一并归零，所以 main.top 不再是 ≥44。 */

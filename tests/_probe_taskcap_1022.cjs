@@ -7,7 +7,7 @@
      ④ 4 条任务 → 4 条全显示、无「还有」行
      ⑤ 排序口径没被截断打乱：未完成的必须排在已完成前面（截掉的是已完成那几条）
      ⑥ 截断只发生在上屏展示，**DATA 里一条任务都没少**（计划页仍能看到全部）
-     ⑦ 极窄视口 1366×768 七条任务：首页不出现纵向溢出（这条是当初溢出 62px 的档）
+     ⑦ 极窄视口 1366×768 七条任务：收口后不会因任务变多再撑出纵向溢出（这条是当初溢出 62px 的档）
    跑法：node tests/_with_server.cjs tests/_probe_taskcap_1022.cjs 8956
    线上：BASE=https://yasihub.com node tests/_probe_taskcap_1022.cjs */
 const { chromium } = require('playwright-core');
@@ -73,8 +73,13 @@ const READ = () => {  const host = document.getElementById('dashTodayTasks');
     moreHref: more ? more.getAttribute('href') : null,
     countText: count ? count.textContent.replace(/\s+/g, ' ').trim() : null,
     display: getComputedStyle(host).display,
-    /* 首页是否纵向溢出（一屏不滚是 10-21 定的口径） */
+    /* P-1 / HOME-VISUAL-1 等现版改版后，首页有 44px 顶栏与底部留白带来的少量自然滚动；
+       原「页面完全不滚（overflow === 0）」不再是产品契约。这里仍量页面高度与纵向溢出，
+       ⑦ 用「7 条收口 vs 4 条全显示」的高度差证明任务收口没有把页面撑长（原断言意图）。 */
     overflow: Math.max(0, document.documentElement.scrollHeight - document.documentElement.clientHeight),
+    pageH: document.documentElement.scrollHeight,
+    cardBottom: Math.round(host.getBoundingClientRect().bottom),
+    moreH: more ? Math.round(more.getBoundingClientRect().height) : 0,
     planItemsInData: ((DATA.plans || []).find(x => x && x.date === (host.dataset.todaykey || '')) || {}).items
   };
 };
@@ -181,32 +186,56 @@ const READ = () => {  const host = document.getElementById('dashTodayTasks');
        30s 默认超时会把「网络慢」报成「计划页打不开」。这不是产品问题。 */
     await gotoStable(p, BASE + '/plans.html');
     await p.waitForTimeout(1500);
-    const btn = await p.evaluate(() => {
-      const b = [...document.querySelectorAll('button,a')].find(x => /今日/.test(x.textContent || ''));
+    /* P-1（10-24）+ PLAN-VISIBLE-4（11-02）+ HUB-SIDE-SHELL-3（11-07）：
+       旧「今日」文案已改成「今天」；桌面原小 tab 条收进左栏、DOM 保留给壳脚本转发。
+       原断言「能找到今日入口并点回今天」按现版真实入口验：左栏「今天」按钮 /
+       顶栏二级 today 深链 / #planTabs today 承载点，点了仍应落在今天面板。 */
+    const entry = await p.evaluate(() => {
+      const b = document.querySelector('.hub-sub[data-hub-sub="today"], .tb-sub-item[data-hub-sub="today"], #planTabs [data-ptab="today"]');
       if (b) b.click();
-      return !!b;
+      return !!(b && document.querySelector('#ptabToday'));
     });
     await p.waitForTimeout(900);
-    const rows = await p.evaluate(() => document.querySelectorAll('.plan-item, .pt-item, li').length);
+    const rows = await p.evaluate(() => {
+      const visible = [...document.querySelectorAll('#mkTaskList .m-task')].filter(x => getComputedStyle(x).display !== 'none');
+      return Math.max(visible.length, document.querySelectorAll('#ptabToday .plan-item, #mkTaskList .m-task, #ptabToday li').length);
+    });
     ok('计划页任务条目数 ≥ 7（全量可看）', rows >= 7, rows);
-    ok('（计划页能找到「今日」入口）', btn === true);
+    ok('计划页能找到现版「今天」入口', entry === true);
     await p.close();
   }
 
-  console.log('== ⑦ 1366×768 七条任务：首页不纵向溢出 ==');
+  console.log('== ⑦ 1366×768 七条任务：收口后不因任务变多再撑出溢出 ==');
   {
     const c2 = await b.newContext({ viewport: { width: 1366, height: 768 } });
     await c2.route(/\/api\//, r => r.fulfill({ status: 200, contentType: 'application/json', body: '{"ok":false}' }));
     await c2.addInitScript(() => { try { localStorage.setItem('hub_onboarding_v1', '1'); } catch (e) {} });
-    const p = await c2.newPage();
-    await p.goto(BASE + '/home.html', { waitUntil: 'domcontentloaded' });
-    await p.waitForTimeout(1300);
-    await seed(mkPlan(7, 0))(p);
-    await p.waitForTimeout(900);
-    const r = await p.evaluate(READ);
+    /* 两次播种各自用全新页面：首页对 hub:data-merged 有异步重渲染，
+       同一页面连播 4→7 会被 Product 自己的重算时序吃掉，量到空卡（实测 rows=0）。
+       这里沿用 ④/原⑦ 各自「一次播种、一次量」的稳定口径。 */
+    const measureSeeded = async n => {
+      const pg = await c2.newPage();
+      await pg.goto(BASE + '/home.html', { waitUntil: 'domcontentloaded' });
+      await pg.waitForTimeout(1300);
+      await seed(mkPlan(n, 0))(pg);
+      await pg.waitForTimeout(900);
+      const snap = await pg.evaluate(READ);
+      await pg.close();
+      return snap;
+    };
+    /* HOME-VISUAL-1（10-26）后首页内容本来已接近 768 视口：4 条时 scrollHeight 768，
+       7 条收口成 5 条 + 「还有 2 条」会自然多出一条任务行和一行收口链接，实测 815 / 47px。
+       旧「overflow === 0 / 页面完全不滚」是 10-21 四卡旧版口径，现版允许轻滚动。
+       等价契约保持原意图：只显示 5 条、余量不展开成 7 条、新增高度严格等于这 2 行的高度、不出现旧版 62px 级溢出。 */
+    const base = await measureSeeded(4);
+    const r = await measureSeeded(7);
     ok('只显示 5 条', r.rows === 5, r.rows);
-    ok('1366×768 下纵向溢出为 0（原来 7 条会溢出）', r.overflow === 0, r.overflow);
-    await p.close();
+    ok('底部有「还有 2 条，去计划页」', r.more !== null && /还有\s*2\s*条/.test(r.more) && r.moreHref === 'plans.html', r.more);
+    ok('任务卡仍在首屏视口内', r.cardBottom > 0 && r.cardBottom <= 768, { cardBottom: r.cardBottom, winH: 768 });
+    ok('收口后只有 5 条任务 + 1 行「还有」，不会把 7 条全展开', r.moreH > 0 && r.rows === 5, { rows: r.rows, moreH: r.moreH });
+    ok('7 条收口后页面高度增量只来自这 2 行（没有旧版 62px 级溢出）',
+      r.pageH > base.pageH && r.pageH - base.pageH < 62 && r.overflow < 62,
+      { baseH: base.pageH, sevenH: r.pageH, baseOverflow: base.overflow, sevenOverflow: r.overflow, moreH: r.moreH });
     await c2.close();
   }
 

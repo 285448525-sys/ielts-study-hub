@@ -1,4 +1,8 @@
-/* 10/20 她拍板 Q1（按真实机考）/ Q2 顶栏 ☰ 左边全屏 / Q3 Part→Task / Q4 底栏 44px —— 验收 */
+/* 10/20 她拍板 Q1（按真实机考）/ Q2 顶栏 ☰ 左边全屏 / Q3 Part→Task / Q4 底栏 44px —— 验收
+   11-15 PERM-REG-1 / MODULE-MOVE-1（11-08）：写作真题模考从 bank.html 的 writing tab
+   搬到 writing.html 的 #wr=exam pane。原探针在 bank 页找隐藏 #mockTabs / #wrtFullStart
+   已过期；改成走现版深链 #wr=exam，等 writing.js 自己渲染入口卡后点 Start Test，
+   底栏 / 全屏 / Task 切换 / 草稿隔离这些原断言一字不删。 */
 const { chromium } = require('playwright-core');
 const EDGE = 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
 const BASE = process.env.BASE || 'http://127.0.0.1:8893';
@@ -14,12 +18,20 @@ const ok = (n, c, d) => { if (c) { pass++; console.log('  OK   ' + n + (d ? '  '
   const apiHits = [];
   p.on('pageerror', e => errs.push(String(e).slice(0, 160)));
   p.on('request', r => { if (r.url().includes('/api/')) apiHits.push(r.url().replace(BASE,'')); });
-  await p.addInitScript(() => { try{localStorage.setItem('hub_exam_timer_auto','20');}catch(e){} try { ['reading','listening','writing','speaking'].forEach(c => localStorage.setItem('hub_exam_guide_v2_' + c, '1')); } catch(e){} });
-  await p.goto(BASE + '/bank.html', { waitUntil: 'domcontentloaded' });
-  await sleep(3500);
-  /* 2-1d 批 B：桌面上 #mockTabs 已 display:none → Playwright 可见性 click 会超时。改 JS click。 */
-  await p.evaluate(() => { const b = document.querySelector('[data-mtab="writing"]'); if (b) b.click(); }).catch(() => {});
-  await sleep(2000);
+  await p.addInitScript(() => { try {
+    localStorage.setItem('hub_exam_timer_auto', '20');
+    localStorage.setItem('hub_onboarding_v2', JSON.stringify({ finished: true }));
+    ['reading','listening','writing','speaking'].forEach(c => localStorage.setItem('hub_exam_guide_v2_' + c, '1'));
+  } catch(e){} });
+  await p.goto(BASE + '/writing.html#wr=exam', { waitUntil: 'domcontentloaded' });
+  /* 11-15：#wr=exam 由 wr-tabs.js renderPane('exam') 调 writing.js 填入口卡；
+     官方 timer 旁路已 seed，Start Test 不再等弹框。 */
+  await p.waitForSelector('#writingFullEntry #wrtFullStart', { state: 'visible', timeout: 30000 });
+  const entryReady = await p.evaluate(() => ({
+    pane: !!document.querySelector('[data-wr-pane="exam"]') && !document.querySelector('[data-wr-pane="exam"]').hidden,
+    list: document.querySelectorAll('#examList .exam-item, #examList > *').length
+  }));
+  ok('①0 #wr=exam 真题模考 pane 与列表就绪', entryReady.pane && entryReady.list > 0, JSON.stringify(entryReady));
   await p.click('#wrtFullStart');
   await sleep(2500);
 

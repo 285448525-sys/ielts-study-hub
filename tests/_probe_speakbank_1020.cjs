@@ -1,8 +1,11 @@
 /* 10-20 深夜 口语题库重建验收（按《口语题库-考频版_1010》）
    用法：node tests/_with_server.cjs tests/_probe_speakbank_1020.cjs 8811
    线上：BASE=https://yasihub.com node tests/_probe_speakbank_1020.cjs
-   断言口径全部来自数据本身（89 条 / P1 33 / P2 56 / 四档计数 / 必考合并后的题数），
-   走真实交互路径（切 tab、点卡片），不手工塞 innerHTML。 */
+   断言口径全部来自数据本身（题库总量 / 版本号 / P1+P2 / 四档计数 / 必考合并后的题数），
+   走真实交互路径（切 tab、点卡片），不手工塞 innerHTML。
+   2026-10-28 SPK-BANK-REFRESH-1028-1：官方清单换版（ver 19、P1 37/P2 52、频次重算）。
+   本探针不再把每次换版的数字写死，改为从 SPEAKING_BANK / META / DATA 现场推导，
+   保留「版本戳同代、强制迁移已生效、列表与筛选和源数据一致」的原断言意图。 */
 const { chromium } = require('playwright-core');
 const EDGE = 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
 const BASE = process.env.BASE || process.argv[2] || 'http://127.0.0.1:8811';
@@ -28,24 +31,37 @@ const ok = (n, c, d) => { if (c) { pass++; console.log('  ✓ ' + n + (d ? '  ' 
   /* ① 总量与分档（题库 tab = P1+P2 合并，89 张卡） */
   const meta = await p.evaluate(() => {
     const cards = [...document.querySelectorAll('.sp-card[data-id]')];
+    const bank = (typeof SPEAKING_BANK !== 'undefined' && Array.isArray(SPEAKING_BANK)) ? SPEAKING_BANK : [];
+    const count = f => bank.filter(x => x && x.frequency === f).length;
     return {
       cards: cards.length,
       p1: cards.filter(c => /P1/.test((c.querySelector('.sp-tag-p') || {}).textContent || '')).length,
       p2: cards.filter(c => /P2/.test((c.querySelector('.sp-tag-p') || {}).textContent || '')).length,
-      bank: (typeof SPEAKING_BANK !== 'undefined') ? SPEAKING_BANK.length : -1,
+      bank: bank.length,
+      srcP1: bank.filter(x => x && x.type === 'P1').length,
+      srcP2: bank.filter(x => x && x.type === 'P2').length,
       ver: (typeof SPEAKING_BANK_VERSION !== 'undefined') ? SPEAKING_BANK_VERSION : -1,
+      dataVer: (typeof DATA !== 'undefined') ? DATA.speakingVersion : -1,
       note: (typeof SPEAKING_BANK_META !== 'undefined') ? SPEAKING_BANK_META.note : '',
-      updated: (typeof SPEAKING_BANK_META !== 'undefined') ? SPEAKING_BANK_META.updated : ''
+      updated: (typeof SPEAKING_BANK_META !== 'undefined') ? SPEAKING_BANK_META.updated : '',
+      ultra: count('ultra'), high: count('high'), medium: count('medium'), low: count('low'),
+      freqKeys: [...new Set(bank.map(x => x && x.frequency))].filter(Boolean)
     };
   });
-  ok('①1 题库总条数 89', meta.bank === 89, 'bank=' + meta.bank);
-  ok('①2 版本号 18（2026-10-27 频次更新，强制迁移）', meta.ver === 18, 'ver=' + meta.ver);
-  /* 🔵 10-27：META 的版本戳跟着题库走（本次频次更新 → 1027 版）。
-     判据不再写死「1020 版」，而是「note 里有版本戳且与 META.updated 同代」——
-     这样以后每次更新题库只需改数据，不用再回来改这条断言。 */
-  ok('①3 META 版本戳已跟上（1027 版）', /1027 版/.test(meta.note), meta.note.slice(0, 24) + '…');
-  ok('①3b META.updated 与版本戳同代（2026-10-27）', meta.updated === '2026-10-27', meta.updated);
-  ok('①4 列表渲染 89 张卡（P1 33 + P2 56）', meta.cards === 89 && meta.p1 === 33 && meta.p2 === 56,
+  const stamp = String(meta.updated || '').replace(/-/g, '').slice(4); // 2026-10-28 → 1028
+  ok('①1 题库总量与源清单一致（2026-10-28 清单 89 条）', meta.bank === 89 && meta.bank > 0, 'bank=' + meta.bank);
+  ok('①2 版本号是正整数且已强制迁移到本地 DATA（2026-10-28 为 19）',
+    Number.isInteger(meta.ver) && meta.ver > 0 && meta.ver === 19 && meta.dataVer === meta.ver,
+    'ver=' + meta.ver + ' dataVer=' + meta.dataVer);
+  /* 🔵 2026-10-28 SPK-BANK-REFRESH-1028-1：版本戳随 META.updated 走。
+     仍验「note 里有版本戳且与 updated 同代」，但不再把 1027 写死。 */
+  ok('①3 META 版本戳与 updated 同代（1028 版）',
+    !!stamp && new RegExp('^' + stamp + '\\s*版').test(meta.note), meta.note.slice(0, 24) + '…');
+  ok('①3b META.updated 是 2026-10-28 官方更新日',
+    /^\d{4}-\d{2}-\d{2}$/.test(meta.updated) && meta.updated === '2026-10-28', meta.updated);
+  ok('①4 列表逐张渲染且 P1+P2 与源数据一致（2026-10-28：37+52）',
+    meta.cards === meta.bank && meta.p1 === meta.srcP1 && meta.p2 === meta.srcP2 &&
+    meta.srcP1 === 37 && meta.srcP2 === 52,
     'cards=' + meta.cards + ' p1=' + meta.p1 + ' p2=' + meta.p2);
 
   /* ② 频次筛选（真实改 select + 触发 change）—— ultra 只有 P1 有，high/medium/low 是 P1+P2 合计 */
@@ -59,14 +75,18 @@ const ok = (n, c, d) => { if (c) { pass++; console.log('  ✓ ' + n + (d ? '  ' 
   const fHigh = await byFreq('high');
   const fMedium = await byFreq('medium');
   const fLow = await byFreq('low');
-  ok('②1 全部 89', fAll === 89, String(fAll));
-  ok('②2 必考题 5（P1 独有）', fUltra === 5, String(fUltra));
-  /* 🔵 2026-10-27 频次更新（考频清单_纯版_2026-10-27.md）：档位数量全变，这里跟着更新。
-     新值 = P1(必考5/高10/中13/低5) + P2(高17/中34/低5)：
-       高频 10+17=27 · 中频 13+34=47 · 低频 5+5=10 */
-  ok('②3 高频 27（P1 10 + P2 17）', fHigh === 27, String(fHigh));
-  ok('②4 中频 47（P1 13 + P2 34）', fMedium === 47, String(fMedium));
-  ok('②5 低频 10（P1 5 + P2 5）', fLow === 10, String(fLow));
+  /* 🔵 2026-10-28 SPK-BANK-REFRESH-1028-1：档位按新清单重算。
+     原断言「总数 / 必考 / 高 / 中 / 低」逐项保留，数值改为与官方源数组精确定账；
+     同时守 2026-10-28 的 5/30/43/11 与四档合计 = 全部，避免以后只改一半数据。 */
+  ok('②1 全部 89', fAll === meta.bank && fAll === 89, String(fAll));
+  ok('②2 必考题 5（P1 独有）', fUltra === meta.ultra && fUltra === 5, String(fUltra));
+  ok('②3 高频 30（与 2026-10-28 源数据一致）', fHigh === meta.high && fHigh === 30, String(fHigh));
+  ok('②4 中频 43（与 2026-10-28 源数据一致）', fMedium === meta.medium && fMedium === 43, String(fMedium));
+  ok('②5 低频 11（与 2026-10-28 源数据一致）', fLow === meta.low && fLow === 11, String(fLow));
+  ok('②6 四档合计覆盖全部题，且必考题全在 P1',
+    fUltra + fHigh + fMedium + fLow === meta.bank &&
+    meta.freqKeys.every(k => ['ultra','high','medium','low'].includes(k)),
+    meta.freqKeys.join(','));
   await byFreq('all');
 
   /* ③ 必考题合并后的题数（点开工作/学习卡） */
@@ -89,7 +109,7 @@ const ok = (n, c, d) => { if (c) { pass++; console.log('  ✓ ' + n + (d ? '  ' 
   });
   ok('④1 学习/工作 两套问法已合并成一行', mergedText.hasStudyWork);
 
-  /* ⑤ P2 56 张卡 + 新卡在位（用 #spPartSeg 的 P2 段控，真实点击） */
+  /* ⑤ 2026-10-28 换版后 P2 52 张卡 + 新卡在位 / 非大陆卡下线（用 #spPartSeg 真实点击） */
   const p2 = await p.evaluate(async () => {
     const btn = document.querySelector('#spPartSeg [data-part="P2"]');
     if (!btn) return { err: 'no-btn' };
@@ -98,7 +118,7 @@ const ok = (n, c, d) => { if (c) { pass++; console.log('  ✓ ' + n + (d ? '  ' 
     const ids = [...document.querySelectorAll('.sp-card[data-id]')].map(c => c.getAttribute('data-id'));
     return { n: ids.length, hasNew: ids.includes('sb_p2_goodservice'), hasGone: ids.includes('sb_p2_metonce') };
   });
-  ok('⑤1 P2 56 张卡', p2.n === 56, 'n=' + p2.n);  ok('⑤2 新卡 sb_p2_goodservice 在位', p2.hasNew);
+  ok('⑤1 P2 52 张卡（与源数据一致）', p2.n === meta.srcP2 && p2.n === 52, 'n=' + p2.n);  ok('⑤2 新卡 sb_p2_goodservice 在位', p2.hasNew);
   ok('⑤3 非大陆卡 sb_p2_metonce 已下线', !p2.hasGone);
 
   ok('⑥ 全程零 JS 报错', errs.length === 0, errs.join(' | '));

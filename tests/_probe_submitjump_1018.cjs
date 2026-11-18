@@ -1,11 +1,34 @@
 // 交卷确认弹窗升级（P1-4 未答可点跳转 / P2-2 标记题号清单）专项探针
 // 用法：node tests/_probe_submitjump_1018.cjs <baseUrl>
+// 11-15 PERM-REG-1 / EXAM-TIMER-CHOICE-1（10-31）+ BANK-DONE-ROW-1（11-01）：
+// 进场前要补官方计时旁路并清「做过了」留痕；点篇目若弹「再做一次」要点 redo；
+// 所有进考场动作统一等卷面真渲染。产品弹窗判据一字不改。
 const { chromium } = require('playwright-core');
 const BASE = process.argv[2] || 'http://127.0.0.1:8791';
 const EDGE = 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
 
 const R = [];
 const ck = (n, ok, info) => R.push((ok ? '  ✅ ' : '  ❌ ') + n + (info ? '  ｜ ' + info : ''));
+
+/* 官方旁路 + 清留痕 + 点「再做一次」+ 等卷面渲染，E/G 两段复用同一个真实入口。 */
+async function enterReading(page) {
+  await page.goto(BASE + '/bank.html', { waitUntil: 'load', timeout: 60000 });
+  await page.waitForSelector('#bankList [data-unit]', { timeout: 30000 });
+  await page.evaluate(() => {
+    try {
+      localStorage.setItem('hub_exam_timer_auto', '20');
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const k = localStorage.key(i);
+        if (/^hub_bank_last_/.test(k || '')) localStorage.removeItem(k);
+      }
+    } catch (e) {}
+    document.querySelector('#bankList [data-unit]').click();
+  });
+  const redo = await page.$('#bkDonePick [data-bdp="redo"]');
+  if (redo) await redo.click();
+  await page.waitForSelector('#examRoot .ex-flagq, #examRoot .ex-num', { timeout: 20000 });
+  await page.waitForTimeout(1200);
+}
 
 (async () => {
   const browser = await chromium.launch({ executablePath: EDGE, headless: true });
@@ -14,13 +37,14 @@ const ck = (n, ok, info) => R.push((ok ? '  ✅ ' : '  ❌ ') + n + (info ? '  �
   const errs = [];
   page.on('pageerror', e => errs.push(String(e.message || e)));
   page.on('console', m => { if (m.type() === 'error' && !/cloudflareinsights/.test(m.text())) errs.push('[c] ' + m.text()); });
-  await page.addInitScript(() => { try { localStorage.setItem('hub_onboarding_v2', JSON.stringify({ finished: true })); localStorage.getItem('hub_exam_guide_v2_reading') || localStorage.setItem('hub_exam_guide_v2_reading','1'); localStorage.getItem('hub_exam_guide_v2_listening') || localStorage.setItem('hub_exam_guide_v2_listening','1'); } catch (e) { } });
+  await page.addInitScript(() => { try {
+    localStorage.setItem('hub_onboarding_v2', JSON.stringify({ finished: true }));
+    localStorage.setItem('hub_exam_guide_v2_reading', '1');
+    localStorage.setItem('hub_exam_guide_v2_listening', '1');
+    localStorage.setItem('hub_exam_timer_auto', '20');
+  } catch (e) { } });
 
-  await page.goto(BASE + '/bank.html', { waitUntil: 'load', timeout: 60000 });
-  await page.waitForTimeout(1200);
-  await page.waitForSelector('#bankList [data-unit]', { timeout: 30000 });
-  await page.evaluate(() => document.querySelector('#bankList [data-unit]').click());
-  await page.waitForTimeout(1800);
+  await enterReading(page);
 
   console.log('=== A. 先标记两题 ===');
   const marked = await page.evaluate(() => {
@@ -101,11 +125,7 @@ const ck = (n, ok, info) => R.push((ok ? '  ✅ ' : '  ❌ ') + n + (info ? '  �
   ck('D2 已跳到第一道未答（最小题号可见）', d.inView);
 
   console.log('=== E. 没标记时不出现空清单 ===');
-  await page.goto(BASE + '/bank.html', { waitUntil: 'load' });
-  await page.waitForTimeout(1200);
-  await page.waitForSelector('#bankList [data-unit]', { timeout: 30000 });
-  await page.evaluate(() => document.querySelector('#bankList [data-unit]').click());
-  await page.waitForTimeout(1800);
+  await enterReading(page);
   await page.click('[data-submit]');
   await page.waitForTimeout(500);
   const e2 = await page.evaluate(() => {
@@ -121,11 +141,7 @@ const ck = (n, ok, info) => R.push((ok ? '  ✅ ' : '  ❌ ') + n + (info ? '  �
   await page.evaluate(() => { const b = document.querySelector('[data-scancel]'); if (b) b.click(); });
 
   console.log('=== G. 题号行点任意题型都能跳（修既有 bug：原来只有合并组/填空会滚）===');
-  await page.goto(BASE + '/bank.html', { waitUntil: 'load' });
-  await page.waitForTimeout(1200);
-  await page.waitForSelector('#bankList [data-unit]', { timeout: 30000 });
-  await page.evaluate(() => document.querySelector('#bankList [data-unit]').click());
-  await page.waitForTimeout(1800);
+  await enterReading(page);
   const nums = await page.evaluate(() => Array.from(document.querySelectorAll('#examRoot .ex-num[data-jump]')).map(e => e.getAttribute('data-jump')));
   const probeJump = async (n) => {
     await page.evaluate(() => window.scrollTo(0, 0));

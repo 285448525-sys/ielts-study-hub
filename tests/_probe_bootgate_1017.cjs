@@ -52,12 +52,12 @@ const ok = (c, m) => { if (c) { pass++; console.log('  ✓ ' + m); } else { fail
     ok(gone, '[' + scene + '] ① 启动遮罩在 ' + ms + 'ms 时已从 DOM 移除（没卡在黑屏）');
 
     // ②③ 首屏内容
-    /* 10/21 design/113A3a：首页双卡（section.meta .meta-card）已换成四数字卡（.hstat）。
-       断言口径不变 —— 仍是「首屏的指标卡都渲染完、且落在视口内」，
-       只是元素选择器跟着新结构走；别退回旧选择器（那会永远 0 张 = 假红）。 */
+    /* HOME-VISUAL-1（10-26）：四数字卡再换成 .metrics > a.metric（README 第 43 条铁律）。
+       断言口径不变 —— 仍是「首屏的四张指标卡都渲染完、且落在视口内」；
+       别退回 .hstats .hstat 旧选择器（现版永远 0 张 = 假红）。 */
     const c = await p.evaluate(() => {
       const tt = document.getElementById('threeThings');
-      const cards = document.querySelectorAll('.hstats .hstat');
+      const cards = document.querySelectorAll('.metrics > a.metric');
       const name = document.getElementById('userName');
       return {
         ttVisible: !!(tt && !tt.hidden && tt.offsetHeight > 0),

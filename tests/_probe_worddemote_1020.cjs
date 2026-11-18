@@ -27,6 +27,29 @@ function addDaysLocal(dateStr, n) {
 
 const FAKE = '[{"en":"apple","cn":"苹果","pos":"n.","ipa":"/ˈæpl/"}]';
 
+/* 2026-10-31 / 11-13 词书商城改造 + WORDBOOK-TABS-1（11-07）：
+   老 [data-wtab="bank"] / 单独点 #wlImpBar 已不是产品入口；默认 #vMall，
+   #wmLegacy 隐藏。当前从 #wmDealAdd 进入导入区，保留「导入即完全体」的断言。 */
+async function openCurrentImport(p) {
+  await p.waitForFunction(() => {
+    const mall = document.getElementById('vMall');
+    const add = document.getElementById('wmDealAdd');
+    return mall && !mall.hidden && add && add.getClientRects().length > 0;
+  }, null, { timeout: 15000 });
+  await p.evaluate(() => {
+    const bv = document.getElementById('bankView');
+    if (bv) bv.hidden = false;
+  });
+  await p.click('#wmDealAdd');
+  await p.waitForFunction(() => {
+    const legacy = document.getElementById('wmLegacy');
+    const body = document.getElementById('wlImpBody');
+    const ta = document.getElementById('smartInput');
+    return legacy && !legacy.hidden && body && !body.hidden && ta && ta.getClientRects().length > 0;
+  }, null, { timeout: 15000 });
+  await sleep(350);
+}
+
 async function boot(b, opts) {
   opts = opts || {};
   const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } });
@@ -162,10 +185,7 @@ async function boot(b, opts) {
   /* ⑤ 已登录时导入走 AI 两阶段 = 落库即完全体（cn + pos + ipa 齐全） */
   {
     const { ctx, p, errs } = await boot(b, { token: true });
-    await p.click('[data-wtab="bank"]');   // 默认停在「学习」tab，先切到词库
-    await sleep(600);
-    await p.click('#wlImpBar');        // 导入区是 44px 折叠条，先展开
-    await sleep(400);
+    await openCurrentImport(p);         // 当前商城入口会切到 legacy 并展开导入条
     await p.fill('#smartInput', 'lucid  清晰的\nquaint');
     await p.click('#smartImport');
     await sleep(2500);

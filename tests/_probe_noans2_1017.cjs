@@ -1,7 +1,8 @@
 /* B 第一步「拦住」—— 探针（本地 + 线上通用，BASE 取 env/argv）
-   篇目：2105548009325543425（Seeing In The Sea V2，本地无 bank/answers 文件；10/18 18:0x 换夹具——
-   原夹具 2017137445927751682 已被本窗口补上答案，不再是「无答案篇目」）
-   对照组：2017067274563325954（A Survivor's Story，有答案） */
+   篇目：2105548009325543425（Seeing In The Sea V2；11-15 起由 page.route 掐掉 answers.json）
+   对照组：2017067274563325954（A Survivor's Story，有答案）
+   11-15 PERM-REG-1：补 EXAM-TIMER-CHOICE-1 官方旁路 / BANK-DONE-ROW-1 清留痕；
+   成绩卡整删后的三档主题改验顶栏对错小字仍可读，不把退役的 .fx-score 当成 bug。 */
 const { chromium } = require('playwright-core');
 const path = require('path');
 const fs = require('fs');
@@ -23,7 +24,25 @@ async function killServiceWorker(pg) {
 }
 // 10/18 14:2x：夹具篇目可能不在默认 Part 下（旧夹具 Part 1 / 新夹具 Part 2）→ 按真实 Part 切 tab 再点，杜绝静默找不到
 function unitPartOf(id) { try { return JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'bank', 'reading', id + '.json'), 'utf8')).parts[0].partNum || 'Part 1'; } catch (e) { return 'Part 1'; } }
+/* 11-15 PERM-REG-1：进场前补官方 timer/guide 旁路，并清「做过了」留痕；
+   实际点击后若出现 redo 弹层，只点「再做一次」，保留探针原本「点开指定篇目」的语义。 */
+async function seedExamBypass(pg) {
+  return await pg.evaluate(() => {
+    try {
+      localStorage.setItem('hub_exam_timer_auto', '20');
+      localStorage.setItem('hub_exam_guide_v2_reading', '1');
+      localStorage.setItem('hub_exam_guide_v2_listening', '1');
+      localStorage.setItem('hub_onboarding_v2', JSON.stringify({ v: 2, entered: true, finished: true, snoozed: true }));
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const k = localStorage.key(i);
+        if (/^hub_bank_last_/.test(k || '')) localStorage.removeItem(k);
+      }
+      return true;
+    } catch (e) { return false; }
+  });
+}
 async function openItem(pg, id) {
+  await seedExamBypass(pg);
   await pg.click('#partTabs .pill-tab[data-part="' + unitPartOf(id) + '"]').catch(() => {});
   await pg.waitForTimeout(400);
   /* 10-24 M-2: grouped list, 20 per screen -> expand until visible (both groups) */
@@ -37,6 +56,9 @@ async function openItem(pg, id) {
   }
   if (!item) throw new Error('openItem: ' + id + ' not found after expanding');
   await item.click();
+  const redo = await pg.$('#bkDonePick [data-bdp="redo"]');
+  if (redo) await redo.click();
+  await pg.waitForSelector('#examRoot .ex-group, #examRoot .ex-top', { timeout: 20000 });
 }
 
 const R = [];
@@ -52,8 +74,14 @@ async function answerFew(pg, sel) {
   const br = await chromium.launch({ executablePath: EXE });
   const ctx = await br.newContext({ viewport: { width: 1440, height: 900 } });
   const pg = await ctx.newPage();
-  // 10/18 14:2x：考前指南卡闸门（hub_exam_guide_v2_reading）会 intercept 首次进考场的点击 → 补「已看过」种子（同 fullentry/noans/qtype/latewrt 四支 12:3x 的修法）
-  await ctx.addInitScript(() => { try { localStorage.setItem('hub_exam_guide_v2_reading', '1'); localStorage.setItem('hub_exam_guide_v2_listening', '1'); } catch (e) {} });
+  /* 11-15 PERM-REG-1：官方探针旁路（EXAM-TIMER-CHOICE-1）+ 指南/引导已读种子。
+     每个新 page 都由 context 自动带上，避免 E2 三档独立页再次卡在计时弹框。 */
+  await ctx.addInitScript(() => { try {
+    localStorage.setItem('hub_exam_timer_auto', '20');
+    localStorage.setItem('hub_exam_guide_v2_reading', '1');
+    localStorage.setItem('hub_exam_guide_v2_listening', '1');
+    localStorage.setItem('hub_onboarding_v2', JSON.stringify({ v: 2, entered: true, finished: true, snoozed: true }));
+  } catch (e) {} });
   const errs = [];
   pg.on('pageerror', e => errs.push(String(e)));
   let BNTXT = 'ERR';   // 10-24 14:3x：E2 yellow 标题字色（一档一 page，跨循环取值）
@@ -80,7 +108,24 @@ async function answerFew(pg, sel) {
   ok(!(await pg.$('#examRoot .ex-noans')), 'A5 关闭后提示条消失');
   await pg.reload({ waitUntil: 'domcontentloaded' });
   await pg.waitForTimeout(1500);
-  ok(!!(await pg.$('#examRoot .ex-noans')) || true, 'A6 reload 后状态可恢复（不阻断）');
+  /* 11-15 PERM-REG-1：原来 `|| true` 是恒真占位，改成真实验证 reload 回到列表
+     （产品 reload 不会停在考场内），关闭态另由本页 sessionStorage 记录，不写恒真。 */
+  const afterReload = await pg.evaluate(() => {
+    const er = document.getElementById('examRoot'), br = document.getElementById('bankRoot');
+    return {
+      bankVisible: !!br && getComputedStyle(br).display !== 'none',
+      examHidden: !er || er.hidden || getComputedStyle(er).display === 'none',
+      dismissed: (() => { try {
+        for (let i = 0; i < sessionStorage.length; i++) {
+          const k = sessionStorage.key(i);
+          if (/^hub_noans_banner_/.test(k || '') && sessionStorage.getItem(k) === '1') return true;
+        }
+        return false;
+      } catch (e) { return false; } })()
+    };
+  });
+  ok(afterReload.bankVisible && afterReload.examHidden && afterReload.dismissed,
+    'A6 reload 回到列表且提示条关闭态可恢复（' + JSON.stringify(afterReload) + '）');
 
   // ---------- B. 无答案篇目：交卷未判分 ----------
   // 重新进入（reload 会回列表）
@@ -152,10 +197,10 @@ async function answerFew(pg, sel) {
   ok(recs2.length > 0, 'D6 有答案篇目照常写记录（' + recs2.length + ' 条）');
 
   // ---------- E. 三档配色（真实交互路径：勾 radio）----------
-  // ⚠️ 成绩卡 .fx-score 本身**没有**深色/黄底档反色规则（bank.html 只给 .fx-meta/.fx-chip 反色），
-  //    这是站内既有口径、不是本次引入的缺口。所以这里只断言「类挂上了 + 成绩卡仍可见」，
-  //    未判分横幅的三档反色（.fx-noscore 有完整三套）在 E2 段逐档验。
-  ok(!!(await pg.$('#examRoot .fx-score')), 'E0 前置：当前是有答案篇目已交卷（成绩卡在场）');
+  /* 11-15 PERM-REG-1 / EXAM-SCORE-COMPACT-1（11-02）：旧 .fx-score 成绩卡整块退役，
+     现在的有答案交卷态是顶栏 .ex-score-mini 对错小字。保留「三档切色后核心判分信息
+     不消失」的原意图，只把量点换成现版小字；未判分横幅三档反色仍由 E2 段逐档验。 */
+  ok(!!(await pg.$('#examRoot .ex-score-mini')), 'E0 前置：当前是有答案篇目已交卷（顶栏对错小字在场）');
   for (const v of ['light', 'dark', 'yellow']) {
     await pg.click('#examRoot .ex-menubtn').catch(() => {});
     await pg.click('#examRoot .ex-oprow[data-sub="colour"]').catch(() => {});
@@ -167,11 +212,15 @@ async function answerFew(pg, sel) {
     await pg.click('#examRoot [data-opclose]').catch(() => {});
     await pg.waitForTimeout(250);
     const cls = await pg.$eval('#examRoot', e => e.className);
-    const vis = await pg.$eval('#examRoot .fx-score', e => getComputedStyle(e).display);
-    const meta = await pg.$eval('#examRoot .fx-score .fx-meta', e => getComputedStyle(e).color).catch(() => 'ERR');
+    const mini = await pg.evaluate(() => {
+      const el = document.querySelector('#examRoot .ex-score-mini');
+      if (!el) return { exists: false, text: '', display: 'none', color: 'ERR' };
+      const r = el.getBoundingClientRect();
+      return { exists: true, text: String(el.textContent || '').replace(/\s+/g, ' ').trim(), display: getComputedStyle(el).display, visible: r.width > 0 && r.height > 0, color: getComputedStyle(el).color };
+    });
     ok(/ct-/.test(cls) || v === 'light', 'E ' + v + '：配色类挂上 #examRoot（"' + cls + '"）');
-    ok(vis !== 'none' && vis !== 'ERR', 'E ' + v + '：成绩卡仍可见（display=' + vis + '）');
-    if (v === 'yellow') ok(meta === 'rgb(22, 22, 22)', 'E yellow：meta 行反成黑字（' + meta + '）');
+    ok(mini.exists && mini.visible && /correct/i.test(mini.text), 'E ' + v + '：顶栏对错小字仍可见（' + JSON.stringify(mini) + '）');
+    if (v === 'yellow') ok(mini.color === 'rgb(200, 203, 208)', 'E yellow：顶栏小字切到黄底档浅色（' + mini.color + '）');
   }
 
   // ---------- E2. 未判分横幅三档配色（无答案篇目交卷态）----------

@@ -3,6 +3,9 @@
    注入 242px 高的入口卡，把 .partbar / #bankList 顶下去 —— 手机 Slow4G 实测 CLS 0.238，
    单发偏移占 99% 且发生在遮罩收起之后（用户看得见）。
    现在卡片结构静态写在 bank.html，JS 只切 disabled / 数据不足时整块移除。
+   11-15 PERM-REG-1：11-12 P2 B 把入口卡定版成一行细白条（约 70px / 有记录时
+   多一行 17px 的「上次成绩」），原 >100px 与「前后像素完全相等」判据过期。
+   等价契约改成「首帧就有真实高度、manifest 到货不从 0 长出来、高度变化有界」。
    探针要证明四件事：
      ① 首帧（manifest 未到时）卡片就有高度（这才是「不再被顶下去」的物理保证）
      ② 首帧按钮 disabled（防止点了 Start 什么都不发生）
@@ -66,10 +69,12 @@ const ok = (c, m) => { if (c) { pass++; console.log('  ✓ ' + m); } else { fail
         lbtnDisabled: (() => { const b = lfe && lfe.querySelector('[data-lfullstart]'); return b ? b.disabled : null; })(),
       };
     });
-    ok(early.cardH > 100, '① 首帧入口卡已有高度（' + early.cardH + 'px）—— 不再靠晚注入撑开');
+    /* 11-15 PERM-REG-1：现版一行细白条约 70~76px；仍要求「首帧就有实体高度且不超高」，
+       而不是写死旧版 242px 卡片的 >100px。 */
+    ok(early.cardH >= 40 && early.cardH < 160, '① 首帧入口卡已有真实高度（' + early.cardH + 'px）—— 不再靠晚注入撑开');
     ok(early.btnExists === true, '② 首帧 Start 按钮存在');
     ok(early.btnDisabled === true, '③ 首帧按钮是 disabled（数据没到点了也没用）');
-    ok(early.lcardH > 100, '③b 听力入口卡同样静态（' + early.lcardH + 'px）');
+    ok(early.lcardH >= 40 && early.lcardH < 160, '③b 听力入口卡同样静态（' + early.lcardH + 'px）');
     ok(early.lbtnDisabled === true, '③c 听力按钮首帧也 disabled');
     const listTopEarly = early.listTop;
 
@@ -86,7 +91,10 @@ const ok = (c, m) => { if (c) { pass++; console.log('  ✓ ' + m); } else { fail
       const fe = document.getElementById('fullEntry');
       return { cardH: Math.round(fe.querySelector('.full-card').getBoundingClientRect().height) };
     });
-    ok(after.cardH === early.cardH, '⑤ 卡片高度前后一致（' + early.cardH + ' → ' + after.cardH + 'px，没有「从 0 长出来」）');
+    /* 11-15：有记录时 .fc-last 第二行会让静态卡小幅收/放（诊断 76→70px），
+       这是现版设计而非从 0 长出来。保留「不塌成 0、不撑成旧大卡、变化有界」的 CLS 意图。 */
+    ok(after.cardH >= 40 && after.cardH < 160 && Math.abs(after.cardH - early.cardH) <= 24,
+      '⑤ 卡片前后都稳定在细白条高度区间（' + early.cardH + ' → ' + after.cardH + 'px，没有「从 0 长出来」）');
 
     // ⑤ 点 Start 真能进考场（功能回归）
     await p.click('#fullEntry [data-fullstart]');
@@ -141,7 +149,9 @@ const ok = (c, m) => { if (c) { pass++; console.log('  ✓ ' + m); } else { fail
       offline: false, latency: 400, downloadThroughput: 400 * 1024 / 8, uploadThroughput: 400 * 1024 / 8,
     });
 
-    await p.goto(BASE + '/bank.html', { waitUntil: 'load' });
+    /* 11-15 PERM-REG-1：Slow4G 下等全部外链 load 会卡 30s；CLS 观察只依赖首屏 DOM，
+   改 domcontentloaded + 60s 上限，保留 FCP / layout-shift 断言本身。 */
+    await p.goto(BASE + '/bank.html', { waitUntil: 'domcontentloaded', timeout: 60000 });
     await p.waitForTimeout(9000);
     const m = await p.evaluate(() => {
       const s = window.__shifts || [];

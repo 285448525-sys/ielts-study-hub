@@ -13,6 +13,32 @@ const ok = (name, cond, extra) => {
 };
 const asleep = ms => new Promise(r => setTimeout(r, ms));
 
+/* WORDBOOK-TABS-1（11-07）/ 11-13 商城默认页：#wmLegacy 默认 hidden，
+   旧今日卡 .wb-today 在其中。10-26 WORD-4 只视觉下线、DOM 保留；
+   本探针显式恢复父容器（仅测试视图），量真实宽高与当前主题下的计算渐变。 */
+async function revealTodayCard(p, t) {
+  await p.waitForFunction(() => {
+    const mall = document.getElementById('vMall');
+    return mall && !mall.hidden && document.querySelector('#wmDeals .wm-deal');
+  }, null, { timeout: 15000 }).catch(() => {});
+  await p.evaluate((theme) => {
+    const bv = document.getElementById('bankView'); if (bv) bv.hidden = false;
+    const mall = document.getElementById('vMall'); if (mall) mall.hidden = true;
+    const book = document.getElementById('vBook'); if (book) book.hidden = true;
+    const legacy = document.getElementById('wmLegacy'); if (legacy) legacy.hidden = false;
+    const tc = document.getElementById('wbTodayCard'); if (tc) tc.hidden = false;
+    /* 页面 boot 会按 DATA.settings 重贴主题；等 boot 后再定主题，确保读到当前深色补丁。 */
+    document.documentElement.setAttribute('data-theme', theme);
+    if (window.applyTheme) try { applyTheme(theme); } catch (e) {}
+    try { localStorage.setItem('hub_theme', theme); } catch (e) {}
+  }, t);
+  await p.waitForFunction((theme) => {
+    const el = document.querySelector('.wb-today');
+    return document.documentElement.getAttribute('data-theme') === theme && el && el.getBoundingClientRect().width > 300;
+  }, t, { timeout: 10000 }).catch(() => {});
+  await asleep(400);
+}
+
 function lum(rgb) {
   const m = rgb.match(/[\d.]+/g);
   if (!m) return null;
@@ -37,28 +63,9 @@ function contrast(a, b) {
     const errs = [];
     page.on('pageerror', e => errs.push(String(e)));
     await page.goto(BASE + '/practice.html', { waitUntil: 'domcontentloaded' });
-    // 播种一份含到期词的 DATA，让今日卡有内容；再强制主题
-    await page.evaluate((t) => {
-      const d = JSON.parse(localStorage.getItem('hub_data_v1') || '{}');
-      document.documentElement.setAttribute('data-theme', t);
-      try { localStorage.setItem('hub_theme', t); } catch (e) {}
-    }, theme);
-    await page.evaluate((t) => {
-      document.documentElement.setAttribute('data-theme', t);
-      if (window.applyTheme) try { applyTheme(t); } catch (e) {}
-    }, theme);
     await asleep(600);
-
     console.log('\n===== ' + theme + ' =====');
-
-    // 今日卡默认在「词库」标签里且 hidden → 强制显示再量宽度、截图
-    await page.evaluate(() => {
-      const bv = document.getElementById('bankView');
-      const tc = document.getElementById('wbTodayCard');
-      if (bv) bv.hidden = false;
-      if (tc) tc.hidden = false;
-    });
-    await asleep(400);
+    await revealTodayCard(page, theme);
 
     const card = await page.evaluate(() => {
       const el = document.querySelector('.wb-today');
@@ -76,8 +83,11 @@ function contrast(a, b) {
       const worst = cs.length ? Math.min.apply(null, cs) : 0;
       ok(theme + ' 今日卡白字对比 ≥4.5', worst >= 4.5, '最差 ' + worst.toFixed(2) + ':1');
       if (theme === 'dark') {
+        /* 10-25 DK-4b 在 common.css 钉的深墨绿补丁 #2c4f4c→#1a3b38
+           是当前深色真值；practice.html 页内的 var(--primary-800/900) 旧写法已被它覆盖。 */
         const l0 = lum(rgb[0] || '');
         ok('深色下渐变首端确实是深色', l0 != null && l0 < 0.25, '亮度 ' + (l0 || 0).toFixed(3));
+        ok('深色下用的是 DK-4b 深墨绿渐变', /rgb\(44,\s*79,\s*76\)/.test(rgb[0] || '') && /rgb\(26,\s*59,\s*56\)/.test(rgb[1] || ''), rgb.join(' → '));
       }
     }
 
@@ -121,12 +131,7 @@ function contrast(a, b) {
     }
     ok(theme + ' 无页面报错', errs.length === 0, errs.slice(0, 2).join(' | '));
 
-    // 落截图（落 design/，不落 tests/）
-    await page.screenshot({ path: 'C:\\Users\\Camille\\Desktop\\雅思\\design\\_shot_pracdark_' + theme + '_1023.png', clip: await page.evaluate(() => {
-      const r = document.querySelector('.wb-today').getBoundingClientRect();
-      return { x: Math.max(0, r.x - 12), y: Math.max(0, r.y - 12), width: Math.min(1200, r.width + 24), height: r.height + 24 };
-    }) });
-
+    // 第六批本地维修：不再把截图写进 design/；渐变、对比与尺寸都用计算样式实测。
     await page.evaluate(() => { const h = document.getElementById('__probe_rw'); if (h) h.remove(); });
     await page.close();
   }
@@ -137,13 +142,8 @@ function contrast(a, b) {
     const errs = [];
     page.on('pageerror', e => errs.push(String(e)));
     await page.goto(BASE + '/practice.html', { waitUntil: 'domcontentloaded' });
-    await page.evaluate(() => {
-      const bv = document.getElementById('bankView');
-      const tc = document.getElementById('wbTodayCard');
-      if (bv) bv.hidden = false;
-      if (tc) tc.hidden = false;
-    });
     await asleep(600);
+    await revealTodayCard(page, 'dark');
     console.log('\n===== 手机 390 =====');
     const m = await page.evaluate(() => {
       const el = document.querySelector('.wb-today');
@@ -160,7 +160,6 @@ function contrast(a, b) {
     ok('390 无横向溢出', m.scrollW <= m.clientW + 1, m.scrollW + ' / ' + m.clientW);
     ok('390 开始复习按钮全宽且 44 高', m.btnW > 240 && m.btnH >= 44, Math.round(m.btnW) + '×' + Math.round(m.btnH));
     ok('390 无页面报错', errs.length === 0, errs.slice(0, 2).join(' | '));
-    await page.screenshot({ path: 'C:\\Users\\Camille\\Desktop\\雅思\\design\\_shot_pracdark_390_1023.png', fullPage: false });
     await page.close();
   }
 

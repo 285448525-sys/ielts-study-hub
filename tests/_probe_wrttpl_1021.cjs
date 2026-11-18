@@ -3,6 +3,10 @@
    ② 新增「列表视图」（网格/列表两态，选择记 localStorage）。
    本支只用自建模板做验证：把 curCat 指到一个不存在的分类「探针专用」，
    避开出厂模板补齐（ensureWriting 会往 DATA.writing 里补官方模板）带来的条数波动。
+   11-15 PERM-REG-1 / WRITING-TABS-1（11-08）：writing.html 默认落在 #wrPaneHome，
+   旧 #writeTabs / #tplPanel 桌面隐藏；模板库现版入口是 #wr=tpl 深链或
+   window.__wrTabs.show('tpl')。boot / reload 后都要先落到模板库 pane，
+   再点 #tplView，保留列表视图 + 刷新记住 + 筛选正交三条原断言。
    用法：node tests/_with_server.cjs tests/_probe_wrttpl_1021.cjs 8857 */
 const { chromium } = require('playwright-core');
 const EDGE = 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
@@ -25,6 +29,19 @@ const SEED = JSON.stringify({
   writingPhrases: [],
 });
 
+/* 11-15 WRITING-TABS-1：现版走产品自己的 #wr=tpl 深链；若页面已经加载完，
+   再用 window.__wrTabs.show('tpl') 显式落到同一 pane（刷新 / 软导航都兼容）。 */
+async function showTplPane(p) {
+  await p.waitForFunction(() => !!(window.__wrTabs && typeof window.__wrTabs.show === 'function'), null, { timeout: 20000 });
+  await p.evaluate(() => window.__wrTabs.show('tpl'));
+  await p.waitForFunction(() => {
+    const pane = document.getElementById('tplPanel');
+    const btn = document.querySelector('#tplView [data-view="list"]');
+    return pane && !pane.hidden && btn && btn.getBoundingClientRect().width > 0;
+  }, null, { timeout: 20000 });
+  await sleep(300);
+}
+
 async function boot(b) {
   const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } });
   await ctx.addInitScript(sd => {
@@ -37,8 +54,9 @@ async function boot(b) {
   const p = await ctx.newPage();
   const errs = [];
   p.on('pageerror', e => errs.push(String(e).slice(0, 200)));
-  await p.goto(BASE + '/writing.html', { waitUntil: 'domcontentloaded' });
+  await p.goto(BASE + '/writing.html#wr=tpl', { waitUntil: 'domcontentloaded' });
   await sleep(2500);
+  await showTplPane(p);
   /* 固定到「探针专用」分类，隔离出厂模板补齐 */
   await p.evaluate(() => { curCat = '探针专用'; curLevel = 'all'; tplSearch = ''; renderList(); });
   await sleep(300);
@@ -123,6 +141,7 @@ async function boot(b) {
 
     await p.reload({ waitUntil: 'domcontentloaded' });
     await sleep(2000);
+    await showTplPane(p);
     const r2 = await p.evaluate(() => {
       const box = document.getElementById('tplList');
       return { cls: box.className, hasListBtn: !!document.querySelector('#tplView [data-view="list"]') };

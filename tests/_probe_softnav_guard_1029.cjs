@@ -104,10 +104,18 @@ const ok = (n, c, x) => { if (c) { pass++; console.log('  ok  ' + n + (x ? '  ' 
     tab.click();
     await new Promise(r => setTimeout(r, 900));
     const pane = document.querySelector('#pane-listening');
-    return { flag, listeners, active: Array.from(document.querySelectorAll('.pill-tab.active')).map(x => (x.textContent || '').trim()), disp: pane ? getComputedStyle(pane).display : 'none' };
+    const listenItems = pane ? pane.querySelectorAll('.bank-item[data-ch="listening"]').length : 0;
+    return { flag, listeners, active: Array.from(document.querySelectorAll('.pill-tab.active')).map(x => (x.textContent || '').trim()),
+             disp: pane ? getComputedStyle(pane).display : 'none', paneHidden: pane ? pane.hidden : true, listenItems };
   });
   ok('G1 bank 守卫为真时监听真实存在', !bank.flag || bank.listeners > 0, JSON.stringify(bank));
-  ok('G2 6 轮后 bank 科目切换仍生效', bank.disp === 'block' && (bank.active || []).some(t => /听力/.test(t)), JSON.stringify(bank));
+  /* 11-08 MODULE-MOVE-1 / 当前 bank.html #bankRoot > .mock-pane:not([hidden]) 是 display:contents：
+     旧「display === block」只是旧壳的写法，不是交互是否生效。G2 改守行为：
+     点听力后 active 命中、pane 未隐藏且不 display:none、听力条目真实在，监听仍只有 1 份。 */
+  ok('G2 6 轮后 bank 科目切换仍生效（display:contents 等价合同）',
+    !bank.flag || (bank.listeners === 1 && !bank.paneHidden && bank.disp !== 'none' &&
+      bank.listenItems > 0 && (bank.active || []).some(t => /听力/.test(t))),
+    JSON.stringify(bank));
 
   /* 特征串取 listener **函数体内**真实出现的标记（'wb-seg-btn' 是委托里 closest 的选择器）。
      ⚠️ 别拿附近别的函数的名字（如 _switcherHtml）当特征 —— 那不在监听体里，永远匹配 0 条 → 假红。 */

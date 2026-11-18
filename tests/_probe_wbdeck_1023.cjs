@@ -26,15 +26,25 @@ function seedScript(nWords) {
   })();`;
 }
 
+/* WORD-4（10-26）把旧词书网格 #wbDeckGrid 视觉下线，只加 hidden；
+   WORDBOOK-TABS-1（11-07）/ 11-13 商城默认页又让 wb-tabs.js 的 show('home') 隐藏整个 #wmLegacy。
+   js/words.js 仍往 #wbDecks 写数据，DOM/id 都保留。旧探针量的是这层退役测试视图：
+   等默认商城渲染完成后显式展开它，并另加一条当前商城可见卡片的等价值检查。 */
 async function openBank(page) {
   await page.goto(BASE + '/practice.html', { waitUntil: 'domcontentloaded' });
-  await asleep(800);
+  await page.waitForFunction(() => {
+    const mall = document.getElementById('vMall');
+    return mall && !mall.hidden && document.querySelector('#wmDeals .wm-deal');
+  }, null, { timeout: 15000 }).catch(() => {});
   await page.evaluate(() => {
-    const tab = document.querySelector('[data-wtab="bank"]');
-    if (tab) tab.click();
-    const bv = document.getElementById('bankView');
-    if (bv) bv.hidden = false;
+    const bv = document.getElementById('bankView'); if (bv) bv.hidden = false;
+    const mall = document.getElementById('vMall'); if (mall) mall.hidden = true;
+    const book = document.getElementById('vBook'); if (book) book.hidden = true;
+    const legacy = document.getElementById('wmLegacy'); if (legacy) legacy.hidden = false;
+    /* 10-26 WORD-4：纯视觉退役；这里只在探针里恢复它，用来守住 words.js 的数据/布局契约。 */
+    const grid = document.getElementById('wbDeckGrid'); if (grid) grid.hidden = false;
   });
+  await page.waitForFunction(() => document.querySelectorAll('#wbDecks .wb-deck').length >= 2, null, { timeout: 15000 }).catch(() => {});
   await asleep(600);
 }
 
@@ -69,6 +79,26 @@ async function openBank(page) {
     });
 
     ok('词书网格渲染出书卡', r.decks.length >= 2, r.decks.length + ' 张');
+    /* 11-13 当前产品默认 #vMall：退役网格之外，商城卡片必须真实可见且可点。 */
+    const mallCard = await page.evaluate(async () => {
+      const mall = document.getElementById('vMall'), legacy = document.getElementById('wmLegacy');
+      if (mall) mall.hidden = false;
+      if (legacy) legacy.hidden = true;
+      if (window.__wmShowMall) window.__wmShowMall();
+      if (window.__wmRender) window.__wmRender();
+      await new Promise(r => setTimeout(r, 200));
+      const card = document.querySelector('#wmDeals .wm-deal');
+      const rect = card ? card.getBoundingClientRect() : null;
+      return { n: document.querySelectorAll('#wmDeals .wm-deal').length,
+               w: rect ? Math.round(rect.width) : 0, h: rect ? Math.round(rect.height) : 0 };
+    });
+    ok('11-13 当前词书商城卡片可见且可点（退役视图的等价值）',
+      mallCard.n > 0 && mallCard.w >= 100 && mallCard.h >= 44, JSON.stringify(mallCard));
+    await page.evaluate(() => {
+      const mall = document.getElementById('vMall'); if (mall) mall.hidden = true;
+      const legacy = document.getElementById('wmLegacy'); if (legacy) legacy.hidden = false;
+      const grid = document.getElementById('wbDeckGrid'); if (grid) grid.hidden = false;
+    });
     ok('自定义词库是第一张卡', r.decks[0] && r.decks[0].key === 'custom', r.decks[0] ? r.decks[0].name : '');
     ok('官方词包也有一张卡', r.decks.some(d => d.key !== 'custom'), r.decks.filter(d => d.key !== 'custom').map(d => d.name).join(','));
     ok('末尾有「+ 添加词书」虚线卡', r.addCard);
@@ -88,8 +118,7 @@ async function openBank(page) {
     ok('当前书卡有 cur 标记', custom && custom.cur === true);
     ok('无页面报错', errs.length === 0, errs.slice(0, 2).join(' | '));
 
-    await page.screenshot({ path: 'C:\\Users\\Camille\\Desktop\\雅思\\design\\_shot_wbdeck_1440_1023.png' });
-
+    // 10-26 WORD-4 退役视图只由本探针测，不再把截图写进 design/（第六批本地维修边界）。
     // 点官方书卡 → 切库
     const before = await page.evaluate(() => (typeof wbActive === 'function' ? wbActive() : '?'));
     await page.evaluate(() => { const c = document.querySelector('#wbDecks .wb-deck[data-deck="awl"]'); if (c) c.click(); });
@@ -147,7 +176,6 @@ async function openBank(page) {
     ok(vw + ' 添加词书卡可点', r.addH >= 44, r.addH + 'px');
     ok(vw + ' 无横向溢出', r.scrollW <= r.clientW + 1, r.scrollW + ' / ' + r.clientW);
     ok(vw + ' 无页面报错', errs.length === 0, errs.slice(0, 2).join(' | '));
-    if (vw === 375) await page.screenshot({ path: 'C:\\Users\\Camille\\Desktop\\雅思\\design\\_shot_wbdeck_375_1023.png' });
     await page.close();
   }
 
@@ -178,7 +206,6 @@ async function openBank(page) {
     ok('深色下书名可读', con(r.nameColor, r.deckBg) >= 4.5, r.nameColor + ' = ' + con(r.nameColor, r.deckBg).toFixed(2) + ':1');
     ok('深色下待复习数字可读', con(r.numColor, r.deckBg) >= 4.5, r.numColor + ' = ' + con(r.numColor, r.deckBg).toFixed(2) + ':1');
     ok('深色下添加卡文字可读', con(r.addColor, r.pageBg) >= 3, r.addColor + ' = ' + con(r.addColor, r.pageBg).toFixed(2) + ':1');
-    await page.screenshot({ path: 'C:\\Users\\Camille\\Desktop\\雅思\\design\\_shot_wbdeck_dark_1023.png' });
     await page.close();
   }
 
@@ -192,7 +219,8 @@ async function openBank(page) {
     const r = await page.evaluate(() => {
       const decks = [...document.querySelectorAll('#wbDecks .wb-deck')];
       const add = document.getElementById('wbDeckAdd');
-      const empty = document.querySelector('#wordList .empty');
+      /* 11-12 空态统一卡 renderEmpty() 包成 .esys--compat；原 .empty-t / #emptyOpenImport 内容保留。 */
+      const empty = document.querySelector('#wordList .esys--compat, #wordList .empty');
       return {
         deckN: decks.length,
         custom: decks[0] ? { num: (decks[0].querySelector('.wb-deck-num b')||{}).textContent, meta: (decks[0].querySelector('.wb-deck-meta')||{}).textContent } : null,
@@ -206,7 +234,7 @@ async function openBank(page) {
     ok('空词库的书卡老实写「还没有单词」', r.custom && /还没有单词/.test(r.custom.meta || ''), r.custom ? r.custom.meta + ' / 待复习 ' + r.custom.num : '');
     ok('空词库的待复习数是 0', r.custom && r.custom.num === '0');
     ok('「+ 添加词书」卡还在', r.hasAdd);
-    ok('空词库仍有列表空态引导', !!r.emptyText && !!r.emptyBtn, r.emptyText || '');
+    ok('空词库仍有列表空态引导（统一 .esys 卡）', !!r.emptyText && !!r.emptyBtn, r.emptyText || '');
     ok('无页面报错', errs.length === 0, errs.slice(0, 2).join(' | '));
     await page.close();
   }

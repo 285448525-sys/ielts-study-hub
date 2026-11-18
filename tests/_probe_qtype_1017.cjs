@@ -9,6 +9,10 @@
      D 空态给指路文案
      E 「近十天」筛选对题型统计生效
      F 手机 390 无横向溢出
+   11-15 PERM-REG-1：11-13 REVIEW-REDESIGN-3 把统计区收进 records pane 的两层
+   <details>（#reRecFold / .rv2-more），#mkFilter 也改成 hidden。统计本体仍是
+   js/scores.js 的 qtypeAggregate()/renderQtypeStats()；探针改成走现版 records
+   深链、展开折叠、派发隐藏 select 的 change，不删任何数字断言。
    ⚠️ tests/ 在 .gitignore 内，仅本地探针。 */
 const fs = require('fs');
 const path = require('path');
@@ -57,13 +61,62 @@ function expectedCodes(unitId) {
 /* 播种：只种不覆盖（addInitScript 每次导航都重跑，无条件写会冲掉刚交卷落盘的数据 → 假失败） */
 const seed = (recs) => (args) => {
   try {
-    try { localStorage.setItem('hub_exam_guide_v2_reading','1'); localStorage.setItem('hub_exam_guide_v2_listening','1'); } catch (e) {}
+    /* 11-15 PERM-REG-1：补 EXAM-TIMER-CHOICE-1 的官方旁路（js/exam-timer.js:114），
+       否则单篇阅读进场先问「要不要计时」，A 段端到端连卷子都打不开。 */
+    try { localStorage.setItem('hub_exam_guide_v2_reading','1'); localStorage.setItem('hub_exam_guide_v2_listening','1'); localStorage.setItem('hub_exam_timer_auto','20'); } catch (e) {}
     if (!localStorage.getItem('hub_onboarding_v2')) localStorage.setItem('hub_onboarding_v2', JSON.stringify({ v: 2, entered: true, finished: true, snoozed: true, setup: { examDate: '2026-12-01' } }));
-    if (!localStorage.getItem('ielts_study_hub_v1')) localStorage.setItem('ielts_study_hub_v1', JSON.stringify({ settings: { examDate: '2026-12-01' }, mockRecords: args && args.recs || [] }));
+    if (!localStorage.getItem('ielts_study_hub_v1')) {
+      /* 11-15：REVIEW-REDESIGN-3 的空成绩 hero 会用 :has() 把 #reRecFold 整块隐藏；
+         种一条真实格式的 DATA.scores，只让低频统计区恢复到「有成绩账号」的正常态。
+         这条成绩不进 qtypeAggregate（题型统计只读 mockRecords[].detail），不改任何断言数字。 */
+      const today = new Date();
+      const dk = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+      localStorage.setItem('ielts_study_hub_v1', JSON.stringify({
+        settings: { examDate: '2026-12-01' },
+        scores: [{ id: 'probe-score-1', date: dk, listening: 6, reading: 6, writing: 6, speaking: 6, note: '探针现版布局夹具' }],
+        mockRecords: args && args.recs || []
+      }));
+    }
+    /* BANK-DONE-ROW-1（11-01）：清「做过了」留痕，避免 A 段点篇目先弹重做选择。 */
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i);
+      if (/^hub_bank_last_/.test(k || '')) localStorage.removeItem(k);
+    }
   } catch (e) {}
 };
 
 const getData = (pg) => pg.evaluate(() => JSON.parse(localStorage.getItem('ielts_study_hub_v1') || '{}'));
+
+/* 11-15 PERM-REG-1 / REVIEW-REDESIGN-3（11-13）：题型统计折在 records pane 的
+   #reRecFold → .rv2-more 两层 <details> 里，#mkFilter hidden 但 change 监听仍有效。
+   这里只走产品现成入口；空态另用 #mkQtStats.textContent（innerText 在收起时为空）。 */
+async function openQtypeStats(pg) {
+  await pg.waitForSelector('#mkQtStats', { state: 'attached', timeout: 15000 });
+  await pg.evaluate(() => {
+    if (window.__rvTabs && typeof window.__rvTabs.show === 'function') window.__rvTabs.show('records');
+    const outer = document.getElementById('reRecFold');
+    if (outer && !outer.open) outer.open = true;
+    const perf = document.querySelector('.rv2-performance');
+    const more = perf && perf.querySelector('.rv2-more');
+    if (more && !more.open) more.open = true;
+  });
+  await pg.waitForTimeout(1200);
+}
+async function setQtypeRange(pg, value) {
+  return await pg.evaluate((v) => {
+    const sel = document.getElementById('mkFilter');
+    if (!sel) return false;
+    sel.value = v;
+    sel.dispatchEvent(new Event('change', { bubbles: true }));
+    return sel.value === v;
+  }, value);
+}
+async function qtypeText(pg) {
+  return await pg.evaluate(() => {
+    const box = document.getElementById('mkQtStats');
+    return box ? String(box.textContent || '').replace(/\s+/g, ' ').trim() : '';
+  });
+}
 
 (async () => {
   const browser = await chromium.launch({ executablePath: EDGE, headless: true });
@@ -114,8 +167,7 @@ const getData = (pg) => pg.evaluate(() => JSON.parse(localStorage.getItem('ielts
   const bErrs = [];
   pgA.on('pageerror', e => bErrs.push(String(e && e.message || e)));
   await pgA.goto(BASE + '/review.html', { waitUntil: 'load' });
-  await pgA.waitForSelector('#mkQtStats', { timeout: 15000 });
-  await pgA.waitForTimeout(1200);
+  await openQtypeStats(pgA);
   const want2 = {};
   det.forEach(d => { const c = String(d.t); want2[c] = want2[c] || { c: 0, t: 0 }; want2[c].t++; if (d.ok) want2[c].c++; });
   const b = await pgA.evaluate(() => {
@@ -124,7 +176,7 @@ const getData = (pg) => pg.evaluate(() => JSON.parse(localStorage.getItem('ielts
       label: r.querySelector('.bar-info span')?.textContent || '',
       pct: (r.querySelector('.bar-info span:last-child')?.textContent || '').replace('%', '')
     }));
-    return { rows, note: box.querySelector('.mk-qt-note')?.textContent || '', text: box.innerText || '' };
+    return { rows, note: box.querySelector('.mk-qt-note')?.textContent || '', text: box.textContent || '' };
   });
   ok(b.rows.length === Object.keys(want2).length, '⑫ 进度条条数 == 记录里的题型数（' + b.rows.length + ' vs ' + Object.keys(want2).length + '）');
   let allPct = true, detailTxt = [];
@@ -165,8 +217,7 @@ const getData = (pg) => pg.evaluate(() => JSON.parse(localStorage.getItem('ielts
   const pgC = await ctxC.newPage();
   pgC.on('pageerror', e => cErrs.push(String(e && e.message || e)));
   await pgC.goto(BASE + '/review.html', { waitUntil: 'load' });
-  await pgC.waitForSelector('#mkQtStats', { timeout: 15000 });
-  await pgC.waitForTimeout(1200);
+  await openQtypeStats(pgC);
   const c = await pgC.evaluate(() => {
     const box = document.getElementById('mkQtStats');
     return { rows: Array.from(box.querySelectorAll('.bar-row')).map(r => (r.querySelector('.bar-info span')?.textContent || '')),
@@ -178,7 +229,10 @@ const getData = (pg) => pg.evaluate(() => JSON.parse(localStorage.getItem('ielts
   ok(c.rows.some(t => t.indexOf('匹配题') === 0 && t.indexOf('0/1') > -1), '㉒ 最弱题型（匹配题 0/1）以 0% 出现而不是被跳过');
 
   console.log('\n[E] 「近十天」筛选对题型统计生效');
-  await pgC.selectOption('#mkFilter', 'recent');
+  /* 11-15 REVIEW-REDESIGN-3：#mkFilter 仍在 DOM 但默认 hidden；走它真实的 change
+     监听（scores.js:43 → renderMock → renderQtypeStats），而不是 Playwright 可见点击。 */
+  const rangeSet = await setQtypeRange(pgC, 'recent');
+  ok(rangeSet, 'E0 「近十天」筛选控件仍接在题型统计上');
   await pgC.waitForTimeout(800);
   const e = await pgC.evaluate(() => {
     const box = document.getElementById('mkQtStats');
@@ -193,9 +247,8 @@ const getData = (pg) => pg.evaluate(() => JSON.parse(localStorage.getItem('ielts
   await ctxD.addInitScript(seed([]));
   const pgD = await ctxD.newPage();
   await pgD.goto(BASE + '/review.html', { waitUntil: 'load' });
-  await pgD.waitForSelector('#mkQtStats', { timeout: 15000 });
-  await pgD.waitForTimeout(1000);
-  const dtxt = await pgD.evaluate(() => (document.getElementById('mkQtStats').innerText || '').replace(/\s+/g, ' '));
+  await openQtypeStats(pgD);
+  const dtxt = await qtypeText(pgD);
   ok(dtxt.indexOf('交卷') > -1, '㉕ 空态指路文案（' + dtxt.slice(0, 52) + '…）');
   await ctxD.close();
 
@@ -205,8 +258,7 @@ const getData = (pg) => pg.evaluate(() => JSON.parse(localStorage.getItem('ielts
   await ctxF.addInitScript(seed(RECS), { recs: RECS });
   const pgF = await ctxF.newPage();
   await pgF.goto(BASE + '/review.html', { waitUntil: 'load' });
-  await pgF.waitForSelector('#mkQtStats', { timeout: 15000 });
-  await pgF.waitForTimeout(1200);
+  await openQtypeStats(pgF);
   const f = await pgF.evaluate(() => ({
     sw: document.documentElement.scrollWidth, rows: document.querySelectorAll('#mkQtStats .bar-row').length,
     noteW: (document.querySelector('#mkQtStats .mk-qt-note') || {}).scrollWidth || 0,

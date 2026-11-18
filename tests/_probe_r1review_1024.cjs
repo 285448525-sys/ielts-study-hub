@@ -1,11 +1,14 @@
 /* R-1 第一批验收：顶栏「回顾」二级菜单四项 → 两项（成绩 / 轨迹）。
-   判据全部走真浏览器实测：
+   2026-11-13 REVIEW-REDESIGN-3（v870）：旧 #tab-score / #tab-record / .review-pill-tabs 全撤，
+   改为 js/rv-tabs.js 的 data-rv-pane + #rv2Summary / #recAll；rvx-data.js deepLink() 接老书签。
+   判据仍全部走真浏览器实测，旧断言意图逐项映射：
    ① 桌面悬停「回顾」只出 2 项，文案是「成绩 / 轨迹」
-   ② 点「成绩」→ 落到 #tab-score（内容 = 原模考+实战+口语三块都在里面）
-   ③ 点「轨迹」→ 落到 #tab-record
-   ④ 三个老深链值（breakdown / overall / speaking）仍落到成绩栏 —— 旧书签不能变空白
-   ⑤ 桌面 1280 页内 tab 条仍隐藏（红线第 4 条：不许把桌面 tab 加回来）
-   ⑥ 手机 390 页内 tab 是 2 项
+   ② 点「成绩」→ 当前总览栏（整卷 + 四科分项 + 口语格都在 #rv2Summary）
+   ③ 点「轨迹」→ 当前记录栏（#recAll 可见，记录筛选回到全部）
+   ④ 三个老深链值（breakdown / overall / speaking）仍落到成绩对应栏 —— 旧书签不能变空白
+   ⑤ 桌面 1280 #rvMobileTabs 隐藏（红线第 4 条：不许把桌面页内 tab 加回来）
+   ⑥ 手机 390 顶栏 2 项仍是「成绩 / 轨迹」；当前页内 tab 由 REVIEW-REDESIGN-3 改成 3 项
+      「总览 / 趋势 / 记录」，另验不把两套口径混成一个不存在的产品结构。
    用法：BASE 环境变量或第一个参数。 */
 const { chromium } = require('playwright-core');
 const EDGE = 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
@@ -45,7 +48,33 @@ const ok = (n, c, x) => { if (c) { pass++; console.log('  ok  ' + n + (x !== und
     ok('①4 sub 值是 score / record', sub && sub.items[0].sub === 'score' && sub.items[1].sub === 'record', sub && sub.items.map(i => i.sub));
   }
 
-  /* ② 点「成绩」→ 落 #tab-score */
+  /* 11-13 REVIEW-REDESIGN-3：统一从当前 rv-tabs.js / rvx-data.js 实测状态，
+     不再读取已移除的 #tab-score / #tab-record / .review-pill-tabs。 */
+  const readRv = async (page) => page.evaluate(() => {
+    const q = id => document.getElementById(id);
+    const visible = el => !!el && !el.hidden && getComputedStyle(el).display !== 'none' && el.getBoundingClientRect().width > 0;
+    const sub = q('tbsub-review');
+    const m = q('rvMobileTabs');
+    const summary = q('rv2Summary');
+    const rec = q('recAll');
+    return {
+      url: location.pathname + location.search,
+      cur: window.__rvCur || null,
+      scoreOn: visible(summary) && (window.__rvCur || 'home') === 'home',
+      recordOn: visible(rec) && window.__rvCur === 'records',
+      /* 原分项/整卷/口语三块 → 当前总览卡的整卷分 + 四科格（含口语） */
+      hasBreakdown: !!(q('rvxCellL') && q('rvxCellR') && q('rvxCellW') && q('rvxCellS')),
+      hasOverall: !!q('rvxNumAll'),
+      hasSpeaking: !!q('rvxNumS'),
+      recFilter: q('recordFilter') ? q('recordFilter').value : '',
+      subItems: sub ? [...sub.querySelectorAll('.tb-sub-item')].map(a => a.textContent.trim()) : [],
+      mobile: m ? { display: getComputedStyle(m).display, n: m.querySelectorAll('[data-rv-tab]').length,
+                    labels: [...m.querySelectorAll('[data-rv-tab]')].map(x => x.textContent.trim()) } : null,
+      legacyPill: !!document.querySelector('.review-pill-tabs')
+    };
+  });
+
+  /* ② 点「成绩」→ 当前总览成绩栏 */
   const clickSub = async (label) => {
     await p.evaluate((lb) => {
       const el = document.getElementById('tbsub-review');
@@ -53,85 +82,56 @@ const ok = (n, c, x) => { if (c) { pass++; console.log('  ok  ' + n + (x !== und
       if (a) a.click();
     }, label);
     await sleep(3200);
-    return await p.evaluate(() => {
-      const bar = document.querySelector('.review-pill-tabs');
-      const activeBtn = bar ? (bar.querySelector('.tab-btn.active') || {}).dataset : null;
-      const score = document.getElementById('tab-score');
-      const record = document.getElementById('tab-record');
-      const isShown = el => el ? getComputedStyle(el).display !== 'none' && el.classList.contains('active') : false;
-      return {
-        url: location.pathname + location.search,
-        activeBtn: activeBtn && activeBtn.tab,
-        scoreOn: isShown(score),
-        recordOn: isShown(record),
-        hasBreakdown: !!document.querySelector('#tab-score #tab-breakdown'),
-        hasOverall: !!document.querySelector('#tab-score #tab-overall'),
-        hasSpeaking: !!document.querySelector('#tab-score #tab-speaking'),
-      };
-    });
+    return await readRv(p);
   };
 
   const r1 = await clickSub('成绩');
   console.log('  点「成绩」后：' + JSON.stringify(r1));
-  ok('②1 落在成绩栏', r1.scoreOn === true && r1.recordOn === false, r1);
-  ok('②2 成绩栏里三块原内容都在（分项/整卷/口语）', r1.hasBreakdown && r1.hasOverall && r1.hasSpeaking, r1);
+  ok('②1 落在成绩对应总览栏', r1.cur === 'home' && r1.scoreOn === true && r1.recordOn === false, r1);
+  ok('②2 成绩栏里三块原内容都有等价落点（分项/整卷/口语）', r1.hasBreakdown && r1.hasOverall && r1.hasSpeaking, r1);
   ok('②3 地址栏带上 sub=score', /sub=score/.test(r1.url || ''), r1.url);
 
   const r2 = await clickSub('轨迹');
   console.log('  点「轨迹」后：' + JSON.stringify(r2));
-  ok('③1 落在轨迹栏', r2.recordOn === true && r2.scoreOn === false, r2);
+  ok('③1 落在轨迹对应记录栏', r2.cur === 'records' && r2.recordOn === true && r2.scoreOn === false && r2.recFilter === 'all', r2);
   ok('③2 地址栏带上 sub=record', /sub=record/.test(r2.url || ''), r2.url);
 
-  /* ④ 三个老深链值仍落到成绩栏（旧书签不能白页） */
+  /* ④ 三个老深链值仍落到成绩对应栏（旧书签不能白页） */
   for (const old of ['breakdown', 'overall', 'speaking']) {
     await p.goto(BASE + '/review.html?sub=' + old, { waitUntil: 'load' });
     await sleep(2000);
-    const r = await p.evaluate(() => {
-      const score = document.getElementById('tab-score');
-      const record = document.getElementById('tab-record');
-      const on = el => el ? (getComputedStyle(el).display !== 'none' && el.classList.contains('active')) : false;
-      return { scoreOn: on(score), recordOn: on(record) };
-    });
-    ok('④ 老深链 ?sub=' + old + ' 仍落到成绩栏', r.scoreOn === true && r.recordOn === false, r);
+    const r = await readRv(p);
+    ok('④ 老深链 ?sub=' + old + ' 仍落到成绩对应栏', r.cur === 'home' && r.scoreOn === true && r.recordOn === false, r);
   }
 
   /* 新建值深链 */
   await p.goto(BASE + '/review.html?sub=record', { waitUntil: 'load' });
   await sleep(1800);
-  const rr = await p.evaluate(() => {
-    const record = document.getElementById('tab-record');
-    return { on: record ? (getComputedStyle(record).display !== 'none' && record.classList.contains('active')) : false };
-  });
-  ok('④2 新深链 ?sub=record 落到轨迹栏', rr.on === true, rr);
+  const rr = await readRv(p);
+  ok('④2 新深链 ?sub=record 落到轨迹对应栏', rr.cur === 'records' && rr.recordOn === true && rr.recFilter === 'all', rr);
 
-  /* ⑤ 桌面页内 tab 条必须仍隐藏（红线） */
+  /* ⑤ 桌面 1280 当前 #rvMobileTabs 必须仍隐藏（红线） */
   await p.goto(BASE + '/review.html', { waitUntil: 'load' });
   await sleep(1800);
-  const deskTab = await p.evaluate(() => {
-    const bar = document.querySelector('.review-pill-tabs');
-    if (!bar) return { exists: false };
-    const cs = getComputedStyle(bar);
-    const r = bar.getBoundingClientRect();
-    return { exists: true, display: cs.display, visibility: cs.visibility, w: Math.round(r.width), h: Math.round(r.height) };
-  });
-  console.log('  桌面页内 tab：' + JSON.stringify(deskTab));
-  ok('⑤1 桌面 1280 页内 tab 条仍隐藏（红线第 4 条）', deskTab.exists && deskTab.display === 'none', deskTab);
+  const desk = await readRv(p);
+  console.log('  桌面页内 tab：' + JSON.stringify(desk.mobile));
+  ok('⑤1 桌面 1280 页内 tab 条仍隐藏（红线第 4 条）',
+    !!desk.mobile && desk.mobile.display === 'none' && !desk.legacyPill, desk.mobile);
 
-  /* ⑥ 手机 390：tab 两项 */
+  /* ⑥ 手机 390：顶栏仍只有 2 项「成绩 / 轨迹」；
+     当前页内 tab 是 REVIEW-REDESIGN-3 的 3 项总览/趋势/记录，两者分别验，不混口径。 */
   const c2 = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   const p2 = await c2.newPage();
   p2.on('pageerror', e => errs.push('M ' + String(e).slice(0, 140)));
   await p2.goto(BASE + '/review.html', { waitUntil: 'load' });
   await sleep(2200);
-  const mob = await p2.evaluate(() => {
-    const bar = document.querySelector('.review-pill-tabs');
-    if (!bar) return { exists: false };
-    const btns = [...bar.querySelectorAll('.tab-btn')];
-    return { exists: true, display: getComputedStyle(bar).display, n: btns.length, labels: btns.map(b => b.textContent.trim()) };
-  });
-  console.log('  手机页内 tab：' + JSON.stringify(mob));
-  ok('⑥1 手机 tab 是 2 项', mob.exists && mob.n === 2, mob);
-  ok('⑥2 手机 tab 文案是成绩/轨迹', mob.labels && mob.labels.join('/') === '成绩/轨迹', mob.labels);
+  const mob = await readRv(p2);
+  console.log('  手机页内 tab：' + JSON.stringify(mob.mobile));
+  ok('⑥1 手机顶栏仍是 2 项（成绩 / 轨迹）',
+    mob.subItems.length === 2 && mob.subItems.join('/') === '成绩/轨迹', mob.subItems);
+  ok('⑥2 手机页内 tab 是 REVIEW-REDESIGN-3 的 3 项且可见',
+    !!mob.mobile && mob.mobile.display === 'flex' && mob.mobile.n === 3 &&
+    mob.mobile.labels.join('/') === '总览/趋势/记录', mob.mobile);
 
   ok('⑦ 全程零 pageerror', errs.length === 0, errs.slice(0, 3));
 

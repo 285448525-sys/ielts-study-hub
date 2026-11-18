@@ -1,5 +1,7 @@
 ﻿/* B-6 小步1 验收：.streak-chip 三段定义收敛后「三处在用的地方零变化」
-   ① 首页 home.html 倒计时条 .hline 里的连续天数 chip（.hline .streak-chip 覆盖仍在）
+   ① 2026-10-26 HOME-VISUAL-1 撤掉 .hline 深青倒计时条，首页 chip 改为
+      .hero .hero-sub .streak-chip：--surface-2 底 / --muted 字 / 1px --line 描边。
+      原「白字 + 半透明白底 + 白描边」改为当前等价合同，字号/内边距/图标/对比仍实测。
    ② 背词页 practice.html 的连击 chip：基础态 / 红心态 .heart / x2 徽章（.word-stats 里）
    ③ 静态体检：common.css 里 .streak-chip 的基础底色声明只剩一处（且被 .hero 作用域限定）
    ⚠️ 判据全是 getComputedStyle 实测，不看代码猜。 */
@@ -46,16 +48,36 @@ const ok = (n, c, x) => { if (c) { pass++; console.log('  ok  ' + n + (x !== und
     const el = document.getElementById('dashStreakChip');
     el.hidden = false; el.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2z"/></svg>连续 5 天';
     const cs = getComputedStyle(el); const svg = getComputedStyle(el.querySelector('svg'));
-    return { c: cs.color, bg: cs.backgroundColor, bw: cs.borderTopWidth, bc: cs.borderTopColor, fs: cs.fontSize, pad: cs.paddingTop + ' ' + cs.paddingLeft, display: cs.display, sw: svg.width, sh: svg.height };
+    /* 10-26 HOME-VISUAL-1：.hline 已撤，chip 现在直接在透明 .hero / .hero-sub 上；
+       用当前真实祖先 + body 背景做对比基准，不再对 null 节点取计算样式。 */
+    const hero = document.querySelector('.hero');
+    const sub = document.querySelector('.hero-sub');
+    const bg = el => getComputedStyle(el).backgroundColor;
+    const hline = document.querySelector('.hline');
+    return {
+      c: cs.color, fgMuted: getComputedStyle(document.documentElement).getPropertyValue('--muted').trim(),
+      bg: cs.backgroundColor, bgSurface2: getComputedStyle(document.documentElement).getPropertyValue('--surface-2').trim(),
+      bw: cs.borderTopWidth, bc: cs.borderTopColor, lineVar: getComputedStyle(document.documentElement).getPropertyValue('--line').trim(),
+      fs: cs.fontSize, pad: cs.paddingTop + ' ' + cs.paddingLeft, display: cs.display, gap: cs.gap,
+      sw: svg.width, sh: svg.height,
+      inHeroSub: !!sub && sub.contains(el), inHero: !!hero && hero.contains(el),
+      heroBg: hero ? bg(hero) : '', subBg: sub ? bg(sub) : '', bodyBg: bg(document.body),
+      hlineRetired: !hline, ovf: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      w: Math.round(el.getBoundingClientRect().width), h: Math.round(el.getBoundingClientRect().height)
+    };
   });
-  const hlBg = await p.evaluate(() => getComputedStyle(document.querySelector('.hline')).backgroundColor);
-  ok('①1 首页 chip 白字', home.c === 'rgb(255, 255, 255)', home.c);
-  ok('①2 首页 chip 仍是半透明白底', /rgba\(255, 255, 255, 0\.16\)/.test(home.bg), home.bg);
-  ok('①3 首页 chip 仍有 1px 白描边', home.bw === '1px' && /rgba\(255, 255, 255, 0\.28\)/.test(home.bc), home.bw + ' / ' + home.bc);
+  ok('①0 10-26 HOME-VISUAL-1 后 .hline 已撤，chip 落在 .hero .hero-sub',
+    home.hlineRetired && home.inHero && home.inHeroSub, home);
+  ok('①1 首页 chip 用次级文字色 --muted', home.c === 'rgb(113, 118, 126)' && /#71767e/i.test(home.fgMuted), home.c + ' / ' + home.fgMuted);
+  ok('①2 首页 chip 用 --surface-2 浅灰底', home.bg === 'rgb(250, 251, 252)' && /#fafbfc/i.test(home.bgSurface2), home.bg + ' / ' + home.bgSurface2);
+  ok('①3 首页 chip 有 1px --line 描边', home.bw === '1px' && home.bc === 'rgb(230, 232, 235)' && /#e6e8eb/i.test(home.lineVar), home.bw + ' / ' + home.bc);
   ok('①4 首页 chip 字号 11.5px（比基础段小一档）', home.fs === '11.5px', home.fs);
   ok('①5 首页 chip 内边距 2px 9px（未被基础段覆盖）', home.pad === '2px 9px', home.pad);
   ok('①6 首页 chip 图标 12×12', home.sw === '12px' && home.sh === '12px', home.sw + '×' + home.sh);
-  ok('①7 首页 chip 文字对比 ≥4.5', ratio(home.c, hlBg) >= 4.5, ratio(home.c, hlBg) + ':1');
+  ok('①7 首页 chip 文字对比 ≥4.5（透明 hero 下取 body 底）',
+    ratio(home.c, home.heroBg === 'rgba(0, 0, 0, 0)' ? home.bodyBg : home.heroBg) >= 4.5,
+    ratio(home.c, home.heroBg === 'rgba(0, 0, 0, 0)' ? home.bodyBg : home.heroBg) + ':1');
+  ok('①8 首页 chip 仍是 inline-flex 且未破版', home.display === 'inline-flex' && home.w > 40 && home.h >= 16 && home.ovf <= 0, home);
 
   /* ---------- ② 背词页 .word-stats 里的连击 chip ---------- */
   await p.goto(BASE + '/practice.html', { waitUntil: 'load' });
@@ -98,10 +120,14 @@ const ok = (n, c, x) => { if (c) { pass++; console.log('  ok  ' + n + (x !== und
   const m390 = await p2.evaluate(() => {
     const el = document.getElementById('dashStreakChip'); el.hidden = false; el.innerHTML = '连续 5 天';
     const r = el.getBoundingClientRect(); const cs = getComputedStyle(el);
-    return { w: Math.round(r.width), h: Math.round(r.height), c: cs.color, bg: cs.backgroundColor, ovf: document.documentElement.scrollWidth - document.documentElement.clientWidth };
+    return { w: Math.round(r.width), h: Math.round(r.height), c: cs.color, bg: cs.backgroundColor,
+             bw: cs.borderTopWidth, bc: cs.borderTopColor, fs: cs.fontSize,
+             ovf: document.documentElement.scrollWidth - document.documentElement.clientWidth };
   });
   ok('④1 390 首页 chip 有尺寸（未塌）', m390.w > 40 && m390.h >= 16, m390);
-  ok('④2 390 首页 chip 样式同桌面', m390.c === 'rgb(255, 255, 255)' && /rgba\(255, 255, 255, 0\.16\)/.test(m390.bg), { c: m390.c, bg: m390.bg });
+  ok('④2 390 首页 chip 样式同桌面当前合同（灰底 / 灰字 / 1px --line）',
+    m390.c === home.c && m390.bg === home.bg && m390.bw === home.bw && m390.bc === home.bc && m390.fs === home.fs,
+    { c: m390.c, bg: m390.bg, bw: m390.bw, bc: m390.bc, fs: m390.fs });
   ok('④3 390 全站零横向溢出', m390.ovf <= 0, m390.ovf);
   ok('④4 无页面报错', errs.length === 0 && errs2.length === 0, errs.concat(errs2));
 

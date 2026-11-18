@@ -16,9 +16,12 @@
    ⚠️ 无障碍 guide 浮层：首次进考场会弹 showExamGuide（localStorage GUIDE_KEY 未标记）→ 探针预先写标记，
       免得浮层挡住按钮（走的是产品自己的 gate 存储，不算手改状态）。
    ⚠️ bank 题库取自本地静态数据（bank/manifest.json + bank/<channel>/<id>.json + bank/answers/<id>.json），
-      探针只拦 /api，题库 fetch 照常放行。 */
+      探针只拦 /api，题库 fetch 照常放行。
+   11-15 PERM-REG-1 / MODULE-MOVE-1（11-08）：写作真题模考搬到 writing.html#wr=exam，
+   写作段改用现版深链，仍走产品自己的 #wrtFullStart → body.exam-fullscreen / #examPanel / #examExit。
+   P0-BANNER-A（11-12，v860）把顶部开发播报横幅整块撤回，common.js ancPending() 恒 null；
+   手机段不再需要公告已读种子，直接验顶栏归零 / 内容贴顶；绝不写 _anc_seed.cjs。 */
 const { chromium } = require('playwright-core');
-const ancSeed = require('./_anc_seed.cjs');   // 10-25 W-UI-1：关掉「未读公告」这个变量
 const BASE = process.env.BASE || 'http://127.0.0.1:8961';
 const EXE = 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
 let pass = 0, fail = 0;
@@ -201,16 +204,15 @@ async function overlayVsBar(p, sel) {
     const p = await c.newPage();
     const errs = [];
     p.on('pageerror', e => errs.push(String(e).slice(0, 140)));
-    await p.goto(BASE + '/bank.html', { waitUntil: 'domcontentloaded' });
-    await p.waitForTimeout(2000);
-    /* 切到写作 tab（bank.html:1471 data-mtab="writing"），等 writing.js 把入口卡渲染进
-       #writingFullEntry（writing.js / writing_prompts.js 走 data-late-src 懒加载 → 多等一会） */
-    await p.evaluate(() => {
-      const t = document.querySelector('#mockTabs [data-mtab="writing"]');
-      if (t) t.click();
-    });
-    await p.waitForTimeout(2600);
-    const entryBtn = p.locator('#wrtFullStart');
+    /* 11-15 MODULE-MOVE-1：写作从 bank writing tab 搬到独立 writing.html；
+       #wr=exam 是 wr-tabs.js 的现版真题模考 pane，入口卡由 writing.js 自行渲染。 */
+    await p.goto(BASE + '/writing.html#wr=exam', { waitUntil: 'domcontentloaded' });
+    await p.waitForFunction(() => {
+      const pane = document.querySelector('[data-wr-pane="exam"]');
+      return pane && !pane.hidden && !!document.querySelector('#writingFullEntry #wrtFullStart');
+    }, null, { timeout: 20000 });
+    await p.waitForTimeout(1200);
+    const entryBtn = p.locator('#writingFullEntry #wrtFullStart');
     let clicked = false;
     try {
       await entryBtn.waitFor({ state: 'visible', timeout: 12000 });
@@ -229,7 +231,15 @@ async function overlayVsBar(p, sel) {
       ok('写作 · #examPanel 变固定覆盖层（fixed + inset:0）', o.pos === 'fixed' && !o.hidden && o.elTop <= 1 && o.elH >= o.winH - 1, { pos: o.pos, hidden: o.hidden, top: o.elTop, h: o.elH, winH: o.winH });
       ok('写作 · 覆盖层在顶栏上面（z ≥ 900）', Number(o.z) >= 900, o.z);
       ok('写作 · 覆盖层盖住顶栏', o.tbBottom === null || o.elTop <= o.tbBottom, { elTop: o.elTop, tbBottom: o.tbBottom });
-      ok('写作 · 四小 tab 被收起（#mockTabs display:none）', await p.evaluate(() => { const t = document.getElementById('mockTabs'); return t ? getComputedStyle(t).display : '(无)'; }) === 'none', await p.evaluate(() => { const t = document.getElementById('mockTabs'); return t ? getComputedStyle(t).display : '(无)'; }));
+      /* 11-15 MODULE-MOVE-1：写作页不再有 bank 的 #mockTabs；现版等价物是
+         全屏态把顶栏 / 新 pane 收起，只留 #examPanel 一层覆盖。 */
+      const panesHidden = await p.evaluate(() => ({
+        bankTabsGone: !document.getElementById('mockTabs'),
+        topbarHidden: (() => { const t = document.querySelector('.hub-topbar'); return !t || getComputedStyle(t).display === 'none'; })(),
+        wrPaneHidden: (() => { const pane = document.querySelector('[data-wr-pane="exam"]'); return !!pane && pane.hidden; })()
+      }));
+      ok('写作 · 全屏态收起顶栏与新 pane（不再有 bank #mockTabs）',
+        panesHidden.bankTabsGone && panesHidden.topbarHidden && panesHidden.wrPaneHidden, JSON.stringify(panesHidden));
       ok('写作 · 全屏态无横向溢出', o.scrollW <= o.docW + 1, { sw: o.scrollW, dw: o.docW });
     } else {
       ok('写作 · #examPanel 存在', false, null);
@@ -253,17 +263,16 @@ async function overlayVsBar(p, sel) {
   {
     const c = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
     await c.addInitScript(t => { try{localStorage.setItem('hub_exam_timer_auto','20');}catch(e){} try { localStorage.setItem('hub_auth_token', t); localStorage.setItem('hub_role_v1', 'teacher'); } catch (e) {} }, TOKEN);
-    /* 🔴 10-25 W-UI-1：测「顶栏 44px 让位归零」前先把未读公告关掉 —— 公告条是 sticky、
-       在文档流里真实占 34px，不关掉这条测到的是「被公告顶了一下」，两件事混着判分不清。
-       夹具见 tests/_anc_seed.cjs。 */
+    /* 11-15 P0-BANNER-A：顶部开发播报横幅整块撤回，ancPending() 恒 null，
+       不再有 34px sticky 公告 / 未读已读变量；直接验手机顶栏归零与内容贴顶。 */
     await mockRoutes(c);
-    await ancSeed.seedAncRead(c, BASE);
     const p = await c.newPage();
     const errs = [];
     p.on('pageerror', e => errs.push(String(e).slice(0, 140)));
     await p.goto(BASE + '/bank.html', { waitUntil: 'domcontentloaded' });
     await p.waitForTimeout(1800);
-    await ancSeed.waitAncGone(p);
+    const bannerGone = await p.evaluate(() => !document.querySelector('.anc, .anc-bar, [data-anc]'));
+    ok('手机 · P0-BANNER-A 后没有公告条 DOM 占位', bannerGone);
     const m = await shellState(p);
     ok('手机 · 渲染顶栏壳', m.shell === 'hub-topbar' && m.attr === 'top', m.shell + '/' + m.attr);
     ok('手机 · 侧栏留白已退（padding-left 0）', m.padL === '0px', m.padL);

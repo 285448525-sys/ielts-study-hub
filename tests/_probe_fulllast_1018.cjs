@@ -1,6 +1,10 @@
 // 完整模考入口卡「上次成绩」（P0-2）专项探针
 // 用法：node tests/_probe_fulllast_1018.cjs <baseUrl>
 // 判据：有记录 → 「上次 32/40 · <相对日期>」+ 进度条宽度正确；无记录 → 明确灰字，不出现假数字。
+// 11-15 PERM-REG-1 / T-001：页内 #mockTabs 在所有宽度收进顶栏二级，DOM 保留供程序点击；
+// 听力改用隐藏 tab 的 JS .click()（paintTab 转发仍在），不再用 Playwright 可见点击。
+// 11-12 P2 B：入口卡定版成一行细白条，空态 .fc-last.is-none 按设计隐藏；
+// 原「空态行可见」「卡片 >100px」判据改成「文案仍在 DOM + 细白条本身不塌不溢出」。
 const { chromium } = require('playwright-core');
 const BASE = process.argv[2] || 'http://127.0.0.1:8791';
 const EDGE = 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
@@ -29,6 +33,14 @@ async function readCard(page, ch) {
       visible: getComputedStyle(box).display !== 'none' && r.height > 0
     };
   }, ch);
+}
+async function showListeningTab(page) {
+  return await page.evaluate(() => {
+    const btn = document.querySelector('#mockTabs [data-mtab="listening"]');
+    if (!btn) return false;
+    btn.click();
+    return document.getElementById('bankRoot').getAttribute('data-mock-tab') === 'listening';
+  });
 }
 
 async function seed(page, recs) {
@@ -61,7 +73,10 @@ async function seed(page, recs) {
   ck('A1 卡片里存在「上次成绩」行', c.exists);
   ck('A2 空账号给明确的灰字提示', /还没做过完整阅读模考/.test(c.text), c.text);
   ck('A3 空账号不出现假分数（无 数字/数字）', !/\d+\s*\/\s*\d+/.test(c.text), c.text);
-  ck('A4 该行有高度（不是塌成 0）', c.visible && c.h > 0, 'h=' + c.h);
+  /* 11-15：11-12 P2 B 把空态 fc-last 改成 display:none（is-none），
+     不再拿隐藏小行量高度；改验文案 DOM 在 + 整张细白条有真实高度。 */
+  const aCardH = await page.evaluate(() => Math.round(document.querySelector('#fullEntry .full-card').getBoundingClientRect().height));
+  ck('A4 空态文案仍在 DOM，入口细白条不塌（' + aCardH + 'px）', c.exists && !c.visible && aCardH >= 40 && aCardH < 160, 'h=' + c.h + ' card=' + aCardH);
 
   console.log('=== B. 有记录：显示上次正确数 / 总数 + 相对日期 ===');
   await seed(page, [{
@@ -89,7 +104,7 @@ async function seed(page, recs) {
   ck('C1 取最新一条（13/40，不是 9 天前的 10/40）', /上次\s*13\/40/.test(c.text) && /今天/.test(c.text), c.text);
 
   console.log('=== D. 听力卡独立统计（不能串到阅读）===');
-  await page.click('[data-mtab="listening"]');
+  ck('D0 顶栏二级切到听力（隐藏 #mockTabs 仍可转发）', await showListeningTab(page));
   await page.waitForTimeout(1800);
   let cl = await readCard(page, 'listening');
   console.log('  ' + JSON.stringify(cl));
@@ -99,7 +114,7 @@ async function seed(page, recs) {
   ]);
   await page.reload({ waitUntil: 'load' });
   await page.waitForTimeout(1500);
-  await page.click('[data-mtab="listening"]');
+  ck('D0b reload 后顶栏二级仍能切到听力', await showListeningTab(page));
   await page.waitForTimeout(1800);
   cl = await readCard(page, 'listening');
   ck('D2 听力记录显示 9/40 + 3 天前', /上次\s*9\/40/.test(cl.text) && /3 天前/.test(cl.text), cl.text);
@@ -118,11 +133,11 @@ async function seed(page, recs) {
     const card = document.querySelector('#fullEntry .full-card');
     const body = card ? card.querySelector('.fc-body') : null;
     const r = card ? card.getBoundingClientRect() : null;
-    return { h: r ? Math.round(r.height) : 0, hasStart: !!(card && card.querySelector('[data-fullstart]')), bodyH: body ? Math.round(body.getBoundingClientRect().height) : 0 };
+    return { h: r ? Math.round(r.height) : 0, hasStart: !!(card && card.querySelector('[data-fullstart]')), bodyH: body ? Math.round(body.getBoundingClientRect().height) : 0, scrollW: card ? card.scrollWidth : 0, clientW: card ? card.clientWidth : 0 };
   });
   console.log('  ' + JSON.stringify(box));
   ck('F1 Start 按钮仍在卡内', box.hasStart);
-  ck('F2 卡片高度正常扩张（没被压塌/溢出）', box.h > 100 && box.h < 400, 'h=' + box.h);
+  ck('F2 细白条高度正常、不压塌不横向溢出', box.h >= 40 && box.h < 160 && box.scrollW <= box.clientW + 1, 'h=' + box.h + ' scroll=' + box.scrollW + '/' + box.clientW);
 
   console.log('=== G. 控制台错误 ===');
   const real = errs.filter(e => !/Failed to load resource: the server responded with a status of 404/.test(e));

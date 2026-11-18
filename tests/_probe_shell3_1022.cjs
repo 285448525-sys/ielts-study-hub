@@ -3,8 +3,10 @@
      ① 桌面 1440：五页真的渲染顶栏、body 无 288px 侧栏留白、内容不被 44px 顶栏压住、无侧栏 DOM 残留、无横向溢出
      ② 顶栏高亮（design/116 决策②）：计划 → 胶囊「计划」· 句子 → 胶囊「句子」·
         回顾 / 错句本 → 「更多」面板里那两格 · 计时 → 全不亮（手动入口 10-21 已撤，只是会话收尾落点）
-     ③ 计划页吸顶实测（全批唯一真吸顶处）：播种 24 条任务把页面撑长 → 滚到底，量「输入区」上沿是否
-        仍停在顶栏下面、整块是否被裁。⚠️ 断言用**量到的值**，不写死 72/116 —— 前两批教训是算出来的数会差一截。
+     ③ 计划页滚动/输入区实测：播种 24 条任务把页面撑长 → 滚到底，量「输入区」上沿是否
+        仍停在顶栏下面、整块是否被裁。现版 HUB-SIDE-SHELL-3 桌面只滚 .hub-main，
+        PLANS-REDESIGN-CODE-1 把可见输入区换成 #mkAddRow；旧 .pt-add 仅为 hidden 兼容节点。
+        ⚠️ 断言仍用**量到的值**，不写死 72/116 —— 前两批教训是算出来的数会差一截。
      ④ 软导航跨壳：首页 → 计划（顶栏→顶栏，壳不动）· 计划 → bank · bank → 回顾。
        ⚠️ 10-22 更新两轮：第 4 批把「背词页」这个侧栏样本换掉了，第 5 批连 bank 也换成顶栏壳
        → 全站已无「侧栏 vs 顶栏」的跨壳活样本，本节从「换壳」验收改成「同壳不重建」验收
@@ -14,7 +16,9 @@
    线上：BASE=https://yasihub.com node tests/_probe_shell3_1022.cjs
    ⚠️ 线上跑本支大概率 `goto` 慢网超时（见 HANDOFF 踩点）—— 是网络不是回归，改用真浏览器点查或拆段版。 */
 const { chromium } = require('playwright-core');
-const ancSeed = require('./_anc_seed.cjs');   // 10-25 W-UI-1：关掉「未读公告」这个变量
+/* P0-BANNER-A（11-12，她拍板撤干净全站开发播报横幅）：common.js ancPending() 恒 return null，
+   34px 公告条整块下线；本探针不再需要 _anc_seed.cjs 的「预标已读」夹具，也不写 helper 文件。
+   手机段直接验「顶栏让位归零 + 内容贴顶」，与现版等价。 */
 const BASE = process.env.BASE || 'http://127.0.0.1:8953';
 const EXE = 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
 let pass = 0, fail = 0;
@@ -62,15 +66,18 @@ async function measure(p) {
   });
 }
 
-/* 吸顶只读解析值：够不够滚要看页面自己，判定交给调用处。 */
+/* HUB-SIDE-SHELL-3（11-07）：桌面 body/main.container 被锁成 100dvh、overflow:hidden，
+   真实滚动容器是 .hub-main；旧 document.documentElement.scrollHeight - clientHeight 恒 0。
+   stickyCheck 仍读旧桌面专属 .pt-add 的解析值（PLANS-REDESIGN-CODE-1 后它留在 hidden 兼容卡里），
+   但 canScroll 改量 .hub-main，保留原「够不够滚」断言意图。 */
 async function stickyCheck(p, sel) {
   return p.evaluate(s => {
     const el = document.querySelector(s);
     if (!el) return null;
-    const r = document.documentElement;
+    const sc = document.querySelector('.hub-main') || document.documentElement;
     const topPx = parseFloat(getComputedStyle(el).top) || 0;
     return { topPx, pos: getComputedStyle(el).position,
-      canScroll: Math.max(0, r.scrollHeight - r.clientHeight) };
+      canScroll: Math.max(0, sc.scrollHeight - sc.clientHeight) };
   }, sel);
 }
 
@@ -137,27 +144,32 @@ async function seedPlans(p) {
     const seeded = await seedPlans(p);
     await p.reload({ waitUntil: 'domcontentloaded' });
     await p.waitForTimeout(1500);
-    const rows = await p.evaluate(() => document.querySelectorAll('#ptabToday .plan-item').length);
-    ok('播种的 ' + SEED_N + ' 条任务已渲染', rows >= SEED_N, rows + ' 行（' + seeded.tk + '）');
+    /* P-1R（10-24）：旧 #planList / .pt-add 整块收进 hidden 兼容卡；
+       PLANS-REDESIGN-CODE-1（10-31）可见任务行由 syncSkeleton() 写进 #mkTaskList .m-task，
+       可见输入区换成 #mkAddRow。旧选择器 0×0，不是产品 bug。 */
+    const rows = await p.evaluate(() => [...document.querySelectorAll('#mkTaskList .m-task')].filter(x => getComputedStyle(x).display !== 'none').length);
+    ok('播种的 ' + SEED_N + ' 条任务已渲染（现版 #mkTaskList .m-task）', rows >= SEED_N, rows + ' 行（' + seeded.tk + '）');
     const s = await stickyCheck(p, '#ptabToday .pt-add');
-    ok('输入区仍是 sticky（桌面专属）', s && s.pos === 'sticky', s && s.pos);
-    ok('页面真的能滚（滚不动就测不到吸顶）', s && s.canScroll > 100, s && s.canScroll);
-    /* 核心：滚到底，量出来的位置必须让过顶栏 —— 不写死数值，只要求「上沿在顶栏下面、整块没被裁」 */
-    await p.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    ok('旧桌面吸顶兼容节点仍是 sticky（P-1R 后已隐藏）', s && s.pos === 'sticky', s && s.pos);
+    ok('页面真的能滚（.hub-main 滚得动才测得到布局）', s && s.canScroll > 100, s && s.canScroll);
+    /* 核心：滚到底，量出来的位置必须让过顶栏 —— 不写死数值，只要求「上沿在顶栏下面、整块没被裁」。
+       现版滚 .hub-main（不是 window）；量 #mkAddRow 这块真正可见的输入区。 */
+    await p.evaluate(() => { const hm = document.querySelector('.hub-main'); if (hm) hm.scrollTop = hm.scrollHeight; else window.scrollTo(0, document.documentElement.scrollHeight); });
     await p.waitForTimeout(700);
     const m = await p.evaluate(() => {
       const bar = document.querySelector('.hub-topbar');
-      const add = document.querySelector('#ptabToday .pt-add');
+      const add = document.querySelector('#mkAddRow');
+      const hm = document.querySelector('.hub-main');
       const br = bar ? bar.getBoundingClientRect() : null;
       const ar = add ? add.getBoundingClientRect() : null;
       const on = [...document.querySelectorAll('.tb-item.on')].map(a => (a.textContent || '').trim());
-      return { scrollY: Math.round(window.scrollY), barBottom: br ? Math.round(br.bottom) : null,
+      return { scrollTop: hm ? Math.round(hm.scrollTop) : Math.round(window.scrollY), barBottom: br ? Math.round(br.bottom) : null,
         addTop: ar ? Math.round(ar.top) : null, addBottom: ar ? Math.round(ar.bottom) : null,
         addH: ar ? Math.round(ar.height) : null, winH: window.innerHeight, on };
     });
-    ok('滚到底：输入区上沿停在顶栏下面（没被压住）', m.addTop >= m.barBottom, m);
-    ok('滚到底：输入区整块可见（下沿没被屏幕裁掉）', m.addBottom <= m.winH + 1, m);
-    ok('滚到底：整块高度没变（没被压扁）', Math.abs(m.addH - Math.round(m.addH)) <= 1 && m.addH > 120, m.addH);
+    ok('滚到底：可见输入区上沿停在顶栏下面（没被压住）', m.addTop >= m.barBottom && m.scrollTop > 0, m);
+    ok('滚到底：可见输入区整块可见（下沿没被屏幕裁掉）', m.addBottom <= m.winH + 1, m);
+    ok('滚到底：整块高度没变（没被压扁）', m.addH > 120, m.addH);
     ok('滚到底：顶栏高亮仍是「计划」', m.on.join('') === '计划', m.on);
     ok('吸顶实测无 JS 报错', errs.length === 0, errs[0]);
     await p.close();
@@ -205,18 +217,15 @@ async function seedPlans(p) {
   console.log('== ④ 手机 390：第 3 批五页 ==');
   const cm = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   await cm.addInitScript(t => { try { localStorage.setItem('hub_auth_token', t); localStorage.setItem('hub_role_v1', 'teacher'); } catch (e) {} }, TOKEN);
-  /* 🔴 10-25 W-UI-1：测「顶栏 44px 让位归零」前先把未读公告关掉 —— 公告条是 sticky、
-     在文档流里真实占 34px，不关掉这条测到的是「被公告顶了一下」，两件事混着判分不清。
-     夹具见 tests/_anc_seed.cjs（里面写了两个必须踩过的坑）。 */
+  /* P0-BANNER-A（11-12）：34px 开发播报横幅已整体下线，手机端不再有「预标已读」变量要关；
+     直接验顶栏让位归零 + 内容贴顶，与现版等价（不动 _anc_seed.cjs helper）。 */
   await mockRoutes(cm);
-  await ancSeed.seedAncRead(cm, BASE);
   for (const f of Object.keys(want)) {
     const p = await cm.newPage();
     const errs = [];
     p.on('pageerror', e => errs.push(String(e).slice(0, 140)));
     await p.goto(BASE + '/' + f, { waitUntil: 'domcontentloaded' });
     await p.waitForTimeout(1300);
-    await ancSeed.waitAncGone(p);
     const m = await measure(p);
     ok(f + ' · 手机端顶栏让位归零（10-23 全站口径）', m.shell === 'hub-topbar' && m.padT === '0px', m.shell + '/' + m.padT);
     ok(f + ' · 手机隐藏胶囊与搜索（导航走 dock）', m.capsDisplay === 'none' && m.searchDisplay === 'none', { caps: m.capsDisplay, search: m.searchDisplay });
@@ -226,17 +235,24 @@ async function seedPlans(p) {
     await p.close();
   }
 
-  console.log('== ⑤ 手机 390：计划页输入区不再吸顶（手机上本就 display:contents）==');
+  console.log('== ⑤ 手机 390：计划页可见输入区不吸顶（PLANS-REDESIGN-CODE-1 11-07 口径）==');
   {
     const p = await cm.newPage();
     await p.goto(BASE + '/plans.html', { waitUntil: 'domcontentloaded' });
     await p.waitForTimeout(1400);
+    /* P-1R（10-24）把旧 .pt-add 收进 hidden 兼容卡；PLANS-REDESIGN-CODE-1（10-31）
+       现版可见输入区是 #mkAddRow，手机上不 sticky。原「display:contents / 不是 sticky」
+       意图拆成：旧兼容 wrapper 仍 contents，现版可见输入区有高度且不是 sticky。 */
     const st = await p.evaluate(() => {
-      const add = document.querySelector('#ptabToday .pt-add');
-      return { disp: add ? getComputedStyle(add).display : '(无)', pos: add ? getComputedStyle(add).position : '(无)' };
+      const legacy = document.querySelector('#ptabToday .pt-add');
+      const add = document.querySelector('#mkAddRow');
+      const ar = add ? add.getBoundingClientRect() : null;
+      return { legacyDisp: legacy ? getComputedStyle(legacy).display : '(无)',
+        disp: add ? getComputedStyle(add).display : '(无)', pos: add ? getComputedStyle(add).position : '(无)',
+        h: ar ? Math.round(ar.height) : 0 };
     });
-    ok('手机端输入区是 display:contents（不参与布局、无吸顶）', st.disp === 'contents', st);
-    ok('手机端输入区不是 sticky', st.pos !== 'sticky', st.pos);
+    ok('旧兼容 wrapper 仍是 display:contents（不参与布局）', st.legacyDisp === 'contents', st);
+    ok('手机端现版可见输入区不是 sticky 且有高度', st.pos !== 'sticky' && st.h > 44, st);
     await p.close();
   }
 

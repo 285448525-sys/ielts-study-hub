@@ -25,7 +25,9 @@ const ok = (name, cond, detail) => { if(cond){ pass++; console.log('  ok  '+name
  let settled=0, correct=0; const rows=[];
  for(let i=0;i<6;i++){
   await p.goto(BASE+'/home.html',{waitUntil:'load'});
-  await p.waitForFunction(()=>document.querySelectorAll('#hubDock a').length===4 && typeof softNavigate==='function');await p.evaluate(()=>window.__wrapSoft());
+  /* 11-05 分组底栏加入「回顾」：#hubDock a 从 4 项变 5 项。
+     只把就绪数量换成当前 5 项；连点 6 轮、最后目标首页、无丢失/重复跳转的判据一个不动。 */
+  await p.waitForFunction(()=>document.querySelectorAll('#hubDock a').length===5 && typeof softNavigate==='function',null,{timeout:30000});await p.evaluate(()=>window.__wrapSoft());
   await p.locator('#hubDock a').nth(1).click({noWaitAfter:true});
   await p.waitForTimeout(120);
   await p.locator('#hubDock a').first().dispatchEvent('click');

@@ -27,18 +27,29 @@ const seed = n => `(function(){
   try{ localStorage.setItem('ielts_study_hub_v1', JSON.stringify({ words: ws, settings: {}, sessions: [] })); }catch(e){}
 })();`;
 
+/* WORDBOOK-TABS-1（11-07）/ 11-13 商城默认页：wb-tabs.js boot 默认 #vMall，
+   把含 #wbCrumb / #wbStatusChips / #wordList 的 #wmLegacy 整个 hidden。
+   旧探针的「进书视图」是 10-26 WORD-4 视觉退役但 DOM 保留的词书页：
+   显隐只在本探针里恢复，用于继续验证 words.js 的面包屑、5 枚胶囊与筛选契约。 */
 async function openBank(page) {
   await page.goto(BASE + '/practice.html', { waitUntil: 'domcontentloaded' });
-  await asleep(900);
+  await page.waitForFunction(() => {
+    const mall = document.getElementById('vMall');
+    return mall && !mall.hidden && document.querySelector('#wmDeals .wm-deal');
+  }, null, { timeout: 15000 }).catch(() => {});
   await page.evaluate(() => {
-    const t = document.querySelector('[data-wtab="bank"]');
-    if (t) t.click();
-    document.getElementById('bankView').hidden = false;
+    const bv = document.getElementById('bankView'); if (bv) bv.hidden = false;
+    const mall = document.getElementById('vMall'); if (mall) mall.hidden = true;
+    const book = document.getElementById('vBook'); if (book) book.hidden = true;
+    const legacy = document.getElementById('wmLegacy'); if (legacy) legacy.hidden = false;
+    const grid = document.getElementById('wbDeckGrid'); if (grid) grid.hidden = false;
   });
+  await page.waitForFunction(() => document.querySelectorAll('#wbStatusChips .wb-chip').length === 5, null, { timeout: 15000 }).catch(() => {});
   await asleep(600);
 }
 
-async function shot(page, name) { await page.screenshot({ path: 'C:\\Users\\Camille\\Desktop\\雅思\\design\\_shot_' + name + '.png' }); }
+/* 第六批本地维修：旧探针把截图写进 design/；尺寸/点击判据全部保留，截图不再落盘外部目录。 */
+async function shot(page, name) { return; }
 
 (async () => {
   const browser = await chromium.launch({ executablePath: EXE, args: ['--proxy-server=direct://', '--proxy-bypass-list=*'] });
@@ -203,10 +214,11 @@ async function shot(page, name) { await page.screenshot({ path: 'C:\\Users\\Cami
     const r = await page.evaluate(() => ({
       crumbHidden: document.getElementById('wbCrumb').hidden,
       chips: document.querySelectorAll('#wbStatusChips .wb-chip').length,
-      emptyText: (document.querySelector('#wordList .empty') || {}).textContent || ''
+      /* 11-12 空态统一卡 renderEmpty() 包成 .esys--compat，原引导文案与按钮仍在。 */
+      emptyText: (document.querySelector('#wordList .esys--compat, #wordList .empty') || {}).textContent || ''
     }));
     ok('空词库 → 面包屑不显示（没东西可指路）', r.crumbHidden === true);
-    ok('空词库 → 仍有空态引导', /还没有单词/.test(r.emptyText), r.emptyText.slice(0, 28));
+    ok('空词库 → 仍有空态引导（统一 .esys 卡）', /还没有单词/.test(r.emptyText), r.emptyText.slice(0, 28));
     ok('空词库 → 无页面报错', errs.length === 0, errs.slice(0, 2).join(' | '));
     await page.close();
   }

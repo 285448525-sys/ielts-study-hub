@@ -129,20 +129,39 @@ const ck = (n, ok, info) => { const l = (ok ? '  ✅ ' : '  ❌ ') + n + (info ?
   const rate = await page.evaluate(() => { const a = document.getElementById('exAudio'); return a ? a.playbackRate : null; });
   ck('B8 选 1.3 → playbackRate = 1.3', rate === 1.3, 'rate=' + rate);
 
-  /* D 段：2-1d 批 B 口径 —— 桌面 ≥861 页内小 tab 撤、手机 ≤860 保留（顶栏隐藏时的唯一入口） */
+  /* 11-15 PERM-REG-1 / T-001：页内 #mockTabs 现版在所有宽度都收进顶栏二级，
+     DOM 刻意保留给 paintTab / 脚本转发。原「手机 860 页内小 tab 仍可见」判据已过期；
+     等价契约改成「两个宽度都收起，但顶栏二级仍能落到 listening，且 DOM 可供点击转发」。
+     B0 已实证 ?sub=listening 通道有效，这里再验一次 860 宽也有真实入口。 */
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto(BASE + '/bank.html', { waitUntil: 'load', timeout: 60000 });
   await page.waitForTimeout(1500);
   ck('D1 桌面 1280：页内小 tab 已撤（display:none）', await page.evaluate(() => getComputedStyle(document.getElementById('mockTabs')).display === 'none'));
   await page.setViewportSize({ width: 860, height: 900 });
-  await page.waitForTimeout(600);
-  ck('D2 手机 860：页内小 tab 保留（可见）', await page.evaluate(() => { const t = document.getElementById('mockTabs'); return t && t.getBoundingClientRect().width > 0; }));
+  await page.goto(BASE + '/bank.html?sub=listening', { waitUntil: 'load', timeout: 60000 });
+  await page.waitForTimeout(1500);
+  const d2 = await page.evaluate(() => {
+    const tabs = document.getElementById('mockTabs');
+    const root = document.getElementById('bankRoot');
+    return {
+      inlineHidden: !!tabs && getComputedStyle(tabs).display === 'none',
+      domKept: !!tabs && !!tabs.querySelector('[data-mtab="listening"]'),
+      tab: root ? root.getAttribute('data-mock-tab') : null,
+      listenPane: !!document.getElementById('pane-listening') && !document.getElementById('pane-listening').hidden
+    };
+  });
+  ck('D2 手机 860：页内小 tab 同样收起，但顶栏二级仍能切到听力',
+    d2.inlineHidden && d2.domKept && d2.tab === 'listening' && d2.listenPane, JSON.stringify(d2));
 
   const stored = await page.evaluate(() => { try { return localStorage.getItem('hub_exam_hide_timer_v1'); } catch (e) { return 'ERR'; } });
   ck('C1 眼睛标的旧存储键没被新代码写入', stored === null, 'stored=' + stored);
 
+  /* 11-15 PERM-REG-1：外部听力 mp3 CDN 的证书错 / 资源失败是机器网络噪音，
+     不是页面 JS 错；精确排除这两条，其余 pageerror / console error 一条不吞。 */
   const real = errs.filter(x => !/Failed to load resource: the server responded with a status of 404/.test(x)
-    && !/ERR_PROXY_CONNECTION_FAILED/.test(x));
+    && !/ERR_PROXY_CONNECTION_FAILED/.test(x)
+    && !/ERR_CERT_AUTHORITY_INVALID/.test(x)
+    && !/\[hub-error\] resource.*part-exam-audio.*\.mp3/.test(x));
   ck('Z1 无 JS 报错（代理类 console 报错排除）', real.length === 0, real.slice(0, 3).join(' | '));
 
   console.log('\n================ 结果 ================');

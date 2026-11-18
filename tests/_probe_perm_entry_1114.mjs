@@ -41,11 +41,11 @@ async function callRoles(url, kv, headers) {
   const j = await r.json();
   return { status: r.status, j };
 }
-async function callAdmin(url, kv, body, key) {
+async function callAdmin(url, kv, body, key, session) {
   const r = await adminOnRequest({
     request: req(url, {
       method: 'POST',
-      headers: Object.assign({ 'Content-Type': 'application/json' }, key ? { 'X-Admin-Key': key } : {}),
+      headers: Object.assign({ 'Content-Type': 'application/json' }, key ? { 'X-Admin-Key': key } : {}, session ? { 'X-Session': session } : {}),
       body: JSON.stringify(body || {})
     }),
     env: { SYNC_KV: kv, ADMIN_KEY: 'k' }
@@ -141,6 +141,35 @@ console.log('\n[D] 入口显隐的数据面：授权/取消立刻反映到 me');
   ok('⑤ 取消后 me.role=user 立刻生效（入口马上灭）', gone.j.role === 'user', gone.j.role);
   const deny = await callRoles('/api/roles?action=students', kv, H.user);
   ok('⑤ 取消后 students 立刻 403', deny.status === 403, deny.status);
+}
+
+console.log('\n[E] root 账号免密钥：只认有效服务端身份');
+{
+  const kv = fakeKV(baseKV());
+  const w0 = kv.counts.put + kv.counts.delete;
+  const root = await callAdmin('/api/admin', kv, { action: 'overview' }, '', T.root);
+  ok('⑥ root 无 ADMIN_KEY 可进入', root.status === 200 && root.j.ok && Array.isArray(root.j.users), root.status);
+  const user = await callAdmin('/api/admin', kv, { action: 'perm_set', cfg: { user: {}, teacher: {} } }, '', T.user);
+  ok('⑥ 普通用户无密钥仍拒绝', user.status === 403, user.status);
+  const teacher = await callAdmin('/api/admin', kv, { action: 'perm_set', cfg: { user: {}, teacher: {} } }, '', T.teacher);
+  ok('⑥ 教师无密钥仍拒绝', teacher.status === 403, teacher.status);
+  const forged = await callAdmin('/api/admin', kv, { action: 'perm_set', cfg: { user: {}, teacher: {} } }, '', T.ghost);
+  ok('⑥ 伪造凭证仍拒绝', forged.status === 401, forged.status);
+  ok('⑥ 拒绝路径零写入', kv.counts.put + kv.counts.delete === w0 && !kv.m.has('permcfg'), kv.counts.put + '/' + kv.counts.delete);
+}
+{
+  const kv = fakeKV(baseKV());
+  kv.m.set('sess:' + T.root, JSON.stringify({ acct: ROOT_MAIL, exp: Date.now() - 1000 }));
+  const expired = await callAdmin('/api/admin', kv, { action: 'overview' }, '', T.root);
+  ok('⑦ 过期 root 凭证不能进入', expired.status === 401, expired.status);
+  kv.m.set('sess:' + T.root, JSON.stringify({ acct: ROOT_MAIL, gen: 1 }));
+  const revoked = await callAdmin('/api/admin', kv, { action: 'overview' }, '', T.root);
+  ok('⑦ 改密后的 root 凭证不能进入', revoked.status === 401, revoked.status);
+  kv.m.delete('user:e:' + ROOT_MAIL);
+  const missingUser = await callAdmin('/api/admin', kv, { action: 'overview' }, '', T.root);
+  ok('⑦ 已删除账号不能进入', missingUser.status === 401, missingUser.status);
+  const legacy = await callAdmin('/api/admin', kv, { action: 'overview' }, 'k', '');
+  ok('⑦ 旧密钥仍可用于找回权限', legacy.status === 200 && legacy.j.ok, legacy.status);
 }
 
 console.log('\n===== ' + pass + ' 通过 / ' + fail + ' 失败 =====');

@@ -9,16 +9,23 @@ let pass = 0, fail = 0;
 const ok = (n, c, x) => { if (c) { pass++; console.log('  ok  ' + n + (x ? '  ' + x : '')); } else { fail++; console.log('  RED ' + n + (x ? '  ' + x : '')); } };
 const asleep = ms => new Promise(r => setTimeout(r, ms));
 
+/* WORDBOOK-TABS-1（11-07）/ 11-13 商城默认页：#vMall 是产品默认，
+   #wmLegacy（空态、导入卡、操作条、词列表）由 wb-tabs.js 默认隐藏。
+   本探针量的是 10-26 WORD-4 退役但 DOM 保留的词书视图：等商城 boot 完后
+   只在本探针里恢复该父容器，确保尺寸/焦点/行数都是真实布局数据。 */
 async function openBank(page) {
   await page.goto(BASE + '/practice.html', { waitUntil: 'domcontentloaded' });
-  await asleep(700);
+  await page.waitForFunction(() => {
+    const mall = document.getElementById('vMall');
+    return mall && !mall.hidden && document.querySelector('#wmDeals .wm-deal');
+  }, null, { timeout: 15000 }).catch(() => {});
   await page.evaluate(() => {
-    const tab = document.querySelector('[data-wtab="bank"]');
-    if (tab) tab.click();
-    const bv = document.getElementById('bankView');
-    if (bv) bv.hidden = false;
+    const bv = document.getElementById('bankView'); if (bv) bv.hidden = false;
+    const mall = document.getElementById('vMall'); if (mall) mall.hidden = true;
+    const book = document.getElementById('vBook'); if (book) book.hidden = true;
+    const legacy = document.getElementById('wmLegacy'); if (legacy) legacy.hidden = false;
   });
-  await asleep(400);
+  await asleep(500);
 }
 
 (async () => {
@@ -39,8 +46,11 @@ async function openBank(page) {
       const card = document.getElementById('wbTodayCard');
       const sub = document.getElementById('wbTodaySub');
       const btn = document.getElementById('emptyOpenImport');
+      /* 11-12 空态统一为 renderEmpty() 的 .esys--compat 卡；兼容旧 .empty 写法，
+         但判据仍是「是空态容器」而不是恒真。 */
+      const emptyCard = first && (first.className.indexOf('empty') >= 0 || first.classList.contains('esys--compat'));
       return {
-        hasEmpty: !!first && first.className.indexOf('empty') >= 0,
+        hasEmpty: !!emptyCard,
         hasBtn: !!btn,
         btnText: btn ? btn.textContent.trim() : '',
         hasHintWord: list ? list.textContent.indexOf('还没有单词') >= 0 : false,
@@ -49,7 +59,7 @@ async function openBank(page) {
         oldText: list ? list.textContent.indexOf('点上面的') >= 0 : false
       };
     });
-    ok('空词库用全站 .empty 容器', r.hasEmpty);
+    ok('空词库用全站统一空态卡（.esys--compat / .empty）', r.hasEmpty);
     ok('空态给了「去导入单词」按钮', r.hasBtn, r.btnText);
     ok('空态标题是「还没有单词」', r.hasHintWord);
     ok('不再是一长串「点上面的…」指路文案', !r.oldText);
@@ -66,10 +76,11 @@ async function openBank(page) {
       const card = document.getElementById('bankImportCard');
       return { open: body ? !body.hidden : null, cardOpen: card ? card.classList.contains('open') : null, aria: document.getElementById('wlImpBar').getAttribute('aria-expanded') };
     });
-    await asleep(500);
+    /* words.js 的 #emptyOpenImport 在 260ms 后 focus；等真焦点，不拿 DOM 存在冒充。 */
+    await page.waitForFunction(() => document.activeElement && document.activeElement.id === 'smartInput', null, { timeout: 5000 }).catch(() => {});
     ok('点「去导入单词」就地展开导入条', acted && acted.open === true && acted.cardOpen === true, acted ? 'aria-expanded=' + acted.aria : '');
     ok('展开后输入框拿到焦点', await page.evaluate(() => document.activeElement && document.activeElement.id === 'smartInput'), await page.evaluate(() => document.activeElement && document.activeElement.id));
-    await page.screenshot({ path: 'C:\\Users\\Camille\\Desktop\\雅思\\design\\_shot_prac42_empty_1023.png' });
+    /* 第六批本地维修：不把截图写进 design/，尺寸/焦点判据全部保留。 */
     await page.close();
   }
 
@@ -93,7 +104,7 @@ async function openBank(page) {
       const list = document.getElementById('wordList');
       const out = {
         itemCount: list ? list.querySelectorAll('.wl-item').length : 0,
-        emptyShown: list ? !!list.querySelector('.empty') : false,
+        emptyShown: list ? !!list.querySelector('.empty, .esys--compat') : false,
         scrollW: document.documentElement.scrollWidth,
         clientW: document.documentElement.clientWidth
       };
@@ -127,7 +138,6 @@ async function openBank(page) {
       console.log('    ' + vw + ' 操作条 ' + r.bar.w + '×' + r.bar.h + ' 子项 ' + JSON.stringify(r.bar.kids.map(k => k.t + ':' + k.w + 'x' + k.h)));
     }
     ok(vw + ' 无页面报错', errs.length === 0, errs.slice(0, 2).join(' | '));
-    if (vw < 500) await page.screenshot({ path: 'C:\\Users\\Camille\\Desktop\\雅思\\design\\_shot_prac42_bar_' + vw + '_1023.png' });
     await page.close();
   }
 

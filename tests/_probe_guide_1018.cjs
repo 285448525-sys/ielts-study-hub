@@ -2,6 +2,8 @@
 // 用法：node tests/_probe_guide_1018.cjs <baseUrl>
 // 判据要点：① 只在第一次进某科时出现 ② 出现时答题页还没渲染、倒计时没开始
 // ③ 点「知道了」才进考场 ④ 之后永不再弹 ⑤ 阅读/听力各记一次（互不影响）
+// 11-15 PERM-REG-1 / T-001：页内 #mockTabs 收进顶栏二级，听力改用隐藏 tab 的
+// JS .click()（paintTab 转发仍在）；外部 mp3 CDN 证书 / 资源错精确排除，不吞真实 JS 错。
 const { chromium } = require('playwright-core');
 const BASE = process.argv[2] || 'http://127.0.0.1:8791';
 const EDGE = 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
@@ -83,7 +85,14 @@ const guideState = () => {
   console.log('=== D. 听力：自己的首次仍然会弹一次（分科独立）===');
   await page.click('#examRoot [data-exit]');
   await page.waitForTimeout(1500);
-  await page.click('[data-mtab="listening"]');
+  /* 11-15 T-001：隐藏页内 tab 仍保留 DOM 与 paintTab 转发，走产品自己的 click 通道。 */
+  const listeningShown = await page.evaluate(() => {
+    const t = document.querySelector('#mockTabs [data-mtab="listening"]');
+    if (!t) return false;
+    t.click();
+    return document.getElementById('bankRoot').getAttribute('data-mock-tab') === 'listening';
+  });
+  ck('D0 顶栏二级切到听力（隐藏页内 tab 仍可转发）', listeningShown);
   await page.waitForTimeout(2000);
   await page.evaluate(() => document.querySelector('#listenList [data-unit]').click());
   await page.waitForTimeout(800);
@@ -147,7 +156,9 @@ const guideState = () => {
   // 10/20：本机系统代理 127.0.0.1:7897 对某些外链不通 → net::ERR_PROXY_CONNECTION_FAILED
   // 是机器网络噪音、不是页面 JS 错，排除掉（noans2 / examtools 两支同样口径）。
   const real = errs.filter(x => !/Failed to load resource: the server responded with a status of 404/.test(x)
-    && !/ERR_PROXY_CONNECTION_FAILED/.test(x));
+    && !/ERR_PROXY_CONNECTION_FAILED/.test(x)
+    && !/ERR_CERT_AUTHORITY_INVALID/.test(x)
+    && !/\[hub-error\] resource.*part-exam-audio.*\.mp3/.test(x));
   ck('F1 无 JS 报错（代理类 console 报错排除）', real.length === 0, real.slice(0, 3).join(' | '));
 
   console.log('\n================ 结果 ================');

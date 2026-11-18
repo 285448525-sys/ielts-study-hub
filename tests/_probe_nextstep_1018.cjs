@@ -1,4 +1,10 @@
-// 成绩卡「下一步」三卡（P0-3）专项探针
+// 交卷后复盘页（原「成绩卡下一步」P0-3，11-02 EXAM-SCORE-COMPACT-1 后改口径）专项探针
+// 11-15 PERM-REG-1：她 11-02 拍板「成绩卡整删，交卷 = 回看同页」——
+//   .fx-score / WHAT TO DO NEXT / fx-ncard / fx-chip 四种成绩卡节点已全部退役。
+//   本支原来断言的「下一步三卡与三按钮」不再有产品对应物，等价契约改成：
+//   ① 交卷后仍是同一篇、题目可回看；② 顶栏对错小字 + 答案/高亮两开关在；
+//   ③ 顶栏小字数字和落库逐题明细一致；④ 重开同一篇答案清空、计时重置；
+//   ⑤ Exit 能回列表。绝不写「恒真」，也绝不把已退役节点当 bug。
 // 用法：node tests/_probe_nextstep_1018.cjs <baseUrl>
 const { chromium } = require('playwright-core');
 const BASE = process.argv[2] || 'http://127.0.0.1:8791';
@@ -7,14 +13,50 @@ const EDGE = 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
 const R = [];
 const ck = (n, ok, info) => R.push((ok ? '  ✅ ' : '  ❌ ') + n + (info ? '  ｜ ' + info : ''));
 
+/* 10-31 EXAM-TIMER-CHOICE-1 官方探针旁路 + 11-01 BANK-DONE-ROW-1 清留痕。 */
+async function seedExam(page) {
+  await page.addInitScript(() => {
+    try {
+      localStorage.setItem('hub_onboarding_v2', JSON.stringify({ finished: true }));
+      localStorage.setItem('hub_exam_guide_v2_reading', '1');
+      localStorage.setItem('hub_exam_guide_v2_listening', '1');
+      localStorage.setItem('hub_exam_timer_auto', '20');
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const k = localStorage.key(i);
+        if (/^hub_bank_last_/.test(k || '')) localStorage.removeItem(k);
+      }
+    } catch (e) { }
+  });
+}
+
+/* 11-15 PERM-REG-1：进场链路用官方旁路 + 清「做过了」留痕后，还要等卷面真渲染；
+   本篇若已有留痕会弹 BANK-DONE-ROW-1 的 #bkDonePick，点「再做一次」。 */
 async function enterReading(page) {
   await page.goto(BASE + '/bank.html', { waitUntil: 'load', timeout: 60000 });
   await page.waitForTimeout(1200);
   await page.waitForSelector('#bankList [data-unit]', { timeout: 30000 });
-  return await page.evaluate(() => {
+  const unit = await page.evaluate(() => {
     const el = document.querySelector('#bankList [data-unit]');
     el.click(); return el.getAttribute('data-unit');
   });
+  const redo = await page.$('#bkDonePick [data-bdp="redo"]');
+  if (redo) await redo.click();
+  await page.waitForSelector('#examRoot .ex-q, #examRoot .ex-num', { timeout: 20000 });
+  await page.waitForTimeout(1000);
+  return unit;
+}
+
+/* 从列表重新点开同一篇，保留「再做一次」与卷面等待，供重开 / 回列表两段复用。 */
+async function reopenReading(page, unitId) {
+  await page.evaluate((id) => {
+    const item = document.querySelector('#bankList [data-unit="' + id + '"]') || document.querySelector('#bankList [data-unit]');
+    if (!item) throw new Error('reopenReading: list item missing');
+    item.click();
+  }, unitId);
+  const redo = await page.$('#bkDonePick [data-bdp="redo"]');
+  if (redo) await redo.click();
+  await page.waitForSelector('#examRoot .ex-q, #examRoot .ex-num', { timeout: 20000 });
+  await page.waitForTimeout(1000);
 }
 
 (async () => {
@@ -24,98 +66,141 @@ async function enterReading(page) {
   const errs = [];
   page.on('pageerror', e => errs.push(String(e.message || e)));
   page.on('console', m => { if (m.type() === 'error' && !/cloudflareinsights/.test(m.text())) errs.push('[c] ' + m.text()); });
-  await page.addInitScript(() => { try { localStorage.setItem('hub_onboarding_v2', JSON.stringify({ finished: true })); localStorage.getItem('hub_exam_guide_v2_reading') || localStorage.setItem('hub_exam_guide_v2_reading','1'); localStorage.getItem('hub_exam_guide_v2_listening') || localStorage.setItem('hub_exam_guide_v2_listening','1'); } catch (e) { } });
+  await seedExam(page);
 
   const unitId = await enterReading(page);
-  await page.waitForTimeout(1600);
 
-  console.log('=== A. 交卷后出现「下一步」区块 ===');
-  await page.click('[data-submit]');
-  await page.waitForTimeout(500);
-  await page.click('[data-sok]');
+  console.log('=== A. 交卷后落在同页复盘，顶栏给对错与两开关 ===');
+  await page.click('#examRoot [data-submit]');
+  await page.waitForSelector('#exSubmitModal [data-sok]', { timeout: 8000 });
+  await page.click('#exSubmitModal [data-sok]');
   await page.waitForTimeout(1800);
   const st = await page.evaluate(() => {
-    const box = document.querySelector('.fx-score .fx-next');
-    const cards = Array.from(document.querySelectorAll('.fx-score .fx-ncard'));
-    const score = document.querySelector('.fx-score .fx-top b');
+    const root = document.getElementById('examRoot');
+    const mini = root && root.querySelector('.ex-score-mini');
+    const tgs = root ? Array.from(root.querySelectorAll('.ex-tg[data-rvtg]')).map(e => e.getAttribute('data-rvtg')) : [];
+    const btn = document.getElementById('exExitBtn') || document.querySelector('#examRoot [data-exit], #examRoot .ex-ft [data-exit]');
     return {
-      has: !!box,
-      header: box ? String(box.querySelector('.fx-next-h').textContent || '').trim() : '',
-      n: cards.length,
-      labels: cards.map(c => String(c.querySelector('b').textContent || '').trim()),
-      subs: cards.map(c => String(c.querySelector('span').textContent || '').trim()),
-      acts: cards.map(c => c.getAttribute('data-fxnext') || 'done'),
-      cjk: box ? /[\u4e00-\u9fa5]/.test(String(box.textContent || '')) : null,
-      score: score ? String(score.textContent).trim() : '',
-      visible: box ? box.getBoundingClientRect().height > 0 : false
+      examVisible: !!(root && !root.hidden),
+      sameTitle: !!(root && root.querySelector('.ex-name')),
+      qCount: root ? root.querySelectorAll('.ex-q, .ex-num').length : 0,
+      mini: mini ? mini.innerText.replace(/\s+/g, ' ').trim() : '',
+      tgs,
+      scoreCardGone: !(root && root.querySelector('.fx-score, .fx-next, .fx-ncard, .fx-chip')),
+      hasExit: !!btn,
+      submitted: !!(root && Array.from(root.querySelectorAll('button')).some(b => /submitted/i.test(b.textContent || '')))
     };
   });
   console.log('  ' + JSON.stringify(st));
-  ck('A1 成绩卡里出现 WHAT TO DO NEXT', st.has && /WHAT TO DO NEXT/.test(st.header), st.header);
-  ck('A2 三张卡（或全对时的替代卡）都在', st.n === 3, 'n=' + st.n);
-  ck('A3 卡面全英文（考试页零中文铁律）', st.cjk === false);
-  ck('A4 三卡文案分别是 看错题 / 再做一次 / 回列表',
-    /Review the \d+ incorrect/.test(st.labels[0] || '') && /Retake this passage/.test(st.labels[1] || '') && /Back to the test list/.test(st.labels[2] || ''),
-    JSON.stringify(st.labels));
-  ck('A5 区块真实可见（有高度）', st.visible);
-  ck('A6 成绩数字仍在（没被新块挤掉）', /\d+\s*\/\s*\d+/.test(st.score), st.score);
+  ck('A1 交卷后仍在同篇题目页（成绩卡整删后的现版口径）', st.examVisible && st.qCount > 0, 'q=' + st.qCount);
+  ck('A2 顶栏对错小字显示 X correct · Y incorrect', /\d+\s*correct\s*·\s*\d+\s*incorrect/i.test(st.mini), st.mini);
+  ck('A3 Answers / Highlights 两开关都在', st.tgs.includes('ans') && st.tgs.includes('hl'), JSON.stringify(st.tgs));
+  ck('A4 旧成绩卡 / WHAT TO DO NEXT / 三卡整块不渲染', st.scoreCardGone);
+  ck('A5 交卷态有 Exit 出口', st.hasExit);
+  ck('A6 底栏按钮落到 Submitted 态', st.submitted);
 
-  console.log('=== B. 卡1「看错题」→ 答题卡切到只看错题 + 跳到第一道错题 ===');
-  await page.evaluate(() => window.scrollTo(0, 0));
-  await page.click('[data-fxnext="wrong"]');
-  await page.waitForTimeout(900);
-  const b = await page.evaluate(() => {
-    const w = document.querySelector('.fx-chip[data-fxfilter="wrong"]');
-    const a = document.querySelector('.fx-chip[data-fxfilter="all"]');
-    const nums = Array.from(document.querySelectorAll('#examRoot .ex-num'));
-    return {
-      wrongOn: w ? w.classList.contains('on') : null,
-      allOn: a ? a.classList.contains('on') : null,
-      numCount: nums.length,
-      miss: nums.filter(n => /miss|wrong/.test(n.className)).length,
-      scrollY: Math.round(window.scrollY)
-    };
+  console.log('=== B. 顶栏小字与逐题明细一致、复盘开关真的生效 ===');
+  const rec = await page.evaluate(() => {
+    const d = JSON.parse(localStorage.getItem('ielts_study_hub_v1') || '{}');
+    const r = (d.mockRecords || []).find(x => x.src === 'bank' && Array.isArray(x.detail));
+    if (!r) return null;
+    return { right: r.detail.filter(q => q.ok).length, wrong: r.detail.filter(q => !q.ok).length, total: r.detail.length };
   });
-  console.log('  ' + JSON.stringify(b));
-  ck('B1 Incorrect only 被点亮', b.wrongOn === true);
-  ck('B2 All 已取消', b.allOn === false);
-  ck('B3 答题卡仍有题号（只是过滤，不是清空）', b.numCount > 0, 'n=' + b.numCount);
+  const nums = (st.mini.match(/(\d+)\s*correct\s*·\s*(\d+)\s*incorrect/i) || []).slice(1).map(Number);
+  ck('B1 落库记录带逐题明细', !!rec && rec.total > 0, JSON.stringify(rec));
+  ck('B2 顶栏数字 == 落库逐题对错', !!rec && nums.length === 2 && nums[0] === rec.right && nums[1] === rec.wrong, nums.join('/') + ' vs ' + JSON.stringify(rec));
+  /* 11-15 PERM-REG-1：EXAM-SCORE-COMPACT-1 / RV-FIX5-* 后，「显示正确答案」不再用
+     .ex-qn.right / input.ex-blank.right 表达：现版是 .ex-ca-in 绿字（填空）或
+     .ex-opt.right / .ex-pill.right 绿底（选择）。关闭态由 .rv-noans 把未勾正答标压成透明。
+     这里仍只认「真正可见、有绿底/绿字」的正答标，不把根类 on 当恒真通过。 */
+  const visibleAnswers = () => page.evaluate(() => {
+    const root = document.getElementById('examRoot');
+    if (!root) return { count: 0, sample: [] };
+    const nodes = Array.from(root.querySelectorAll('.ex-ca-in, .ex-opt.right, .ex-pill.right'));
+    const sample = [];
+    for (const el of nodes) {
+      const cs = getComputedStyle(el);
+      if (cs.display === 'none' || cs.visibility === 'hidden' || cs.opacity === '0') continue;
+      const bg = cs.backgroundColor || '';
+      const plain = /transparent|rgba\(\s*0\s*,\s*0\s*,\s*0\s*,\s*0\s*\)/.test(bg);
+      const text = String(el.textContent || '').trim();
+      /* .ex-ca-in 本身就是绿字正答；其余两种要有非透明绿底才算「真出现」。 */
+      if (el.classList.contains('ex-ca-in') ? text.length > 0 : !plain) {
+        sample.push((el.className || el.tagName) + ':' + text.slice(0, 24));
+      }
+    }
+    return { count: sample.length, sample: sample.slice(0, 4) };
+  });
+  const ansBefore = await visibleAnswers();
+  await page.click('#examRoot .ex-tg[data-rvtg="ans"]');
+  await page.waitForTimeout(500);
+  const ansAfter = await page.evaluate(() => ({
+    on: !!document.querySelector('#examRoot .ex-tg[data-rvtg="ans"].on'),
+    rootOn: !!document.querySelector('#examRoot.rv-ans-on'),
+    rootNoAns: !!document.querySelector('#examRoot.rv-noans')
+  }));
+  const shownAfter = await visibleAnswers();
+  console.log('  ' + JSON.stringify({ ansBefore, ansAfter, shownAfter }));
+  ck('B3 默认不显示正确答案', ansBefore.count === 0, 'visible=' + ansBefore.count);
+  ck('B4 点 Answers 后开关点亮且正确答案真出现',
+    ansAfter.on && ansAfter.rootOn && !ansAfter.rootNoAns && shownAfter.count > 0,
+    'visible=' + shownAfter.count + ' ' + shownAfter.sample.join(' | '));
 
-  console.log('=== C. 卡2「再做一次」→ 重新进同一篇、答案清空、计时重置 ===');
-  await page.evaluate(() => window.scrollTo(0, 0));
-  await page.click('[data-fxnext="retake"]');
-  await page.waitForTimeout(3000);
+  console.log('=== C. 重开同一篇：答案清空、计时重置 ===');
+  /* 顶栏 Exit 是她 11-02 替换掉「成绩卡三按钮」后的统一出口；点它回列表再点原篇目。 */
+  const exited = await page.evaluate(() => {
+    const b = document.getElementById('exExitBtn') || document.querySelector('#examRoot [data-exit], #examRoot .ex-ft [data-exit]');
+    if (b) { b.click(); return true; }
+    return false;
+  });
+  await page.waitForTimeout(900);
+  if (exited) {
+    const redo = await page.$('#exExitConfirm [data-exok], #exExitModal [data-exok]');
+    if (redo) await redo.click();
+    await page.waitForTimeout(800);
+  }
+  const backToList = await page.evaluate(() => {
+    const er = document.getElementById('examRoot'), br = document.getElementById('bankRoot');
+    return !!(er && er.hidden && br && getComputedStyle(br).display !== 'none');
+  });
+  if (!backToList) {
+    await page.goto(BASE + '/bank.html', { waitUntil: 'load' });
+    await page.waitForSelector('#bankList [data-unit]', { timeout: 30000 });
+  }
+  await reopenReading(page, unitId);
   const c = await page.evaluate(() => {
     const tm = document.getElementById('exTimer');
-    const sc = document.querySelector('.fx-score');
-    const blanks = Array.from(document.querySelectorAll('#examRoot .ex-blank'));
-    const filled = blanks.filter(i => String(i.value || '').trim()).length;
+    const blanks = Array.from(document.querySelectorAll('#examRoot input.ex-blank'));
+    const radios = Array.from(document.querySelectorAll('#examRoot input.ex-radio, #examRoot input.ex-check'));
     const sub = document.querySelector('#examRoot [data-submit]');
     return {
       timer: tm ? String(tm.textContent).trim() : 'NO',
-      scoreCardGone: !sc,
-      blanks: blanks.length, filled,
+      filled: blanks.filter(i => String(i.value || '').trim()).length + radios.filter(i => i.checked).length,
       submitLabel: sub ? String(sub.textContent).trim() : 'NO',
       submitDisabled: sub ? !!sub.disabled : null
     };
   });
   console.log('  ' + JSON.stringify(c));
-  /* 🔵 10-26：计时文案在 W-EXTOP-1（66c82d5b）改成「N minutes remaining」分钟制（删了秒），
-     这里仍在按老的 HH:MM:SS 判 → 恒红。判据改成「分钟制里 59 或 60 都算刚重置」。 */
-  ck('C1 重新进入答题页（计时回到 59~60 分钟）',
-    /^(59|60) minutes remaining$/.test(c.timer) || /^00:59:5\d$|^01:00:00$/.test(c.timer), c.timer);
-  ck('C2 旧成绩卡已移除', c.scoreCardGone);
-  ck('C3 作答已清空（填空框无残留）', c.filled === 0, 'filled=' + c.filled + '/' + c.blanks);
-  ck('C4 Finish 按钮恢复可点、文案回到 Finish section',
+  /* 11-15 PERM-REG-1：现版 examTimerLabel() 只显示整分钟（js/bank.js:1679），
+     hub_exam_timer_auto='20' 对应满格 20 min；刚进来跌一秒也是 19 min 属正常，
+     保留「计时重置到满格附近」的意图，不再认旧版 minutes remaining / 00:20:00 文案。 */
+  ck('C1 重新进入答题页（计时重置到 19~20 min）', /^(19|20)\s*min$/.test(c.timer), c.timer);
+  ck('C2 作答已清空（填空/选项均无残留）', c.filled === 0, 'filled=' + c.filled);
+  ck('C3 Finish 按钮恢复可点、文案回到 Finish section',
     c.submitDisabled === false && /Finish section/.test(c.submitLabel), c.submitLabel + ' disabled=' + c.submitDisabled);
 
-  console.log('=== D. 卡3「回列表」→ 退出考场 ===');
-  await page.click('[data-submit]');
-  await page.waitForTimeout(400);
-  await page.click('[data-sok]');
-  await page.waitForTimeout(1500);
-  await page.click('[data-fxnext="exit"]');
-  await page.waitForTimeout(2000);
+  console.log('=== D. 交卷后回列表（旧「回列表」卡的现版等价路径）===');
+  await page.click('#examRoot [data-submit]');
+  await page.waitForSelector('#exSubmitModal [data-sok]', { timeout: 8000 });
+  await page.click('#exSubmitModal [data-sok]');
+  await page.waitForTimeout(1000);
+  await page.evaluate(() => {
+    const b = document.getElementById('exExitBtn') || document.querySelector('#examRoot [data-exit], #examRoot .ex-ft [data-exit]');
+    if (b) b.click();
+  });
+  const confirm = await page.$('#exExitConfirm [data-exok], #exExitModal [data-exok]');
+  if (confirm) await confirm.click();
+  await page.waitForTimeout(1200);
   const d = await page.evaluate(() => {
     const er = document.getElementById('examRoot'), br = document.getElementById('bankRoot');
     return {
@@ -129,7 +214,9 @@ async function enterReading(page) {
   ck('D2 列表正常渲染', d.listCount > 0, 'n=' + d.listCount);
 
   console.log('=== E. 控制台错误 ===');
-  const real = errs.filter(e => !/Failed to load resource: the server responded with a status of 404/.test(e));
+  const real = errs.filter(e => !/Failed to load resource: the server responded with a status of 404/.test(e)
+    && !/ERR_CERT_AUTHORITY_INVALID/.test(e)
+    && !/\[hub-error\] resource.*part-exam-audio/.test(e));
   ck('E1 无 JS 报错', real.length === 0, real.slice(0, 3).join(' | '));
 
   console.log('\n================ 结果 ================');
@@ -138,4 +225,4 @@ async function enterReading(page) {
   console.log('\n合计 ' + R.length + ' 项，通过 ' + (R.length - bad) + '，失败 ' + bad + '   (unit=' + unitId + ')');
   await browser.close();
   process.exit(bad ? 1 : 0);
-})();
+})().catch(e => { console.error(e && e.stack || e); process.exit(2); });
