@@ -20,6 +20,15 @@ const ok = (n, c, x) => { if (c) { pass++; console.log('  ok  ' + n + (x !== und
 (async () => {
   const b = await chromium.launch({ executablePath: EDGE, headless: true, args: ['--proxy-server=direct://', '--proxy-bypass-list=*'] });
   const c = await b.newContext({ viewport: { width: 1280, height: 900 } });
+  /* 🔵 11-16 起回顾页空态会把总览数据块整块收起来（renderHome: 没成绩 → #rvaHomeData hidden，
+     只留引导卡）。本探针验的是「有成绩时」的栏位与深链，所以先种一条四科齐全的成绩记录。 */
+  const SEED = {
+    scores: [{ id: 's1', date: '2026-11-10', listening: 6.5, reading: 6.0, writing: 5.5, speaking: 6.0 }],
+    settings: { targets: { overall: 6.5, listening: 7, reading: 6.5, writing: 6, speaking: 6.5 } }
+  };
+  await c.addInitScript(seed => {
+    try { localStorage.setItem('ielts_study_hub_v1', JSON.stringify(seed)); } catch (e) {}
+  }, SEED);
   const p = await c.newPage();
   const errs = [];
   p.on('pageerror', e => errs.push(String(e).slice(0, 140)));
@@ -49,10 +58,17 @@ const ok = (n, c, x) => { if (c) { pass++; console.log('  ok  ' + n + (x !== und
   }
 
   /* 11-13 REVIEW-REDESIGN-3：统一从当前 rv-tabs.js / rvx-data.js 实测状态，
-     不再读取已移除的 #tab-score / #tab-record / .review-pill-tabs。 */
+     不再读取已移除的 #tab-score / #tab-record / .review-pill-tabs。
+     🔵 11-18 复核：现版回顾页是「单页多块」（总览 #rv2Summary + 记录 #recAll 同页），
+     深链不再切 pane，而是 deepLinkScroll() 把对应块滚到眼前 → 判据改成「对应块进入视口」。 */
   const readRv = async (page) => page.evaluate(() => {
     const q = id => document.getElementById(id);
     const visible = el => !!el && !el.hidden && getComputedStyle(el).display !== 'none' && el.getBoundingClientRect().width > 0;
+    const inView = el => {
+      if (!visible(el)) return false;
+      const r = el.getBoundingClientRect();
+      return r.bottom > 0 && r.top < (window.innerHeight || 800);
+    };
     const sub = q('tbsub-review');
     const m = q('rvMobileTabs');
     const summary = q('rv2Summary');
@@ -60,10 +76,11 @@ const ok = (n, c, x) => { if (c) { pass++; console.log('  ok  ' + n + (x !== und
     return {
       url: location.pathname + location.search,
       cur: window.__rvCur || null,
-      scoreOn: visible(summary) && (window.__rvCur || 'home') === 'home',
-      recordOn: visible(rec) && window.__rvCur === 'records',
-      /* 原分项/整卷/口语三块 → 当前总览卡的整卷分 + 四科格（含口语） */
-      hasBreakdown: !!(q('rvxCellL') && q('rvxCellR') && q('rvxCellW') && q('rvxCellS')),
+      scoreOn: inView(summary),
+      recordOn: inView(rec),
+      summaryTop: summary ? Math.round(summary.getBoundingClientRect().top) : null,
+      recTop: rec ? Math.round(rec.getBoundingClientRect().top) : null,
+      hasBreakdown: document.querySelectorAll('.rv2-subjects .rva-subject[data-subject-card], .rva-subject[data-subject-card]').length === 4,
       hasOverall: !!q('rvxNumAll'),
       hasSpeaking: !!q('rvxNumS'),
       recFilter: q('recordFilter') ? q('recordFilter').value : '',
@@ -87,28 +104,28 @@ const ok = (n, c, x) => { if (c) { pass++; console.log('  ok  ' + n + (x !== und
 
   const r1 = await clickSub('成绩');
   console.log('  点「成绩」后：' + JSON.stringify(r1));
-  ok('②1 落在成绩对应总览栏', r1.cur === 'home' && r1.scoreOn === true && r1.recordOn === false, r1);
+  ok('②1 点「成绩」把总览块滚到眼前（#rv2Summary 进入视口）', r1.scoreOn === true, r1);
   ok('②2 成绩栏里三块原内容都有等价落点（分项/整卷/口语）', r1.hasBreakdown && r1.hasOverall && r1.hasSpeaking, r1);
   ok('②3 地址栏带上 sub=score', /sub=score/.test(r1.url || ''), r1.url);
 
   const r2 = await clickSub('轨迹');
   console.log('  点「轨迹」后：' + JSON.stringify(r2));
-  ok('③1 落在轨迹对应记录栏', r2.cur === 'records' && r2.recordOn === true && r2.scoreOn === false && r2.recFilter === 'all', r2);
+  ok('③1 点「轨迹」把记录块滚到眼前（#recAll 进入视口）', r2.recordOn === true, r2);
   ok('③2 地址栏带上 sub=record', /sub=record/.test(r2.url || ''), r2.url);
 
-  /* ④ 三个老深链值仍落到成绩对应栏（旧书签不能白页） */
+  /* ④ 三个老深链值仍落到成绩对应块（旧书签不能白页） */
   for (const old of ['breakdown', 'overall', 'speaking']) {
     await p.goto(BASE + '/review.html?sub=' + old, { waitUntil: 'load' });
     await sleep(2000);
     const r = await readRv(p);
-    ok('④ 老深链 ?sub=' + old + ' 仍落到成绩对应栏', r.cur === 'home' && r.scoreOn === true && r.recordOn === false, r);
+    ok('④ 老深链 ?sub=' + old + ' 仍把总览块滚到眼前', r.scoreOn === true, r);
   }
 
   /* 新建值深链 */
   await p.goto(BASE + '/review.html?sub=record', { waitUntil: 'load' });
   await sleep(1800);
   const rr = await readRv(p);
-  ok('④2 新深链 ?sub=record 落到轨迹对应栏', rr.cur === 'records' && rr.recordOn === true && rr.recFilter === 'all', rr);
+  ok('④2 新深链 ?sub=record 把记录块滚到眼前', rr.recordOn === true, rr);
 
   /* ⑤ 桌面 1280 当前 #rvMobileTabs 必须仍隐藏（红线） */
   await p.goto(BASE + '/review.html', { waitUntil: 'load' });

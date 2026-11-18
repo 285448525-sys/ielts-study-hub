@@ -482,11 +482,39 @@
     if(window.__rvFinalResize)window.removeEventListener('resize',window.__rvFinalResize);
     window.__rvFinalResize=resize;window.addEventListener('resize',resize);
   }
+  /* 🔧 11-18 修（回归发现的产品问题）：11-16 重写后 `js/rvx-data.js` 已不再被 review.html 加载，
+     它的 deepLink() 一并失效 → 顶栏/侧栏给「轨迹」拼的 `?sub=record` 进来只停在总览块，
+     记录（#recAll）根本没被展开，书签等于白点。这里把 deep link 收进 rv-tabs 自己：
+     先按 ?sub= 选 pane（老值 breakdown/overall/speaking 仍归成绩），再滚动到对应块。 */
+  function subPane(){
+    try{
+      var sub=new URLSearchParams(location.search).get('sub');
+      if(sub==='record'||sub==='trajectory'||sub==='history')return 'records';
+      if(sub==='score'||sub==='breakdown'||sub==='overall'||sub==='speaking')return 'home';
+    }catch(e){}
+    return null;
+  }
+  function deepLinkScroll(pane){
+    setTimeout(function(){
+      try{
+        var el=$(pane==='records'?'recAll':'rv2Summary');
+        if(el&&el.scrollIntoView)el.scrollIntoView({block:'start'});
+        var main=document.querySelector('#reviewMain .hub-main');
+        if(main&&main.scrollTop>0)main.scrollTop=Math.max(0,main.scrollTop-56);
+      }catch(e){}
+    },150);
+  }
   function boot(){
     bind();
     renderNav();
     renderTasks(false);
-    show(hashPane()||'home',{silent:true});
+    var pane=subPane()||hashPane()||'home';
+    if(pane==='records'){
+      var f=$('recordFilter');
+      if(f&&!location.search.match(/[?&]rec=/))f.value='all';
+    }
+    show(pane,{silent:true});
+    if(subPane())deepLinkScroll(pane);
     window.hubRepaintReviewE=renderAll;
     window.__rvTabs={show:show,render:renderAll};
   }
