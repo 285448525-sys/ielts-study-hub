@@ -66,17 +66,33 @@ const bare = n => n.split('/').pop().split('?')[0];
   ok(errs.length === 0, '零页面错误' + (errs.length ? ' — ' + errs.join(' | ') : ''));
 
   console.log('\n[B] 切「素材」tab');
-  // 2-1d（35f1f73）起桌面 ≥861 #tabs 被 display:none 撤掉了 → Playwright 的可见性检查会超时，
-  // 改 JS click 走原有事件处理（与 tests/_probe_shell4_1022.cjs 的修法一致）。
-  await pg.evaluate(() => document.querySelector('#tabs [data-type="MAT"]').click());
+  // 2-1d（35f1f73）起桌面 ≥861 #tabs 被 display:none 撤掉了 → Playwright 的可见性检查会超时。
+  // 🔵 11-16 起真正的桌面入口是左侧栏 `#hubSubs .hub-sub[data-spt-tab]`；点旧 #tabs 只是在点一个
+  //    已经被撤掉的按钮（实测 show() 根本没跑，hash 不变、shell 空）。所以优先点侧栏，点不到再退回旧 tab。
+  await pg.evaluate(() => {
+    const side = document.querySelector('#hubSubs .hub-sub[data-spt-tab="materials"]');
+    if (side) return side.click();
+    const old = document.querySelector('#tabs [data-type="MAT"]');
+    if (old) old.click();
+  });
   await pg.waitForFunction(() => typeof window.matGen !== 'undefined' && !!window.matGen.init, null, { timeout: 20000 }).catch(() => {});
-  await pg.waitForTimeout(1500);
+  /* 🔵 11-16 素材改双栏工作台：真实内容进 `#sptMatShell`，旧 `#sptMatLegacy` 收进 hidden 包；
+     所以判据改成「matView 或 shell 里有字」，不再只盯 matView 自己。 */
+  await pg.waitForFunction(() => {
+    const mv = document.getElementById('matView');
+    const sh = document.getElementById('sptMatShell');
+    const n = (mv ? mv.innerText.trim().length : 0) + (sh ? sh.innerText.trim().length : 0);
+    return n > 40;
+  }, null, { timeout: 15000 }).catch(() => {});
+  await pg.waitForTimeout(500);
   const b = await pg.evaluate(() => {
     const mv = document.getElementById('matView');
     return {
       shown: !!mv && !mv.hidden,
       matGen: typeof window.matGen !== 'undefined' && typeof matGen.init === 'function',
-      text: mv ? mv.innerText.length : 0,
+      text: (mv ? mv.innerText.trim().length : 0) + ((document.getElementById('sptMatShell') || {}).innerText || '').trim().length,
+      shellText: ((document.getElementById('sptMatShell') || {}).innerText || '').trim().length,
+      shellKids: ((document.getElementById('sptMatShell') || {}).children || []).length,
       placeholder: mv ? mv.innerText.indexOf('素材加载中') >= 0 : null,
       loaded: performance.getEntriesByType('resource').map(e => e.name.split('/').pop().split('?')[0])
     };
@@ -84,27 +100,44 @@ const bare = n => n.split('/').pop().split('?')[0];
   ok(b.shown, 'matView 显示');
   ok(b.matGen, 'materials.js 已按需加载（matGen.init 存在）');
   ok(b.placeholder === false, '占位文案已被真实内容替换（不再是「素材加载中…」）');
-  ok(b.text > 40, '素材视图有真实内容（' + b.text + ' 字）');
+  /* 🔵 11-16 素材双栏工作台的壳由 spt-tabs.renderMaterialShell 画进 #sptMatShell；
+     空素材时它画的是空态卡（字数很少），所以「渲染完成」按结构判（壳里有子节点），不再只数字数。 */
+  ok(b.text > 40 || b.shellKids > 0, '素材视图已渲染出内容或空态卡（' + b.text + ' 字 / 壳内 ' + b.shellKids + ' 块）');
   ok(b.loaded.indexOf('materials.js') >= 0, 'materials.js 确实被请求过');
 
   console.log('\n[C] 点「模考」tab（UI 里 hidden）');
-  await pg.evaluate(() => { const bt = document.querySelector('#tabs [data-type="MOCK"]'); if (bt) bt.click(); });
-  await pg.waitForTimeout(2500);
+  await pg.evaluate(() => {
+    const side = document.querySelector('#hubSubs .hub-sub[data-spt-tab="mock"]');
+    if (side) return side.click();
+    const bt = document.querySelector('#tabs [data-type="MOCK"]');
+    if (bt) bt.click();
+  });
+  /* 🔵 11-16 起点「模考」只出入口卡（会员校验前置，点开始才进沉浸），所以正文只有卡片文案几十个字；
+     原来卡 60 字会把正常入口判红。改成等入口卡出现 + 判它真的有可点入口。 */
+  await pg.waitForFunction(() => {
+    const pane = document.getElementById('sptPaneMock');
+    const mv = document.getElementById('mockView');
+    return (!!pane && !pane.hidden) || (!!mv && !mv.hidden);
+  }, null, { timeout: 15000 }).catch(() => {});
+  await pg.waitForTimeout(800);
   const c = await pg.evaluate(() => {
     const mv = document.getElementById('mockView');
+    const pane = document.getElementById('sptPaneMock');
     const loaded = performance.getEntriesByType('resource').map(e => e.name.split('/').pop().split('?')[0]);
     return {
-      shown: !!mv && !mv.hidden,
+      /* 🔵 11-16 起模考的现版容器是 `#sptPaneMock`（内含 #sptMockIntro 入口卡），旧 #mockView 被 hideViews() 收起 */
+      shown: (!!pane && !pane.hidden) || (!!mv && !mv.hidden),
       enter: typeof window.__mockEnter === 'function',
       loaded: loaded,
       stage: !!document.getElementById('mockStage'),
-      bodyText: document.body.innerText.length
+      bodyText: document.body.innerText.length,
+      paneText: (pane ? pane.innerText.trim().length : 0) + (mv ? mv.innerText.trim().length : 0)
     };
   });
-  ok(c.shown, 'mockView 显示');
+  ok(c.shown, '模考入口容器显示（现版 #sptPaneMock，旧 #mockView 已收起）');
   ok(c.enter, 'mock.js 已按需加载（__mockEnter 是函数）');
   ok(c.loaded.indexOf('mock.js') >= 0 && c.loaded.indexOf('mock-report.js') >= 0 && c.loaded.indexOf('mock-history.js') >= 0, 'mock 三件套都加载了');
-  ok(c.bodyText > 60, '模考界面渲染出内容（' + c.bodyText + ' 字）');
+  ok(c.bodyText > 40, '模考 tab 有可读内容（' + c.bodyText + ' 字，11-16 后是入口卡不是整场考场）');
   ok(errs.length === 0, '两个 tab 走完后仍零页面错误' + (errs.length ? ' — ' + errs.join(' | ') : ''));
   await ctx.close();
 
