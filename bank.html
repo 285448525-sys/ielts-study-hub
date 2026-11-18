@@ -18,7 +18,7 @@
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
 <title>机经 · 雅思备考 Hub</title>
-<link rel="preload" as="script" href="js/bank.js?v=20261118b" /> <!-- W1-PRELOAD-1 (373KB)：与下方 defer 同串防双下载 -->
+<link rel="preload" as="script" href="js/bank.js?v=20261118c" /> <!-- W1-PRELOAD-1 (373KB)：与下方 defer 同串防双下载 -->
 <link rel="preload" as="script" href="js/common-shell.js?v=20261116a" /> <!-- W1-PRELOAD-1 (113KB)：与下方 defer 同串防双下载 -->
 <link rel="stylesheet" href="css/common.css?v=20261116a" />
 <link rel="stylesheet" href="css/p/bank.css?v=20261116i" />
@@ -3192,7 +3192,7 @@ html[data-theme="dark"] .hub-main #bankRoot .partbar .pill-tab.active{background
 <script defer src="js/common-shell.js?v=20261116a"></script>
 <script defer src="js/common-pwa.js?v=20261117a"></script>
 <script defer src="js/exam-timer.js?v=20261102c"></script>
-<script defer src="js/bank.js?v=20261118b"></script>
+<script defer src="js/bank.js?v=20261118c"></script>
 <!-- RV-FIX5-10/11（11-03 合流修正）：bank.js 内容改了但引用串此前漏 bump（串还是 g，与上一版撞）——
      按 11-02 判据「bump 不覆盖页面 js 引用串」人工改 h；bank.css 保持 g（本笔未再动它）。 -->
 <!-- M-2（10-24）：模考页「没做过/做过」分组 + 展开更多。
@@ -3212,6 +3212,55 @@ html[data-theme="dark"] .hub-main #bankRoot .partbar .pill-tab.active{background
 /* RV-CA-GAP-1（11-18 她「正确答案得是绿色的，前面两个空格就够」）：绿字保绿、与红字之间留约两个空格的间距。 */
 .ex-ca-in{display:inline-block;font:inherit;color:#1f7a5c;line-height:1.4;vertical-align:middle;flex:none;margin-left:.6em}
 #examRoot.ct-dark .ex-ca-in, #examRoot.ct-yellow .ex-ca-in{color:#63d2a6}
+</style>
+<style id="listenResult1118">
+/* LISTEN-RESULT-1118：沿用阅读双栏、分隔线与底部题号框；仅重排听力复盘。 */
+#examRoot.listen-result-v2 .lr-scoreband{flex:none;display:grid;grid-template-columns:150px 1fr auto;gap:18px;align-items:center;min-height:64px;padding:8px 18px;background:#fff;border-bottom:1px solid #dfe3e8}
+#examRoot.listen-result-v2 .lr-band{display:flex;align-items:center;gap:6px;min-width:0}
+#examRoot.listen-result-v2 .lr-scoreband>*{min-width:0}
+#examRoot.listen-result-v2 .lr-band>b{font-size:34px;line-height:1;color:#111}
+#examRoot.listen-result-v2 .lr-band>span{font-size:13px;color:#6b7280}.lr-band small{display:block;font-size:11px;margin-top:5px;white-space:nowrap}
+#examRoot.listen-result-v2 .lr-stats{display:flex;gap:30px}.lr-stats>span{display:block}.lr-stats b{display:block;font-size:18px;color:#111}.lr-stats small{display:block;font-size:11px;color:#6b7280;margin-top:2px}
+#examRoot.listen-result-v2 .lr-scoreband>p{margin:0;font-size:12px;line-height:1.5;color:#6b7280;text-align:right}
+#examRoot.listen-result-v2 .ex-audio.review{position:static;min-height:50px;padding:7px 14px;gap:10px;background:#f7f9fa;box-shadow:none;border-bottom:1px solid #dfe3e8}
+#examRoot.listen-result-v2 .ex-audio.review .ea-play{width:32px;height:32px}
+#examRoot.listen-result-v2 .ex-audio.review .ea-rate{height:28px;min-height:28px}
+#examRoot.listen-result-v2 .ex-audio.review .ea-repeat{display:none}
+#examRoot.listen-result-v2 .ex-listen{overflow:hidden;padding:0;min-height:0}
+#examRoot.listen-result-v2 .lr-layout{height:100%;min-height:0}
+#examRoot.listen-result-v2 .lr-script{padding:0;overflow:auto;background:#fff}
+#examRoot.listen-result-v2 .lr-listen-in{min-height:100%;padding:0 12px 24px}
+#examRoot.listen-result-v2 .ex-script{margin:0;border:0;border-radius:0;background:#fff;overflow:visible}
+#examRoot.listen-result-v2 .ex-script>summary{display:none}
+#examRoot.listen-result-v2 .ex-script .sc-body.sc-tl{max-height:none;overflow:visible;padding:6px 4px 20px}
+#examRoot.listen-result-v2 .ex-script .sc-line{padding:7px 8px}
+#examRoot.listen-result-v2 .ex-qcol{padding:0;background:#fff}
+#examRoot.listen-result-v2 .lr-pane-head{height:44px;display:flex;align-items:center;gap:9px;padding:0 16px;border-bottom:1px solid #dfe3e8;box-sizing:border-box}
+#examRoot.listen-result-v2 .lr-pane-head b{font-size:13px;color:#111}.lr-pane-head span{font-size:11.5px;color:#6b7280}
+#examRoot.listen-result-v2 .lr-pane-head button{margin-left:auto;height:28px;padding:0 10px;border:1px solid #dfe3e8;border-radius:7px;background:#fff;color:#4b5563;font-size:11.5px;cursor:pointer}
+#examRoot.listen-result-v2 .lr-pane-head button.on{background:#e8f3f1;border-color:#5cb3ab;color:#2f7d76}
+#examRoot.listen-result-v2 .lr-questions{padding:16px 24px 60px}
+#examRoot.listen-result-v2 .lr-questions .ex-group{margin-bottom:22px}
+#examRoot.listen-result-v2 .ex-qscroll>.lr-pane-head{margin:0 -28px 18px;padding:0 28px;width:calc(100% + 56px)}
+#examRoot.listen-result-v2 .ex-qscroll>.lr-questions{padding:0 0 24px}
+#examRoot.listen-result-v2 .ex-qcol.ai-open .lr-pane-head{margin:0}
+#examRoot.listen-result-v2 .ex-qcol.ai-open .ex-qscroll>.lr-pane-head{margin:0 -28px 18px}
+#examRoot.listen-result-v2 .sc-blind{position:sticky;top:12px;min-height:180px;margin:12px;z-index:3}
+#examRoot.ct-dark.listen-result-v2 .lr-scoreband,#examRoot.ct-dark.listen-result-v2 .lr-pane-head,#examRoot.ct-dark.listen-result-v2 .ex-audio.review{background:#161616;border-color:#5a5f66}
+#examRoot.ct-dark.listen-result-v2 .lr-band>b,#examRoot.ct-dark.listen-result-v2 .lr-stats b,#examRoot.ct-dark.listen-result-v2 .lr-pane-head b{color:#f2f2f2}
+#examRoot.ct-yellow.listen-result-v2 .lr-scoreband,#examRoot.ct-yellow.listen-result-v2 .lr-pane-head,#examRoot.ct-yellow.listen-result-v2 .ex-audio.review{background:#161616;border-color:#5a5f66}
+#examRoot.ct-yellow.listen-result-v2 .lr-band>b,#examRoot.ct-yellow.listen-result-v2 .lr-stats b,#examRoot.ct-yellow.listen-result-v2 .lr-pane-head b{color:#f0e3a8}
+@media(max-width:860px){
+  #examRoot.listen-result-v2 .lr-scoreband{grid-template-columns:100px 1fr;padding:8px 12px;gap:10px}.lr-scoreband>p{display:none}
+  #examRoot.listen-result-v2 .lr-band>b{font-size:28px}.lr-stats{gap:18px!important}.lr-stats b{font-size:16px!important}
+  #examRoot.listen-result-v2 .ex-listen{overflow:auto}
+  #examRoot.listen-result-v2 .lr-layout{display:block;height:auto}
+  #examRoot.listen-result-v2 .lr-script{overflow:visible;max-height:none;border-bottom:1px solid #dfe3e8}
+  #examRoot.listen-result-v2 .lr-listen-in{min-height:0}
+  #examRoot.listen-result-v2 .ex-qcol{overflow:visible}
+  #examRoot.listen-result-v2 .lr-questions{padding:14px 14px 80px}
+}
+@media(max-width:1100px) and (min-width:861px){#examRoot.listen-result-v2 .lr-scoreband{grid-template-columns:130px 1fr}#examRoot.listen-result-v2 .lr-scoreband>p{display:none}}
 </style>
 </body>
 </html>

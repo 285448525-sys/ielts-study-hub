@@ -2777,6 +2777,7 @@ window.__reportExamState = reportExamState;
     mountIntensive();
     /* 3-4：时间轴到了就把原文换成可点句子条 */
     mountScriptTimeline();
+    mountListenResultLayout();
   }
 
   /* ===== 10-24 7-3 · 盲听优先遮罩 =====
@@ -3513,6 +3514,50 @@ window.__reportExamState = reportExamState;
   }
   function isListen(){ return !!(EX && EX.channel === 'listening'); }
 
+  /* LISTEN-RESULT-1118：听力复盘沿用阅读的双栏题区与底部答题卡。
+     左栏只承载音频与逐句原文，右栏仍是原题 + 既有固定解析；不复制判分/作答/讲解逻辑。 */
+  function mountListenResult(){
+    var root=document.getElementById('examRoot');
+    if(!root || !EX || EX.channel!=='listening' || !EX.submitted || !EX.result) return;
+    root.classList.add('listen-result-v2');
+    var oldPause=root.querySelector('#exTopPauseBtn'); if(oldPause) oldPause.remove();
+    var old=document.getElementById('listenResultBand'); if(old) old.remove();
+    var res=EX.result, wrong=res.detail.filter(function(d){return !d.ok;}).length;
+    var band=typeof estimateBand==='function'?estimateBand('listening',res.right,res.total):null;
+    var sec=Math.max(0,Math.round(EX._usedSec||0));
+    var time=sec?Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0'):'—';
+    var el=document.createElement('section'); el.className='lr-scoreband'; el.id='listenResultBand';
+    el.innerHTML='<div class="lr-band"><b>'+(band==null?'—':band)+'</b><span>/ 9<small>本次 · '+time+'</small></span></div>'
+      +'<div class="lr-stats"><span><b>'+res.right+'/'+res.total+'</b><small>正确题数</small></span><span><b>'+wrong+'</b><small>待复盘</small></span></div>'
+      +'<p>左边听一句、看一句；右边逐题看错因。</p>';
+    var audio=document.getElementById('exAudioBar');
+    if(audio && audio.parentNode===root) root.insertBefore(el,audio); else root.insertBefore(el,root.querySelector('.ex-listen'));
+  }
+  function mountListenResultLayout(){
+    var root=document.getElementById('examRoot'), inner=document.getElementById('exListenIn');
+    if(!root || !inner || !EX || EX.channel!=='listening' || !EX.submitted) return;
+    if(root.querySelector('#exQCol')){ mountListenResult(); return; }
+    var groups=inner.querySelectorAll(':scope > .ex-group');
+    if(!groups.length){ mountListenResult(); return; }
+    var qs=document.createElement('div'); qs.className='lr-questions'; qs.id='lrQuestions';
+    Array.prototype.forEach.call(groups,function(g){qs.appendChild(g);});
+    var layout=document.createElement('div'); layout.className='ex-split rv-done lr-layout'; layout.id='exSplit';
+    var art=document.createElement('div'); art.className='ex-article lr-script'; art.id='exArt';
+    var qcol=document.createElement('div'); qcol.className='ex-qcol'; qcol.id='exQCol';
+    var handle=document.createElement('button'); handle.type='button'; handle.className='ex-split-handle'; handle.id='exSplitHandle';
+    handle.setAttribute('role','separator'); handle.setAttribute('aria-label','拖动调整原文和题目宽度'); handle.setAttribute('aria-orientation','vertical'); handle.tabIndex=0;
+    var head=document.createElement('div'); head.className='lr-pane-head';
+    head.innerHTML='<b>逐题复盘</b><span>共 '+EX.result.detail.filter(function(d){return !d.ok;}).length+' 题待看</span><button type="button" data-lrwrong aria-pressed="false">只看错题</button>';
+    qcol.appendChild(head); qcol.appendChild(qs);
+    layout.appendChild(art); layout.appendChild(handle); layout.appendChild(qcol);
+    var host=inner.parentNode; host.insertBefore(layout,inner); host.removeChild(inner); art.appendChild(inner);
+    inner.classList.add('lr-listen-in');
+    root.classList.add('listen-result-v2');
+    setExSplit(_exSplitPct);
+    mountListenResult();
+    if(EX.result) mountAiExplain();
+  }
+
   /* ═══ EXAM-SCORE-COMPACT-1（11-02 她 8 条口径）═══
      交卷后顶栏 = 一行：品牌 + 篇名 + [显示答案][显示高亮] + 对错小字 + 工具组。
      ① 成绩卡（.fx-score 分数块/按钮排/WHAT TO DO NEXT）整删；
@@ -3825,6 +3870,24 @@ window.__reportExamState = reportExamState;
     }
     applyReadingEvidence();
     if(EX._rvShowCn) rvCnToggle();
+    if(EX.channel==='listening'){
+      var qcol2=root.querySelector('#exQCol');
+      if(qcol2 && !qcol2.__lrWrongBound){
+        qcol2.__lrWrongBound=true;
+        qcol2.addEventListener('click',function(ev){
+          var btn=ev.target.closest&&ev.target.closest('[data-lrwrong]'); if(!btn)return;
+          var only=btn.getAttribute('aria-pressed')!=='true'; btn.setAttribute('aria-pressed',only?'true':'false'); btn.classList.toggle('on',only);
+          root.querySelectorAll('#lrQuestions .ex-group').forEach(function(g){
+            var hit=false;
+            g.querySelectorAll('[data-q],[data-qn],[data-qns]').forEach(function(n){
+              var ids=(n.getAttribute('data-q')||n.getAttribute('data-qn')||n.getAttribute('data-qns')||'').split(/[\s,\/]+/);
+              ids.forEach(function(qn){var d=EX.result.detail.filter(function(x){return String(x.qn)===qn;})[0];if(d&&!d.ok)hit=true;});
+            });
+            g.hidden=only&&!hit;
+          });
+        });
+      }
+    }
   }
   /* 点击锚：作答控件优先（选项 / 空格 / 槽 / 矩阵格），都没有再认题号徽章。
      返回 { qn, detail }；detail 取自 EX.result.detail（含 right/user/ok/q）。 */
@@ -3964,7 +4027,7 @@ window.__reportExamState = reportExamState;
     out.innerHTML = '<span class="ex-ai-wait">正在按你的答案讲这道题…</span>';
     Promise.resolve().then(function(){
       return callRelay('errorbook', [
-        { role: 'system', content: '你是雅思阅读老师。用中文精讲一道阅读题，按三小段写：①答案怎么来的（引用原文定位句的关键词，指出同义替换）；②正确答案为什么成立；③学生的错误答案错在哪。不要空话，不超过 220 字。' },
+        { role: 'system', content: '你是雅思' + (EX.channel==='listening'?'听力':'阅读') + '老师。用中文精讲一道' + (EX.channel==='listening'?'听力':'阅读') + '题，按三小段写：①答案怎么来的（引用原文定位句的关键词，指出同义替换）；②正确答案为什么成立；③学生的错误答案错在哪。不要空话，不超过 220 字。' },
         { role: 'user', content: '题型：' + (d.t || '阅读题') + '\n题干：' + (stem || '（见题区）') + '\n正确答案：' + (d.right || '—') + '\n学生答案：' + (d.user || '未作答') + '\n请讲解这道题。' }
       ], 0.3);
     }).then(function(text){
@@ -5537,6 +5600,7 @@ window.__reportExamState = reportExamState;
       if(_b) _b.classList.add('rv-done');
       var _sp = document.getElementById('exSplit');
       if(_sp) _sp.classList.add('rv-done');
+      if(EX.channel==='listening') mountListenResultLayout();
       /* RV-TOP-24：交卷瞬间「Part 1 · Questions 1–13」横幅整藏（不重渲染，随类走） */
       var _pb = document.getElementById('exPartBanner');
       if(_pb) _pb.style.display = 'none';
