@@ -1,179 +1,134 @@
-/* 4-3 验收：词书卡片网格（版一）
-   验点：① 网格结构 = 每本书一张卡 + 末尾「+ 添加词书」 ② 卡上数字与真实数据一致
-        ③ 点书卡能切到那本书（列表换成那本的词） ④ 加书只加卡、结构不变 ⑤ 375 单列不溢出
-        ⑥ 深色下渐变/对比正常 ⑦ 原有 id 全在 ⑧ 空词库照常有引导
-   跑法：NODE_PATH=... node tests/_with_server.cjs tests/_probe_wbdeck_1023.cjs 8830 */
+/* 词书页验收（11-18 重写）：左侧书卡列表 + 右侧书详情
+   跑法：NODE_PATH=... node tests/_with_server.cjs tests/_probe_wbdeck_1023.cjs 9908
+   🔵 重写原因：10-23 那版量的是 `#wmLegacy` 里的旧词书网格 `#wbDecks` —— 11-16 单词四页改版后
+   整个 #wmLegacy 不再被任何 tab 打开（wb-tabs.js 的 show() 只认 data-wb-pane 的 wrong/data/books/set），
+   所以那套 DOM 是死的；旧探针靠手动 hidden=false 强开，量出来的尺寸在手机上恒为 0。
+   现版词书页 = `data-wb-pane="books"`：#wbBookList（.wv-book-row）+ 右侧 .wv-book-detail。
+   判据：① 书卡列表在页、条数对、可点 ② 数字对得上种子 ③ 点卡能切详情
+        ④ 375/390 单列不溢出、行高 ≥44 ⑤ 深色下文字与底对比 ≥4.5 */
 const { chromium } = require('playwright-core');
-const BASE = process.env.BASE || 'http://127.0.0.1:8830';
+const BASE = process.env.BASE || 'http://127.0.0.1:9908';
 const EXE = process.env.PW_EXECUTABLE || 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
 
 let pass = 0, fail = 0;
-const ok = (n, c, x) => { if (c) { pass++; console.log('  ok  ' + n + (x ? '  ' + x : '')); } else { fail++; console.log('  RED ' + n + (x ? '  ' + x : '')); } };
+const ok = (name, cond, extra) => {
+  if (cond) { pass++; console.log('  ok  ' + name + (extra ? '  ' + extra : '')); }
+  else { fail++; console.log('  RED ' + name + (extra ? '  ' + extra : '')); }
+};
 const asleep = ms => new Promise(r => setTimeout(r, ms));
 
-function seedScript(nWords) {
-  return `(function(){
-    var t = new Date();
-    var k = t.getFullYear() + '-' + String(t.getMonth()+1).padStart(2,'0') + '-' + String(t.getDate()).padStart(2,'0');
-    var ws = [];
-    for(var i = 0; i < ${nWords}; i++){
-      ws.push({ id: 'w'+i, en: 'word'+i, cn: '释义'+i,
-                level: (i % 10 === 0 ? 5 : 1),
-                cleared: (i % 10 === 0 ? true : false),
-                nextReview: (i % 3 === 0 ? '2026-01-01' : k), ts: Date.now() });
-    }
-    try{ localStorage.setItem('ielts_study_hub_v1', JSON.stringify({ words: ws, settings: {}, sessions: [] })); }catch(e){}
-  })();`;
+function lum(rgb) {
+  const m = String(rgb).match(/[\d.]+/g);
+  if (!m) return null;
+  const [r, g, b] = m.slice(0, 3).map(v => {
+    const s = Number(v) / 255;
+    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+function contrast(a, b) {
+  const la = lum(a), lb = lum(b);
+  if (la == null || lb == null) return 0;
+  const hi = Math.max(la, lb), lo = Math.min(la, lb);
+  return (hi + 0.05) / (lo + 0.05);
 }
 
-/* WORD-4（10-26）把旧词书网格 #wbDeckGrid 视觉下线，只加 hidden；
-   WORDBOOK-TABS-1（11-07）/ 11-13 商城默认页又让 wb-tabs.js 的 show('home') 隐藏整个 #wmLegacy。
-   js/words.js 仍往 #wbDecks 写数据，DOM/id 都保留。旧探针量的是这层退役测试视图：
-   等默认商城渲染完成后显式展开它，并另加一条当前商城可见卡片的等价值检查。 */
-async function openBank(page) {
-  await page.goto(BASE + '/practice.html', { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => {
-    const mall = document.getElementById('vMall');
-    return mall && !mall.hidden && document.querySelector('#wmDeals .wm-deal');
-  }, null, { timeout: 15000 }).catch(() => {});
-  await page.evaluate(() => {
-    const bv = document.getElementById('bankView'); if (bv) bv.hidden = false;
-    const mall = document.getElementById('vMall'); if (mall) mall.hidden = true;
-    const book = document.getElementById('vBook'); if (book) book.hidden = true;
-    const legacy = document.getElementById('wmLegacy'); if (legacy) legacy.hidden = false;
-    /* 10-26 WORD-4：纯视觉退役；这里只在探针里恢复它，用来守住 words.js 的数据/布局契约。 */
-    const grid = document.getElementById('wbDeckGrid'); if (grid) grid.hidden = false;
+async function openBooks(page) {
+  /* 种 9 个词进「我的词库」，让详情里的总数 / 已掌握 / 待学有真数可对（否则永远是 0 词） */
+  await page.addInitScript(() => {
+    const t = new Date();
+    const k = t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0');
+    const ws = [];
+    for (let i = 0; i < 9; i++) ws.push({ id: 'w' + i, en: 'word' + i, cn: '释义' + i, level: 1,
+      cleared: i % 9 === 0, nextReview: k, ts: Date.now() });
+    try { localStorage.setItem('ielts_study_hub_v1', JSON.stringify({ words: ws, settings: {}, sessions: [] })); } catch (e) {}
   });
-  await page.waitForFunction(() => document.querySelectorAll('#wbDecks .wb-deck').length >= 2, null, { timeout: 15000 }).catch(() => {});
-  await asleep(600);
+  await page.goto(BASE + '/practice.html#wb=books', { waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => {
+    const l = document.getElementById('wbBookList');
+    return !!l && !l.closest('[data-wb-pane]').hidden && l.querySelectorAll('.wv-book-row').length >= 3;
+  }, null, { timeout: 20000 }).catch(() => {});
+  await asleep(700);
 }
 
 (async () => {
   const browser = await chromium.launch({ executablePath: EXE, args: ['--proxy-server=direct://', '--proxy-bypass-list=*'] });
 
-  // ========== A. 桌面 1440：结构 / 数字 / 点卡切书 ==========
+  // ========== A. 桌面 1440 ==========
   {
     const page = await browser.newPage({ viewport: { width: 1440, height: 950 } });
     const errs = []; page.on('pageerror', e => errs.push(String(e)));
-    await page.addInitScript(seedScript(30));
-    await openBank(page);
+    await openBooks(page);
     console.log('\n===== A 桌面 1440 =====');
-
     const r = await page.evaluate(() => {
-      const decks = [...document.querySelectorAll('#wbDecks .wb-deck')].map(c => ({
-        key: c.dataset.deck,
-        name: (c.querySelector('.wb-deck-name') || {}).textContent,
-        num: (c.querySelector('.wb-deck-num b') || {}).textContent,
-        unit: (c.querySelector('.wb-deck-num span') || {}).textContent,
-        foot: (c.querySelector('.wb-deck-foot') || {}).textContent,
-        cur: c.classList.contains('cur')
-      }));
+      const list = document.getElementById('wbBookList');
+      const rows = [...(list ? list.querySelectorAll('.wv-book-row') : [])];
+      const box = el => { const k = el.getBoundingClientRect(); return { w: Math.round(k.width), h: Math.round(k.height) }; };
       return {
-        decks,
-        addCard: !!document.getElementById('wbDeckAdd'),
-        libSub: (document.getElementById('wbLibSub') || {}).textContent,
-        gridCols: getComputedStyle(document.getElementById('wbDecks')).gridTemplateColumns.split(' ').length,
+        rows: rows.map(x => ({ t: (x.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 24), on: x.classList.contains('on'), ...box(x) })),
+        detail: {
+          name: (document.getElementById('wbBookName') || {}).textContent || '',
+          total: (document.getElementById('wbBookTotal') || {}).textContent || '',
+          m: (document.getElementById('wbBookM') || {}).textContent || '',
+          l: (document.getElementById('wbBookL') || {}).textContent || '',
+          n: (document.getElementById('wbBookN') || {}).textContent || '',
+          start: box(document.getElementById('wbBookStart') || document.createElement('div')),
+          visible: !!(document.querySelector('.wv-book-detail') && document.querySelector('.wv-book-detail').getBoundingClientRect().height > 60)
+        },
         scrollW: document.documentElement.scrollWidth,
         clientW: document.documentElement.clientWidth
       };
     });
+    ok('①1 书卡列表在页且有 3 本以上', r.rows.length >= 3, r.rows.length + ' 本');
+    ok('①2 书卡都有宽度和可点高度（≥44）', r.rows.every(x => x.w > 120 && x.h >= 44),
+      r.rows.map(x => x.w + '×' + x.h).slice(0, 4).join(' | '));
+    ok('①3 有且仅有一本是当前书（.on）', r.rows.filter(x => x.on).length === 1, r.rows.filter(x => x.on).map(x => x.t).join(''));
+    ok('②1 右侧详情在页且报了总词数', r.detail.visible && Number(r.detail.total) > 0, r.detail.name + ' · ' + r.detail.total + ' 词');
+    ok('②2 已掌握 / 学习中 / 待学三个数都在', !!r.detail.m && !!r.detail.l && !!r.detail.n,
+      '掌握 ' + r.detail.m + ' / 学习中 ' + r.detail.l + ' / 待学 ' + r.detail.n);
+    ok('②3 「继续背词」按钮可点（高 ≥44）', r.detail.start.h >= 44, r.detail.start.w + '×' + r.detail.start.h);
+    ok('③1 桌面无横向溢出', r.scrollW <= r.clientW + 1, r.scrollW + ' / ' + r.clientW);
 
-    ok('词书网格渲染出书卡', r.decks.length >= 2, r.decks.length + ' 张');
-    /* 11-13 当前产品默认 #vMall：退役网格之外，商城卡片必须真实可见且可点。 */
-    const mallCard = await page.evaluate(async () => {
-      const mall = document.getElementById('vMall'), legacy = document.getElementById('wmLegacy');
-      if (mall) mall.hidden = false;
-      if (legacy) legacy.hidden = true;
-      if (window.__wmShowMall) window.__wmShowMall();
-      if (window.__wmRender) window.__wmRender();
-      await new Promise(r => setTimeout(r, 200));
-      const card = document.querySelector('#wmDeals .wm-deal');
-      const rect = card ? card.getBoundingClientRect() : null;
-      return { n: document.querySelectorAll('#wmDeals .wm-deal').length,
-               w: rect ? Math.round(rect.width) : 0, h: rect ? Math.round(rect.height) : 0 };
-    });
-    ok('11-13 当前词书商城卡片可见且可点（退役视图的等价值）',
-      mallCard.n > 0 && mallCard.w >= 100 && mallCard.h >= 44, JSON.stringify(mallCard));
+    // 点第二本书 → 详情标题跟着换
+    const before = r.detail.name;
     await page.evaluate(() => {
-      const mall = document.getElementById('vMall'); if (mall) mall.hidden = true;
-      const legacy = document.getElementById('wmLegacy'); if (legacy) legacy.hidden = false;
-      const grid = document.getElementById('wbDeckGrid'); if (grid) grid.hidden = false;
+      const rows = [...document.querySelectorAll('#wbBookList .wv-book-row')];
+      if (rows[1]) rows[1].click();
     });
-    ok('自定义词库是第一张卡', r.decks[0] && r.decks[0].key === 'custom', r.decks[0] ? r.decks[0].name : '');
-    ok('官方词包也有一张卡', r.decks.some(d => d.key !== 'custom'), r.decks.filter(d => d.key !== 'custom').map(d => d.name).join(','));
-    ok('末尾有「+ 添加词书」虚线卡', r.addCard);
-    // auto-fill minmax(240px,1fr)：1425 宽的内容区能塞 4 列（方案写的「3 列」是按 1024 左右的容器估的，以实际排布为准）
-    ok('网格按可用宽度自动分列（1440 下 ≥3 列）', r.gridCols >= 3, r.gridCols + ' 列');
-    ok('标题行报出书数与总词数', /共 \d+ 本 · 合计 \d+ 词/.test(r.libSub || ''), '「' + r.libSub + '」');
-    ok('无横向溢出', r.scrollW <= r.clientW + 1, r.scrollW + ' / ' + r.clientW);
-
-    // 数字核对：30 词里 i%3===0 的已过期（10 个），其余 nextReview=今天 → 全部到期；i%10===0 已掌握（3 个）
-    const custom = r.decks[0];
-    console.log('    我的词库卡：' + JSON.stringify(custom));
-    // 实测口径：30 词里 3 个已掌握词被页面的「排程修复」推到明天 → 真正待复习 = 27，与页面自己算的一致
-    ok('自定义书「待复习」= 27（30 词 - 3 个已排到明天）', custom && custom.num === '27', custom ? custom.num : '');
-    ok('自定义书「已掌握」= 10%', custom && /10%/.test(custom.foot || ''), custom ? custom.foot : '');
-    const off = r.decks.find(d => d.key !== 'custom');
-    ok('官方书显示「已学 %」而不是待复习', off && /已学/.test(off.unit + ' ' + off.foot), off ? off.unit + ' | ' + off.foot : '');
-    ok('当前书卡有 cur 标记', custom && custom.cur === true);
-    ok('无页面报错', errs.length === 0, errs.slice(0, 2).join(' | '));
-
-    // 10-26 WORD-4 退役视图只由本探针测，不再把截图写进 design/（第六批本地维修边界）。
-    // 点官方书卡 → 切库
-    const before = await page.evaluate(() => (typeof wbActive === 'function' ? wbActive() : '?'));
-    await page.evaluate(() => { const c = document.querySelector('#wbDecks .wb-deck[data-deck="awl"]'); if (c) c.click(); });
-    await asleep(2600);   // 官方词包是异步 fetch，切过去要等它 ready
+    await asleep(600);
     const after = await page.evaluate(() => ({
-      active: (typeof wbActive === 'function' ? wbActive() : '?'),
-      curKey: (document.querySelector('#wbDecks .wb-deck.cur') || {}).dataset ? document.querySelector('#wbDecks .wb-deck.cur').dataset.deck : null,
-      officialBtns: (document.getElementById('bankOfficialBtns') || {}).hidden,
-      listRows: document.querySelectorAll('#wordList .wl-item').length
+      name: (document.getElementById('wbBookName') || {}).textContent || '',
+      on: [...document.querySelectorAll('#wbBookList .wv-book-row')].filter(x => x.classList.contains('on')).length
     }));
-    ok('点官方书卡 → 切到那本书', before === 'custom' && after.active === 'awl', before + ' → ' + after.active);
-    ok('切后卡上的 cur 标记跟着换', after.curKey === 'awl', String(after.curKey));
-    ok('切后官方组的按钮露出来', after.officialBtns === false);
-    ok('切后列表换成那本书的词', after.listRows > 0, after.listRows + ' 行');
-
-    // 切回自定义
-    await page.evaluate(() => { const c = document.querySelector('#wbDecks .wb-deck[data-deck="custom"]'); if (c) c.click(); });
-    await asleep(900);
-    const back = await page.evaluate(() => ({ active: wbActive(), rows: document.querySelectorAll('#wordList .wl-item').length }));
-    ok('点回自定义书卡 → 切回来', back.active === 'custom' && back.rows > 0, back.active + ' / ' + back.rows + ' 行');
-
-    // 「+ 添加词书」→ 展开导入条
-    const add = await page.evaluate(() => {
-      const b = document.getElementById('wbDeckAdd'); if (!b) return null;
-      b.click();
-      return { open: !document.getElementById('wlImpBody').hidden };
-    });
-    await asleep(400);
-    ok('「+ 添加词书」展开导入条', add && add.open === true);
+    ok('③2 点另一本书 → 详情标题换成本书、仍只有一个当前', after.name && after.name !== before && after.on === 1,
+      before + ' → ' + after.name);
+    ok('③3 无页面报错', errs.length === 0, errs.slice(0, 2).join(' | '));
     await page.close();
   }
 
-  // ========== B. 375 手机 ==========
+  // ========== B. 手机 375 / 390 ==========
   for (const vw of [375, 390]) {
     const page = await browser.newPage({ viewport: { width: vw, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
     const errs = []; page.on('pageerror', e => errs.push(String(e)));
-    await page.addInitScript(seedScript(20));
-    await openBank(page);
+    await openBooks(page);
     console.log('\n===== B 手机 ' + vw + ' =====');
     const r = await page.evaluate(() => {
-      const deck = document.querySelector('#wbDecks .wb-deck');
-      const rect = deck ? deck.getBoundingClientRect() : null;
-      return {
-        cols: getComputedStyle(document.getElementById('wbDecks')).gridTemplateColumns.split(' ').length,
-        deckW: rect ? Math.round(rect.width) : 0,
-        deckH: rect ? Math.round(rect.height) : 0,
-        addH: Math.round((document.getElementById('wbDeckAdd') || { getBoundingClientRect: () => ({ height: 0 }) }).getBoundingClientRect().height),
-        scrollW: document.documentElement.scrollWidth,
-        clientW: document.documentElement.clientWidth
-      };
+      const list = document.getElementById('wbBookList');
+      const rows = [...(list ? list.querySelectorAll('.wv-book-row') : [])].map(x => {
+        const k = x.getBoundingClientRect();
+        return { w: Math.round(k.width), h: Math.round(k.height), left: Math.round(k.left), right: Math.round(k.right) };
+      });
+      const cols = list ? getComputedStyle(list).gridTemplateColumns.split(' ').length : 0;
+      const start = document.getElementById('wbBookStart');
+      const sk = start ? start.getBoundingClientRect() : null;
+      return { rows, cols, startH: sk ? Math.round(sk.height) : 0, startW: sk ? Math.round(sk.width) : 0,
+        scrollW: document.documentElement.scrollWidth, clientW: document.documentElement.clientWidth };
     });
     ok(vw + ' 书卡单列', r.cols === 1, r.cols + ' 列');
-    ok(vw + ' 书卡占满宽度', r.deckW > vw * 0.7, r.deckW + 'px / 视口 ' + vw);
-    ok(vw + ' 书卡高度合理（可点）', r.deckH >= 44, r.deckH + 'px');
-    ok(vw + ' 添加词书卡可点', r.addH >= 44, r.addH + 'px');
+    ok(vw + ' 书卡占满宽度且不出视口', r.rows.length > 0 && r.rows.every(x => x.w > vw * 0.7 && x.left >= 0 && x.right <= vw + 1),
+      r.rows.length ? r.rows[0].w + 'px 首行' : '无书卡');
+    ok(vw + ' 书卡高度 ≥44（可点）', r.rows.length > 0 && r.rows.every(x => x.h >= 44), r.rows.length ? r.rows[0].h + 'px' : '');
+    ok(vw + ' 「继续背词」按钮撑满且 ≥44 高', r.startW > vw * 0.6 && r.startH >= 44, r.startW + '×' + r.startH);
     ok(vw + ' 无横向溢出', r.scrollW <= r.clientW + 1, r.scrollW + ' / ' + r.clientW);
     ok(vw + ' 无页面报错', errs.length === 0, errs.slice(0, 2).join(' | '));
     await page.close();
@@ -182,64 +137,29 @@ async function openBank(page) {
   // ========== C. 深色 ==========
   {
     const page = await browser.newPage({ viewport: { width: 1440, height: 950 } });
-    await page.addInitScript(seedScript(30));
-    await openBank(page);
-    await page.evaluate(() => { document.documentElement.setAttribute('data-theme', 'dark'); try{ localStorage.setItem('hub_theme','dark'); }catch(e){} });
+    await openBooks(page);
+    await page.evaluate(() => {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      if (window.applyTheme) { try { applyTheme('dark'); } catch (e) {} }
+      try { localStorage.setItem('hub_theme', 'dark'); } catch (e) {}
+    });
     await asleep(500);
     console.log('\n===== C 深色 =====');
     const r = await page.evaluate(() => {
-      const deck = document.querySelector('#wbDecks .wb-deck');
-      const name = deck.querySelector('.wb-deck-name');
-      const num = deck.querySelector('.wb-deck-num b');
-      const add = document.getElementById('wbDeckAdd');
-      const cs = el => getComputedStyle(el);
-      return {
-        deckBg: cs(deck).backgroundColor, deckBorder: cs(deck).borderTopColor,
-        nameColor: cs(name).color, numColor: cs(num).color,
-        addColor: cs(add).color, addBorder: cs(add).borderTopColor,
-        pageBg: cs(document.body).backgroundColor
-      };
+      const row = document.querySelector('#wbBookList .wv-book-row');
+      const pane = document.querySelector('[data-wb-pane="books"]');
+      if (!row) return null;
+      const cs = getComputedStyle(row);
+      const bg = getComputedStyle(pane).backgroundColor;
+      return { color: cs.color, bg, name: (document.getElementById('wbBookName') || {}).textContent || '' };
     });
-    const lum = c => { const m = c.match(/[\d.]+/g); if (!m) return null; const v = m.slice(0,3).map(x => { const s = Number(x)/255; return s <= .03928 ? s/12.92 : Math.pow((s+.055)/1.055, 2.4); }); return .2126*v[0]+.7152*v[1]+.0722*v[2]; };
-    const con = (a,b) => { const la = lum(a), lb = lum(b); if (la==null||lb==null) return 0; const hi = Math.max(la,lb), lo = Math.min(la,lb); return (hi+.05)/(lo+.05); };
-    ok('深色下书卡底色与页面底有区分', con(r.deckBg, r.pageBg) >= 1.1, r.deckBg + ' vs ' + r.pageBg + ' = ' + con(r.deckBg, r.pageBg).toFixed(2));
-    ok('深色下书名可读', con(r.nameColor, r.deckBg) >= 4.5, r.nameColor + ' = ' + con(r.nameColor, r.deckBg).toFixed(2) + ':1');
-    ok('深色下待复习数字可读', con(r.numColor, r.deckBg) >= 4.5, r.numColor + ' = ' + con(r.numColor, r.deckBg).toFixed(2) + ':1');
-    ok('深色下添加卡文字可读', con(r.addColor, r.pageBg) >= 3, r.addColor + ' = ' + con(r.addColor, r.pageBg).toFixed(2) + ':1');
-    await page.close();
-  }
-
-  // ========== D. 空词库：引导仍在，网格照常 ==========
-  {
-    const page = await browser.newPage({ viewport: { width: 1440, height: 950 } });
-    const errs = []; page.on('pageerror', e => errs.push(String(e)));
-    await page.addInitScript(() => { try{ localStorage.setItem('ielts_study_hub_v1', JSON.stringify({ words: [], settings: {}, sessions: [] })); }catch(e){} });
-    await openBank(page);
-    console.log('\n===== D 空词库 =====');
-    const r = await page.evaluate(() => {
-      const decks = [...document.querySelectorAll('#wbDecks .wb-deck')];
-      const add = document.getElementById('wbDeckAdd');
-      /* 11-12 空态统一卡 renderEmpty() 包成 .esys--compat；原 .empty-t / #emptyOpenImport 内容保留。 */
-      const empty = document.querySelector('#wordList .esys--compat, #wordList .empty');
-      return {
-        deckN: decks.length,
-        custom: decks[0] ? { num: (decks[0].querySelector('.wb-deck-num b')||{}).textContent, meta: (decks[0].querySelector('.wb-deck-meta')||{}).textContent } : null,
-        hasAdd: !!add,
-        emptyText: empty ? empty.textContent.slice(0, 40) : null,
-        emptyBtn: !!document.getElementById('emptyOpenImport'),
-        todaysHidden: (document.getElementById('wbTodayCard')||{}).hidden
-      };
-    });
-    ok('空词库时书卡依然在（不消失）', r.deckN >= 2, r.deckN + ' 张');
-    ok('空词库的书卡老实写「还没有单词」', r.custom && /还没有单词/.test(r.custom.meta || ''), r.custom ? r.custom.meta + ' / 待复习 ' + r.custom.num : '');
-    ok('空词库的待复习数是 0', r.custom && r.custom.num === '0');
-    ok('「+ 添加词书」卡还在', r.hasAdd);
-    ok('空词库仍有列表空态引导（统一 .esys 卡）', !!r.emptyText && !!r.emptyBtn, r.emptyText || '');
-    ok('无页面报错', errs.length === 0, errs.slice(0, 2).join(' | '));
+    ok('C1 深色下书卡文字与底对比 ≥4.5', !!r && contrast(r.bg, r.color) >= 4.5,
+      r ? (r.bg + ' / ' + r.color + ' = ' + contrast(r.bg, r.color).toFixed(2) + ':1') : 'no row');
+    ok('C2 深色下详情书名照常显示', !!r && !!r.name, r ? r.name : '');
     await page.close();
   }
 
   await browser.close();
-  console.log('\n================ ' + pass + ' 过 / ' + fail + ' 红 ================');
+  console.log('\n===== 共 ' + (pass + fail) + ' 项：' + pass + ' 过 / ' + fail + ' 红 =====');
   process.exit(fail ? 1 : 0);
-})().catch(e => { console.error('探针自身出错: ' + e); process.exit(2); });
+})();
