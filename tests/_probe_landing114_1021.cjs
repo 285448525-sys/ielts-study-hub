@@ -1,103 +1,44 @@
-/* LANDING-C-1118（11-18 上线）首页回归：暖白备考工作台整页，站点学士帽图标，四张真页面图。
-   口径变化：旧版「有学习数据自动跳 /home」随新落地页撤掉；首屏后的语法试一题已整段删除，副 CTA 指向 #today。
-   用法：node tests/_with_server.cjs tests/_probe_landing114_1021.cjs 8867 */
-const { chromium } = require('playwright-core');
-const EDGE = process.env.PW_EXECUTABLE || 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
-const BASE = process.env.BASE || process.argv[2] || 'http://127.0.0.1:8867';
-const sleep = ms => new Promise(r => setTimeout(r, ms));
-let pass = 0, fail = 0;
-const ok = (n, c, d) => { if (c) { pass++; console.log('  ✓ ' + n + (d ? '  ' + d : '')); } else { fail++; console.log('  ✗ ' + n + (d ? '  <<< ' + d : '')); } };
-
-(async () => {
-  const b = await chromium.launch({ executablePath: EDGE, headless: true, args: ['--proxy-server=direct://', '--proxy-bypass-list=*'] });
-  console.log('■ 桌面 1440×1000：整页、图片、图标、试一题');
-  {
-    const ctx = await b.newContext({ viewport: { width: 1440, height: 1000 }, serviceWorkers: 'block', reducedMotion: 'reduce' });
-    await ctx.addInitScript(() => { try { localStorage.setItem('ielts_study_hub_v1', 'x'.repeat(300)); } catch (e) {} });
-    const p = await ctx.newPage();
-    const errs = [], bad = [];
-    p.on('pageerror', e => errs.push(String(e && e.message || e).slice(0, 160)));
-    p.on('request', r => {
-      const u = r.url();
-      if (!u.startsWith(BASE) && !u.startsWith('data:') && !/miaoda\.feishu\.cn|feishucdn\.com|cloudflareinsights\.com/.test(u)) bad.push(u);
-    });
-    await p.goto(BASE + '/', { waitUntil: 'load' });
-    await sleep(1200);
-    const m = await p.evaluate(() => ({
-      title: document.title,
-      h1: (document.querySelector('h1') || {}).innerText || '',
-      h1count: document.querySelectorAll('h1').length,
-      sections: document.querySelectorAll('main section').length,
-      sectionIds: [...document.querySelectorAll('main section')].map(s => s.id || s.className).join(','),
-      body: document.body.innerText,
-      overflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-      logo: (() => { const x = document.querySelector('.brand-mark img'); return x ? { src: x.getAttribute('src'), ok: x.complete && x.naturalWidth > 0 } : null; })(),
-      imgs: [...document.images].map(i => ({ src: i.getAttribute('src'), ok: i.complete && i.naturalWidth > 0 })),
-      links: [...new Set([...document.querySelectorAll('a[href]')].map(a => a.getAttribute('href')))]
-    }));
-    ok('标题是新落地页', /雅思备考 Hub｜今天该练什么，打开就知道/.test(m.title), m.title);
-    ok('唯一 h1 + 新主张', m.h1count === 1 && /雅思机考/.test(m.h1) && /打开就知道/.test(m.h1), JSON.stringify(m.h1));
-    ok('六段结构完整', m.sections === 6 && m.sectionIds === 'hero,features,proof,more,free,final', 'got ' + m.sections + '，' + m.sectionIds);
-    ok('真数据带 627 / 89 / 42', ['627', '89', '42'].every(x => m.body.includes(x)));
-    ok('免费与会员边界明确', m.body.includes('免费') && m.body.includes('会员') && !/¥|价格|收费|提分|保过|包过/.test(m.body));
-    ok('站点学士帽图标真实加载', m.logo && m.logo.src === '/favicon.svg?v=7' && m.logo.ok, JSON.stringify(m.logo));
-    ok('四张产品图引用正式资源', new Set(m.imgs.filter(x => x.src && x.src.startsWith('img/landing/')).map(x => x.src)).size === 4, JSON.stringify(m.imgs.map(x => x.src)));
-    ok('/home 与 /login 接线在', m.links.includes('/home') && m.links.includes('/login'), JSON.stringify(m.links));
-    ok('无旧版 home.html 链接', !m.links.includes('home.html'));
-    ok('桌面无横向溢出', m.overflowX <= 0, 'overflowX=' + m.overflowX);
-
-    for (let y = 0; y < await p.evaluate(() => document.body.scrollHeight); y += 600) { await p.evaluate(y => scrollTo(0, y), y); await sleep(70); }
-    await sleep(500);
-    await p.waitForFunction(() => [...document.images].every(i => i.complete && i.naturalWidth > 0), null, { timeout: 6000 }).catch(() => {});
-    const imgs = await p.evaluate(() => [...document.images].map(i => {
-      const r = i.getBoundingClientRect();
-      const sc = i.closest('.screen');
-      const sr = sc ? sc.getBoundingClientRect() : null;
-      return {
-        src: i.getAttribute('src'), ok: i.complete && i.naturalWidth > 0,
-        ratio: i.offsetHeight ? i.offsetWidth / i.offsetHeight : 0,
-        natRatio: i.naturalWidth && i.naturalHeight ? i.naturalWidth / i.naturalHeight : 0,
-        fit: getComputedStyle(i).objectFit,
-        topGap: sr ? r.top - sr.top : 0
-      };
-    }));
-    const badImg = imgs.filter(x => !x.ok || Math.abs(x.ratio - x.natRatio) > .02 || x.fit === 'cover' || Math.abs(x.topGap) > 1.5);
-    ok('全部图片加载成功、按原比例、截图贴齐卡片', badImg.length === 0, JSON.stringify(badImg));
-    const gone = await p.evaluate(() => ({
-      residue: document.querySelectorAll('.try-section,#try,.quiz,.quiz-opt').length,
-      text: document.body.innerText,
-      cta: (() => { const a = document.querySelector('.actions a:nth-child(2)'); return a ? { text: a.textContent.trim(), href: a.getAttribute('href') } : null; })()
-    }));
-    ok('试一题已整段移除，副 CTA 指向今日清单', gone.residue === 0 && !/先别注册|点一题试试|would like to|先试一题/.test(gone.text) && gone.cta && gone.cta.href === '#today' && /看看怎么练/.test(gone.cta.text), JSON.stringify(gone.cta) + ' / residue=' + gone.residue);
-    ok('老用户有本机数据也不再自动跳走', /yasihub\.com|127\.0\.0\.1/.test(await p.evaluate(() => location.host)) && !/\/home/.test(await p.evaluate(() => location.pathname)));
-    ok('零 pageerror / 零禁止外链', errs.length === 0 && bad.length === 0, errs.concat(bad).join(' | '));
-    await ctx.close();
+/* LANDING-D-1119：新版首页结构、去重、真实资产、免费边界、三档视口与老用户不自动跳走。 */
+const {chromium}=require('playwright-core');
+const EXE='C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
+const BASE=process.env.BASE||process.argv[2]||'http://127.0.0.1:8778';
+const OUT='C:/Users/Camille/Desktop/雅思/ielts-study-hub/design/LANDING-D-1119/';
+(async()=>{
+ const b=await chromium.launch({executablePath:EXE,args:['--proxy-server=direct://','--proxy-bypass-list=*','--mute-audio']});
+ let bad=0,total=0;const ok=(n,v)=>{total++;console.log((v?'PASS ':'FAIL ')+n);if(!v)bad++};
+ try{
+  for(const [w,h,name] of [[1440,1000,'desktop'],[390,844,'mobile'],[360,800,'mobile360']]){
+   const c=await b.newContext({viewport:{width:w,height:h},deviceScaleFactor:1});const p=await c.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));
+   await p.goto(BASE+'/',{waitUntil:'load',timeout:120000});await p.evaluate(()=>document.fonts.ready);await p.waitForTimeout(500);
+   if(name==='desktop'){
+    ok('title',/雅思备考 Hub/.test(await p.title()));
+    const h1=(await p.locator('h1').innerText()).replace(/\s+/g,'');ok('hero 主张',h1.includes('雅思机考，今天该练什么，打开就知道。'));
+    ok('六段主结构 + 独立数字带',await p.locator('main > section').count()===6&&await p.locator('.numbers').count()===1);
+    const text=await p.locator('body').innerText();
+    for(const n of ['627','89','42'])ok('硬数字 '+n+' 只出现一次',(text.match(new RegExp(n,'g'))||[]).length===1);
+    ok('作者说明只出现一次',(text.match(/作者本人每天在用/g)||[]).length===1);
+    ok('结尾是具体行动',/进去以后，\s*先做最上面那一项。/.test(text)&&!/别再想今天练什么/.test(text));
+    ok('旧 more 四格已合并',await p.locator('.more').count()===0&&await p.locator('.utilities').count()===1);
+    ok('词库真实数字与词条',/2651/.test(text)&&/1738/.test(text)&&/species/.test(text)&&/Most species use camouflage/.test(text));
+    ok('真实 CTA',await p.locator('a[href="/home"]').count()>=2&&await p.locator('a[href="/login"]').count()===1&&await p.locator('a[href="/practice.html"]').count()===1);
+    for(const t of ['每月 3 篇','永久免费','会员专属','按额度开放','每周共享 5 次'])ok('免费边界 '+t,text.includes(t));
+    ok('无提分承诺',!/保证提分|100% 覆盖|背完就能 6 分/.test(text));
+    ok('无旧 try/quiz',await p.locator('#try,.quiz').count()===0);
+    ok('计划页截图已更新到 v930',(await p.locator('img[alt*="今日计划真实界面"]').getAttribute('src')).includes('plans-demo.png?v=930'));
+    ok('无入场隐藏内容',await p.locator('.reveal').evaluateAll(els=>els.every(e=>getComputedStyle(e).opacity==='1')));
+   }
+   const imgs=await p.locator('main img').evaluateAll(els=>els.map(x=>({src:x.getAttribute('src'),nw:x.naturalWidth,nh:x.naturalHeight,w:x.getBoundingClientRect().width,h:x.getBoundingClientRect().height,fit:getComputedStyle(x).objectFit})));
+   ok(name+' 四张真实产品图',imgs.length===4&&imgs.every(x=>x.nw>0));
+   ok(name+' 图片按原比例且不 cover',imgs.every(x=>Math.abs(x.w/x.h-x.nw/x.nh)<.02&&x.fit!=='cover'));
+   ok(name+' 无横向溢出',await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+   ok(name+' 零 pageerror',errs.length===0);
+   await p.screenshot({path:OUT+'live-local-'+name+'-hero.png'});await p.screenshot({path:OUT+'live-local-'+name+'-full.png',fullPage:true});
+   await c.close();
   }
-
-  for (const v of [{ w: 390, h: 844, n: '390' }, { w: 360, h: 800, n: '360' }]) {
-    console.log('■ 手机 ' + v.n);
-    const ctx = await b.newContext({ viewport: { width: v.w, height: v.h }, isMobile: true, hasTouch: true, serviceWorkers: 'block', reducedMotion: 'reduce' });
-    const p = await ctx.newPage();
-    const errs = [];
-    p.on('pageerror', e => errs.push(String(e && e.message || e).slice(0, 160)));
-    await p.goto(BASE + '/', { waitUntil: 'domcontentloaded', timeout: 60000 });
-    await p.waitForSelector('h1', { timeout: 20000 }).catch(() => {});
-    await sleep(1400);
-    const m = await p.evaluate(() => ({
-      navHidden: (() => { const el = document.querySelector('.nav-links'); return el ? getComputedStyle(el).display === 'none' : true; })(),
-      overflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-      heroVis: (() => { const h = document.querySelector('h1'); if (!h) return false; const r = h.getBoundingClientRect(); return r.width > 200 && r.height > 40; })(),
-      cta: (() => { const a = document.querySelector('.actions a[href="/home"]'); if (!a) return false; const r = a.getBoundingClientRect(); return r.height >= 44 && r.width > 100 && getComputedStyle(a).display !== 'none'; })()
-    }));
-    ok(v.n + ' 导航折叠', m.navHidden);
-    ok(v.n + ' 无横向溢出', m.overflowX <= 0, 'overflowX=' + m.overflowX);
-    ok(v.n + ' 首屏标题可见', m.heroVis);
-    ok(v.n + ' 主 CTA 可见可点', m.cta);
-    ok(v.n + ' 零 pageerror', errs.length === 0, errs.join(' | '));
-    await ctx.close();
-  }
-
-  await b.close();
-  console.log('\n结果：通过 ' + pass + ' / 失败 ' + fail);
-  process.exit(fail ? 1 : 0);
-})().catch(e => { console.log('FATAL ' + (e && e.stack || e)); process.exit(2); });
+  const c=await b.newContext({viewport:{width:1440,height:1000}});const p=await c.newPage();
+  await p.addInitScript(()=>{try{localStorage.setItem('ielts_study_hub_v1',JSON.stringify({settings:{name:'之之'}}))}catch(e){}});
+  await p.goto(BASE+'/',{waitUntil:'domcontentloaded',timeout:120000});await p.waitForTimeout(600);
+  ok('老用户停留落地页，不自动跳走',new URL(p.url()).pathname==='/');await c.close();
+ }catch(e){console.log('FATAL',e.stack||e);bad++}
+ console.log('TOTAL '+total+' FAIL '+bad);await b.close();process.exit(bad?1:0);
+})();
