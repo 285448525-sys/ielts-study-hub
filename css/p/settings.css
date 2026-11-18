@@ -90,7 +90,7 @@
 /* ═══ SET-TARGET-1（11-17）· 备考目标：四科横卡 + 当前分 ═══
    她点头的样子稿：科目名 / 目标分 / 当前分，日期与总分并排，口语自评标签在框上方。
    ⚠️ 输入框选择器必须带 :not() 链，压过 css/common.css 的全局 input 规则。 */
-.set-pane .set-card.st-card{padding:22px 24px 20px}
+.set-pane .set-card.st-card{padding:18px 22px 16px}
 .st-meta{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:26px;padding-bottom:20px;border-bottom:1px solid var(--line)}
 .st-field{min-width:0}
 .st-field>label,.st-block-label{display:block;font-size:12px;font-weight:650;line-height:1.4;color:var(--muted)}
@@ -154,7 +154,7 @@
   .st-subjects{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media(max-width:640px){
-  .set-pane .set-card.st-card{padding:18px 16px 16px}
+  .set-pane .set-card.st-card{padding:14px 14px 13px}
   .st-meta{grid-template-columns:1fr;gap:15px;padding-bottom:17px}
   .st-block{padding-top:17px}
   .st-subjects{gap:9px}
