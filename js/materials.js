@@ -262,10 +262,10 @@
   <div id="introView">
     <div class="mi-hero">
       <div class="mi-k">雅思口语 P2 · 当季题库</div>
-      <h2>P2 有 56 道题卡，一道一道准备，永远准备不完</h2>
-      <p>把自己的经历写成几个故事，考场原样讲出来，加一句过渡就能接很多题。<b>不用背 56 篇范文</b>。</p>
+      <h2>P2 有 __MI_P2__ 道题卡，一道一道准备，永远准备不完</h2>
+      <p>把自己的经历写成几个故事，考场原样讲出来，加一句过渡就能接很多题。<b>不用背 __MI_P2__ 篇范文</b>。</p>
       <div class="mi-nums">
-        <div class="mi-it"><b>56</b><span>当季 P2 题卡</span></div>
+        <div class="mi-it"><b>__MI_P2__</b><span>当季 P2 题卡</span></div>
       </div>
     </div>
 
@@ -273,7 +273,7 @@
       <div class="mi-col mi-old">
         <h3>老办法 <span class="mi-tag">一道一准备</span></h3>
         <ul>
-          <li>56 道题 = 56 篇素材，写一半就放弃</li>
+          <li>__MI_P2__ 道题 = __MI_P2__ 篇素材，写一半就放弃</li>
           <li>换个问法就接不上</li>
           <li>考场现场编，一紧张只剩 and</li>
         </ul>
@@ -319,8 +319,8 @@
     try{
       var arr = (typeof DATA !== 'undefined' && Array.isArray(DATA.speaking)) ? DATA.speaking : [];
       var n = arr.filter(function(x){ return x && x.type === 'P2'; }).length;
-      return n || 56;   /* 兜底 56：DATA 还没就绪时别显示 0 */
-    }catch(e){ return 56; }
+      return n || 52;   /* 兜底 52：DATA 还没就绪时别显示 0 */
+    }catch(e){ return 52; }
   }
   function miPriceText(){
     try{
@@ -336,8 +336,8 @@
     /* MAT-INTRO-1：导出工具的加固副本选择器都以 .mi-page 打头（提高特异性压过站点全局规则），
        所以必须包这一层；否则 1:1 基线找不到根节点。 */
     var h = MI_INTRO_HTML;
-    /* 题卡数按实测替换（模板里的 56 只是占位，运行时以 DATA.speaking 为准） */
-    try{ h = h.replace(/56/g, miCountP2()); }catch(e){}
+    /* 题卡数按实测替换（模板里的 __MI_P2__ 只是占位，运行时以 DATA.speaking 为准） */
+    try{ h = h.replace(/__MI_P2__/g, miCountP2()); }catch(e){}
     var price = miPriceText();
     if(price){ h = h.replace('__MI_PRICE__', price); }
     else { h = h.replace(/<span class="mi-price">__MI_PRICE__<\/span>/, ''); }

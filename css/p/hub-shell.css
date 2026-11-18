@@ -78,35 +78,39 @@ main.container:has(> .hub-shell){
 .hub-sub-n{flex:none;font-size:12px;color:var(--muted,#71767e);font-variant-numeric:tabular-nums}
 .hub-sub.on .hub-sub-n{color:var(--primary-700,#2f7d76);font-weight:700}
 .hub-side-div{height:1px;background:var(--line,#eef2f3);margin:10px 18px 0;flex:none}
-.hub-td-head{padding:0 18px 5px;flex:none}
-.hub-td-head b{font-size:12px;font-weight:700;color:var(--ink-2,#3f464d);letter-spacing:.04em}
-.hub-td-prog{margin:0 14px 8px;padding:10px 12px;border-radius:12px;
-  background:var(--surface-2,#fafcfc);border:1px solid var(--line,#eef2f3);flex:none}
-.hub-td-prog b{font-size:19px;font-weight:750;color:var(--primary-700,#2f7d76);font-variant-numeric:tabular-nums}
-.hub-td-prog b em{font-size:12px;font-style:normal;color:var(--muted,#71767e);font-weight:500}
-.hub-td-bar{height:6px;border-radius:6px;background:var(--line,#e6e9ea);margin-top:9px;overflow:hidden}
-.hub-td-bar i{display:block;height:100%;border-radius:6px;
-  background:linear-gradient(90deg,var(--primary-700,#2f7d76),var(--primary,#5cb3ab));transition:width .25s}
-.hub-td-group{padding:0 10px;flex:none}
-.hub-td-gh{font-size:11px;color:var(--muted,#9aa1a8);padding:4px 8px;display:flex;gap:6px;align-items:center}
-.hub-td-gh i{width:5px;height:5px;border-radius:50%;background:currentColor}
-.hub-task{display:flex;align-items:flex-start;gap:9px;width:100%;min-height:44px;padding:5px 8px;
-  border-radius:10px;border:none;background:transparent;font:inherit;color:inherit;text-align:left;cursor:pointer}
-.hub-task:hover{background:var(--surface-2,#fafcfc)}
-.hub-tick{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--line,#e6e9ea);
-  flex:none;margin-top:2px;display:grid;place-items:center;background:#fff;transition:.16s}
-.hub-tick svg{width:12px;height:12px;opacity:0}
-.hub-task.done .hub-tick{background:var(--primary,#5cb3ab);border-color:var(--primary,#5cb3ab)}
+/* 今日任务卡（11-16 定版，样稿 design/UI-SURVEY-1115/统一骨架-1116.html）
+   位置在左栏分栏下面，勾选口径与计划页一致（DATA.plans 当天 items）。 */
+.hub-td{margin:12px 18px 0;padding:11px 12px 9px;border:1px solid var(--line,#e6e9ea);
+  border-radius:12px;background:var(--surface-2,#fafbfc);flex:none}
+.hub-td-head{display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:0 2px;margin-bottom:3px}
+.hub-td-head b{font-size:11.5px;font-weight:750;color:var(--ink,#24272c)}
+.hub-td-count{padding:1px 7px;border:1px solid var(--line,#e6e9ea);border-radius:999px;
+  background:var(--surface,#fff);font-size:10px;font-weight:700;color:var(--muted,#71767e);
+  font-variant-numeric:tabular-nums;line-height:1.5}
+.hub-task{display:flex;align-items:flex-start;gap:7px;width:100%;padding:7px 2px;
+  border:none;border-radius:8px;background:transparent;font:inherit;color:inherit;
+  text-align:left;cursor:pointer}
+.hub-task:hover{background:var(--n-100,#f5f6f8)}
+.hub-tick{width:17px;height:17px;margin-top:1px;border-radius:5px;
+  border:1.5px solid var(--n-400,#d4d7dc);flex:none;display:grid;place-items:center;
+  background:var(--surface,#fff);transition:border-color .15s,background .15s}
+.hub-tick svg{width:11px;height:11px;opacity:0}
+.hub-task.done .hub-tick{background:var(--primary,#3a9a93);border-color:var(--primary,#3a9a93)}
 .hub-task.done .hub-tick svg{opacity:1}
-.hub-tx{min-width:0;flex:1;font-size:12.5px;font-weight:550;color:var(--ink,#1f2328);line-height:1.45;
-  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.hub-task.done .hub-tx{color:var(--muted,#9aa1a8);text-decoration:line-through}
-.hub-td-empty{padding:6px 18px 2px;font-size:12.5px;color:var(--muted,#9aa1a8);flex:none}
-.hub-side-foot{margin-top:auto;padding:8px 18px 14px;flex:none}
-.hub-side-foot a{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;min-height:44px;
-  border:1px dashed #cddedb;border-radius:11px;color:var(--primary-700,#2f7d76);
-  font-size:12.5px;font-weight:600;background:var(--primary-50,#e8f3f1);text-decoration:none}
-.hub-side-foot a:hover{background:#d5ebe7}
+.hub-tx{min-width:0;flex:1}
+.hub-tx b{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+  font-size:12px;font-weight:600;line-height:1.55;color:var(--ink,#24272c);overflow-wrap:anywhere}
+.hub-tx small{display:block;margin-top:1px;font-size:10px;line-height:1.5;color:var(--muted,#71767e)}
+.hub-task.done .hub-tx b{color:var(--muted,#71767e);text-decoration:line-through}
+.hub-task.done .hub-tx small{color:var(--muted,#9aa1a8)}
+.hub-td-empty{padding:4px 2px 6px;font-size:11.5px;color:var(--muted,#71767e);flex:none}
+.hub-td-more{display:flex;align-items:center;justify-content:space-between;margin-top:5px;
+  padding:7px 2px 2px;border-top:1px solid var(--line,#e6e9ea);font-size:10.5px;
+  font-weight:650;color:var(--primary-700,#2c7873);text-decoration:none}
+.hub-td-more:hover{color:var(--primary,#3a9a93)}
+.hub-td-more svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round}
 @media(max-width:1180px){ .hub-shell{grid-template-columns:232px minmax(0,1fr)} }
 @media(max-width:860px){
   main.container:has(> .hub-shell){
@@ -123,10 +127,7 @@ main.container:has(> .hub-shell){
   .hub-sub{min-height:44px;padding:6px 9px}
   .hub-sub-ic{width:30px;height:30px}
   .hub-side-div{margin:8px 14px 0}
-  .hub-td-head{padding:0 14px 4px}
-  .hub-td-prog{margin:0 12px 6px;padding:8px 10px}
-  .hub-td-prog b{font-size:16px}
-  .hub-td-bar{margin-top:6px}
-  .hub-task{padding:4px 8px}
+  .hub-td{margin:10px 14px 0;padding:9px 10px 7px}
+  .hub-task{padding:5px 2px}
 }
 

@@ -16,7 +16,12 @@
     book:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16M7 9h2M15 9h2"/>',
     mic:'<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>',
     pen:'<path d="M4 20l4-1 10-10-3-3L5 16z"/><path d="M14 6l3 3"/>',
-    chat:'<path d="M4 5h16v11H9l-5 4z"/>'
+    chat:'<path d="M4 5h16v11H9l-5 4z"/>',
+    cal:'<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+    list:'<path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/>',
+    chart:'<path d="M5 20V10M12 20V4M19 20v-7"/>',
+    ban:'<circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/>',
+    target:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/>'
   };
   var CHECK = '<path d="M4 10l4 4 8-9"/>';
 
@@ -40,11 +45,21 @@
      stateAttr = 有些页把当前态写在根元素属性上（bank）；countSel = 篇数徽标；
      review = 无分栏条走滚动；subs = 左栏小 tab 列表。 */
   function getConfig(){
+    /* 11-16：一页只留一条导航 —— 原先板头/上栏那排 tab 收进左栏，左栏点击再转发给原按钮。
+       顺序有讲究：口语、机经都有 #tabs/#listView，必须排在通用判据前面。 */
+    if($('sptMobileTabs')) return {
+      tabSel:'#sptMobileTabs [data-spt-tab]', tabAttr:'data-spt-tab', tabRoot:'sptMobileTabs',
+      activeCls:'on',
+      subs:[{id:'home',nm:'今天',ic:'cal'},{id:'bank',nm:'题库',ic:'book'},
+            {id:'practice',nm:'练习',ic:'mic'},{id:'records',nm:'记录',ic:'list'},
+            {id:'weak',nm:'弱项',ic:'target'}]
+    };
     if($('mockTabs')) return {
-      tabSel:'#mockTabs .pill-tab', tabAttr:'data-mtab', tabRoot:'mockTabs',
-      rootId:'bankRoot', stateAttr:'data-mock-tab', countSel:'#mockTabs .mt-n',
-      subs:[{id:'reading',nm:'阅读',ic:'book'},{id:'listening',nm:'听力',ic:'mic'},
-            {id:'writing',nm:'写作',ic:'pen'},{id:'speaking',nm:'口语',ic:'chat'}]
+      tabSel:'#brTabs .br-tab', tabAttr:'data-brtab', tabRoot:'brTabs',
+      countSel:'#mockTabs .mt-n',
+      subs:[{id:'reading',nm:'阅读题库',ic:'book'},{id:'listening',nm:'听力题库',ic:'mic'},
+            {id:'records',nm:'题目记录',ic:'list'},{id:'wrong',nm:'错题集',ic:'ban'},
+            {id:'stats',nm:'正确率统计',ic:'chart'}]
     };
     if($('tabs') && $('listView')) return {
       tabSel:'#tabs .pill-tab[data-type]', tabAttr:'data-type', tabRoot:'tabs',
@@ -63,11 +78,11 @@
     };
     if($('planTabs')) return {
       tabSel:'#planTabs .pill-tab[data-ptab]', tabAttr:'data-ptab', tabRoot:'planTabs',
-      subs:[{id:'today',nm:'今天',ic:'book'},{id:'past',nm:'往日',ic:'chat'}]
+      subs:[{id:'today',nm:'今天',ic:'book'},{id:'week',nm:'本周',ic:'cal'},{id:'past',nm:'往日',ic:'chat'}]
     };
     if($('reviewMain')) return {
-      review:true, tabSel:null, tabRoot:null,
-      subs:[{id:'score',nm:'成绩',ic:'book'},{id:'record',nm:'轨迹',ic:'chat'}]
+      /* 回顾页左栏由 rv-tabs.js 的 #rvNav 负责（总览/趋势/记录），这里不再重复渲染一份。 */
+      review:true, tabSel:null, tabRoot:null, subs:[]
     };
     if($('vMall')) return { tabSel:null, tabRoot:null, subs:[] };
     return null;
@@ -118,7 +133,7 @@
         var t = r ? (r.getAttribute(CFG.stateAttr) || '') : '';
         if(t) return t;
       }
-      var on = document.querySelector(CFG.tabSel + '.active');
+      var on = document.querySelector(CFG.tabSel + '.' + (CFG.activeCls || 'active'));
       return on ? (on.getAttribute(CFG.tabAttr) || '') : '';
     }catch(e){ return ''; }
   }
@@ -140,35 +155,45 @@
       return (p && Array.isArray(p.items)) ? p.items : [];
     }catch(e){ return []; }
   }
-  function taskHtml(it){
-    return '<button class="hub-task' + (it.done ? ' done' : '') + '" type="button" data-hub-todo="' + esc(it.id) + '">'
-      + '<span class="hub-tick">' + tick() + '</span>'
-      + '<span class="hub-tx">' + esc(it.text || '') + '</span>'
-      + '</button>';
+  /* 任务副行：分钟数（item.min 优先，其次从文字里抠「N 分钟」）+ 科目。
+     左栏只在当前页跑，拿不到计划页的 planMinOf / moduleLabelOf，所以口径在这里自备一份。 */
+  var MOD_LABEL = {listening:'听力', reading:'阅读', writing:'写作', speaking:'口语', mix:'综合'};
+  function minOf(it){
+    if(it && typeof it.min === 'number' && it.min) return Math.round(it.min);
+    var m = String((it && it.text) || '').match(/(\d+(?:\.\d+)?)\s*分钟/);
+    return m ? Math.round(parseFloat(m[1])) : 0;
   }
-  function groupHtml(arr, label){
-    if(!arr.length) return '';
-    return '<div class="hub-td-gh"><i></i>' + label + ' · ' + arr.length + '</div>'
-      + arr.map(taskHtml).join('');
+  function metaOf(it){
+    var out = [];
+    var min = minOf(it);
+    if(min) out.push(min + ' 分钟');
+    var lab = it && it.module ? MOD_LABEL[it.module] : '';
+    if(lab) out.push(lab);
+    return out.join(' · ');
+  }
+  function taskHtml(it){
+    var meta = metaOf(it);
+    return '<button class="hub-task' + (it.done ? ' done' : '') + '" type="button"'
+      + ' data-hub-todo="' + esc(it.id) + '" aria-pressed="' + (it.done ? 'true' : 'false') + '">'
+      + '<span class="hub-tick" aria-hidden="true">' + tick() + '</span>'
+      + '<span class="hub-tx"><b>' + esc(it.text || '') + '</b>'
+      + (meta ? '<small>' + esc(meta) + '</small>' : '')
+      + '</span></button>';
   }
   function renderToday(){
-    var prog = $('hubTdProg'), pend = $('hubTdPending'), done = $('hubTdDone'), empty = $('hubTdEmpty');
-    if(!prog) return;
-    var items = todayItems();
-    var a = items.filter(function(x){ return x && !x.done; });
-    var b = items.filter(function(x){ return x && x.done; });
-    var pct = items.length ? Math.round(b.length / items.length * 100) : 0;
-    if(items.length){
-      prog.hidden = false;
-      prog.innerHTML = '<b>' + pct + '% <em>已完成 ' + b.length + ' / 共 ' + items.length + '</em></b>'
-        + '<div class="hub-td-bar"><i style="width:' + pct + '%"></i></div>';
-      if(empty) empty.hidden = true;
-    }else{
-      prog.hidden = true;
-      if(empty) empty.hidden = false;
+    var box = $('hubTdList');
+    if(!box) return;
+    var items = todayItems().filter(function(x){ return !!x; });
+    var a = items.filter(function(x){ return !x.done; });
+    var b = items.filter(function(x){ return x.done; });
+    box.innerHTML = a.concat(b).map(taskHtml).join('');
+    var cnt = $('hubTdCount');
+    if(cnt){
+      cnt.textContent = b.length + '/' + items.length;
+      cnt.hidden = !items.length;
     }
-    pend.innerHTML = groupHtml(a, '待完成');
-    done.innerHTML = groupHtml(b, '已完成');
+    var empty = $('hubTdEmpty');
+    if(empty) empty.hidden = items.length > 0;
   }
   function toggleTodo(id){
     var arr = todayItems(), it = null;
