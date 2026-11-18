@@ -444,3 +444,8 @@
 | ⑦ 报错 | 零 pageerror |
 
 连带回归：`_probe_factorygate_1017` 31/0（同样走 mergeData 的就绪闸没被影响）。
+
+### 11-18 第十二段：合并改动后的全站巡检与线上核对（无新 bug）
+
+- 本地 `_diag_sitesweep_1025`：60 张（20 页 × 桌面亮/桌面暗/手机），**57 ok / 3 张「页面几乎空白」**，全部是 `admin.html` —— 未登录时停在 `正在验证站长账号…` 的权限闸门，是预期行为，不是空白页 bug。
+- 线上核对（`https://yasihub.com/practice.html` / `/sw.js`）：`common-merge.js?v=20261118a` 已生效、`CACHE = ielts-hub-v923`，Cloudflare 已部署本批。
