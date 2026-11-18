@@ -720,3 +720,221 @@ body .hub-main{padding:24px 28px 40px;overflow:auto}
 #mDays > .esys--inline{min-height:max(320px,calc(100dvh - 260px));border:0;border-radius:0;background:transparent;box-shadow:none;display:flex;flex-direction:column;align-items:center;justify-content:center}
 /* 批注 3/4：今天 / 本周页头「这个框有点多余 / 也多余」——去掉说明小字，只留标题与主操作。 */
 .pl-board-head .pl-head-copy p{display:none}
+
+/* ══════════════════════════════════════════════════════════════════════
+   PLAN-REDESIGN-1118（11-18）：按 design/PLAN-REDESIGN-1118 施工。
+   只改「今天」页的可见结构：日期条、深绿主卡、任务卡、添加区、时间分配。
+   ID / 类名 / 数据流不动；已有覆盖统一在本段末尾收口，不删旧规则。
+   ══════════════════════════════════════════════════════════════════════ */
+#mkToday{
+  --pd-ink:#143c38;
+  --pd-teal:var(--primary-600);
+  --pd-lime:#d9f277;
+  --pd-line:var(--line);
+  --pd-card:var(--surface);
+  --pd-row:var(--surface-2);
+}
+[data-theme="dark"] #mkToday{--pd-ink:#0f2f2c;--pd-card:var(--surface);--pd-row:var(--n-100)}
+
+/* 桌面骨架：页面不再是一张大卡套所有内容，拆成日期条 + 主卡 + 任务卡 + 右栏 */
+body .hub-main{padding:24px 24px 44px}
+@media(min-width:861px){body .hub-shell{grid-template-columns:240px minmax(0,1fr)}}
+body .pl-board{max-width:1160px;margin:0 auto;border:0;border-radius:0;background:transparent;box-shadow:none;overflow:visible}
+body .pl-board-body,body .pl-viewport{background:transparent}
+body .hub-side{background:var(--bg)}   /* 侧栏只留导航，底色跟纸面一致，不空出一条白柱 */
+.pl-board-head{display:none!important}
+#hubTd{display:none!important}   /* 左栏「今日任务」与右侧任务卡重复，按设计稿只留侧栏导航 */
+
+/* 日期条：左日期、右备考阶段，不再是一张带边框的白卡 */
+#mkToday .m-datebar{display:flex;align-items:center;gap:8px;margin:0 0 14px;padding:0 2px;border:0;border-radius:0;background:transparent;box-shadow:none}
+#mkToday .m-daynav-lg{width:34px;height:34px;border:1px solid var(--pd-line);border-radius:10px;background:var(--pd-card);color:var(--primary-900)}
+#mkToday .m-daynav-lg:hover{border-color:var(--primary-200);background:var(--primary-50)}
+#mkToday .m-daynav-lg svg{width:13px;height:13px}
+#mkToday .m-datemain{flex:0 1 auto;min-width:0;text-align:left}
+#mkToday .m-datetitle{justify-content:flex-start;gap:9px;font-size:22px;font-weight:750;line-height:1.25;letter-spacing:-.035em;color:var(--ink)}
+#mkToday .m-todaytag{flex:none;padding:3px 8px;border-radius:999px;background:var(--primary-50);color:var(--primary-700);font-size:10.5px;font-weight:700;letter-spacing:0}
+#mkToday .m-datesub{margin-top:5px;font-size:12px;color:var(--muted)}
+#mkToday .m-backtoday{margin:4px 0 0;padding:2px 0;min-height:24px;font-size:11.5px;color:var(--primary-700)}
+#mkToday .m-phase{margin-left:auto;flex:none;white-space:nowrap}
+#mkToday .m-phase-chip{display:inline-flex;align-items:center;flex-wrap:nowrap;padding:8px 12px;border:1px solid var(--pd-line);border-radius:999px;background:var(--pd-card);gap:9px;color:var(--muted);white-space:nowrap}
+#mkToday .m-phase .m-chip{display:inline-flex;align-items:center;gap:6px;width:auto;height:auto;padding:0;background:none;color:var(--ink-2);font-size:11px;white-space:nowrap}
+#mkToday .m-phase .m-chip::before{display:inline-block;content:"";width:6px;height:6px;border-radius:50%;background:var(--primary)}
+#mkToday .m-phase b,#mkToday .m-phatime,#mkToday .m-phatime a{font-size:11px;color:var(--muted);font-weight:500}
+#mkToday .m-phatime a{color:var(--primary-700)!important;font-weight:650}
+
+/* 今日主卡：深绿底、左侧先做这一项、右侧剩余分钟与完成度 */
+#mkToday .m-summary{
+  display:grid;grid-template-columns:minmax(0,1.45fr) minmax(230px,.72fr);
+  gap:30px;align-items:center;margin:0 0 16px;padding:24px 28px;
+  border:0;border-radius:18px;background:var(--pd-ink);color:#fff;
+  box-shadow:0 12px 30px -22px rgba(16,40,38,.55);overflow:hidden;
+}
+#mkToday .m-summary[hidden]{display:none!important}
+#mkToday .m-nextmain{min-width:0}
+#mkToday .m-nextlab{display:flex;align-items:center;gap:7px;margin-bottom:8px;color:rgba(255,255,255,.62);font-size:10.5px;font-weight:650;letter-spacing:.08em}
+#mkToday .m-nextlab::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--pd-lime)}
+#mkToday .m-nexttitle{margin:0;color:#fff;font-size:25px;font-weight:750;line-height:1.32;letter-spacing:-.025em;overflow-wrap:anywhere}
+#mkToday .m-nextmeta{margin-top:7px;color:rgba(255,255,255,.6);font-size:11.5px;line-height:1.6;font-variant-numeric:tabular-nums}
+#mkToday .m-nextbtn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;margin-top:16px;padding:0 18px;
+  border:0;border-radius:999px;background:var(--pd-lime);color:var(--pd-ink);font:inherit;font-size:12.5px;font-weight:750;
+  cursor:pointer;transition:transform .15s,background .15s}
+#mkToday .m-nextbtn:hover{background:#e3f88c;transform:translateY(-1px)}
+#mkToday .m-nextbtn:active{transform:none}
+#mkToday .m-nextbtn:focus-visible{outline:2px solid #fff;outline-offset:2px}
+#mkToday .m-nextbtn[hidden]{display:none!important}
+#mkToday .m-nextbtn svg{width:14px;height:14px;flex:none}
+#mkToday .m-nextstats{padding-left:26px;border-left:1px solid rgba(255,255,255,.14)}
+#mkToday .m-remain{display:flex;align-items:baseline;gap:7px;min-width:0}
+#mkToday .m-remain strong{font-size:42px;line-height:1;font-weight:750;letter-spacing:-.055em;font-variant-numeric:tabular-nums;color:#fff}
+#mkToday .m-remain span{font-size:11.5px;color:rgba(255,255,255,.58);white-space:nowrap}
+#mkToday .m-statline{display:flex;justify-content:space-between;gap:12px;margin-top:15px;padding-top:13px;border-top:1px solid rgba(255,255,255,.14);color:rgba(255,255,255,.66);font-size:11px;font-variant-numeric:tabular-nums}
+#mkToday .m-summary .m-bar{height:6px;margin:12px 0 0;border-radius:999px;background:rgba(255,255,255,.14);overflow:hidden}
+#mkToday .m-summary .m-bar i{display:block;height:100%;border-radius:inherit;background:var(--pd-lime)}
+
+/* 主列 + 右栏：任务卡与时间分配是两张独立卡 */
+#mkToday .m-ws{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:start}
+#mkToday .m-maincol{display:flex;flex-direction:column;gap:16px;min-width:0}
+#mkToday .m-plancard{min-width:0;background:var(--pd-card);border:1px solid var(--pd-line);border-radius:18px;box-shadow:0 10px 28px -24px rgba(16,40,38,.35);overflow:hidden}
+#mkToday .m-side{display:flex;flex-direction:column;gap:16px;min-width:0;background:transparent;border:0}
+#mkToday .m-side-card{padding:20px;background:var(--pd-card);border:1px solid var(--pd-line);border-radius:18px;box-shadow:0 10px 28px -24px rgba(16,40,38,.35)}
+#mkToday .m-timecard{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:12px;align-items:start}
+#mkToday .m-timecard[hidden]{display:none!important}
+#mkToday .m-side-h2{grid-column:1;grid-row:1;margin:0 0 16px;font-size:16px;line-height:1.4;font-weight:750;letter-spacing:-.02em;color:var(--ink)}
+
+/* 顺延提示 */
+#mkToday .m-carry{margin:16px 20px 0;padding:10px 12px;border-radius:10px;background:var(--warn-bg,#fff7eb);color:var(--warn-ink,#8a5200);font-size:11.5px}
+#mkToday .m-taskhead{justify-content:flex-start;padding:18px 20px 10px;border-top:0;gap:8px}
+#mkToday .m-th2{font-size:20px;font-weight:750;letter-spacing:-.03em;color:var(--ink)}
+#mkToday .m-taskcount{margin-right:auto;color:var(--muted);font-size:11.5px;font-weight:550;font-variant-numeric:tabular-nums}
+#mkToday .m-filter{padding:3px;gap:3px;background:var(--pd-row);border:1px solid var(--pd-line);border-radius:10px}
+#mkToday .m-fbtn{min-height:30px;padding:3px 11px;border-radius:7px;color:var(--muted);font-size:11px;font-weight:600}
+#mkToday .m-fbtn.active{background:var(--pd-card);color:var(--primary-700);box-shadow:0 1px 3px rgba(16,24,40,.08)}
+
+/* 任务行：从「表格分隔线」改成一张张可点的行卡；待办在前、已完成置底 */
+#mkToday .m-tasklist{display:flex;flex-direction:column;gap:8px;padding:2px 14px 12px}
+#mkToday .m-tasklist .m-task{align-items:center;gap:12px;padding:14px 12px;border:1px solid var(--pd-line);border-radius:12px;background:var(--pd-row);transition:background .15s,border-color .15s,opacity .18s}
+#mkToday .m-tasklist .m-task:last-child{border-bottom:1px solid var(--pd-line)}
+#mkToday .m-tasklist .m-task:hover{background:var(--pd-card);border-color:var(--primary-200)}
+#mkToday .m-task:not(.m-done){order:1}
+#mkToday .m-task.m-done{order:2;opacity:.66;background:var(--pd-card)}
+#mkToday .m-task.m-next{background:var(--primary-50);border-color:var(--primary-200);box-shadow:0 0 0 1px var(--primary-200) inset}
+#mkToday .m-task.m-next:hover{background:var(--primary-50)}
+#mkToday .m-task.m-next-flash{box-shadow:0 0 0 2px var(--primary),0 8px 24px -14px rgba(49,153,141,.5)}
+#mkToday .m-task .m-cb{width:24px;height:24px;margin:0;border-color:var(--n-400);border-radius:7px;background:var(--pd-card)}
+#mkToday .m-task.m-done .m-cb{border-color:var(--primary);background:var(--primary)}
+#mkToday .m-task .m-taskbody{flex:1 1 0%;min-width:0}
+#mkToday .m-task .m-t{font-size:14.5px;font-weight:650;line-height:1.5;color:var(--ink)}
+#mkToday .m-task.m-done .m-t{color:var(--muted);text-decoration-color:var(--n-400)}
+#mkToday .m-task .m-tmeta{margin-top:4px;gap:8px}
+#mkToday .m-task .m-tagline{padding:1px 7px;border:0;border-radius:5px;background:var(--pd-card);color:var(--ink-2);font-size:10.5px;font-weight:650;line-height:1.65}
+#mkToday .m-task .m-tmin{font-size:10.5px;color:var(--muted)}
+#mkToday .m-task .m-tagline + .m-tmin::before{content:"·";margin-right:8px;color:var(--muted);font-weight:400}
+#mkToday .m-task .m-tcarry{font-size:10.5px}
+#mkToday .m-task .m-jmp{display:inline-flex;align-items:center;gap:3px;min-height:30px;padding:0 9px;border:1px solid var(--primary-200);border-radius:8px;background:var(--pd-card);color:var(--primary-700);font-size:11px;font-weight:700;white-space:nowrap}
+#mkToday .m-task .m-jmp:hover{background:var(--primary-50)}
+#mkToday .m-task .m-jmp svg{width:13px;height:13px}
+#mkToday .m-task .m-act{gap:2px;opacity:.55;transition:opacity .15s}
+#mkToday .m-task:hover .m-act,#mkToday .m-task:focus-within .m-act{opacity:1}
+#mkToday .m-task .m-actbtn{width:30px;height:30px;border-radius:7px;color:var(--muted)}
+#mkToday .m-task .m-actbtn:hover{background:var(--pd-card);color:var(--ink)}
+#mkToday .m-empty{padding:42px 20px 34px}
+#mkToday .m-empty b{font-size:16px}
+#mkToday .m-empty span:not(.m-empty-ic){font-size:12px}
+
+/* 添加区：单独一张卡；输入与两个操作同一行，手机上输入整行、按钮下一行 */
+#mkToday .m-addcard{background:var(--pd-card);border:1px solid var(--pd-line);border-radius:18px;box-shadow:0 10px 28px -24px rgba(16,40,38,.35);overflow:hidden}
+#mkToday .m-addrow{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:center;margin:0;padding:18px 20px 8px;border-top:0;background:transparent}
+#mkToday .m-addlab{grid-column:1/-1;margin:0 0 1px;color:var(--ink-2);font-size:11.5px;font-weight:600}
+#mkToday .m-addbox{display:contents}
+#mkToday .m-addinput{grid-column:1;width:100%;height:44px;padding:0 13px;border:1px solid var(--pd-line);border-radius:10px;background:var(--pd-row);font-size:13px}
+#mkToday .m-addbtn{min-height:44px;padding:0 14px;border-radius:10px;font-size:12px}
+#mkToday .m-addbtn.m-pri{grid-column:2;background:var(--primary-700);border-color:var(--primary-700)}
+#mkToday .m-addbtn.m-aibtn{grid-column:3;width:auto;margin:0;background:var(--pd-card);border-color:var(--pd-line);color:var(--primary-700)}
+#mkToday .m-addbtn.m-aibtn:hover{background:var(--primary-50)}
+#mkToday #plManage{margin:0 20px 14px;border-top:1px solid var(--pd-line)}
+#mkToday .pl-manage>summary{font-size:11.5px;color:var(--primary-700);font-weight:650}
+#mkToday #plManageBody{padding-bottom:2px}
+
+/* 右栏时间分配：总时长 + 堆叠条 + 分科行 */
+#mkToday .m-timetotal{grid-column:2;grid-row:1;justify-self:end;display:flex;align-items:baseline;gap:5px;flex-wrap:wrap;margin:0}
+#mkToday .m-timetotal strong{font-size:34px;line-height:1;color:var(--ink);font-weight:750;letter-spacing:-.05em;font-variant-numeric:tabular-nums}
+#mkToday .m-timetotal span{font-size:11.5px;color:var(--muted)}
+#mkToday .m-timestack{grid-column:1/-1;display:flex;gap:2px;width:100%;height:7px;margin:0 0 18px;border-radius:999px;background:var(--pd-row);overflow:hidden}
+#mkToday .m-ts{display:block;min-width:3px;height:100%}
+#mkToday .m-ts-c0{background:var(--primary-600)}
+#mkToday .m-ts-c1{background:var(--pd-ink)}
+#mkToday .m-ts-c2{background:var(--pd-lime)}
+#mkToday .m-ts-c3{background:var(--primary-200)}
+#mkToday .m-timesplit{grid-column:1/-1;display:grid;gap:12px}
+#mkToday .m-trow{display:grid;grid-template-columns:7px minmax(0,1fr) auto;gap:10px;align-items:center}
+#mkToday .m-tdot{width:7px;height:7px;border-radius:50%}
+#mkToday .m-tlab{min-width:0;color:var(--ink-2);font-size:12px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#mkToday .m-tmin{color:var(--muted);font-size:11px;font-variant-numeric:tabular-nums;white-space:nowrap}
+#mkToday .m-timesplit-na{margin:0;color:var(--muted);font-size:12px;line-height:1.8}
+
+@media(max-width:1080px){
+  #mkToday .m-summary{grid-template-columns:minmax(0,1fr);gap:20px}
+  #mkToday .m-nextstats{padding:18px 0 0;border-left:0;border-top:1px solid rgba(255,255,255,.14)}
+  #mkToday .m-statline{margin-top:12px;padding-top:12px}
+  #mkToday .m-ws{grid-template-columns:minmax(0,1fr) 260px}
+}
+
+@media(max-width:860px){
+  body .hub-main{padding:10px 12px 26px}
+  #mkToday .m-summary{padding:22px 20px;border-radius:16px}
+  #mkToday .m-nexttitle{font-size:22px}
+  #mkToday .m-remain strong{font-size:36px}
+  #mkToday .m-ws{display:block}
+  #mkToday .m-side{margin-top:14px}
+  #mkToday .m-side .m-timecard:not([hidden]){display:grid!important}
+  #mkToday .m-side-card{display:block;padding:18px}
+  #mkToday .m-plancard{border-radius:16px}
+  #mkToday .m-addcard{border-radius:16px}
+  #mkToday .m-taskhead{padding:16px 16px 10px;flex-wrap:wrap;gap:8px 10px}
+  #mkToday .m-taskcount{margin-right:0}
+  #mkToday .m-filter{order:3;width:100%;justify-content:space-between;margin-top:2px}
+  #mkToday .m-fbtn{flex:1;min-height:34px}
+  #mkToday .m-tasklist{padding:2px 12px 10px}
+  #mkToday .m-tasklist .m-task{padding:13px 12px;gap:11px}
+  #mkToday .m-addrow{padding:16px 16px 8px}
+  #mkToday #plManage{margin:0 16px 12px}
+  .pl-board-head{display:block!important;min-height:0;padding:2px 2px 12px;border:0;background:transparent}
+  .pl-head-copy,.pl-add-entry{display:none!important}
+  .pl-board-head .plan-tabsbar{display:block;padding:0}
+  #planTabs{display:flex;gap:6px;width:100%;padding:5px;border:1px solid var(--pd-line);border-radius:12px;background:var(--pd-card)}
+  #planTabs .pill-tab{flex:1;min-height:38px;border-radius:8px;background:transparent;color:var(--muted);font-size:12px}
+  #planTabs .pill-tab.active{background:var(--primary-50);color:var(--primary-700);box-shadow:none}
+}
+
+@media(max-width:560px){
+  #mkToday .m-datebar{display:grid;grid-template-columns:34px minmax(0,1fr) 34px;gap:8px;padding:2px 0 12px}
+  #mkToday .m-datemain{text-align:center}
+  #mkToday .m-datetitle{justify-content:center;font-size:20px}
+  #mkToday .m-phase{grid-column:1/-1;justify-content:center;margin:2px 0 0}
+  #mkToday .m-backtoday{margin:3px auto 0}
+  #mkToday .m-summary{padding:20px 18px;border-radius:15px}
+  #mkToday .m-nextlab{font-size:10px}
+  #mkToday .m-nexttitle{font-size:21px}
+  #mkToday .m-nextbtn{width:100%;margin-top:14px}
+  #mkToday .m-remain strong{font-size:34px}
+  #mkToday .m-statline{font-size:10.5px}
+  #mkToday .m-th2{font-size:19px}
+  #mkToday .m-task .m-t{font-size:14px}
+  #mkToday .m-task .m-jmp{display:none!important}
+  #mkToday .m-task .m-act{opacity:1}
+  #mkToday .m-task .m-actbtn{width:40px;height:40px}
+  #mkToday .m-addrow{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  #mkToday .m-addlab{grid-column:1/-1}
+  #mkToday .m-addinput{grid-column:1/-1;height:46px;font-size:16px}
+  #mkToday .m-addbtn{width:100%}
+  #mkToday .m-addbtn.m-pri{grid-column:1}
+  #mkToday .m-addbtn.m-aibtn{grid-column:2;width:100%;margin:0}
+  #mkToday .m-side{margin-top:12px}
+  #mkToday .m-side-card{padding:17px 16px}
+  #mkToday .m-timetotal strong{font-size:30px}
+}
+
+@media(prefers-reduced-motion:reduce){
+  #mkToday .m-nextbtn,#mkToday .m-tasklist .m-task{transition:none}
+}
+

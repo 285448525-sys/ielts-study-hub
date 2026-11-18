@@ -691,7 +691,7 @@ function syncSkeleton(date, isToday, items, done, total, pct){
   if(dateRow){
     var dtext = dateRow.querySelector('.m-datetext');
     var dtag = dateRow.querySelector('.m-todaytag');
-    if(dtext) dtext.textContent = (dt.getMonth() + 1) + ' 月 ' + dt.getDate() + ' 日 · ' + wk;
+    if(dtext) dtext.textContent = (dt.getMonth() + 1) + '月' + dt.getDate() + '日 · ' + wk;
     if(dtag) dtag.hidden = !isToday;
   }
   /* 日期副行 = 本周重点（与阶段条同一套口径：只聚合 AI 生成项） */
@@ -723,7 +723,9 @@ function syncSkeleton(date, isToday, items, done, total, pct){
      ⚠️ 只在 isToday 时用「今天的任务」这个固定说法，其余天数写「X 月 X 日的任务」，
         与日期条 .m-datetext 同一套格式（同一个月内天数也不省略月份，避免「1 日的任务」歧义）。 */
   var th2 = document.getElementById('mkTaskHeading');
-  if(th2) th2.textContent = isToday ? '今天的任务' : ((dt.getMonth() + 1) + ' 月 ' + dt.getDate() + ' 日的任务');
+  if(th2) th2.textContent = isToday ? '今天' : ((dt.getMonth() + 1) + ' 月 ' + dt.getDate() + ' 日');
+  var taskCountEl = document.getElementById('mkTaskCount');
+  if(taskCountEl) taskCountEl.textContent = total ? (total + ' 项') : '';
   var mdt = document.getElementById('mkDayToday');
   if(mdt) mdt.hidden = isToday;
 
@@ -732,38 +734,84 @@ function syncSkeleton(date, isToday, items, done, total, pct){
      空态只在 mkEmpty 说一次，不再一屏叠四处；有任务时照常显示。 */
   if(sumCard) sumCard.hidden = !total;
   if(sumCard){
-    var bigq = sumCard.querySelector('.m-bigq');
     var remaining = Math.max(0, total - done);
     var firstPending = items.filter(function(it){ return it && !it.done; })[0];
-    if(bigq) bigq.innerHTML = remaining + '<small>项待完成</small>';
-    var subl = sumCard.querySelector('.m-sublab');
-    if(subl){
-      if(!total) subl.textContent = '这一天还没有任务，下面加一条。';
-      else if(firstPending){
-        subl.textContent = '';
-        subl.appendChild(document.createTextNode('先做：'));
-        var firstB = document.createElement('b');
-        firstB.textContent = firstPending.text || '未命名任务';
-        subl.appendChild(firstB);
-      }else subl.textContent = '全部完成了，今天的清单可以收工。';
+    var planMin = 0, doneMin = 0;
+    items.forEach(function(it3){
+      var mMin = (typeof it3.min === 'number' && it3.min) || (typeof planMinOf === 'function' ? planMinOf(it3.text) : 0);
+      planMin += mMin;
+      if(it3.done) doneMin += mMin;
+    });
+    var remainMin = Math.max(0, planMin - doneMin);
+
+    var nextTitle = document.getElementById('mkNextTitle');
+    var nextMeta = document.getElementById('mkNextMeta');
+    var nextBtn = document.getElementById('mkNextBtn');
+    var nextBtnText = document.getElementById('mkNextBtnText');
+    if(firstPending){
+      var firstRaw = String(firstPending.text || '未命名任务');
+      /* 主卡标题只放任务本身；「20 分钟」已经在右上统计里，不在标题重复。
+         任务行同样把末尾分钟移到副行，正文本身一个字不改。 */
+      var firstClean = firstRaw.replace(/\s*[（(]?\d+\s*分钟[）)]?\s*$/,'').trim() || firstRaw;
+      if(nextTitle) nextTitle.textContent = firstClean;
+      var metaParts = [];
+      var subj = (typeof planSubjectLabel === 'function') ? planSubjectLabel(firstPending) : '';
+      if(subj) metaParts.push(subj);
+      var fromTitle = (typeof planMinOf === 'function') ? planMinOf(firstPending.text) : 0;
+      var firstMin = (typeof firstPending.min === 'number' && firstPending.min) ? firstPending.min : fromTitle;
+      if(firstMin) metaParts.push(firstMin + ' 分钟');
+      if(nextMeta) nextMeta.textContent = metaParts.join(' · ') || '待完成';
+      var j0 = (typeof planGenJump === 'function') ? planGenJump(firstPending) : null;
+      if(nextBtn){
+        nextBtn.hidden = false;
+        nextBtn.setAttribute('data-jump', j0 ? '1' : '0');
+      }
+      if(nextBtnText) nextBtnText.textContent = j0 ? '开始练习' : '去做这一项';
+    }else{
+      if(nextTitle) nextTitle.textContent = '今天的任务都做完了';
+      if(nextMeta) nextMeta.textContent = '清单已清空，可以休息一下。';
+      if(nextBtn) nextBtn.hidden = true;
     }
-    var secLabel = sumCard.querySelector('.m-seclabel');
-    if(secLabel) secLabel.textContent = '共 ' + total + ' 项';
+
+    var remainNum = document.getElementById('mkRemainNum');
+    var remainUnit = document.getElementById('mkRemainUnit');
+    if(remainNum) remainNum.textContent = remainMin ? String(remainMin) : (planMin ? '0' : '—');
+    if(remainUnit) remainUnit.textContent = planMin ? '分钟剩余' : '未标时长';
+    var openCount = document.getElementById('mkOpenCount');
+    var donePct = document.getElementById('mkDonePct');
+    if(openCount) openCount.textContent = remaining ? (remaining + ' 项待完成') : '全部完成';
+    if(donePct) donePct.textContent = done + '/' + total + ' 已完成';
+
     var bar = sumCard.querySelector('.m-bar i');
     if(bar) bar.style.width = Math.round(pct) + '%';
     var barWrap = sumCard.querySelector('.m-bar');
     if(barWrap) barWrap.setAttribute('aria-valuenow', String(Math.round(pct)));
-    var pctTxt = sumCard.querySelector('.m-pcttxt');
-    if(pctTxt) pctTxt.textContent = '完成 ' + Math.round(pct) + '%';
-    var minTxt = sumCard.querySelector('.m-mintxt');
-    if(minTxt){
-      var planMin = 0, doneMin = 0;
-      items.forEach(function(it3){
-        var mMin = (typeof it3.min === 'number' && it3.min) || (typeof planMinOf === 'function' ? planMinOf(it3.text) : 0);
-        planMin += mMin;
-        if(it3.done) doneMin += mMin;
+
+    /* 主卡按钮只做真事：能跳就跳到对应学习页；不能跳就回到那一行，不假装「开始练习」。 */
+    if(nextBtn && !nextBtn.__mkNextBound){
+      nextBtn.__mkNextBound = true;
+      nextBtn.addEventListener('click', function(){
+        var cur = (typeof getPlan === 'function') ? getPlan(date) : null;
+        var list = (cur && cur.items) || [];
+        var idx = -1, i = 0;
+        for(i = 0; i < list.length; i++){ if(list[i] && !list[i].done){ idx = i; break; } }
+        if(idx < 0) return;
+        var j = (typeof planGenJump === 'function') ? planGenJump(list[idx]) : null;
+        if(j && j.file){
+          if(typeof window.hubSoftGo === 'function') window.hubSoftGo(j.file, j.open || null);
+          else location.href = j.file + (j.open ? ('?' + j.open) : '');
+          return;
+        }
+        var allBtn = document.querySelector('#mkFilter [data-mfilter="all"]');
+        if(allBtn && !allBtn.classList.contains('active')) allBtn.click();
+        var rowEl = document.getElementById('mkTaskList');
+        var rows0 = rowEl ? rowEl.querySelectorAll('.m-task') : [];
+        if(rows0[idx]){
+          rows0[idx].scrollIntoView({ behavior:'smooth', block:'center' });
+          rows0[idx].classList.add('m-next-flash');
+          setTimeout(function(){ rows0[idx].classList.remove('m-next-flash'); }, 1400);
+        }
       });
-      minTxt.textContent = remaining ? ((planMin - doneMin) ? ('剩余约 ' + (planMin - doneMin) + ' 分钟') : '部分任务未标时长') : '';
     }
   }
 
@@ -803,7 +851,12 @@ function syncSkeleton(date, isToday, items, done, total, pct){
       var cb = row.querySelector('.m-cb');
       if(cb) cb.setAttribute('aria-checked', it.done ? 'true' : 'false');
       var t = row.querySelector('.m-t');
-      if(t) t.textContent = it.text || '';
+      if(t){
+        var titleFull = String(it.text || '');
+        /* 分钟统一放到下面一行，标题只留任务本身（设计稿是「口语 P2 素材串题 / 口语 · 20 分钟」）。
+           只在末尾的「N 分钟」被移走，任务正文一个字不改。 */
+        t.textContent = titleFull.replace(/\s*[（(]?\d+\s*分钟[）)]?\s*$/,'').trim() || titleFull;
+      }
       var tag = row.querySelector('.m-tagline');
       if(tag){
         /* 笔 3：改用 planSubjectLabel —— 原来 moduleLabelOf('practice') 会原样印出英文 */
@@ -820,7 +873,7 @@ function syncSkeleton(date, isToday, items, done, total, pct){
       if(tmin){
         var fromText = (typeof planMinOf === 'function') ? planMinOf(it.text) : 0;
         var mins = (typeof it.min === 'number' && it.min) ? it.min : fromText;
-        var showMin = !!mins && !fromText;
+        var showMin = !!mins;
         tmin.textContent = showMin ? (mins + ' 分钟') : '';
         tmin.style.display = showMin ? '' : 'none';
       }
@@ -888,6 +941,13 @@ function syncSkeleton(date, isToday, items, done, total, pct){
     /* 多出来的占位行（真任务比骨架少）→ 隐藏，不留空行 */
     for(var ri = items.length; ri < rows.length; ri++) rows[ri].style.display = 'none';
 
+    /* 第一项待办在视觉上高亮，和上面的「先做这一项」主卡对应。
+       只加类、不改 DOM 顺序：下面勾选/编辑仍按原下标取 items，不会点错任务。 */
+    var firstOpenIdx = -1;
+    for(var fi = 0; fi < items.length; fi++){ if(items[fi] && !items[fi].done){ firstOpenIdx = fi; break; } }
+    for(var rj = 0; rj < rows.length; rj++) rows[rj].classList.remove('m-next');
+    if(firstOpenIdx >= 0 && rows[firstOpenIdx]) rows[firstOpenIdx].classList.add('m-next');
+
     /* 空态：一条任务都没有时，整块任务列表换成两句诚实空态 */
     var emptyEl = document.getElementById('mkEmpty');
     if(emptyEl) emptyEl.hidden = items.length > 0;
@@ -952,7 +1012,13 @@ function renderTimeSplit(items){
   }
 
   var keys = Object.keys(byMod).sort(function(a, b){ return byMod[b] - byMod[a]; });
-  var maxV = keys.length ? byMod[keys[0]] : 1;
+  var stack = document.getElementById('mkTimeStack');
+  if(stack){
+    /* 堆叠条按分钟数比例分配宽度，用 flex-grow 而非百分比，避免多科时四舍五入超出 100%。 */
+    stack.innerHTML = keys.length ? keys.map(function(k, i){
+      return '<i class="m-ts m-ts-c' + (i % 4) + '" style="flex:' + byMod[k] + ' 1 0"></i>';
+    }).join('') : '';
+  }
   var wrap = document.getElementById('mkTimeSplit');
   if(wrap){
     if(!keys.length){
@@ -961,10 +1027,9 @@ function renderTimeSplit(items){
     }else{
       wrap.innerHTML = keys.map(function(k, i){
         var v = byMod[k];
-        var w = Math.max(8, Math.round(v / maxV * 100));
-        return '<div class="m-timeline"><span class="m-tl-lab">' + escapeHtml(planSubjectLabel({ module:k })) + '</span>'
-             + '<span class="m-tl-track"><i class="' + (i > 1 ? 'm-tl-soft' : '') + '" style="width:' + w + '%"></i></span>'
-             + '<span class="m-tl-min">' + v + ' 分钟</span></div>';
+        return '<div class="m-trow"><span class="m-tdot m-ts-c' + (i % 4) + '"></span>'
+             + '<span class="m-tlab">' + escapeHtml(k) + '</span>'
+             + '<span class="m-tmin">' + v + ' 分钟</span></div>';
       }).join('');
     }
   }
@@ -1043,7 +1108,19 @@ function moduleLabelOf(id){
       practice 还要按 action 拆：listen/read/mock 是听读、其余是背单词（与 planGenJump 同一口径）。 */
 function planSubjectLabel(item){
   if(!item) return '';
-  if(!item.module) return '';
+
+  /* 手写任务没有 module，但标题里通常已经写明了科目（「口语 P2 素材串题 20 分钟」）。
+     不补这层推断，任务行没有科目标签、右栏时间分配也会整块消失。
+     先按标题关键词识别；命中不了就保持空，不硬塞「其他」。 */
+  if(!item.module){
+    var raw = String(item.text || '');
+    if(/口语|素材|串题|Part\s*2|P2|P1/i.test(raw)) return '口语';
+    if(/写作|作文|Task\s*2|Task\s*1|提纲/i.test(raw)) return '写作';
+    if(/听力|精听|听写|Section\s*\d|S[1-4]/i.test(raw)) return '听力';
+    if(/阅读|真题|Passage|Reading/i.test(raw)) return '阅读';
+    if(/单词|词汇|词库|背词/i.test(raw)) return '背单词';
+    return '';
+  }
 
   /* 🔴 这张表必须写在函数**体内**，不能提成模块级 var。
      原因：本页 ready() 注册在第 367 行，而 defer 脚本执行时 readyState 已是

@@ -30,7 +30,7 @@
 </script>
 <title>计划 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css?v=20261116a" />
-  <link rel="stylesheet" href="css/p/plans.css?v=20261116c" />
+  <link rel="stylesheet" href="css/p/plans.css?v=20261118a" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -49,7 +49,7 @@
   <script defer src="js/common-shell.js?v=20261118b"></script>
   <script defer src="js/common-pwa.js?v=20261117a"></script>
   <script defer src="js/feedback.js?v=20261111b"></script>
-  <script src="js/plans.js?v=20261116b" defer></script>
+  <script src="js/plans.js?v=20261118a" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -672,21 +672,34 @@
       </div>
     </div>
 
+    <!-- 今日主卡：先做这一项 + 剩余时间 + 完成度。
+         PLAN-REDESIGN-1118：从右栏左边的「概况数字」改成一张独立的深色行动卡，
+         数字、标题、按钮全部由 syncSkeleton() 按当天 items 真填，不做假交互。 -->
+    <div class="m-summary" id="mkSumCard">
+      <div class="m-nextmain">
+        <div class="m-nextlab">先做这一项</div>
+        <div class="m-nexttitle" id="mkNextTitle"></div>
+        <div class="m-nextmeta" id="mkNextMeta"></div>
+        <button type="button" class="m-nextbtn" id="mkNextBtn" hidden>
+          <span id="mkNextBtnText">开始练习</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13M12 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+      <div class="m-nextstats">
+        <div class="m-remain"><strong id="mkRemainNum">0</strong><span id="mkRemainUnit">分钟剩余</span></div>
+        <div class="m-statline">
+          <span id="mkOpenCount"></span>
+          <span id="mkDonePct"></span>
+        </div>
+        <div class="m-bar" role="progressbar" aria-label="任务完成进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i></i></div>
+      </div>
+    </div>
+
     <!-- 主栏 + 右栏 -->
     <div class="m-ws">
 
+      <div class="m-maincol">
       <section class="m-plancard" aria-labelledby="mkTaskHeading">
-
-        <!-- 今日概况：数字与第一项均来自当天 items -->
-        <div class="m-summary" id="mkSumCard">
-          <div class="m-sumtop">
-            <div class="m-count" aria-live="polite"><div class="m-bigq"><small>项待完成</small></div></div>
-            <span class="m-seclabel">今日清单</span>
-          </div>
-          <p class="m-sumcopy"><span class="m-sublab"></span></p>
-          <div class="m-bar" role="progressbar" aria-label="任务完成进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i></i></div>
-          <div class="m-summeta"><span class="m-pcttxt"></span><span class="m-mintxt"></span></div>
-        </div>
 
         <!-- 顺延提示（有 carried 才显示） -->
         <div class="m-carry" id="mkCarry" hidden><span class="m-carry-ic">↻</span><span class="m-carry-tx"><b>0 项任务从昨天顺延</b>，已排在今天前面；没做完也不会丢。</span></div>
@@ -694,7 +707,8 @@
         <!-- ② 今天的任务 -->
         <div class="m-tasksec" id="mkTaskCard">
           <div class="m-taskhead">
-            <h2 class="m-th2" id="mkTaskHeading">今天的任务</h2>
+            <h2 class="m-th2" id="mkTaskHeading">今天</h2>
+            <span class="m-taskcount" id="mkTaskCount"></span>
             <div class="m-filter" role="group" aria-label="筛选任务" id="mkFilter">
               <button type="button" class="m-fbtn active" data-mfilter="all" aria-pressed="true">全部</button>
               <button type="button" class="m-fbtn" data-mfilter="open" aria-pressed="false">待完成</button>
@@ -706,43 +720,33 @@
             <span class="m-empty-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="17" rx="3"/><path d="M8 2v4M16 2v4M8 11h8M8 15h5"/></svg></span>
             <b>今天还没有任务</b><span>从一件具体的小事开始，做完就在这里打勾。</span>
           </div>
-
-          <!-- ③ 添加区 -->
-          <div class="m-addrow" id="mkAddRow">
-            <label class="m-addlab" for="mkAddText">加一条具体、可完成的任务</label>
-            <div class="m-addbox">
-              <input type="text" id="mkAddText" class="m-addinput" placeholder="例如：精听 S1 填空 30 分钟" autocomplete="off" />
-              <button type="button" class="m-addbtn m-pri" id="mkAddBtn">添加任务</button>
-            </div>
-            <button type="button" class="m-addbtn m-aibtn" id="mkAiBtn">AI 安排今天</button>
-          </div>
-          <details class="pl-manage" id="plManage">
-            <summary>调整今天<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></summary>
-            <div id="plManageBody"></div>
-          </details>
         </div>
 
-        <!-- ④ 备考诊断：这一块**不在这里写**。
-             原来这位置放了一张手写的假诊断卡（.m-dg），而页面底部 #diagRoot 里
-             renderDiagEntry() 还会渲染一张**真**诊断卡 —— 实测两卡同时可见，
-             用户看到两个「备考诊断」。假卡内容也是写死的（「还没做过」），
-             真做过诊断的账号同样显示「还没做过」，等于又一处假数据。
-             笔 1 先把假卡整块去掉，只留 #diagRoot 那套真功能；
-             笔 3 再把 #diagRoot 搬进右栏做成稿子里的样子。 -->
       </section>
 
-        <aside class="m-side" aria-label="今日节奏" id="mkSide">
+      <!-- ③ 添加区：单独一张卡，和任务卡分开；设计稿里它在任务卡下方 -->
+      <section class="m-addcard" aria-label="添加任务">
+        <div class="m-addrow" id="mkAddRow">
+          <label class="m-addlab" for="mkAddText">加一条具体、可完成的任务</label>
+          <div class="m-addbox">
+            <input type="text" id="mkAddText" class="m-addinput" placeholder="例如：精听 S1 填空 30 分钟" autocomplete="off" />
+            <button type="button" class="m-addbtn m-pri" id="mkAddBtn">添加任务</button>
+          </div>
+          <button type="button" class="m-addbtn m-aibtn" id="mkAiBtn">AI 安排今天</button>
+        </div>
+        <details class="pl-manage" id="plManage">
+          <summary>调整今天<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></summary>
+          <div id="plManageBody"></div>
+        </details>
+      </section>
+      </div>
+
+        <aside class="m-side" aria-label="时间分配" id="mkSide">
           <section class="m-side-card m-timecard" id="mkTimeCard" hidden>
             <h2 class="m-side-h2">时间分配</h2>
-            <p class="m-side-kicker" id="mkTimeKicker"></p>
             <div class="m-timetotal" id="mkTimeTotal"></div>
+            <div class="m-timestack" id="mkTimeStack" aria-hidden="true"></div>
             <div class="m-timesplit" id="mkTimeSplit"></div>
-            <p class="m-side-foot">只统计任务中写明或可读取的分钟数。</p>
-          </section>
-          <section class="m-side-card pl-rhythm">
-            <h2 class="m-side-h2">今天的节奏</h2>
-            <p>从最上面的一项开始，做完就打勾。时间分配只采用任务中可读取的分钟数。</p>
-            <p>没做完的 AI 任务会自动顺延，不会悄悄丢掉。</p>
           </section>
         </aside>
 
