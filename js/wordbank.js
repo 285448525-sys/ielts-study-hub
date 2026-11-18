@@ -421,9 +421,11 @@
   }
   function _markWrongRestored(key){
     if(!key || typeof DATA === 'undefined') return;
+    // 没有本机墓碑可清时不记恢复戳：避免每个答错词都往同步包塞一条记录。
+    if(!DATA.wrongRemoved || !Object.prototype.hasOwnProperty.call(DATA.wrongRemoved, key)) return;
     DATA.wrongRestored = DATA.wrongRestored || {};
     DATA.wrongRestored[key] = Date.now();
-    if(DATA.wrongRemoved) delete DATA.wrongRemoved[key];
+    delete DATA.wrongRemoved[key];
   }
   function _markWrongRemoved(key){
     if(!key || typeof DATA === 'undefined') return;
