@@ -4,7 +4,8 @@
     {id:'study', nm:'背词', ic:'study'},
     {id:'books', nm:'词书', ic:'book'},
     {id:'wrong', nm:'错词', ic:'wrong'},
-    {id:'data', nm:'数据', ic:'data'}
+    {id:'data', nm:'数据', ic:'data'},
+    {id:'set', nm:'设置', ic:'set'}
   ];
   var ICON = {
     study:'<path d="M4 19.5V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v14M4 19.5A2.5 2.5 0 0 1 6.5 17H19M8 7h7M8 11h5"/>',
@@ -61,15 +62,13 @@
     var tot=total(id);
     return {m:mastered,l:learning,n:Math.max(0,tot-mastered-learning),t:tot};
   }
-  function hashTab(){var m=/(?:^#|&)wb=([a-z]+)/.exec(location.hash||'');return m&&['study','books','wrong','data','home'].indexOf(m[1])>=0?m[1]:'';}
+  function hashTab(){var m=/(?:^#|&)wb=([a-z]+)/.exec(location.hash||'');return m&&['study','books','wrong','data','set','home'].indexOf(m[1])>=0?m[1]:'';}
   function hashId(){return hashTab()||'study';}
   function renderNav(){
     var nav=$('wbNav'), current=window.__wbCur||'study';if(!nav)return;
-    nav.innerHTML=TABS.map(function(t){return '<button class="hub-sub'+(t.id===current?' on':'')+'" type="button" data-wb-tab="'+t.id+'"><span class="hub-sub-ic">'+ic(t.ic)+'</span><span class="hub-sub-nm">'+t.nm+'</span></button>';}).join('')+
-      '<button class="hub-sub wb-settings-nav" type="button" data-wb-settings><span class="hub-sub-ic">'+ic('set')+'</span><span class="hub-sub-nm">设置</span></button>';
+    nav.innerHTML=TABS.map(function(t){return '<button class="hub-sub'+(t.id===current?' on':'')+'" type="button" data-wb-tab="'+t.id+'"><span class="hub-sub-ic">'+ic(t.ic)+'</span><span class="hub-sub-nm">'+t.nm+'</span></button>';}).join('');
     var mobile=$('wbMobileTabs');
-    if(mobile)mobile.innerHTML=TABS.map(function(t){return '<button class="'+(t.id===current?'on':'')+'" type="button" data-wb-tab="'+t.id+'">'+t.nm+'</button>';}).join('')+
-      '<button class="wb-mobile-set" type="button" data-wb-settings aria-label="设置" title="设置">'+ic('set')+'</button>';
+    if(mobile)mobile.innerHTML=TABS.map(function(t){return '<button class="'+(t.id===current?'on':'')+'" type="button" data-wb-tab="'+t.id+'">'+t.nm+'</button>';}).join('');
   }
   function panes(){return Array.prototype.slice.call(document.querySelectorAll('#bankView .wb-pane, #vMall, #vBook, #wmLegacy'));}
   function show(id, opts){
@@ -88,6 +87,7 @@
     if(id==='wrong'){renderWrong();loadWrongBanks();}
     if(id==='data')renderStat();
       if(id==='books')renderBooks();
+      if(id==='set')renderSettings();
     }
     if(!opts.silent){try{history.replaceState(null,'',location.pathname+location.search+'#wb='+id);}catch(e){}}
     try{if(typeof hubResetPageScroll==='function')hubResetPageScroll();if(typeof hubFitPageScroll==='function')hubFitPageScroll();}catch(e){}
@@ -215,22 +215,30 @@
       try{ return obBankReady(b.id).catch(function(){}); }catch(e){ return Promise.resolve(); }
     })).then(function(){ if(seq === statSeq) paintStat(); }).catch(function(){});
   }
-  function openSettings(){renderSettings();$('wbSetDialog').hidden=false;}
+  function openSettings(){show('set');}
   function renderSettings(){
     var c=cfg();setText('wbCapN',num(c.dailyCap)||'不限');
     ['wbSwAuto','wbSwFx','wbSwIpa'].forEach(function(id){var map={wbSwAuto:'autoPlay',wbSwFx:'fxFeedback',wbSwIpa:'showIpa'},el=$(id);if(el){el.classList.toggle('on',!!c[map[id]]);el.setAttribute('aria-checked',c[map[id]]?'true':'false');}});
     var ratio=$('wbRatio');if(ratio)Array.prototype.forEach.call(ratio.children,function(b){b.classList.toggle('on',b.getAttribute('data-ratio')===(c.newReviewRatio||'5:5'));});
+    var mode=$('wbSettingsModes');if(mode)Array.prototype.forEach.call(mode.children,function(b){b.classList.toggle('on',b.getAttribute('data-wb-mode')===(c.questionMode||'visual'));});
+    Array.prototype.forEach.call(document.querySelectorAll('[data-wb-sw]'),function(el){
+      var on=!!c[el.getAttribute('data-wb-sw')];el.classList.toggle('on',on);el.setAttribute('aria-checked',on?'true':'false');
+    });
+    setText('wbSettingsBook',book(active()).nm);
+    setText('wbSettingsBookMeta','当前 · '+total(active()).toLocaleString('en-US')+' 词 · '+(active()==='custom'?'自己导入':'官方词书'));
   }
   function importBook(){show('home');var b=$('wmDealAdd');if(b)b.click();}
   function onClick(e){
     var t=e.target;if(!t||!t.closest)return;
     var tab=t.closest('[data-wb-tab]');if(tab){e.preventDefault();show(tab.getAttribute('data-wb-tab'));return;}
     if(t.closest('[data-wb-settings]')){e.preventDefault();openSettings();return;}
-    if(t.closest('[data-wb-set-close]')){$('wbSetDialog').hidden=true;return;}
-    var mode=t.closest('[data-wb-mode]');if(mode){try{pcSave({questionMode:mode.getAttribute('data-wb-mode')});}catch(e){}renderStudy();return;}
+    if(t.closest('[data-wb-set-close]')){show('set');return;}
+    var mode=t.closest('[data-wb-mode]');if(mode){try{pcSave({questionMode:mode.getAttribute('data-wb-mode')});}catch(e){}renderStudy();renderSettings();return;}
     var bk=t.closest('[data-wb-book]');if(bk){selectedBook=bk.getAttribute('data-wb-book');renderBooks();return;}
     if(t.closest('#wbBookStart')){try{wbSetActive(selectedBook);}catch(e){}show('study');return;}
-    if(t.closest('#wbBooksImport')||t.closest('#wbSetManage')){importBook();return;}
+    if(t.closest('#wbBooksImport')||t.closest('#wbSetManage')||t.closest('#wbSettingsImport')){importBook();return;}
+    if(t.closest('#wbSettingsManage')){show('books');return;}
+    if(t.closest('#wbSettingsDefaults')){try{pcSave({dailyCap:0,newReviewRatio:'5:5',questionMode:'visual',shuffle:true,autoPlay:true,fxFeedback:true,showIpa:true});renderSettings();renderStudy();}catch(e){}return;}
     var review=t.closest('[data-wb-review]');if(review){openWord(wrongData()[Number(review.getAttribute('data-wb-review'))]);return;}
     var remove=t.closest('[data-wb-remove]');if(remove){removeWrong(wrongData()[Number(remove.getAttribute('data-wb-remove'))]);return;}
     var say=t.closest('[data-wb-say]');if(say){try{speakN(say.getAttribute('data-wb-say'));}catch(e){}return;}
@@ -261,9 +269,9 @@
     if(window.__wbTabsClick)document.removeEventListener('click',window.__wbTabsClick);
     window.__wbTabsClick=onClick;document.addEventListener('click',onClick);
     if(window.__wbTabsKey)document.removeEventListener('keydown',window.__wbTabsKey);
-    window.__wbTabsKey=function(e){if(e.key==='Escape'){closeWord();$('wbSetDialog').hidden=true;}};document.addEventListener('keydown',window.__wbTabsKey);
+    window.__wbTabsKey=function(e){if(e.key==='Escape'){closeWord();}};document.addEventListener('keydown',window.__wbTabsKey);
     if(window.__wbTabsMerge)document.removeEventListener('hub:data-merged',window.__wbTabsMerge);
-    window.__wbTabsMerge=function(){renderNav();var id=window.__wbCur;if(id==='wrong')renderWrong();if(id==='data')renderStat();if(id==='books')renderBooks();if(id==='study')renderStudy();};document.addEventListener('hub:data-merged',window.__wbTabsMerge);
+    window.__wbTabsMerge=function(){renderNav();var id=window.__wbCur;if(id==='wrong')renderWrong();if(id==='data')renderStat();if(id==='books')renderBooks();if(id==='study')renderStudy();if(id==='set')renderSettings();};document.addEventListener('hub:data-merged',window.__wbTabsMerge);
     if(window.__wbTabsSwitch)document.removeEventListener('wb:switched',window.__wbTabsSwitch);
     window.__wbTabsSwitch=function(){selectedBook=active();if(window.__wbCur==='books')renderBooks();if(window.__wbCur==='study')renderStudy();};document.addEventListener('wb:switched',window.__wbTabsSwitch);
     if(window.__wbTabsHash)window.removeEventListener('hashchange',window.__wbTabsHash);

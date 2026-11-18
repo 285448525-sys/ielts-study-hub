@@ -428,6 +428,22 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
 .wb-bookcur{font-size:13px;font-weight:650;color:var(--primary-700,#2f7d76)}
 .wb-linkbtn{margin-left:8px;border:0;background:transparent;color:var(--primary-700,#2f7d76);font:inherit;font-size:12.5px;cursor:pointer;padding:4px}
 .wb-linkbtn:hover{text-decoration:underline}
+
+/* WORD-SET-PAGE-1（11-18 她点头稿）：侧栏第五格「设置」独立页，四组卡片沿用现有控件类。 */
+.wb-settings-page{max-width:900px}
+.wb-settings-group{border:1px solid var(--line,#e6e9ea);border-radius:14px;background:var(--surface,#fff);margin:12px 0;overflow:hidden}
+.wb-settings-group h3{display:flex;align-items:baseline;gap:10px;margin:0;padding:14px 18px 8px;font-size:14px;font-weight:700;color:var(--ink,#1f2328)}
+.wb-settings-group h3 span{font-size:11.5px;font-weight:400;color:var(--muted,#71767e)}
+.wb-settings-group .wb-setrow{margin:0 18px;padding:12px 0}
+.wb-settings-group .wb-setrow .grow{display:flex;flex-direction:column;align-items:flex-start}
+.wb-settings-group .wb-setrow:last-child{border-bottom:0}
+.wb-settings-group .wv-modes{display:inline-flex;flex-wrap:wrap;gap:6px}
+.wb-settings-group .wv-modes button{min-height:32px;padding:0 12px;border:1px solid var(--line,#e6e9ea);border-radius:8px;background:var(--surface,#fff);color:var(--muted,#71767e);font-size:12px;cursor:pointer}
+.wb-settings-group .wv-modes button.on{background:var(--primary-50,#e8f3f1);border-color:var(--primary,#5cb3ab);color:var(--primary-700,#2f7d76);font-weight:700}
+.wb-settings-foot{margin-top:16px}
+@media(max-width:860px){
+  .wb-settings-group h3,.wb-settings-group .wb-setrow{margin-left:12px;margin-right:12px}
+}
 .wb-bookhint{font-size:12px;color:var(--muted,#71767e);padding:6px 2px 2px;line-height:1.6}
 /* 背词卡：音标开关只隐音标文本（喇叭留在 .pw-ipa 内） */
 #practiceBody.wb-hide-ipa .pw-ipa-tx{display:none}
@@ -908,7 +924,31 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
     </section>
 
     <section class="wb-pane" data-wb-pane="set" hidden>
-      <!-- 旧设置的结构与 id 已迁到侧栏打开的轻量面板。 -->
+      <div class="wbs-set wb-settings-page">
+        <div class="wv-panel-head"><b>设置</b></div>
+        <section class="wb-settings-group">
+          <h3>背词偏好 <span>每天练多少、怎么出题</span></h3>
+          <div class="wb-setrow"><span class="grow"><span class="t">每天背多少词</span><span class="d">设为上限，达到后自动停；不限 = 0</span></span><span class="wb-stepper"><button id="wbCapMinus" type="button">−</button><b id="wbCapN">不限</b><button id="wbCapPlus" type="button">＋</button></span></div>
+          <div class="wb-setrow"><span class="grow"><span class="t">出题模式</span><span class="d">默认进入背词时用的模式</span></span><span class="wv-modes" id="wbSettingsModes"><button type="button" data-wb-mode="visual">看词选义</button><button type="button" data-wb-mode="audio">听音选义</button><button type="button" data-wb-mode="dictation">听写</button></span></div>
+          <div class="wb-setrow"><span class="grow"><span class="t">练习乱序</span><span class="d">每轮随机打乱，不按词表顺序</span></span><button class="wb-switch" data-wb-sw="shuffle" type="button" role="switch"><i></i></button></div>
+        </section>
+        <section class="wb-settings-group">
+          <h3>发音与显示 <span>看和听的习惯</span></h3>
+          <div class="wb-setrow"><span class="grow"><span class="t">自动发音</span><span class="d">翻到单词卡时自动读一遍</span></span><button class="wb-switch" data-wb-sw="autoPlay" type="button" role="switch"><i></i></button></div>
+          <div class="wb-setrow"><span class="grow"><span class="t">显示音标</span><span class="d">单词下方展示 IPA 音标</span></span><button class="wb-switch" data-wb-sw="showIpa" type="button" role="switch"><i></i></button></div>
+          <div class="wb-setrow"><span class="grow"><span class="t">连击显示</span><span class="d">连续答对时显示连击动画</span></span><button class="wb-switch" data-wb-sw="fxFeedback" type="button" role="switch"><i></i></button></div>
+        </section>
+        <section class="wb-settings-group">
+          <h3>复习策略 <span>新词与复习的比例</span></h3>
+          <div class="wb-setrow"><span class="grow"><span class="t">新词 : 复习</span><span class="d">每轮里新词和旧词的占比</span></span><span class="wb-ratio" id="wbRatio"><button data-ratio="3:7" type="button">3:7</button><button data-ratio="5:5" type="button">5:5</button><button data-ratio="6:4" type="button">6:4</button></span></div>
+        </section>
+        <section class="wb-settings-group">
+          <h3>词库管理 <span>当前词书与导入</span></h3>
+          <div class="wb-setrow"><span class="grow"><span class="t" id="wbSettingsBook">我的词库</span><span class="d" id="wbSettingsBookMeta">当前 · 0 词 · 自己导入</span></span><button class="btn sm" id="wbSettingsManage" type="button">管理</button></div>
+          <div class="wb-setrow"><span class="grow"><span class="t">导入我的词书</span><span class="d">粘贴或上传词表，生成自己的词库</span></span><button class="btn sm" id="wbSettingsImport" type="button">导入</button></div>
+        </section>
+        <div class="wb-settings-foot"><button class="btn" id="wbSettingsDefaults" type="button">全部恢复默认</button></div>
+      </div>
     </section>
     <div class="wm-page" id="vMall">
       <div class="wm-shell">
@@ -1143,7 +1183,6 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
       </div>
     </div>
   </div>
-  <div class="wv-modal" id="wbSetDialog" hidden><div class="wv-modal-card wv-settings-card"><button class="wv-modal-close" type="button" data-wb-set-close aria-label="关闭">×</button><h2>设置</h2><div class="wv-setting-row"><span>每天背多少词</span><div class="wv-step"><button id="wbCapMinus" type="button">−</button><b id="wbCapN">不限</b><button id="wbCapPlus" type="button">＋</button></div></div><div class="wv-setting-row"><span>自动发音</span><button class="wv-switch" id="wbSwAuto" data-wb-sw="autoPlay" type="button" role="switch"><i></i></button></div><div class="wv-setting-row"><span>连击显示</span><button class="wv-switch" id="wbSwFx" data-wb-sw="fxFeedback" type="button" role="switch"><i></i></button></div><div class="wv-setting-row"><span>显示音标</span><button class="wv-switch" id="wbSwIpa" data-wb-sw="showIpa" type="button" role="switch"><i></i></button></div><div class="wv-setting-row"><span>新词 : 复习</span><div class="wv-seg" id="wbRatio"><button data-ratio="3:7" type="button">3:7</button><button data-ratio="5:5" type="button">5:5</button><button data-ratio="6:4" type="button">6:4</button></div></div><div class="wv-setting-row"><span>词库管理与导入</span><button class="wv-secondary" id="wbSetManage" type="button">打开</button></div></div></div>
   <div class="wv-modal" id="wbWordDialog" hidden><div class="wv-modal-card wv-word-dialog"><button class="wv-modal-close" id="wbWordClose" type="button" aria-label="关闭">×</button><div class="wv-word-dialog-top"><h2 id="wbWordTitle"></h2><button class="wv-icon-btn" id="wbWordSound" type="button" aria-label="播放发音">♪</button><p id="wbWordIpa"></p></div><div class="wv-word-dialog-content"><b id="wbWordCn"></b><p id="wbWordExample"></p><p id="wbWordTranslation" hidden></p><div class="wv-dialog-actions"><button class="wv-primary" id="wbWordAgain" type="button">再背一次 →</button><button class="wv-remove-text" id="wbWordRemove" type="button">移出错词</button></div></div></div></div>
     </div><!-- /.hub-main -->
   </div><!-- /.hub-shell -->
@@ -2231,7 +2270,7 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
     /* WORD-3B：原 #wdSwapBook 已移除 → 换成新的词书切换器（点它只是切书，不算「开始背词」） */
     if (t.closest('#bsSwitcher') || t.closest('#bsPop')) return false;
     if (t.closest('#cfgModal')) return false;          // 设置弹窗
-    if (t.closest('#wbSetDialog') || t.closest('#wbWordDialog')) return false;
+    if (t.closest('#wbWordDialog')) return false;
     return true;
   }
 
@@ -2448,7 +2487,7 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
 <link rel="stylesheet" href="css/p/hub-shell.css?v=20261117a" />
 <script defer src="js/hub-side-shell.js?v=20261106b"></script>
   <link rel="stylesheet" href="css/p/word-master.css?v=20261117c" />
-  <script defer src="js/wb-tabs.js?v=20261117d"></script>
+<script defer src="js/wb-tabs.js?v=20261118a"></script>
 </body>
 </html>
 
