@@ -24,7 +24,7 @@ const OUT='C:/Users/Camille/Desktop/雅思/ielts-study-hub/design/LANDING-D-1119
     for(const t of ['每月 3 篇','永久免费','会员专属','按额度开放','每周共享 5 次'])ok('免费边界 '+t,text.includes(t));
     ok('无提分承诺',!/保证提分|100% 覆盖|背完就能 6 分/.test(text));
     ok('无旧 try/quiz',await p.locator('#try,.quiz').count()===0);
-    ok('计划页截图已更新到 v930',(await p.locator('img[alt*="今日计划真实界面"]').getAttribute('src')).includes('plans-demo.png?v=930'));
+    ok('四张产品截图已更新到 v931',(await p.locator('img[alt*="今日计划真实界面"]').getAttribute('src')).includes('plans-demo.png?v=931'));
     ok('无入场隐藏内容',await p.locator('.reveal').evaluateAll(els=>els.every(e=>getComputedStyle(e).opacity==='1')));
    }
    const imgs=await p.locator('main img').evaluateAll(els=>els.map(x=>({src:x.getAttribute('src'),nw:x.naturalWidth,nh:x.naturalHeight,w:x.getBoundingClientRect().width,h:x.getBoundingClientRect().height,fit:getComputedStyle(x).objectFit})));

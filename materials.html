@@ -512,6 +512,14 @@
      🔴 将来改本页样式时注意：若新增「内联故意输给 css/p/materials.css」的同特异度规则，
         软导航进来会与直开不一致 —— 那种情况要把规则写进 materials.css 而不是内联。 -->
 <link rel="stylesheet" href="css/p/materials.css?v=20261116a" />
+<style>
+/* 11-19：materials.html 是唯一「body data-shell=top + 裸 main.container + #matRoot」的页面。
+   桌面端 body 不加 44px 顶栏占位（手机端由 common.css 媒体查询补），导致内容被 fixed 顶栏压住，
+   开场 52 题横幅整块看不见。这里只给本页补桌面外壳偏移，不动模块本身。 */
+@media (min-width: 861px) {
+  body[data-shell="top"] main.container { padding-top: 58px; }
+}
+</style>
 </head>
 <body data-shell="top">
 <div id="bootLoader" class="hub-loader show" aria-hidden="true"><div class="ui-loader" role="status" aria-label="Loading"><span class="ui-loader-dot"></span><span class="ui-loader-dot m2"></span><span class="ui-loader-dot m3"></span><span class="ui-loader-shadow"></span><span class="ui-loader-shadow m2"></span><span class="ui-loader-shadow m3"></span></div></div>

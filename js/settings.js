@@ -1,5 +1,11 @@
 // 10-23 T-002 步5：applyFontScale / applyReduceMotion 定义在 js/common.js（每页都要能用），
 // 这里只负责表单回填与落库后的即时应用。
+// 11-19：settings.js 依赖 common-shell.js 暴露的全局 $。从 me.html 桌面端 location.replace 过来时，
+// 若 saveSettings 在 common-shell 就绪前被触发，会出现「$ is not defined」→ 保存静默失败。
+// 这里补同签名兜底，不改变已有行为；common-shell 后续赋值同实现。
+if (typeof window.$ !== 'function') {
+  window.$ = function (s) { return document.querySelector(s); };
+}
 
 /* ═══ SET-2b（10-27）· 偏好类开关的防抖保存 ═══
    她 10:0x 报「三档切换会卡住」：每次点击同步 hubSave() = 全量 JSON.stringify(DATA) +
