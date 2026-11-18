@@ -57,6 +57,28 @@
   position: absolute; inset: 0; z-index: 95; display: none; overflow: auto; background: #fff;
 }
 #examPanel > .ex-option.on { display: block; }
+/* 配色切换必须当场反映在设置面板本身，而不是只改背后的卷面。
+   面板挂在 #examPanel 下，与 #examPractice 是兄弟层，因此单独同步主题类。 */
+#examPanel.ct-dark > .ex-option { background: #161616; }
+#examPanel.ct-dark > .ex-option h3,
+#examPanel.ct-dark > .ex-option .ex-oprow { color: #e8eaed; }
+#examPanel.ct-dark > .ex-option .ex-oplist,
+#examPanel.ct-dark > .ex-option .ex-opsub { border-color: #3a3f45; }
+#examPanel.ct-dark > .ex-option .ex-oprow { background: #242628; border-bottom-color: #3a3f45; }
+#examPanel.ct-dark > .ex-option .ex-oprow:hover { background: #2f3235; }
+#examPanel.ct-dark > .ex-option .ex-oprow:has(input:checked) { background: #1e352f; color: #7ee0b3; }
+#examPanel.ct-dark > .ex-option .ex-opx { background: #2c2f33; color: #e8eaed; }
+#examPanel.ct-dark > .ex-option .ex-opback button { background: #242628; border-color: #3a3f45; color: #e8eaed; }
+#examPanel.ct-yellow > .ex-option { background: #161616; }
+#examPanel.ct-yellow > .ex-option h3,
+#examPanel.ct-yellow > .ex-option .ex-oprow { color: #f0e3a8; }
+#examPanel.ct-yellow > .ex-option .ex-oplist,
+#examPanel.ct-yellow > .ex-option .ex-opsub { border-color: #4a4526; }
+#examPanel.ct-yellow > .ex-option .ex-oprow { background: #26241a; border-bottom-color: #4a4526; }
+#examPanel.ct-yellow > .ex-option .ex-oprow:hover { background: #322e1e; }
+#examPanel.ct-yellow > .ex-option .ex-oprow:has(input:checked) { background: #3a3216; color: #ffd400; }
+#examPanel.ct-yellow > .ex-option .ex-opx { background: #2c2a1c; color: #f0e3a8; }
+#examPanel.ct-yellow > .ex-option .ex-opback button { background: #26241a; border-color: #4a4526; color: #f0e3a8; }
 /* 听力单篇把音频控制并进顶栏，因此音频条承担同一层外壳的高度与底色。 */
 #examRoot .ex-audio {
   height: 40px; min-height: 40px; padding: 3px 12px; box-sizing: border-box;

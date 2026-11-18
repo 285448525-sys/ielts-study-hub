@@ -2532,11 +2532,16 @@ function wrtRestoreDraft(){
 const WRT_THEME_KEY = 'ielts_wt_theme_v1';
 function wrtThemeLevel(){ try{ const v = localStorage.getItem(WRT_THEME_KEY); return (v === 'dark' || v === 'yellow') ? v : 'light'; }catch(e){ return 'light'; } }
 function wrtThemeApply(){
-  const pr = document.getElementById('examPractice'); if(!pr) return;
-  pr.classList.remove('ct-dark','ct-yellow');
+  const pr = document.getElementById('examPractice');
+  const panel = document.getElementById('examPanel');
+  if(!pr && !panel) return;
   const lv = wrtThemeLevel();
-  if(lv === 'dark') pr.classList.add('ct-dark');
-  if(lv === 'yellow') pr.classList.add('ct-yellow');
+  [pr, panel].forEach(el => {
+    if(!el) return;
+    el.classList.remove('ct-dark','ct-yellow');
+    if(lv === 'dark') el.classList.add('ct-dark');
+    if(lv === 'yellow') el.classList.add('ct-yellow');
+  });
 }
 function wrtThemeSet(v){ try{ localStorage.setItem(WRT_THEME_KEY, v); }catch(e){} wrtThemeApply(); }
 function wrtSizeSet(v){ try{ localStorage.setItem(EXAM_FONT_KEY, String(v === 'large' ? 1 : v === 'xl' ? 2 : 0)); }catch(e){} examFontApply(); }
@@ -2898,6 +2903,7 @@ function openExamDirect(item, kind, timerMin){
   // 10/8 她拍板：考场模式 checkbox 退役 —— 恒倒计时（Task 2 40min / Task 1 20min），到点弹框自选
   const _tw = $('#examTimerWrap'); if(_tw) _tw.style.display = '';   // 从「记录回看」视图回来时还原
   const _fin = $('#examFinish'); if(_fin) _fin.hidden = false;
+  wrtThemeApply();   // 配色档位与字号一样跨题保留；面板与卷面同时恢复
   examFontApply();   // 10/8 官方字号三档：进场应用本机档位
   /* EXAM-TIMER-CHOICE-1：按选择框结果起表。null/0 = 不计时 → 正计时向上跑（examLimitMs 不再套用） */
   var _wa = wrtTimerArgs(timerMin);
