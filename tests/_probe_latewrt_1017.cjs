@@ -28,13 +28,14 @@ const SEED = () => {
   } catch (e) {}
 };
 
+/* 🔵 11-16 起「完整写作模考」入口卡 `#writingFullEntry #wrtFullStart` 在现版不再渲染，
+   真题模考 pane 的真实列表是 `#wrQList .wr-qrow`（见 `_probe_wrtbar_1020` 同一处修正）。 */
 async function waitWritingPane(pg, timeout) {
   await pg.waitForFunction(() => {
     const pane = document.querySelector('[data-wr-pane="exam"]');
     return !!pane && !pane.hidden
       && typeof window.renderExamList === 'function'
-      && !!document.querySelector('#writingFullEntry #wrtFullStart')
-      && document.querySelectorAll('#examList .exam-item, #examList > *').length > 0;
+      && document.querySelectorAll('#wrQList .wr-qrow, #examList .exam-item, #examList > *').length > 0;
   }, null, { timeout: timeout || 30000 });
 }
 
@@ -89,7 +90,7 @@ async function waitWritingPane(pg, timeout) {
     const rs = performance.getEntriesByType('resource').filter(e => /(?:^|\/)writing(?:_prompts)?\.js(?:\?|$)/.test(e.name))
       .map(e => ({ n: e.name.split('/').pop().split('?')[0], s: Math.round(e.startTime) }));
     const pane = document.querySelector('[data-wr-pane="exam"]');
-    const list = document.getElementById('examList');
+    const list = document.querySelector('#wrQList') || document.getElementById('examList');
     return {
       fcp: fcp ? Math.round(fcp.startTime) : null, rs,
       paneShown: !!pane && !pane.hidden,
@@ -98,8 +99,8 @@ async function waitWritingPane(pg, timeout) {
       promptsReady: !!(window.WRITING_PROMPTS && Array.isArray(window.WRITING_PROMPTS.big) && window.WRITING_PROMPTS.big.length),
       listText: list ? String(list.textContent || '').replace(/\s+/g, ' ').trim().length : 0,
       listKids: list ? list.children.length : 0,
-      hasFullCard: !!document.querySelector('#writingFullEntry .full-card'),
-      hasStartBtn: !!document.querySelector('#writingFullEntry #wrtFullStart'),
+      hasFullCard: !!document.querySelector('#wrQList .wr-qrow'),
+      hasStartBtn: !!document.querySelector('#wrQList .wr-qrow'),
       scriptTags: document.querySelectorAll('script[src*="js/writing.js"], script[src*="js/writing_prompts.js"]').length,
       lateInjected: document.querySelectorAll('script[data-late="1"]').length,
       bankTabsGone: !document.getElementById('mockTabs'),
@@ -112,7 +113,7 @@ async function waitWritingPane(pg, timeout) {
   ok(timing.loaded.indexOf('writing_prompts.js') >= 0 && timing.loaded.indexOf('writing.js') >= 0,
     '两个写作脚本确实被请求过（' + timing.loaded.join(', ') + '）');
   ok(timing.listKids > 0 || timing.listText > 40, '真题列表已渲染（子节点 ' + timing.listKids + ' / 文本 ' + timing.listText + ' 字）');
-  ok(timing.hasFullCard && timing.hasStartBtn, '完整写作模考入口卡与 Start Test 已渲染');
+  ok(timing.hasFullCard && timing.hasStartBtn, '真题题库列表已渲染出可点的题行（现版入口 = #wrQList .wr-qrow）');
   ok(timing.scriptTags === 2 && timing.lateInjected === 0 && timing.bankTabsGone,
     '写作脚本只声明一次、没有 bank 时代的 data-late 注入或隐藏 tab（' + JSON.stringify({ tags: timing.scriptTags, late: timing.lateInjected, bankTabs: !timing.bankTabsGone }) + '）');
   ok(bErrs.length === 0, '写作页零页面异常' + (bErrs.length ? ' — ' + bErrs.join(' | ') : ''));
@@ -133,17 +134,17 @@ async function waitWritingPane(pg, timeout) {
   });
   await waitWritingPane(pgB, 15000);
   const c = await pgB.evaluate(() => {
-    const list = document.getElementById('examList');
+    const list = document.querySelector('#wrQList') || document.getElementById('examList');
     return {
       scripts: document.querySelectorAll('script[src*="js/writing.js"], script[src*="js/writing_prompts.js"]').length,
       lateInjected: document.querySelectorAll('script[data-late="1"]').length,
       kids: list ? list.children.length : 0,
-      hasStart: !!document.querySelector('#writingFullEntry #wrtFullStart')
+      hasStart: !!document.querySelector('#wrQList .wr-qrow')
     };
   });
   ok(c.scripts === timing.scriptTags && c.lateInjected === 0,
     '重复切 pane 不会重复插脚本（首次 ' + timing.scriptTags + ' → 切回 ' + c.scripts + '）');
-  ok(c.kids > 0 && c.hasStart, '切回后真题列表与入口卡仍在（' + c.kids + ' 项）');
+  ok(c.kids > 0 && c.hasStart, '切回后真题列表仍在（' + c.kids + ' 项）');
   const lateReqs = reqs.filter(u => IS_WRITING_SCRIPT.test(u)).length;
   ok(lateReqs >= 2, '两个写作脚本确实被请求过（' + lateReqs + ' 次）');
   await ctxB.close();
@@ -190,8 +191,8 @@ async function waitWritingPane(pg, timeout) {
     loaded: performance.getEntriesByType('resource')
       .filter(x => /(?:^|\/)writing(?:_prompts)?\.js(?:\?|$)/.test(x.name))
       .map(x => x.name.split('/').pop().split('?')[0]),
-    kids: document.querySelectorAll('#examList .exam-item, #examList > *').length,
-    hasStart: !!document.querySelector('#writingFullEntry #wrtFullStart')
+    kids: document.querySelectorAll('#wrQList .wr-qrow, #examList > *').length,
+    hasStart: !!document.querySelector('#wrQList .wr-qrow')
   }));
   ok(w.fnReady && w.loaded.indexOf('writing_prompts.js') >= 0 && w.loaded.indexOf('writing.js') >= 0,
     '慢网下 writing.html 自己把两个写作脚本拉起（' + w.loaded.join(', ') + '）');
