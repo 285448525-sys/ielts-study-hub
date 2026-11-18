@@ -1,3 +1,9 @@
+/* ⛔ 2026-11-18 退役（原文保留，未再维护）：本支守的是「无答案篇目不判分」。
+   11-17 题库重建后，280 篇阅读全部带 bank/answers/<id>.json，「无答案篇目」在真实题库里已不存在，
+   原夹具 id 也已从 manifest 消失，这支永远红且证明不了任何事。
+   若以后真出现无答案篇目：造一份本地 404 夹具 + 按当前考场壳重写判据后再启用。
+   —— 依据 tests/README.md「11-18 全量回归定性」§五。
+*/
 /* B 第一步「拦住」—— 探针（本地 + 线上通用，BASE 取 env/argv）
    篇目：2105548009325543425（Seeing In The Sea V2；11-15 起由 page.route 掐掉 answers.json）
    对照组：2017067274563325954（A Survivor's Story，有答案）
@@ -288,3 +294,4 @@ async function answerFew(pg, sel) {
   console.log('\n===== ' + (R.length - fail) + ' 通过 / ' + fail + ' 失败 =====');
   process.exit(fail ? 1 : 0);
 })().catch(e => { console.error('探针崩溃：', e); process.exit(2); });
+

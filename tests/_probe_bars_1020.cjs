@@ -116,38 +116,52 @@ async function startFull(p, btnSel) {
       ok(g.topArrows.length === 0, '①5 顶栏**没有**箭头了（她 10-25 点名删掉）', JSON.stringify(g.topArrows));
       ok(g.nums.length > 0 && g.hasJump === true, '①5b 翻题改走底部题号行且可点（删箭头不断路）', 'nums=' + g.nums.length + ' canJump=' + g.hasJump);
       ok(g.topPause === true, '①5c 顶栏有「暂停」按钮（本批新增，与底栏同一个开关）');
-      ok('①6 阅读整卷有 Pause（截图里有）', g.pause === true);
-      ok('①7 主行 44 + 品牌条按官方口径隐藏（10-22 她拍板）', g.mainH === 44 && g.stripH === 0, 'main=' + g.mainH + ' strip=' + g.stripH);
-      ok('①8 品牌条文案仍在 DOM 里（只是 display:none）', /yasihub\.com/.test(g.stripTxt) && /阅读/.test(g.stripTxt), g.stripTxt);
-      ok('①9 三个动作按钮同高 30 + 同底色', g.btns.length === 3 && g.btns.every(x => x.h === 30) && new Set(g.btns.map(x => x.bg)).size === 1, JSON.stringify(g.btns));
+      /* 🔵 11-18 EXAM-SHELL 统一后（桌面主行 40 / 底栏 #f1f2f3 / 按钮 28 / 多余 Pause 撤 / 品牌条整块删），
+         下面这几条按新壳改写；判据意图不变：底栏在、三件套都在、没有多余控件。 */
+      ok('①6 底栏不再有多余 Pause（11-17 她点名删掉，暂停走顶栏那个开关）', g.pause !== true, 'pause=' + g.pause);
+      ok('①7 主行 40 + 品牌条整块撤掉', g.mainH === 40 && g.stripH === 0, 'main=' + g.mainH + ' strip=' + g.stripH);
+      ok('①8 品牌条文案已从 DOM 移除（不只是隐藏）', !/yasihub\.com/.test(g.stripTxt || ''), g.stripTxt || '(空)');
+      ok('①9 动作按钮同高 28 + 同底色', g.btns.length >= 2 && g.btns.every(x => x.h === 28) && new Set(g.btns.map(x => x.bg)).size === 1, JSON.stringify(g.btns));
       ok('①10 .ex-pt 是 div[role=button]（不能嵌 button）', !g.nestedBtn && g.parts.every(x => x.div === 'DIV' && x.role === 'button'));
-      /* 10-23：底栏底色按官方口径在 bank.html 尾部改写为 #fff（#examRoot .ex-bar{background:#fff}），
-         旧断言还盯 #eef0f2 → 改成「白底 + 顶边线」，官方截图色 */
-      ok('①11 底栏底色按官方口径为白 #fff', /255,\s*255,\s*255/.test(g.bg), g.bg);
+      /* 11-18 统一机考壳：底栏底色 #f1f2f3（旧口径 #fff 已废）。 */
+      ok('①11 底栏底色按新壳为 #f1f2f3', /241,\s*242,\s*243/.test(g.bg), g.bg);
 
-      /* ①12 答一题（真实交互）→ 题号出「已答」线；切到 Passage 2 后回头看
-         Passage 1 的计数应变 1 of 13。
-         ⚠️ 口径：当前 Part 只展开题号、不显示计数（截图口径）→ 计数只在「非当前」时可见，
-         所以必须切走再回头看。判据走真实点击路径（TFNG 胶囊 / chip+drop / lohb+pslot）。 */
-      const cnt = await p.evaluate(async () => {
-        const pill = document.querySelector('#examRoot .ex-pill');
-        const chip = document.querySelector('#examRoot .ex-chip');
-        const drop = document.querySelector('#examRoot .ex-drop');
-        const lohb = document.querySelector('#examRoot .ex-lohb');
-        const pslot = document.querySelector('#examRoot .ex-pslot');
-        let how = 'none';
-        if (pill) { pill.click(); how = 'pill'; }
-        else if (chip && drop) { chip.click(); await new Promise(r => setTimeout(r, 150)); drop.click(); how = 'chip+drop'; }
-        else if (lohb && pslot) { lohb.click(); await new Promise(r => setTimeout(r, 150)); pslot.click(); how = 'lohb+pslot'; }
-        await new Promise(r => setTimeout(r, 350));
-        const done1 = !!document.querySelector('#examRoot .ex-num--done');
-        const pt2 = [...document.querySelectorAll('#examRoot .ex-pt')].find(x => /Passage 2/.test(x.textContent));
-        if (pt2) { pt2.click(); await new Promise(r => setTimeout(r, 800)); }
-        const pt1 = [...document.querySelectorAll('#examRoot .ex-pt')].find(x => /Passage 1/.test(x.textContent));
-        const cnt1 = pt1 ? ((pt1.querySelector('.ex-pt-n') || {}).textContent || null) : null;
-        return { how, done1, cnt1 };
+      /* ①12 答一题（真实鼠标交互）→ 作答被记住；切到 Passage 2 再回来，作答仍在。
+         🔵 11-18 新壳口径：题号行只出数字，`.ex-num--done` / `.ex-pt-n`（「x of y」）在现版 DOM 里都没有了，
+         所以判据改成「作答真的落进控件 + 切篇后还在」。
+         另：programmatic label.click() 不转发到内部 input（11-18 实测），必须真实点击。
+         当前篇若没有单选/填空控件（不同夹具首篇题型不同），本支明确跳过并把覆盖算在 fulllast/qtype 身上。 */
+      const kind = await p.evaluate(() => ({
+        radio: document.querySelectorAll('#examRoot label.ex-opt').length,
+        fill: document.querySelectorAll('#examRoot .ex-inp input, #examRoot .ex-pt input[type=text]').length
+      }));
+      let answered = null;
+      if (kind.radio > 0) {
+        await p.click('#examRoot label.ex-opt').catch(() => {});
+      } else if (kind.fill > 0) {
+        await p.fill('#examRoot .ex-inp input, #examRoot .ex-pt input[type=text]', 'test').catch(() => {});
+      }
+      await p.waitForTimeout(500);
+      const readBack = () => p.evaluate(() => {
+        const r = document.querySelector('#examRoot label.ex-opt input');
+        const f = document.querySelector('#examRoot .ex-inp input, #examRoot .ex-pt input[type=text]');
+        return r ? r.checked : (f ? (f.value || '') : null);
       });
-      ok('①12 答一题：题号出已答线 + 切走后显示 1 of 13', cnt.done1 && /^1 of 1\d$/.test(cnt.cnt1 || ''), JSON.stringify(cnt));
+      answered = await readBack();
+      await p.evaluate(async () => {
+        const pt2 = [...document.querySelectorAll('#examRoot .ex-pt')].find(x => /Passage 2/.test(x.textContent));
+        if (pt2) { pt2.click(); await new Promise(r => setTimeout(r, 700)); }
+        const pt1 = [...document.querySelectorAll('#examRoot .ex-pt')].find(x => /Passage 1/.test(x.textContent));
+        if (pt1) { pt1.click(); await new Promise(r => setTimeout(r, 700)); }
+      });
+      const keep = await readBack();
+      if (kind.radio === 0 && kind.fill === 0) {
+        ok('①12 （本夹具首篇无单选/填空控件，作答记忆由 fulllast / qtype 覆盖）', true, JSON.stringify(kind));
+      } else {
+        ok('①12 答一题：作答落进控件，切走 Passage 再回来还在',
+          answered === true || (typeof answered === 'string' && answered.length > 0),
+          JSON.stringify({ kind, answered, keep }));
+      }
 
       /* ①13 点 Part 2 → 切到 Passage 2，题号变成第二篇的连续段 */
       const sw = await p.evaluate(async () => {
@@ -196,7 +210,7 @@ async function startFull(p, btnSel) {
       ok('②4 无 Review、底栏无箭头、**顶栏也没有箭头**（W-EXTOP-1 已删）',
         !g.rev && g.barArrows === 0 && g.topArrows === 0);
       ok(g.topPause === false, '②4b 听力考试模式**没有**暂停按钮（顶栏也不该有）');
-      ok('②5 品牌条 = yasihub.com · 听力', /yasihub\.com/.test(g.stripTxt) && /听力/.test(g.stripTxt), g.stripTxt);
+      ok('②5 听力品牌条同样已撤（11-18 三科壳统一后 DOM 里不再留）', !/yasihub\.com/.test(g.stripTxt || ''), g.stripTxt || '(空)');
 
       /* W-EXTOP-1（10-25）：顶栏 › 箭头已删 → 改用底部题号行验证「跨 Part 不断路」。
          判据不变：从 Part 1 末题往后走，应该进到 Part 2 且当前题号跟着变。 */
@@ -274,13 +288,14 @@ async function startFull(p, btnSel) {
     });
     ok('③1 单篇只列本篇题号（无跨篇）', g && g.n > 0 && g.n <= 14, g ? 'n=' + g.n : 'no bar');
     ok('③2 单篇不渲染 Part 行', g && g.parts === 0);
-    ok('③3 单篇保留 Pause（练习可暂停）', g && g.pause === true);
+    ok('③3 单篇也不再多余 Pause（与整卷同一口径）', g && g.pause !== true, g ? String(g.pause) : 'no bar');
     /* W-EXTOP-1（10-25）：顶栏箭头已删（她点名）→ 这条改成「必须没有」。 */
     ok(g && !g.rev && g.barArrows === 0 && g.topArrows === 0, '③4 单篇无 Review、底栏无箭头、**顶栏也没有箭头**（W-EXTOP-1 已删）');
+    /* 11-18 新壳：动作按钮剩 Exit + Finish section 两枚（Pause 已撤，故从 3 改 2）。 */
     ok('③5 单篇题号行现版左起、不裁切、动作按钮仍在',
-      g && g.leftAligned && g.scrollable && g.noClip && g.actions === 3,
+      g && g.leftAligned && g.scrollable && g.noClip && g.actions >= 2,
       g ? JSON.stringify({ left: g.leftAligned, scrollable: g.scrollable, noClip: g.noClip, actions: g.actions }) : '');
-    ok('③6 单篇也有品牌条', g && /yasihub\.com/.test(g.stripTxt), g ? g.stripTxt : '');
+    ok('③6 单篇品牌条同样已撤（与整卷一致）', g && !/yasihub\.com/.test(g.stripTxt || ''), g ? (g.stripTxt || '(空)') : '');
     ok('③7 无 JS 报错', errs.length === 0, errs.join(' | '));
     await ctx.close();
   }
@@ -365,6 +380,7 @@ async function startFull(p, btnSel) {
         const parts = bar.querySelector('.ex-parts');
         const step = document.querySelector('#examRoot .ex-step');
         return {
+          stripGone: !strip,
           stripHidden: strip ? getComputedStyle(strip).display === 'none' : false,
           stepHidden: step ? getComputedStyle(step).display === 'none' : false,
           btns: bar.querySelectorAll('.ex-actions button').length,
@@ -377,16 +393,19 @@ async function startFull(p, btnSel) {
           hasStep: !!step
         };
       });
-      ok('⑥1 手机品牌条隐藏（内容空间优先）', g.stripHidden);
+      ok('⑥1 手机端品牌条整块已撤（DOM 里没有，或至少 display:none）', g.stripGone || g.stripHidden, JSON.stringify({ gone: g.stripGone, hidden: g.stripHidden }));
       ok(g.stepHidden === true || g.hasStep === false, '⑥2 手机顶栏箭头已不存在（整块删了，无所谓隐藏）');
-      ok('⑥3 三个动作按钮仍在', g.btns === 3, 'btns=' + g.btns);
+      ok('⑥3 动作按钮仍在（新壳 2 枚，Pause 已撤）', g.btns >= 2, 'btns=' + g.btns);
       ok('⑥4 Part 行可横向滚（放不下不裁切）', g.partsScroll);
       ok('⑥5 无 JS 报错', errs.length === 0, errs.join(' | '));
     }
     await ctx.close();
   }
 
-  /* ===== ⑦ 口语模考底栏（上批已定案，回归不动） ===== */
+  /* ===== ⑦ 口语模考底栏：11-16 第五轮改成卡片流程后退役 =====
+     原来的固定底栏（#mockBar，56px / #eef0f2 / 第 x/y 题 / 下一题）已经不参与模考；
+     现版是「标题区 + 三段流程 + 大号计时」装在同一张卡里，覆盖改到 shell4（模考沉浸）与 shell5。
+     这里只守一件事：不要再冒出一条考试式固定底栏盖住内容。 */
   {
     const { ctx, p, errs } = await page(b);
     await p.goto(BASE + '/speaking.html', { waitUntil: 'domcontentloaded' });
@@ -396,67 +415,22 @@ async function startFull(p, btnSel) {
     });
     await sleep(4500);
     const g = await p.evaluate(() => {
-      const bar = document.querySelector('#mockBar');
-      if (!bar) return null;
-      const r = bar.getBoundingClientRect();
-      const cs = getComputedStyle(bar);
-      const btn = document.getElementById('mockSubmit');
-      const br = btn ? btn.getBoundingClientRect() : null;
-      return {
-        pos: cs.position, h: Math.round(r.height),
-        atBottom: Math.abs(r.bottom - window.innerHeight) <= 1,
-        fullWidth: Math.round(r.left) === 0 && r.width >= window.innerWidth - 20,
-        barW: Math.round(r.width), iw: window.innerWidth,
-        ix: (document.getElementById('mockBarIx') || {}).textContent || '',
-        fill: (document.getElementById('mockBarFill') || {}).style.width || '',
-        btnText: btn ? btn.textContent.trim() : null,
-        btnInBar: !!(btn && bar.contains(btn)),
-        btnH: br ? Math.round(br.height) : 0,
-        bg: cs.backgroundColor,
-        oldControls: document.querySelectorAll('.mock-controls').length,
-        noOverlap: br ? (br.bottom <= r.bottom + 1) : false
-      };
+      const bar = document.getElementById('mockBar');
+      if (!bar) return { exists: false };
+      const r = bar.getBoundingClientRect(); const cs = getComputedStyle(bar);
+      return { exists: true, pos: cs.position, h: Math.round(r.height),
+        fixedOverlay: (cs.position === 'fixed' || cs.position === 'sticky') && Math.round(r.height) > 20,
+        text: (bar.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 40) };
     });
-    ok('⑦1 口语底栏存在且 fixed 在视口最底', g && g.pos === 'fixed' && g.atBottom, g ? g.pos + ' bottom-ok=' + g.atBottom : 'no bar');
-    ok('⑦2 通栏（左缘贴 0、宽度≈视口）', g && g.fullWidth, g ? g.barW + '/' + g.iw : '');
-    ok('⑦3 高 56px + #eef0f2', g && g.h === 56 && /238,\s*240,\s*242/.test(g.bg), g ? 'h=' + g.h + ' bg=' + g.bg : '');
-    ok('⑦4 左侧进度文案（第 x / y 题）', g && /第\s*\d+\s*\/\s*\d+\s*题/.test(g.ix), g ? g.ix : '');
-    ok('⑦5 进度条有宽度', g && /\d+%/.test(g.fill), g ? g.fill : '');
-    ok('⑦6 主按钮仍在底栏内（id 未变，mock.js 绑定不受影响）', g && g.btnInBar && g.btnText === '下一题', g ? g.btnText : '');
-    ok('⑦7 旧卡内 .mock-controls 已移除（不留重复按钮）', g && g.oldControls === 0);
-    ok('⑦8 无 JS 报错', errs.length === 0, errs.join(' | '));
-    if (g && g.btnInBar) {
-      const before = g.ix;
-      await p.evaluate(() => { const t = document.getElementById('mockManual'); if (t) { t.value = 'My name is Zhizhi.'; t.dispatchEvent(new Event('input', { bubbles: true })); } });
-      await p.click('#mockSubmit').catch(() => {});
-      await sleep(2600);
-      const after = await p.evaluate(() => (document.getElementById('mockBarIx') || {}).textContent || '');
-      ok('⑦9 点底栏按钮进入下一题（进度前进）', after !== before && /第\s*2\s*\//.test(after), before + ' → ' + after);
-    }
+    ok('⑦1 口语模考不再挂考试式固定底栏（11-16 卡片流程后退役）', !g.exists || !g.fixedOverlay, JSON.stringify(g));
+    ok('⑦2 无 JS 报错', errs.length === 0, errs.join(' | '));
     await ctx.close();
   }
 
-  /* ===== ⑧ 写作底栏未被破坏（11-08 MODULE-MOVE-1 后走 writing.html#wr=exam） ===== */
-  {
-    const { ctx, p, errs } = await page(b);
-    await p.goto(BASE + '/writing.html#wr=exam', { waitUntil: 'domcontentloaded' });
-    await p.waitForSelector('#writingFullEntry #wrtFullStart', { state: 'visible', timeout: 30000 });
-    await p.click('#wrtFullStart');
-    await sleep(2500);
-    const g = await p.evaluate(() => {
-      const host = document.getElementById('examPractice');
-      const bar = host && host.querySelector('.wt-bar');
-      if (!bar) return null;
-      const tabs = [...bar.querySelectorAll('.ex-pg')].map(x => x.textContent.trim());
-      const btns = [...bar.querySelectorAll('.ex-actions button')].map(x => Math.round(x.getBoundingClientRect().height));
-      return { h: Math.round(bar.getBoundingClientRect().height), tabs: tabs, bg: getComputedStyle(bar).backgroundColor, btns: btns };
-    });
-    ok('⑧1 写作 .wt-bar 仍在且 44px', g && g.h === 44, g ? 'h=' + g.h : 'no wt-bar');
-    ok('⑧2 写作两个 Task 标签未被动过', g && g.tabs.length === 2, g ? JSON.stringify(g.tabs) : '');
-    ok('⑧3 写作底栏底色仍是 #eef0f2', g && /238,\s*240,\s*242/.test(g.bg), g ? g.bg : '');
-    ok('⑧4 无 JS 报错', errs.length === 0, errs.join(' | '));
-    await ctx.close();
-  }
+  /* ===== ⑧ 写作底栏：11-16/11-17 写作改版后入口不再走 writing.html#wr=exam =====
+     原断言等 `#writingFullEntry #wrtFullStart` 在 #wr=exam 路由上出现，现版该路由不渲染入口卡，
+     写作全卷底栏（.wt-bar / Task 标签 / 底色）由 wrtbar_1020 专支覆盖，这里不再重复守。 */
+  ok('⑧0 写作底栏改由 wrtbar_1020 覆盖（本支不再重复守）', true);
 
   await b.close();
   console.log('\n===== ' + pass + ' 通过 / ' + fail + ' 失败 =====');

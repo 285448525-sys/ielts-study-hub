@@ -74,9 +74,12 @@ const ok = (n, c, x) => { if (c) { pass++; console.log('  ok  ' + n + (x !== und
   ok('①4 首页 chip 字号 11.5px（比基础段小一档）', home.fs === '11.5px', home.fs);
   ok('①5 首页 chip 内边距 2px 9px（未被基础段覆盖）', home.pad === '2px 9px', home.pad);
   ok('①6 首页 chip 图标 12×12', home.sw === '12px' && home.sh === '12px', home.sw + '×' + home.sh);
-  ok('①7 首页 chip 文字对比 ≥4.5（透明 hero 下取 body 底）',
-    ratio(home.c, home.heroBg === 'rgba(0, 0, 0, 0)' ? home.bodyBg : home.heroBg) >= 4.5,
-    ratio(home.c, home.heroBg === 'rgba(0, 0, 0, 0)' ? home.bodyBg : home.heroBg) + ':1');
+  /* 🔵 11-18 她拍板：chip 不改色。实测 #71767e 压在 body #f2f3f5 上只有 4.12:1，低于 AA 的 4.5 ——
+     这是已知项，不是探针该偷偷放宽的东西：阈值改成「不劣化」的 4.0，并在说明里钉住 4.12 这个实测值。
+     真要改色时，把这里抬回 4.5。 */
+  const chipRatio = ratio(home.c, home.heroBg === 'rgba(0, 0, 0, 0)' ? home.bodyBg : home.heroBg);
+  ok('①7 首页 chip 文字对比 ≥4.0（AA 4.5 未达标，已知项 4.12，按她 11-18 决定维持现状）',
+    chipRatio >= 4.0, chipRatio.toFixed(2) + ':1');
   /* 🔵 11-18：铁律 32 —— 父级 .hero-sub 是 flex 容器时，子元素 inline-flex 会被 blockify 成 flex，
      getComputedStyle 拿到的是计算值不是声明值。断言改成「两种都算」，别把 blockify 当破版。 */
   ok('①8 首页 chip 仍是 inline-flex 语义且未破版', (home.display === 'inline-flex' || home.display === 'flex') && home.w > 40 && home.h >= 16 && home.ovf <= 0, 'display=' + home.display + ' ' + home.w + '×' + home.h);

@@ -74,7 +74,9 @@ async function stickyCheck(p, sel) {
     const startTop = Math.round(el.getBoundingClientRect().top);
     const need = Math.max(0, startTop - topPx);      // 还差多少滚动才会贴顶
     const canScroll = Math.max(0, r.scrollHeight - r.clientHeight);
-    return { topPx, startTop, need, canScroll, pos: getComputedStyle(el).position };
+    const box = el.getBoundingClientRect();
+    return { topPx, startTop, need, canScroll, pos: getComputedStyle(el).position,
+      w: Math.round(box.width), h: Math.round(box.height) };
   }, sel);
 }
 async function stickyStuckTop(p, sel, target) {
@@ -121,22 +123,21 @@ async function stickyStuckTop(p, sel, target) {
     await p.close();
   }
 
-  console.log('== ② 设置页分区导航吸顶让位（桌面 1440）==');
+  console.log('== ② 设置页分区导航（她不吸顶，已拍板）==');
   {
     const p = await c.newPage();
     await p.goto(BASE + '/settings.html', { waitUntil: 'domcontentloaded' });
     await p.waitForTimeout(1400);
     const s = await stickyCheck(p, '.set-nav');
-    ok('设置页分区导航仍是 sticky', s && s.pos === 'sticky', s && s.pos);
-    /* 核心判据：吸顶起点必须已经让过 44px 顶栏（安全区另算）→ top ≥ 44 */
-    ok('分区导航的吸顶起点让过顶栏（top ≥ 44）', s && s.topPx >= 44, s && s.topPx);
-    ok('分区导航的吸顶起点没让太多（top < 100）', s && s.topPx < 100, s && s.topPx);
-    if (s && s.canScroll >= s.need + 20) {
-      const top = await stickyStuckTop(p, '.set-nav', s.need + 20);
-      ok('真滚到底后分区导航贴在自己让位后的位置', top >= 44 && top <= s.topPx + 2, { top, want: s.topPx });
-    } else {
-      ok('（1440 高下整页不足一屏，按解析值判定即可）滚不够 = 未触发贴顶是正常的', true);
-    }
+    /* 🔵 11-18 她拍板：设置页分区导航不吸顶（2026-11-17 设置页还原原版 + 备考目标重排后就是 static），
+       所以这里不再要求 sticky，改守「在页、有尺寸、不压内容、不横向溢出」。 */
+    ok('设置页分区导航在页且可见', !!s && s.w > 100 && s.h > 40, s && (s.w + '×' + s.h));
+    ok('分区导航是普通流布局（不吸顶，按她 11-18 口径）', !!s && s.pos !== 'sticky' && s.pos !== 'fixed', s && s.pos);
+    const m = await p.evaluate(() => ({
+      ovf: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      navLeft: (() => { const n = document.querySelector('.set-nav'); return n ? Math.round(n.getBoundingClientRect().left) : null; })()
+    }));
+    ok('设置页无横向溢出', m.ovf <= 0, String(m.ovf));
     await p.close();
   }
 
@@ -157,7 +158,7 @@ async function stickyStuckTop(p, sel, target) {
     ok('首页 → 设置：侧栏留白清掉', m.padL === '0px', m.padL);
     ok('首页 → 设置：body 不再带首页驾驶舱类', await p.evaluate(() => !document.body.classList.contains('hub-home')));
     ok('首页 → 设置：高亮移到「设置」', m.onCaps.length === 0 && m.onMore.join('') === '设置', { caps: m.onCaps, more: m.onMore });
-    ok('首页 → 设置：分区导航已渲染（内容真到位）', m.setNavPos === 'sticky', m.setNavPos);
+    ok('首页 → 设置：分区导航已渲染（内容真到位）', m.setNavPos && m.setNavPos !== 'none', m.setNavPos);
 
     /* 🔴 10-22 全站换顶栏五批全部落地：计划（第 3 批）、背词（第 4 批）、bank（第 5 批）
        都已换成顶栏壳 → 全站再无「侧栏 vs 顶栏」的跨壳活样本。本节从「换壳」验收改成
@@ -214,14 +215,11 @@ async function stickyStuckTop(p, sel, target) {
     await p.goto(BASE + '/settings.html', { waitUntil: 'domcontentloaded' });
     await p.waitForTimeout(1400);
     const s = await stickyCheck(p, '.set-nav');
-    ok('手机分区标签仍是 sticky', s && s.pos === 'sticky', s && s.pos);
-    ok('手机分区标签的吸顶起点让过顶栏（top ≥ 44）', s && s.topPx >= 44, s && s.topPx);
-    if (s && s.canScroll >= s.need + 20) {
-      const top = await stickyStuckTop(p, '.set-nav', s.need + 20);
-      ok('手机真滚到底后标签贴在自己让位后的位置', top >= 44 && top <= s.topPx + 2, { top, want: s.topPx });
-    } else {
-      ok('（390×844 下整页不足一屏，按解析值判定即可）滚不够 = 未触发贴顶是正常的', true);
-    }
+    ok('手机分区标签在页且可见', !!s && s.w > 100 && s.h > 20, s && (s.w + '×' + s.h));
+    /* 🔵 11-18 她拍板不吸顶：手机横向标签同样是普通流布局，不要求贴顶。 */
+    ok('手机分区标签是普通流布局（不吸顶）', !!s && s.pos !== 'sticky' && s.pos !== 'fixed', s && s.pos);
+    const ov = await p.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    ok('手机设置页无横向溢出', ov <= 0, String(ov));
     await p.close();
   }
 

@@ -29,7 +29,8 @@ const LIST = [
   '_probe_mobile_1017.cjs',     // 手机组页
   '_probe_nav_1017.cjs',        // 导航
   '_probe_noans_1017.cjs',      // 无答案篇目（第一版）
-  '_probe_noans2_1017.cjs',     // 无答案篇目 B 方案第一步拦住（10/18 14:2x 夹具换 How are deserts formed）
+    /* '_probe_noans2_1017.cjs' 已于 2026-11-18 退役：题库重建后 280 篇阅读全带答案文件，
+     「无答案篇目」不存在，夹具 id 也从 manifest 消失。原文沉 tests/_archived/。 */
   '_probe_qtype_1017.cjs',      // 按题型看正确率
   '_probe_timeline_1017.cjs',   // 时间线
   '_probe_timer_1017.cjs',      // 计时页
