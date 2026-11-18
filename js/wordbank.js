@@ -414,12 +414,30 @@
     wbSave();
   }
 
+  /* 错词墓碑：wrongRemoved = 手工移出，wrongRestored = 重新答错/手工恢复。
+     两端用时间戳比较，避免「一端移出、另一端重新答错」时墓碑永久压住恢复。 */
+  function _wrongKey(bankId, en){
+    return String(bankId || '') + '|' + String(en || '').trim().toLowerCase();
+  }
+  function _markWrongRestored(key){
+    if(!key || typeof DATA === 'undefined') return;
+    DATA.wrongRestored = DATA.wrongRestored || {};
+    DATA.wrongRestored[key] = Date.now();
+    if(DATA.wrongRemoved) delete DATA.wrongRemoved[key];
+  }
+  function _markWrongRemoved(key){
+    if(!key || typeof DATA === 'undefined') return;
+    DATA.wrongRemoved = DATA.wrongRemoved || {};
+    DATA.wrongRemoved[key] = Date.now();
+    if(DATA.wrongRestored) delete DATA.wrongRestored[key];
+  }
+
   // ---------- 今日错词（对照 recordDailyWrong/todayWrongEns：去重、只写不清、按日期切换） ----------
   function wbRecordWrong(en){
     var t = todayKey();
     var k = String(en).toLowerCase();
     var a = wbActive();
-    if(typeof DATA !== 'undefined' && DATA.wrongRemoved) delete DATA.wrongRemoved[a + '|' + k];
+    _markWrongRestored(_wrongKey(a, k));
     if(a === 'custom'){
       DATA.dailyWrong = DATA.dailyWrong || {};
       if(!DATA.dailyWrong[t]) DATA.dailyWrong[t] = [];
@@ -670,10 +688,9 @@
   window.wbMasteredCount = wbMasteredCount;
   window.wbResetBank = wbResetBank;
   window.wbForgetWrong = function(en){
-    var key = wbActive() + '|' + String(en || '').trim().toLowerCase();
+    var key = _wrongKey(wbActive(), en);
     if(typeof DATA === 'undefined' || !key.split('|')[1]) return;
-    DATA.wrongRemoved = DATA.wrongRemoved || {};
-    DATA.wrongRemoved[key] = Date.now();
+    _markWrongRemoved(key);
     if(typeof hubSave === 'function') hubSave();
     _persist();
   };
@@ -681,8 +698,7 @@
     var id = bankId || wbActive();
     var word = String(en || '').trim().toLowerCase();
     if(typeof DATA === 'undefined' || !word) return;
-    DATA.wrongRemoved = DATA.wrongRemoved || {};
-    DATA.wrongRemoved[id + '|' + word] = Date.now();
+    _markWrongRemoved(_wrongKey(id, word));
     if(id === 'custom'){
       Object.keys(DATA.dailyWrong || {}).forEach(function(day){
         DATA.dailyWrong[day] = (DATA.dailyWrong[day] || []).filter(function(x){ return String(x).toLowerCase() !== word; });
@@ -701,8 +717,8 @@
     if(typeof hubSave === 'function') hubSave();
   };
   window.wbRestoreWrong = function(en){
-    if(typeof DATA === 'undefined' || !DATA.wrongRemoved) return;
-    delete DATA.wrongRemoved[wbActive() + '|' + String(en || '').trim().toLowerCase()];
+    if(typeof DATA === 'undefined') return;
+    _markWrongRestored(_wrongKey(wbActive(), en));
     if(typeof hubSave === 'function') hubSave();
     _persist();
   };

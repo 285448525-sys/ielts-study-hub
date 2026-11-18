@@ -249,6 +249,33 @@ function _mergeWbSession(_ld, _cd){
   return { v: _ld || null, changed: false };
 }
 
+/* 错词墓碑按时间戳合并：移出（wrongRemoved）与恢复（wrongRestored）取较晚动作。
+   只做并集会让「一端移出、另一端重新答错」永久卡死，所以必须逐 key 比时间。 */
+function _mergeWrongTombstones(local, cloud){
+  const _maxMap = (a, b) => {
+    const out = {};
+    [a, b].forEach(src => {
+      Object.keys(src || {}).forEach(k => {
+        const v = Number(src[k]) || 0;
+        if(v > (out[k] || 0)) out[k] = v;
+      });
+    });
+    return out;
+  };
+  const removed = _maxMap(local && local.wrongRemoved, cloud && cloud.wrongRemoved);
+  const restored = _maxMap(local && local.wrongRestored, cloud && cloud.wrongRestored);
+  const outRemoved = {}, outRestored = {};
+  for(const k of new Set([...Object.keys(removed), ...Object.keys(restored)])){
+    const r = Number(removed[k]) || 0;
+    const s = Number(restored[k]) || 0;
+    if(s > r) outRestored[k] = s;
+    else if(r > s) outRemoved[k] = r;
+    else if(r) outRemoved[k] = r;
+    else if(s) outRestored[k] = s;
+  }
+  return { removed: outRemoved, restored: outRestored };
+}
+
 function mergeData(local, cloud){
   cloud = cloud || {};
   // 写作模板(writing)是官方共享题集，不进同步，合并时强制忽略云端版本，永远以本机默认模板为准。
@@ -352,6 +379,11 @@ function mergeData(local, cloud){
   out.deletedIds = Array.from(deleted);
   out.revivedIds = Array.from(revivedWords);   // 反向墓碑随合并传播（与 deletedIds 同口径 union）
   out.deletedWrongKeys = Array.from(deletedWrong);   // 错句级墓碑随合并传播
+  {
+    const wt = _mergeWrongTombstones(local, cloud);
+    out.wrongRemoved = wt.removed;
+    out.wrongRestored = wt.restored;
+  }
   // 10/3 AI 陪练长期记忆 coachMem：跨设备按 text 并集（同文本保留较新 t），按时间升序、上限 40。
   // 不用 settings 字段级「较新整份胜」——两端各自追加事实时并集才不丢（e02adc05 铁律：新字段必须在此登记，否则云端那份被整份丢弃）。
   if(Array.isArray(cloud.coachMem)){
@@ -405,7 +437,8 @@ function mergeData(local, cloud){
       const _mergedWrong = {};
       for(const k of new Set([...Object.keys(lw), ...Object.keys(cw)])){
         const u = Array.from(new Set([...(lw[k] || []), ...(cw[k] || [])]));
-        if(u.length) _mergedWrong[k] = u;
+        const kept = u.filter(en => !out.wrongRemoved['custom|' + String(en).trim().toLowerCase()]);
+        if(kept.length) _mergedWrong[k] = kept;
       }
       if(JSON.stringify(_mergedWrong) !== JSON.stringify(lw)){ out.dailyWrong = _mergedWrong; changes++; }
     }
