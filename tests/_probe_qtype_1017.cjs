@@ -228,18 +228,25 @@ async function qtypeText(pg) {
   ok(c.note.indexOf('4') > -1, '㉑ 题数只算带题型的 4 题（无题型/无明细的各 1 条未计入）→ ' + c.note.slice(0, 30));
   ok(c.rows.some(t => t.indexOf('匹配题') === 0 && t.indexOf('0/1') > -1), '㉒ 最弱题型（匹配题 0/1）以 0% 出现而不是被跳过');
 
-  console.log('\n[E] 「近十天」筛选对题型统计生效');
-  /* 11-15 REVIEW-REDESIGN-3：#mkFilter 仍在 DOM 但默认 hidden；走它真实的 change
-     监听（scores.js:43 → renderMock → renderQtypeStats），而不是 Playwright 可见点击。 */
-  const rangeSet = await setQtypeRange(pgC, 'recent');
-  ok(rangeSet, 'E0 「近十天」筛选控件仍接在题型统计上');
-  await pgC.waitForTimeout(800);
+  console.log('\n[E] 时间范围控件与题型统计的关系（11-18 现版口径）');
+  /* 🔵 11-18 复核：11-16「回顾」重新设计后 `#mkFilter` 已经不在 review.html 里了，
+     现版只有趋势卡上的 `[data-home-range]`（最近 5 次 / 最近 10 天），题型统计恒按「全部」聚合。
+     所以 E 段改成守现版真值：范围控件确实不存在、题型统计因此恒含 40 天前那条记录，
+     并把「集合口径没被时间窗悄悄改掉」这件事钉住。 */
   const e = await pgC.evaluate(() => {
     const box = document.getElementById('mkQtStats');
-    return { rows: Array.from(box.querySelectorAll('.bar-row')).map(r => (r.querySelector('.bar-info span')?.textContent || '')), note: box.querySelector('.mk-qt-note')?.textContent || '' };
+    return {
+      hasFilter: !!document.getElementById('mkFilter'),
+      hasSeg: !!document.querySelector('[data-home-range]'),
+      rows: Array.from(box.querySelectorAll('.bar-row')).map(r => (r.querySelector('.bar-info span')?.textContent || '')),
+      note: box.querySelector('.mk-qt-note')?.textContent || ''
+    };
   });
-  ok(e.rows.length === 2 && !e.rows.some(t => t.indexOf('地图题') === 0), '㉓ 40 天前的地图题被筛掉（剩 ' + e.rows.length + ' 行：' + e.rows.join(' / ') + '）');
-  ok(e.note.indexOf('3') > -1, '㉔ 题数随筛选变化（' + e.note.slice(0, 24) + '…）');
+  ok(!e.hasFilter, 'E0 旧范围下拉 #mkFilter 已撤（题型统计不再有独立时间窗）');
+  ok(e.rows.length === 3 && e.rows.some(t => t.indexOf('地图题') === 0),
+    'E1 题型统计按「全部」聚合：3 类都在，40 天前的地图题仍计入（' + e.rows.join(' / ') + '）');
+  ok(e.note.indexOf('4') > -1, 'E2 题数 = 全部 4 题（' + e.note.slice(0, 24) + '…）');
+  ok(e.hasSeg, 'E3 时间范围选择在趋势卡上（[data-home-range] 存在），不接管题型统计');
   await pgC.close();
 
   console.log('\n[D] 空态指路');
