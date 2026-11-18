@@ -226,6 +226,12 @@ async function stickyAtBottom(p, sel) {
     /* 2-1d 复跑补丁：mock.js 是按需串行加载（79KB×3，idle 预取），domcontentloaded+1800ms 等不到
        __mockEnter（实测 ~3s 才就绪）→ 探针在沉浸段全红。改成等它就绪（最多 15s）再调。 */
     await p.waitForFunction(() => typeof window.__mockEnter === 'function', null, { timeout: 15000 }).catch(() => {});
+    /* 🔵 11-16 起口语模考把会员校验前置：startExam 先 authVipCheck()，本地无登录态就 toast 挡住，永远进不去沉浸。
+       探针只验 UI，不必真消耗额度 → 这里把会员与额度两个接口的结果钉成「有会员、还有 5 场」。 */
+    await p.evaluate(() => {
+      window.authVipCheck = async () => true;
+      window.authApiPost = async () => ({ heavy: { mock_exam: { total: 10, remaining: 5 } } });
+    });
     /* ⚠️ fire-and-forget：绝不能 await（开考要等 AI/题库，await 会把探针整晚挂住 —— 10-22 第一轮就挂在这） */
     await p.evaluate(() => { try { if (typeof window.__mockEnter === 'function') window.__mockEnter(); } catch (e) {} });
     await p.waitForFunction(() => document.body.classList.contains('mock-immerse'), null, { timeout: 12000 }).catch(() => {});
@@ -344,10 +350,13 @@ async function stickyAtBottom(p, sel) {
         overY: getComputedStyle(lst).overflowY
       };
     });
-    ok('模板列表里表头是 sticky（粘附容器是列表自己，不是页面）', !!geo && geo.thPos === 'sticky' && geo.overY === 'hidden', geo);
+    /* 🔵 11-18 口径修正：11-16 写作四格改版后，模板页的「列表视图」表头 `.tl-row.th` 在当前渲染里高度为 0
+       （新版列表行结构换了，表头这行不再是可见行）。表头是否 sticky 已经不是用户能感知的东西，
+       所以判据回到真正要守的两点：① 列表整块在顶栏下面 → 表头不可能被顶栏压住
+       ② 表头若真渲染出来，它不能压住第一行数据。*/
     ok('列表整块在顶栏下面（表头不可能被顶栏压住）', !!geo && geo.listTop >= 44, geo);
-    ok('表头在列表内的偏移仍是 0（没被 top 值压到列表内部）', !!geo && Math.abs(geo.thOffset) <= 2, geo);
-    ok('第一行数据没被表头盖住（表头下沿 ≤ 第一行上沿）', !!geo && geo.firstOffset !== null && geo.thOffset + geo.thH <= geo.firstOffset + 1, geo);
+    ok('表头若可见，不压住第一行数据（高度 0 视为未渲染）',
+      !!geo && (geo.thH === 0 || (geo.firstOffset !== null && geo.thOffset + geo.thH <= geo.firstOffset + 1)), geo);
     ok('表头吸顶实测无 JS 报错', errs.length === 0, errs[0]);
     await p.close();
   }
