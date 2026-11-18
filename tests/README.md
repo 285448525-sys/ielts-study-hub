@@ -367,3 +367,13 @@
 3. `_probe_prac42_1023`（25 过 / 6 红）——11-16 单词四页改版后批量条结构换了，同样要按现结构重建。
 
 **余下未动 11 支**：`latewrt`、`latespk`、`wrtbar`、`wrttpl`、`wordimport`、`worddemote`、`shell4`、`shell5`、`prac42`、`wbdeck`、`wbview`、`qtype`（26/3）。
+
+### 八、收尾第五段（11-18 深夜，提交 `4f4cb919` / `91c29247`）
+
+| 探针 | 旧版在量什么 | 改成什么 | 实测 |
+| --- | --- | --- | --- |
+| `_probe_wbdeck_1023` | `#wmLegacy / #wbDecks` 里的旧词书网格 —— 11-16 四页改版后该树不被任何 tab 打开（`wb-tabs.js show()` 只认 data-wb-pane 的 wrong/data/books/set），旧探针靠手动 `hidden=false` 强开，手机档必得 0 宽 | 量现版词书页 `data-wb-pane="books"`：`#wbBookList` 的 `.wv-book-row` 条数/宽高（≥44）/唯一当前书、右侧详情总词数、点另一本换详情、375/390 单列不溢出、深色文字对比。夹具种 9 个词 | 23 / 0 |
+| `_probe_wbview_1023` | 同树的「面包屑 + 5 枚状态胶囊 + 筛选」，现版没有胶囊 | 量书详情口径：三数之和 = 总词数、已掌握数对得上种子（**`counts()` 判已掌握要 `cleared===true` 且 `level>=5`**，只写 cleared 会得 0 —— 踩过一次）、进度条宽度 = 掌握率 ±2%、换书数字跟着换、375/390 不溢出 | 13 / 0 |
+| `_probe_prac42_1023` | 同一死树里的 `#wordList` / `#bankActionBar` / 导入聚焦 | 整支退役（用户不可达的树，尺寸判据没有对象）；若单词管理列表以后回到可达视图，按当时 tab 结构与批量条 DOM 重写再启用 | 退役 |
+
+余下未动 10 支：`r1review`、`latewrt`、`latespk`、`wrtbar`、`wrttpl`、`wordimport`、`worddemote`、`shell4`、`shell5`、`qtype`（26/3）。
