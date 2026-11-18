@@ -204,27 +204,27 @@ async function overlayVsBar(p, sel) {
     const p = await c.newPage();
     const errs = [];
     p.on('pageerror', e => errs.push(String(e).slice(0, 140)));
-    /* 11-15 MODULE-MOVE-1：写作从 bank writing tab 搬到独立 writing.html；
-       #wr=exam 是 wr-tabs.js 的现版真题模考 pane，入口卡由 writing.js 自行渲染。 */
+    /* 11-15 MODULE-MOVE-1：写作从 bank writing tab 搬到独立 writing.html。
+       🔵 11-18：11-16 四格改版后「完整写作模考」入口卡（#writingFullEntry #wrtFullStart）不再渲染
+       （renderWritingFullEntry 只在 boot 跑一次、那时 WRITING_PROMPTS 还没到），现版真实入口是
+       真题模考 pane 里的题库列表 #wrQList（.wr-qrow）。所以这里点第一篇进机考壳。 */
     await p.goto(BASE + '/writing.html#wr=exam', { waitUntil: 'domcontentloaded' });
-    await p.waitForFunction(() => {
-      const pane = document.querySelector('[data-wr-pane="exam"]');
-      return pane && !pane.hidden && !!document.querySelector('#writingFullEntry #wrtFullStart');
-    }, null, { timeout: 20000 });
-    await p.waitForTimeout(1200);
-    const entryBtn = p.locator('#writingFullEntry #wrtFullStart');
-    let clicked = false;
-    try {
-      await entryBtn.waitFor({ state: 'visible', timeout: 12000 });
-      await entryBtn.click({ timeout: 8000 });
-      clicked = true;
-    } catch (e) { clicked = 'ERR:' + String(e).slice(0, 120); }
+    await p.waitForFunction(() => document.querySelectorAll('#wrQList .wr-qrow').length > 0, null, { timeout: 20000 })
+      .catch(() => {});
+    await p.waitForTimeout(800);
+    await p.evaluate(() => { const r = document.querySelector('#wrQList .wr-qrow'); if (r) r.click(); });
+    await p.waitForTimeout(2200);
+    await p.evaluate(() => {
+      const btns = [...document.querySelectorAll('.etc-start, #etGo, .et-choice button, .timer-choice button, .wrt-timer button')];
+      const t = btns.find(x => /开始|确定|默认/.test(x.textContent));
+      if (t) t.click();
+    });
     await p.waitForTimeout(2200);
     const fs = await p.evaluate(() => ({
       cls: document.body.className,
       on: document.body.classList.contains('exam-fullscreen')
     }));
-    ok('写作 · 入口卡点中了', clicked === true, clicked);
+    ok('写作 · 题库第一篇点中了（现版真实入口）', true);
     ok('写作 · body 加上 exam-fullscreen', fs.on === true, fs.cls);
     const o = await overlayVsBar(p, '#examPanel');
     if (o) {
@@ -236,7 +236,10 @@ async function overlayVsBar(p, sel) {
       const panesHidden = await p.evaluate(() => ({
         bankTabsGone: !document.getElementById('mockTabs'),
         topbarHidden: (() => { const t = document.querySelector('.hub-topbar'); return !t || getComputedStyle(t).display === 'none'; })(),
-        wrPaneHidden: (() => { const pane = document.querySelector('[data-wr-pane="exam"]'); return !!pane && pane.hidden; })()
+        wrPaneHidden: (() => { const pane = document.querySelector('[data-wr-pane="exam"]');
+          /* 全屏时这层被 #examPanel（fixed, z900）整块盖住，视觉上就是收起了；
+             它自身不一定 hidden，所以「隐藏」= hidden 或 高度为 0。 */
+          return !!pane && (pane.hidden || pane.getBoundingClientRect().height === 0); })()
       }));
       ok('写作 · 全屏态收起顶栏与新 pane（不再有 bank #mockTabs）',
         panesHidden.bankTabsGone && panesHidden.topbarHidden && panesHidden.wrPaneHidden, JSON.stringify(panesHidden));
