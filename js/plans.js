@@ -295,15 +295,31 @@ const PLAN_TAB_ALIAS = { plan: 'today', history: 'past', score: 'today' };
 function setPlanTab(name){
   const tabs = document.querySelectorAll('#planTabs .pill-tab');
   if(!tabs.length) return;
-  const n = PLAN_TAB_ALIAS[name] || name;          /* 老值先归一 */
-  tabs.forEach(b => b.classList.toggle('active', b.dataset.ptab === n));
-  const pt = document.getElementById('ptabToday');
-  const ph = document.getElementById('ptabHistory');   /* 容器 id 沿用 history，不重命名（JS/探针都照它找） */
-  if(pt) pt.classList.toggle('active', n === 'today');
-  if(ph) ph.classList.toggle('active', n === 'past');
+  const alias = PLAN_TAB_ALIAS[name] || name;
+  const n = ['today', 'week', 'past'].indexOf(alias) >= 0 ? alias : 'today';
+  tabs.forEach(b => {
+    const active = b.dataset.ptab === n;
+    b.classList.toggle('active', active);
+    b.setAttribute('aria-selected', active ? 'true' : 'false');
+  });
+  ['today', 'week', 'past'].forEach(function(key){
+    const id = key === 'past' ? 'ptabHistory' : ('ptab' + key.charAt(0).toUpperCase() + key.slice(1));
+    const panel = document.getElementById(id);
+    if(panel){
+      panel.classList.toggle('active', n === key);
+      panel.setAttribute('aria-hidden', n === key ? 'false' : 'true');
+    }
+  });
+  const board = document.getElementById('plBoard');
+  if(board) board.dataset.view = n;
+  const title = document.getElementById('plViewTitle');
+  const sub = document.getElementById('plViewSub');
+  if(title) title.textContent = n === 'today' ? '今天' : (n === 'week' ? '本周' : '往日');
+  if(sub) sub.textContent = n === 'today' ? '从第一项开始，做完就打勾。'
+    : (n === 'week' ? '从今天起看七天，点开一天就能安排。' : '按天回看真实记录，不另做一套计划。');
   try{ sessionStorage.setItem('hub_plan_ptab', n); }catch(e){}
-  /* PLAN-DAYS-1：切到「往日」时用 DATA.plans 现算一遍（进 tab 才渲染，别在「今天」页白算） */
   if(n === 'past') renderDays();
+  if(n === 'week') renderWeekOverview();
 }
 
 /* ---------- 每日计划 ---------- */
@@ -357,6 +373,11 @@ ready(() => {
     });
     if(mkPrev) mkPrev.addEventListener('click', function(){ step(-1); });
     if(mkNext) mkNext.addEventListener('click', function(){ step(1); });
+    var addEntry = document.getElementById('plAddEntry');
+    if(addEntry) addEntry.addEventListener('click', function(){
+      setPlanTab('today');
+      if(mkIn){ mkIn.focus(); mkIn.scrollIntoView({ block:'center', behavior:'auto' }); }
+    });
     if(mkToday) mkToday.addEventListener('click', function(){ if(dEl){ dEl.value = todayKey(); dEl.dispatchEvent(new Event('change', { bubbles: true })); } });
     /* 任务筛选：只切显隐，不改数据、不重排顺序。选中态记在 sessionStorage，
        同一会话内切日期回来保持一致。
@@ -423,8 +444,8 @@ ready(() => {
   setTimeout(function(){
     try{
       const _tbSub = (typeof tbSubPending === 'function') ? tbSubPending('plans') : '';
-      /* P-1：老值 plan / history 由 setPlanTab 的别名表转过（plan→today、history→past） */
-      if(_tbSub === 'today' || _tbSub === 'past' || _tbSub === 'plan' || _tbSub === 'history') setPlanTab(_tbSub);
+      /* 老 plan / history 与新增 week 共用同一个切换入口。 */
+      if(['today','week','past','plan','history'].indexOf(_tbSub) >= 0) setPlanTab(_tbSub);
     }catch(e){}
   }, 0);
 
@@ -451,7 +472,7 @@ ready(() => {
     if(sessionStorage.getItem('hub_focus_plan_input')){
       sessionStorage.removeItem('hub_focus_plan_input');
       setPlanTab('today');   // 首页「AI 帮我安排今天」信标 → 必落在「今日」Tab，聚焦输入框才可见
-      const box = document.getElementById('planText');
+      const box = document.getElementById('mkAddText');
       if(box){ box.focus(); box.scrollIntoView({ block:'center' }); }
     }
   }catch(e){}
@@ -501,7 +522,7 @@ function applyTaskFilter(taskCard, items){
   if(emptyEl && items.length){
     emptyEl.hidden = any;
     if(!any){
-      var b = emptyEl.querySelector('b'), sp = emptyEl.querySelector('span');
+      var b = emptyEl.querySelector('b'), sp = emptyEl.querySelector('span:not(.m-empty-ic)');
       if(b) b.textContent = cur === 'done' ? '还没有完成的任务' : '这一类都做完了';
       if(sp) sp.textContent = cur === 'done' ? '勾掉一条就会出现在这里。' : '切回「全部」看看今天的安排。';
     }
@@ -529,7 +550,7 @@ function skeletonRowHtml(){
        +     '<span class="m-tcarry" hidden>昨天顺延</span>'
        +   '</span>'
        + '</span>'
-       + '<span class="m-jmp">去练 →</span>'
+       + '<span class="m-jmp">去练 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m10 6 6 6-6 6"/></svg></span>'
        + '<span class="m-act">'
        +   '<button type="button" class="m-actbtn" data-mkedit title="编辑" aria-label="编辑">✎</button>'
        +   '<button type="button" class="m-actbtn" data-mkdel title="删除" aria-label="删除">✕</button>'
@@ -712,11 +733,22 @@ function syncSkeleton(date, isToday, items, done, total, pct){
   if(sumCard) sumCard.hidden = !total;
   if(sumCard){
     var bigq = sumCard.querySelector('.m-bigq');
-    if(bigq) bigq.innerHTML = done + '<small>/' + total + ' 项</small>';
+    var remaining = Math.max(0, total - done);
+    var firstPending = items.filter(function(it){ return it && !it.done; })[0];
+    if(bigq) bigq.innerHTML = remaining + '<small>项待完成</small>';
     var subl = sumCard.querySelector('.m-sublab');
-    if(subl) subl.innerHTML = total
-      ? ('已完成 ' + done + ' 项，还剩 <b>' + Math.max(0, total - done) + ' 条</b>')
-      : '这一天还没有任务，下面加一条。';
+    if(subl){
+      if(!total) subl.textContent = '这一天还没有任务，下面加一条。';
+      else if(firstPending){
+        subl.textContent = '';
+        subl.appendChild(document.createTextNode('先做：'));
+        var firstB = document.createElement('b');
+        firstB.textContent = firstPending.text || '未命名任务';
+        subl.appendChild(firstB);
+      }else subl.textContent = '全部完成了，今天的清单可以收工。';
+    }
+    var secLabel = sumCard.querySelector('.m-seclabel');
+    if(secLabel) secLabel.textContent = '共 ' + total + ' 项';
     var bar = sumCard.querySelector('.m-bar i');
     if(bar) bar.style.width = Math.round(pct) + '%';
     var barWrap = sumCard.querySelector('.m-bar');
@@ -731,7 +763,7 @@ function syncSkeleton(date, isToday, items, done, total, pct){
         planMin += mMin;
         if(it3.done) doneMin += mMin;
       });
-      minTxt.textContent = planMin ? ('已完成 ' + doneMin + ' / 计划 ' + planMin + ' 分钟') : '';
+      minTxt.textContent = remaining ? ((planMin - doneMin) ? ('剩余约 ' + (planMin - doneMin) + ' 分钟') : '部分任务未标时长') : '';
     }
   }
 
@@ -749,6 +781,10 @@ function syncSkeleton(date, isToday, items, done, total, pct){
   var taskList = document.getElementById('mkTaskList');
   if(taskCard && taskList){
     var rows = taskList.querySelectorAll('.m-task');
+    if(rows.length !== items.length){
+      taskList.innerHTML = items.map(function(){ return '<div class="m-task">' + skeletonRowHtml() + '</div>'; }).join('');
+      rows = taskList.querySelectorAll('.m-task');
+    }
     items.forEach(function(it, idx){
       var row = rows[idx];
       if(!row){
@@ -855,7 +891,13 @@ function syncSkeleton(date, isToday, items, done, total, pct){
     /* 空态：一条任务都没有时，整块任务列表换成两句诚实空态 */
     var emptyEl = document.getElementById('mkEmpty');
     if(emptyEl) emptyEl.hidden = items.length > 0;
-    if(!items.length) taskList.style.display = 'none';
+    if(!items.length){
+      taskList.style.display = 'none';
+      var emptyB = emptyEl && emptyEl.querySelector('b');
+      var emptyS = emptyEl && emptyEl.querySelector('span:not(.m-empty-ic)');
+      if(emptyB) emptyB.textContent = isToday ? '今天还没有任务' : ((dt.getMonth() + 1) + ' 月 ' + dt.getDate() + ' 日还没有任务');
+      if(emptyS) emptyS.textContent = '从一件具体的小事开始，做完就在这里打勾。';
+    }
     else taskList.style.display = '';
 
     /* 筛选（全部 / 待完成 / 已完成）—— 纯前端过滤，不动数据。
@@ -1237,7 +1279,14 @@ function render(){
   /* commit4：重排工具条只在「今天且有未完成 AI 任务」时出现；3 天没回来给过期提示 */
   const hasGenPending = items.some(i => i && i.module && !i.done);
   const rbBar = document.getElementById('rbBar');
-  if(rbBar) rbBar.hidden = !(isToday && hasGenPending);
+  if(rbBar){
+    const manageBody = document.getElementById('plManageBody');
+    if(manageBody && rbBar.parentElement !== manageBody) manageBody.appendChild(rbBar);
+    rbBar.hidden = !(isToday && hasGenPending);
+  }
+  const rbStale = document.getElementById('rbStale');
+  const manageBody = document.getElementById('plManageBody');
+  if(rbStale && manageBody && rbStale.parentElement !== manageBody) manageBody.insertBefore(rbStale, manageBody.firstChild);
   renderRbStale(isToday && hasGenPending && _openGap >= 3 ? _openGap : 0);
 
   const box = $('#planList');
@@ -1292,8 +1341,52 @@ function render(){
   }
 
   renderHistory(date);
-  /* PLAN-DAYS-1：勾选/新增/删除/换日期后，往日汇总跟着刷新（同一个 render 钩子，不自起定时器） */
+  /* 同一个 DATA.plans 只读汇总：本周与往日随勾选/新增/删除同步。 */
   renderDays();
+  renderWeekOverview();
+}
+
+/* 本周只读汇总：从今天起七天，不写存储、不补不存在的数据。 */
+function renderWeekOverview(){
+  const box = document.getElementById('plWeekGrid');
+  if(!box) return;
+  const start = todayKey();
+  const days = [];
+  for(let i = 0; i < 7; i++) days.push(addDays(start, i));
+  const records = (DATA.plans || []).filter(function(p){
+    return p && days.indexOf(p.date) >= 0 && Array.isArray(p.items) && p.items.length;
+  });
+  if(!records.length){
+    box.innerHTML = '<div class="pl-week-empty"><span class="m-empty-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="17" rx="3"/><path d="M8 2v4M16 2v4M8 11h8M8 15h5"/></svg></span><h2>这七天还没有计划</h2><p>需要时展开下面的「生成 / 调整计划」做诊断；<br>也可以直接回到今天，添加第一条任务。</p></div>';
+  }else{
+    box.innerHTML = days.map(function(date){
+      const p = getPlan(date);
+      const items = p && Array.isArray(p.items) ? p.items.filter(Boolean) : [];
+      const total = items.length;
+      const done = items.filter(function(it){ return !!it.done; }).length;
+      const left = total - done;
+      const leftMin = items.reduce(function(sum, it){
+        if(it.done) return sum;
+        return sum + ((typeof it.min === 'number' && it.min) || (typeof planMinOf === 'function' ? planMinOf(it.text) : 0));
+      }, 0);
+      const dt = new Date(date + 'T00:00:00');
+      const week = ['周日','周一','周二','周三','周四','周五','周六'][dt.getDay()] || '';
+      return '<button type="button" class="pl-week-day' + (date === start ? ' is-today' : '') + '" data-weekdate="' + escapeHtml(date) + '" aria-label="打开 ' + escapeHtml(date) + ' 的任务">'
+        + '<span class="pl-week-date"><b>' + (dt.getMonth() + 1) + ' 月 ' + dt.getDate() + ' 日</b><span>' + (date === start ? '今天' : week) + '</span></span>'
+        + '<span class="pl-week-count">' + (total ? left : '—') + '<small>' + (total ? '项待完成' : '尚未安排') + '</small></span>'
+        + '<span class="pl-week-min">' + (total ? ('共 ' + total + ' 项 · 已完成 ' + done + ' 项' + (left && leftMin ? ' · 剩余约 ' + leftMin + ' 分钟' : '')) : '点开添加任务') + '</span>'
+        + '<span class="pl-week-open">' + (total ? (left ? '继续这一天' : '查看已完成') : '安排这一天') + ' →</span></button>';
+    }).join('');
+    box.querySelectorAll('[data-weekdate]').forEach(function(card){
+      card.addEventListener('click', function(){
+        const d = document.getElementById('planDate');
+        if(!d) return;
+        d.value = card.getAttribute('data-weekdate');
+        setPlanTab('today');
+        d.dispatchEvent(new Event('change', { bubbles:true }));
+      });
+    });
+  }
 }
 
 /* commit4：「3 天没回来」过期提示（#rbStale 在重排工具条上方） */

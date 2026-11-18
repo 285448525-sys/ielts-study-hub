@@ -521,6 +521,196 @@
   #mkToday .m-side .m-timecard{display:none}
 }
 
+/* PLANS-UNIFIED-1（11-16）：今天 / 本周 / 往日共用一张板，今日清单优先。
+   11-16 定版：左栏恢复成与句子/练习/写作同一套 264 侧栏（分栏 + 今日任务卡），
+   页面里只藏板头那排原分栏条。 */
+body .hub-main{padding:24px 28px 40px;overflow:auto}
+/* 板上那排 tab 与左栏重复：桌面收掉（手机上左栏不可见，仍用这排切 今天/本周/往日） */
+@media(min-width:861px){ .plan-tabsbar,.pl-board-head .plan-tabsbar{display:none!important} }
+.pl-board{max-width:1120px;margin:0 auto;border:1px solid var(--line);border-radius:16px;background:var(--surface);box-shadow:0 1px 2px rgba(24,40,48,.04),0 6px 18px -12px rgba(24,40,48,.18);overflow:hidden}
+.pl-board-head{min-height:76px;display:flex;align-items:center;gap:20px;padding:14px 24px;border-bottom:1px solid var(--line)}
+.pl-head-copy{min-width:160px;flex:1}
+.pl-head-copy h1{margin:0;font-size:18px;line-height:1.35;font-weight:750;letter-spacing:-.02em}
+.pl-head-copy p{margin:5px 0 0;font-size:11.5px;line-height:1.5;color:var(--muted)}
+#mkToday .m-pghead{display:none}
+#planTabs .pill-tab{min-height:32px;padding:0 16px;border:0;border-radius:999px;background:transparent;color:var(--muted);font-size:12px;font-weight:650;white-space:nowrap;cursor:pointer}
+#planTabs .pill-tab.active{background:var(--surface);color:var(--primary-700);font-weight:750;box-shadow:0 1px 3px rgba(24,40,48,.10)}
+.pl-add-entry{display:none;min-height:38px;padding:0 15px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--primary-700);font:inherit;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
+#plBoard[data-view="today"] .pl-add-entry{display:block}
+.pl-add-entry:hover{border-color:var(--primary-200);background:var(--primary-50)}
+.pl-board-body,.pl-viewport{min-width:0}
+#ptabToday,#ptabWeek,#ptabHistory{animation:none!important}
+#ptabToday .m-page{max-width:none}
+#mkToday{overflow:visible}
+#mkToday .m-datebar{display:flex;gap:10px;margin:0;padding:18px 24px;border:0;border-bottom:1px solid var(--line);border-radius:0;box-shadow:none;background:var(--surface)}
+#mkToday .m-daynav-lg{width:36px;height:36px;border-color:var(--line);border-radius:9px;background:var(--surface)}
+#mkToday .m-daynav-lg svg{width:14px;height:14px}
+#mkToday .m-datemain{flex:1;text-align:left}
+#mkToday .m-datetitle{justify-content:flex-start;font-size:16px;gap:10px}
+#mkToday .m-datesub{margin-top:5px;font-size:11.5px}
+#mkToday .m-backtoday{margin:3px 0 0;padding:4px 0;min-height:26px;font-size:11.5px}
+#mkToday .m-phase{margin:0}
+#mkToday .m-phase-chip{padding:7px 10px;background:var(--surface);border-color:var(--line);border-radius:9px;color:var(--muted)}
+#mkToday .m-phase .m-chip{color:var(--ink-2);font-size:11px}
+#mkToday .m-phase .m-chip::before{width:5px;height:5px}
+#mkToday .m-phase b,#mkToday .m-phatime,#mkToday .m-phatime a{font-size:11px}
+#mkToday .m-phatime a{color:var(--primary-700)!important}
+#mkToday .m-ws{grid-template-columns:minmax(0,1fr) 280px;gap:0;align-items:stretch}
+#mkToday .m-plancard,#mkToday .m-side-card{border:0;border-radius:0;box-shadow:none}
+#mkToday .m-plancard{min-width:0}
+#mkToday .m-side{border-left:1px solid var(--line);background:var(--surface-2);gap:0}
+#mkToday .m-summary{padding:24px 26px 22px;background:var(--surface);border-bottom:0}
+#mkToday .m-sumtop{align-items:baseline}
+#mkToday .m-seclabel{font-size:11px;color:var(--muted);font-weight:650}
+#mkToday .m-bigq{font-size:44px;font-weight:750;color:var(--ink);letter-spacing:-.05em}
+#mkToday .m-bigq small{font-size:13px;margin-left:8px;color:var(--muted);font-weight:550;letter-spacing:0}
+#mkToday .m-sumcopy{margin:8px 0 18px;font-size:13px;line-height:1.65}
+#mkToday .m-sumcopy b{font-weight:700}
+#mkToday .m-bar{height:5px;margin-top:0;background:var(--surface-2)}
+#mkToday .m-summeta{margin-top:9px;font-size:11px}
+#mkToday .m-carry{margin:0 26px 16px;padding:10px 12px;border-radius:9px;font-size:11.5px}
+#mkToday .m-taskhead{padding:19px 26px 12px;border-top:1px solid var(--line);gap:16px}
+#mkToday .m-th2{font-size:14px;font-weight:750}
+#mkToday .m-filter{padding:3px;gap:4px;background:var(--surface-2);border:1px solid var(--line);border-radius:999px}
+#mkToday .m-fbtn{min-height:28px;padding:2px 10px;font-size:11px;border-radius:999px;color:var(--muted)}
+#mkToday .m-fbtn.active{color:var(--primary-700);box-shadow:0 1px 3px rgba(24,40,48,.10)}
+#mkToday .m-tasklist{padding:0 26px}
+#mkToday .m-tasklist .m-task{align-items:center;gap:14px;padding:16px 0;border-color:var(--line);border-radius:0}
+#mkToday .m-task .m-cb{width:24px;height:24px;margin:0;border-color:var(--n-300);border-radius:7px}
+#mkToday .m-task .m-t{font-size:13.5px;font-weight:600;line-height:1.65}
+#mkToday .m-task .m-tmeta{margin-top:4px;gap:9px}
+#mkToday .m-task .m-tagline{padding:0;border:0;background:none;color:var(--muted);font-size:11px;font-weight:550}
+#mkToday .m-task .m-tmin{font-size:11px}
+#mkToday .m-task .m-jmp{display:inline-flex;align-items:center;gap:4px;font-size:11px;white-space:nowrap}
+#mkToday .m-task .m-jmp svg{width:14px;height:14px;flex:0 0 14px}
+#mkToday .m-task .m-act{gap:4px}
+#mkToday .m-task .m-actbtn{width:28px;height:28px;color:var(--muted)}
+#mkToday .m-addrow{margin:14px 26px 24px;padding:18px 0 0;border-top:1px solid var(--line)}
+#mkToday .m-addlab{font-size:11.5px;color:var(--muted);font-weight:600}
+#mkToday .m-addbox{gap:10px}
+#mkToday .m-addinput{height:40px;background:var(--surface);font-size:13px;border-radius:10px}
+#mkToday .m-addbtn{min-height:40px;padding:8px 14px;border-radius:10px;font-size:12px}
+#mkToday .m-addbtn.m-aibtn{width:auto;margin-top:0;margin-left:16px;background:var(--surface);border-color:var(--line);color:var(--primary-700)}
+#mkToday .m-empty{padding:46px 20px 40px;display:flex;flex-direction:column;align-items:center;gap:8px}
+#mkToday .m-empty[hidden]{display:none}
+#mkToday .m-empty b{margin:4px 0 0;font-size:16px;font-weight:750}
+#mkToday .m-empty span:not(.m-empty-ic){font-size:12px;line-height:1.7}
+.m-empty-ic{width:48px;height:48px;display:grid;place-items:center;border-radius:13px;background:var(--primary-50);color:var(--primary)}
+.m-empty-ic svg{width:24px;height:24px}
+#mkToday .m-side-card{padding:24px 22px;background:transparent}
+#mkToday .m-side-h2{font-size:13px;font-weight:750}
+#mkToday .m-side-kicker{font-size:11px;margin:7px 0 16px}
+#mkToday .m-timetotal strong{font-size:26px;color:var(--ink)}
+#mkToday .m-side-foot{font-size:10.5px;line-height:1.7}
+#mkToday .m-timesplit{gap:14px}
+.pl-rhythm{border-top:1px solid var(--line)!important}
+.pl-rhythm>p{margin:13px 0 0;font-size:11.5px;line-height:1.8;color:var(--muted)}
+#plManage{margin:0 26px 22px;border-top:1px solid var(--line)}
+.pl-manage>summary{display:flex;align-items:center;justify-content:space-between;gap:16px;list-style:none;cursor:pointer;font-size:11.5px;color:var(--primary-700);font-weight:650;min-height:44px}
+.pl-manage>summary::-webkit-details-marker{display:none}
+.pl-manage>summary svg{width:14px;height:14px;flex:0 0 14px;transition:transform .16s}
+.pl-manage[open]>summary svg{transform:rotate(90deg)}
+#ptabToday>.card[hidden]{display:none!important}
+#plManageBody{padding:0 0 2px}
+#plManageBody #rbStale{display:block!important}
+#plManageBody #rbStale:empty{display:none!important}
+#plManageBody #rbBar{display:block!important;margin-top:12px}
+#plManageBody #rbBar[hidden]{display:none!important}
+#rbBar .rb-line{gap:12px}
+#rbBar .rb-txt,#rbBar .rb-more,#rbBar .rb-all{font-size:11.5px}
+#rbBar .rb-more,#rbBar .rb-all{min-height:32px}
+#rbBar .rb-numwrap{gap:12px}
+.pl-week{padding:24px}
+.pl-week-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.pl-week-grid:empty{display:none}
+.pl-week-day{min-width:0;min-height:170px;padding:16px;border:1px solid var(--line);border-radius:12px;background:var(--surface);text-align:left;font:inherit;cursor:pointer}
+.pl-week-day:hover{border-color:var(--primary-200)}
+.pl-week-day.is-today{background:var(--primary-50);border-color:var(--primary-200)}
+.pl-week-date{display:flex;align-items:baseline;gap:8px}
+.pl-week-date b{font-size:15px;font-weight:750}
+.pl-week-date span{font-size:11px;color:var(--muted)}
+.pl-week-count{display:block;margin-top:20px;font-size:22px;font-weight:750;letter-spacing:-.03em}
+.pl-week-count small{font-size:11px;font-weight:500;letter-spacing:0;color:var(--muted);margin-left:4px}
+.pl-week-min{display:block;margin-top:5px;font-size:11px;color:var(--muted)}
+.pl-week-open{display:block;margin-top:17px;font-size:11px;color:var(--primary-700)}
+.pl-week-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:320px;text-align:center}
+.pl-week-empty h2{margin:18px 0 0;font-size:18px}
+.pl-week-empty p{margin:10px 0 0;font-size:12.5px;color:var(--muted);line-height:1.8}
+.pl-week>.pl-manage{margin:20px 0 0;border-top:1px solid var(--line);padding-top:0}
+.pl-week>.pl-manage>summary{font-size:12.5px}
+.pl-week-manage-body{padding-top:18px;max-width:680px;margin:0 auto}
+.pl-week-manage-body #diagRoot{margin:0}
+.pl-week-manage-body .card{box-shadow:none}
+#mkPast .m-mk-body{padding:24px}
+#mkPast .m-mcard{padding:0;border:0;border-radius:0;margin:0}
+#mkPast .m-mcard h4{font-size:13px;margin-bottom:20px}
+#mkPast .m-days{grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+#mkPast .m-day{padding:16px;min-height:118px;border-radius:12px;background:var(--surface)}
+#mkPast .m-day .m-dd{font-size:24px;font-weight:750}
+#mkPast .m-day .m-dm,#mkPast .m-day .m-df{font-size:11px}
+#mkPast .m-day .m-df{margin-top:9px}
+#mkPast .empty{display:flex;min-height:330px;align-items:center;justify-content:center;font-size:13px}
+@media(max-width:1100px) and (min-width:761px){
+  body .hub-main{padding:20px}
+  #mkToday .m-ws{grid-template-columns:minmax(0,1fr) 240px}
+  #mkToday .m-summary,#mkToday .m-taskhead{padding-left:20px;padding-right:20px}
+  #mkToday .m-tasklist{padding:0 20px}
+  #mkToday .m-addrow{margin-left:20px;margin-right:20px}
+  .pl-week-grid,#mkPast .m-days{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:860px){
+  body .hub-main{padding:0 0 24px;overflow:visible}
+  .pl-board{border-radius:14px}
+  .pl-board-head{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:16px}
+  .pl-head-copy{min-width:0}
+  .pl-head-copy h1{font-size:17px}
+  .pl-board-head .plan-tabsbar{grid-column:1/-1;grid-row:2}
+  #planTabs{width:100%}
+  #planTabs .pill-tab{flex:1;min-height:36px}
+  .pl-add-entry{min-height:36px;padding:0 12px;font-size:11.5px}
+  #mkToday .m-ws{display:block}
+  #mkToday .m-side{display:block;border-left:0;border-top:1px solid var(--line)}
+  #mkToday .m-side .m-timecard{display:block}
+  #mkToday .m-side-card{padding:20px}
+  #mkToday .m-side .m-timecard,#mkToday .m-side .pl-rhythm{display:none}
+  .pl-week-grid,#mkPast .m-days{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:560px){
+  .pl-board-head{padding:14px 16px;gap:10px}
+  .pl-head-copy p{font-size:11px}
+  #mkToday .m-datebar{display:grid;grid-template-columns:36px minmax(0,1fr) 36px;padding:14px 16px;gap:8px}
+  #mkToday .m-datemain{text-align:center}
+  #mkToday .m-datetitle{justify-content:center;font-size:15px}
+  #mkToday .m-phase{grid-column:1/-1;justify-content:center}
+  #mkToday .m-phase-chip{border:0;padding:2px 0;background:none}
+  #mkToday .m-backtoday{margin:3px auto 0}
+  #mkToday .m-summary{padding:22px 18px 20px}
+  #mkToday .m-bigq{font-size:40px}
+  #mkToday .m-taskhead{padding:17px 18px 12px;align-items:center;flex-wrap:wrap;gap:12px}
+  #mkToday .m-filter{width:100%;justify-content:space-between}
+  #mkToday .m-fbtn{flex:1;min-height:32px}
+  #mkToday .m-tasklist{padding:0 18px}
+  #mkToday .m-tasklist .m-task{align-items:flex-start;gap:11px;padding:15px 0}
+  #mkToday .m-task .m-t{font-size:13px}
+  #mkToday .m-task .m-actbtn{width:30px;height:30px}
+  #mkToday .m-task .m-jmp{display:none!important}
+  #mkToday .m-addrow{margin:14px 18px 20px}
+  #mkToday .m-addbox{gap:10px}
+  #mkToday .m-addinput{height:44px;font-size:16px}
+  #mkToday .m-addbtn{min-height:44px}
+  #mkToday .m-addbtn.m-aibtn{width:100%;margin:14px 0 0;justify-content:center}
+  #mkToday .m-empty{padding:36px 18px 30px}
+  #plManage{margin:0 18px 20px}
+  .pl-week,#mkPast .m-mk-body{padding:18px 16px}
+  .pl-week-grid{gap:10px}
+  .pl-week-day{min-height:145px;padding:14px}
+  .pl-week-count{margin-top:15px;font-size:21px}
+  .pl-week-open{margin-top:12px}
+  #mkPast .m-day{padding:14px}
+  .pl-manage>summary{min-height:44px}
+}
+@media(prefers-reduced-motion:reduce){.pl-manage>summary svg{transition:none}}
+
 /* ===== PLAN-COMMENT-1118：她 11-18 计划页 4 条批注 · 覆盖样式 =====
    只动可见样式，DOM/ID/数据/事件零改动。 */
 /* 批注 1：本周空态「不应该居中吗」——空态在 4 列 grid 里只占第一格，

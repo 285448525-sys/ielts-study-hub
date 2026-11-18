@@ -44,12 +44,12 @@
   <script defer src="js/common.js?v=20261116a"></script>
   <script defer src="js/common-ai.js?v=20261116a"></script>
   <script defer src="js/common-sync.js?v=20261116a"></script>
-  <script defer src="js/common-merge.js?v=20261116a"></script>
+  <script defer src="js/common-merge.js?v=20261116b"></script>
   <script defer src="js/common-cloud.js?v=20261116a"></script>
   <script defer src="js/common-shell.js?v=20261116a"></script>
   <script defer src="js/common-pwa.js?v=20261117a"></script>
   <script defer src="js/feedback.js?v=20261111b"></script>
-  <script src="js/plans.js?v=20261116a" defer></script>
+  <script src="js/plans.js?v=20261116b" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -575,12 +575,12 @@
       <div class="hub-side-scroll">
         <div class="hub-subs" id="hubSubs"></div>
         <div class="hub-side-div"></div>
-        <div class="hub-td-head"><b>今天</b></div>
-        <div class="hub-td-prog" id="hubTdProg"></div>
-        <div class="hub-td-group" id="hubTdPending"></div>
-        <div class="hub-td-group" id="hubTdDone"></div>
-        <div class="hub-td-empty" id="hubTdEmpty" hidden>今天还没有任务</div>
-        <div class="hub-side-foot"><a href="plans.html">去计划页查看全部 ›</a></div>
+        <section class="hub-td" id="hubTd" aria-label="今日任务">
+          <div class="hub-td-head"><b>今日任务</b><span class="hub-td-count" id="hubTdCount" hidden>0/0</span></div>
+          <div class="hub-td-list" id="hubTdList"></div>
+          <div class="hub-td-empty" id="hubTdEmpty" hidden>今天还没有任务</div>
+          <a class="hub-td-more" href="plans.html">去计划页查看全部<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></a>
+        </section>
       </div>
     </aside>
     <div class="hub-main">
@@ -612,12 +612,20 @@
        ✅ 放在 <main> 直属层后，它不再随任何一个 panel 的显隐消失。
        视觉：桌面 ≥861 由本文件顶部那条媒体查询按 id 隐藏（顶栏二级菜单接管）；
              手机 ≤860 显示在内容区顶部 —— 与回顾页 .review-pill-tabs 的位置一致（全站惯例）。 -->
-  <div class="plan-tabsbar">
-    <div class="pill-tabs" id="planTabs">
-      <button data-ptab="today" class="pill-tab active">今天</button>
-      <button data-ptab="past" class="pill-tab">往日</button>
-    </div>
-  </div>
+  <section class="pl-board" id="plBoard" aria-label="学习计划">
+    <header class="pl-board-head">
+      <div class="pl-head-copy"><h1 id="plViewTitle">今天</h1><p id="plViewSub">从第一项开始，做完就打勾。</p></div>
+      <div class="plan-tabsbar">
+        <div class="pill-tabs" id="planTabs" role="tablist" aria-label="计划视图">
+          <button data-ptab="today" class="pill-tab active" role="tab" aria-selected="true">今天</button>
+          <button data-ptab="week" class="pill-tab" role="tab" aria-selected="false">本周</button>
+          <button data-ptab="past" class="pill-tab" role="tab" aria-selected="false">往日</button>
+        </div>
+      </div>
+      <button class="pl-add-entry" id="plAddEntry" type="button">添加任务</button>
+    </header>
+    <div class="pl-board-body">
+      <div class="pl-viewport">
   <!-- Tab 1 今天（P-1：原「今日」+ 原「历史」合并；备考诊断改成本页下端固定入口卡） -->
   <div class="tab-panel active" id="ptabToday">
   <div class="m-page">
@@ -647,34 +655,19 @@
          · 阶段胶囊 .m-phase 不能整块藏 —— js/plans.js:608 syncSkeleton() 要按
            mk.querySelector('.m-phase') 取节点再填「阶段名 / 距考天数」，断了钩子首帧就被
            try/catch 静默吞掉、页面变空壳。所以它整块搬到下面日期条右侧（连同「去设置 →」）。 -->
-    <div class="m-pghead">
-      <div class="m-pghead-l">
-        <h1 class="m-h1">学习计划</h1>
-        <p class="m-pgsub">把目标拆成今天能完成的一小步。</p>
-      </div>
-    </div>
-
     <!-- 日期条：‹ 日期 · 星期 今天 ›，副行报本周重点；非今天露「回到今天」 -->
     <div class="m-datebar">
-      <button type="button" class="m-daybtn m-daynav-lg" id="mkDayPrev" aria-label="前一天">‹</button>
+      <button type="button" class="m-daybtn m-daynav-lg" id="mkDayPrev" aria-label="前一天"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg></button>
       <div class="m-datemain">
-        <div class="m-datetitle" id="mkDateRow"><span class="m-datetext">10-24 · 周五</span><span class="m-todaytag" hidden>今天</span></div>
+        <div class="m-datetitle" id="mkDateRow"><span class="m-datetext"></span><span class="m-todaytag" hidden>今天</span></div>
         <div class="m-datesub" id="mkDateSub" hidden></div>
         <button type="button" class="m-backtoday" id="mkDayToday" hidden>回到今天</button>
       </div>
-      <button type="button" class="m-daybtn m-daynav-lg" id="mkDayNext" aria-label="后一天">›</button>
-      <!-- 阶段胶囊（PAGEHEAD-SLIM-1：从页头整块搬来，节点与 id/class 一字未改）
-           🔴 不能删：js/plans.js 的 syncSkeleton() 按 mk.querySelector('.m-phase') 取它，
-              再往里填 .m-chip「阶段名」与 .m-phatime「距考试 N 天」。断了钩子首帧就被
-              try/catch 静默吞掉，页面只剩空壳。
-           🔴 也不能 follow PLAN-VISIBLE-4 的老坑：它现在挂在日期条里，而日期条在 #ptabToday
-              内部 —— 切到「往日」时整块 #ptabToday 会 display:none，胶囊跟着不见。
-              这没关系：往日面板本来就只该看历史，胶囊是「今天离考试还有几天」的信息，
-              往日页上不需要它，也没有任何 JS 依赖它在往日态可见（syncSkeleton 只在今天态跑）。 -->
+      <button type="button" class="m-daybtn m-daynav-lg" id="mkDayNext" aria-label="后一天"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m10 6 6 6-6 6"/></svg></button>
       <div class="m-phase m-phase-row">
         <div class="m-phase-chip">
-          <span class="m-chip">冲刺期</span>
-          <span class="m-phatime">距考试 <b>9</b> 天 · 倒数第 2 周</span>
+          <span class="m-chip"></span>
+          <span class="m-phatime"></span>
         </div>
       </div>
     </div>
@@ -684,15 +677,15 @@
 
       <section class="m-plancard" aria-labelledby="mkTaskHeading">
 
-        <!-- ① 今日进度 -->
+        <!-- 今日概况：数字与第一项均来自当天 items -->
         <div class="m-summary" id="mkSumCard">
           <div class="m-sumtop">
-            <span class="m-seclabel">今日进度</span>
-            <div class="m-count" aria-live="polite"><div class="m-bigq">3<small>/7 项</small></div></div>
+            <div class="m-count" aria-live="polite"><div class="m-bigq"><small>项待完成</small></div></div>
+            <span class="m-seclabel">今日清单</span>
           </div>
-          <p class="m-sumcopy"><span class="m-sublab">已完成 3 项，还剩 4 条</span></p>
-          <div class="m-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="43"><i style="width:43%"></i></div>
-          <div class="m-summeta"><span class="m-pcttxt">完成 43%</span><span class="m-mintxt">已完成 0 / 计划 0 分钟</span></div>
+          <p class="m-sumcopy"><span class="m-sublab"></span></p>
+          <div class="m-bar" role="progressbar" aria-label="任务完成进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i></i></div>
+          <div class="m-summeta"><span class="m-pcttxt"></span><span class="m-mintxt"></span></div>
         </div>
 
         <!-- 顺延提示（有 carried 才显示） -->
@@ -708,33 +701,11 @@
               <button type="button" class="m-fbtn" data-mfilter="done" aria-pressed="false">已完成</button>
             </div>
           </div>
-          <div class="m-tasklist" id="mkTaskList">
-            <!-- 笔 2/3：这 4 行只是「占位骨架」，syncSkeleton 会按真数据覆盖文字并决定显隐；
-                 一条任务都没有时 #mkEmpty 接管，taskList 整块隐藏。
-                 🔴 行内结构 = 勾选框 / 标题+元信息 / 去练 / 编辑删除，与 skeletonRowHtml() 完全同构，
-                    否则「真数据追加的行」和「HTML 里的占位行」会长得不一样（老 bug 来源之一）。 -->
-            <div class="m-task">
-              <span class="m-cb"></span>
-              <span class="m-taskbody"><span class="m-t">背词：List 7 复习</span><span class="m-tmeta"><span class="m-tagline">单词</span><span class="m-tmin"></span><span class="m-tcarry" hidden>昨天顺延</span></span></span>
-              <span class="m-jmp">去练 →</span>
-            </div>
-            <div class="m-task">
-              <span class="m-cb"></span>
-              <span class="m-taskbody"><span class="m-t">听力 P1 精听一篇</span><span class="m-tmeta"><span class="m-tagline">听力</span><span class="m-tmin"></span><span class="m-tcarry" hidden>昨天顺延</span></span></span>
-              <span class="m-jmp">去练 →</span>
-            </div>
-            <div class="m-task">
-              <span class="m-cb"></span>
-              <span class="m-taskbody"><span class="m-t">口语 P2 卡牌练 3 张</span><span class="m-tmeta"><span class="m-tagline">口语</span><span class="m-tmin"></span><span class="m-tcarry" hidden>昨天顺延</span></span></span>
-              <span class="m-jmp">去练 →</span>
-            </div>
-            <div class="m-task">
-              <span class="m-cb"></span>
-              <span class="m-taskbody"><span class="m-t">写作 Task 1 图表一篇</span><span class="m-tmeta"><span class="m-tagline">写作</span><span class="m-tmin"></span><span class="m-tcarry" hidden>昨天顺延</span></span></span>
-              <span class="m-jmp">去练 →</span>
-            </div>
+          <div class="m-tasklist" id="mkTaskList"></div>
+          <div class="m-empty" id="mkEmpty" hidden>
+            <span class="m-empty-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="17" rx="3"/><path d="M8 2v4M16 2v4M8 11h8M8 15h5"/></svg></span>
+            <b>今天还没有任务</b><span>从一件具体的小事开始，做完就在这里打勾。</span>
           </div>
-          <div class="m-empty" id="mkEmpty" hidden><b>这一天还没有任务</b><span>写一条，或让 AI 帮你安排。</span></div>
 
           <!-- ③ 添加区 -->
           <div class="m-addrow" id="mkAddRow">
@@ -744,8 +715,11 @@
               <button type="button" class="m-addbtn m-pri" id="mkAddBtn">添加任务</button>
             </div>
             <button type="button" class="m-addbtn m-aibtn" id="mkAiBtn">AI 安排今天</button>
-            <p class="m-ainote">按你写的目标，结合弱项与考试日期来排</p>
           </div>
+          <details class="pl-manage" id="plManage">
+            <summary>调整今天<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></summary>
+            <div id="plManageBody"></div>
+          </details>
         </div>
 
         <!-- ④ 备考诊断：这一块**不在这里写**。
@@ -757,26 +731,20 @@
              笔 3 再把 #diagRoot 搬进右栏做成稿子里的样子。 -->
       </section>
 
-      <!-- 右栏（笔 3），两块：今天的时间分配 / 备考诊断 -->
-      <aside class="m-side" aria-label="学习辅助信息" id="mkSide">
-
-        <!-- ① 今天的时间分配：按任务的 module + min 真算，没有可算的数据时整卡隐藏
-             （不印「0 分钟」这种假统计，她的红线：站上不许有写死的演示数据） -->
-        <section class="m-side-card m-timecard" id="mkTimeCard" hidden>
-          <h2 class="m-side-h2">今天的时间分配</h2>
-          <p class="m-side-kicker" id="mkTimeKicker"></p>
-          <div class="m-timetotal" id="mkTimeTotal"></div>
-          <div class="m-timesplit" id="mkTimeSplit"></div>
-          <p class="m-side-foot">先练弱项，精力更好时做输出练习。</p>
-        </section>
-
-        <!-- ② 备考诊断：容器 id 仍是 #diagRoot，renderDiagEntry() 一行没改，
-             只是从页面底部搬进右栏。里面那张 .dg-hero 靠 #mkSide 作用域重新排版成竖窄卡。 -->
-        <div class="m-side-card m-diagcard" id="mkDiagCard">
-          <div id="diagRoot"></div>
-        </div>
-
-      </aside>
+        <aside class="m-side" aria-label="今日节奏" id="mkSide">
+          <section class="m-side-card m-timecard" id="mkTimeCard" hidden>
+            <h2 class="m-side-h2">时间分配</h2>
+            <p class="m-side-kicker" id="mkTimeKicker"></p>
+            <div class="m-timetotal" id="mkTimeTotal"></div>
+            <div class="m-timesplit" id="mkTimeSplit"></div>
+            <p class="m-side-foot">只统计任务中写明或可读取的分钟数。</p>
+          </section>
+          <section class="m-side-card pl-rhythm">
+            <h2 class="m-side-h2">今天的节奏</h2>
+            <p>从最上面的一项开始，做完就打勾。时间分配只采用任务中可读取的分钟数。</p>
+            <p>没做完的 AI 任务会自动顺延，不会悄悄丢掉。</p>
+          </section>
+        </aside>
 
     </div>
   </div>
@@ -822,9 +790,8 @@
     </div><!-- /.pt-add -->
 
     <div class="pt-list" style="margin-top:16px;padding-top:14px;border-top:1px solid var(--line)">
-      <div id="planProgress"></div>
-      <!-- commit4：3 天未回来的过期提示（renderRbStale 填充）与每日重排工具条（有 AI 任务才显示） -->
-      <div id="rbStale"></div>
+      <div id="planProgress" hidden></div>
+      <div id="rbStale" hidden></div>
       <div id="rbBar" class="rb-bar" hidden>
         <!-- 丙版：说明一行 + 主按钮；「今天只能学」收进「时间不够？」开关 -->
         <div class="rb-line">
@@ -848,7 +815,18 @@
        只是换了位置；页面上从此只有这一张诊断卡（笔 1 已删掉骨架里那张手写假卡）。 -->
   </div>
 
-  <!-- Tab 2 往日（P-1：原「历史」栏，内容原样未动，只换 tab 值与选中判定） -->
+  <!-- 本周：真实 DATA.plans 的七天总览；完整生成/诊断仍用 #diagRoot -->
+  <div class="tab-panel" id="ptabWeek">
+    <div class="pl-week">
+      <div class="pl-week-grid" id="plWeekGrid"></div>
+      <details class="pl-manage" id="plWeekManage">
+        <summary>生成 / 调整计划<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></summary>
+        <div class="pl-week-manage-body" id="plWeekManageBody"><div id="diagRoot"></div></div>
+      </details>
+    </div>
+  </div>
+
+  <!-- Tab 3 往日 -->
   <div class="tab-panel" id="ptabHistory">
   <div class="m-page">
     <div class="m-mk" id="mkPast">
@@ -881,25 +859,17 @@
   <section class="card" hidden>
     <div id="histPlans"></div>
   </section>
-  </div>
-
-<!-- 备考诊断全屏覆盖层（第三十三批）：问卷/报告两屏都渲染进这里，不新开页面
-     🔴 10/6 00:45 **必须放在 <main> 里面**：软导航（softNavigate）只替换 <main> 的内容、
-        从不搬运 main 之外的元素。原先它挂在 main 结束标签之后 → 从首页点进计划页时，
-        本文档里**根本不存在 #diagOverlay** → openDiagReport/openDiagForm 第一行
-        `if(!ov) return` 直接静默返回 → 「查看完整诊断报告 / 重新诊断」点了零反应零报错
-        （她连报 5 次「计划页交互不了」，而我一直用直接访问复现，所以测不出来）。
-        放进 main 后每次软导航都会带一份新的过来，且随旧 main 一起被回收，天然幂等。
-        ⚠️ 它是 position:fixed，放进来不影响定位 —— 已确认 main/.container/body
-        都没有 transform/filter/will-change/perspective（否则 fixed 会改以祖先为参照）。 -->
-    </div><!-- /.hub-main -->
+  </div><!-- /.pl-viewport -->
+    </div><!-- /.pl-board-body -->
+  </section><!-- /.pl-board -->
+</div><!-- /.hub-main -->
   </div><!-- /.hub-shell -->
 
 <div id="diagOverlay" hidden></div>
 </main>
 
 
-<link rel="stylesheet" href="css/p/hub-shell.css?v=20261116a" />
+<link rel="stylesheet" href="css/p/hub-shell.css?v=20261117a" />
 <script defer src="js/hub-side-shell.js?v=20261106b"></script>
 </body>
 </html>
