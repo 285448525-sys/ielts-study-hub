@@ -50,13 +50,15 @@ async function openUnit(pg, unitId) {
     if (tab) {
       await tab.click();
       await pg.waitForTimeout(500);
-      /* 10-24 M-2: list is now grouped (todo/done) + 20 per screen. Target may be #21+ -> click 展开更多 first. */
+      /* 🔵 11-16 BANK-V2 之后：目录不再「没做过/做过」分组，改扁平列表 + 页尾 `.bk-more[data-more]`
+         「展开更多（还有 N 篇）」。旧选择器 `.bk-grp[data-grp=...] .bk-more` 永远点不到，
+         目标排在第 21 篇之后时就会报「not found after expanding」（11-18 踩）。 */
       let item = await pg.$('.bank-item[data-unit="' + unitId + '"]');
-      for (let k = 0; !item && k < 14; k++) {
-        const more = await pg.$('.bk-grp[data-grp="todo"] .bk-more, .bk-grp[data-grp="done"] .bk-more');
+      for (let k = 0; !item && k < 30; k++) {
+        const more = await pg.$('.bk-more[data-more]');
         if (!more) break;
         await more.click();
-        await pg.waitForTimeout(400);
+        await pg.waitForTimeout(350);
         item = await pg.$('.bank-item[data-unit="' + unitId + '"]');
       }
       if (item) {
