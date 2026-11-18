@@ -376,4 +376,14 @@
 | `_probe_wbview_1023` | 同树的「面包屑 + 5 枚状态胶囊 + 筛选」，现版没有胶囊 | 量书详情口径：三数之和 = 总词数、已掌握数对得上种子（**`counts()` 判已掌握要 `cleared===true` 且 `level>=5`**，只写 cleared 会得 0 —— 踩过一次）、进度条宽度 = 掌握率 ±2%、换书数字跟着换、375/390 不溢出 | 13 / 0 |
 | `_probe_prac42_1023` | 同一死树里的 `#wordList` / `#bankActionBar` / 导入聚焦 | 整支退役（用户不可达的树，尺寸判据没有对象）；若单词管理列表以后回到可达视图，按当时 tab 结构与批量条 DOM 重写再启用 | 退役 |
 
-余下未动 10 支：`r1review`、`latewrt`、`latespk`、`wrtbar`、`wrttpl`、`wordimport`、`worddemote`、`shell4`、`shell5`、`qtype`（26/3）。
+
+### 11-18 第八段：wrtbar / shell5 / shell4 / latespk 四支转绿（提交 `3c5a87ac`、`678a0d45`、`adf2d625`、`663770c2`）
+
+| 探针 | 旧口径（已过期） | 现版口径（改后判据） | 结果 |
+| --- | --- | --- | --- |
+| `_probe_wrtbar_1020` | 从「完整写作模考」入口卡 `#writingFullEntry #wrtFullStart` 进机考壳 | 该入口卡现版不渲染（`renderWritingFullEntry()` 只在 boot 的 `if($("#examList"))` 里跑一次，那时 `WRITING_PROMPTS` 未到）→ 改走真题模考题库第一篇 `#wrQList .wr-qrow`；底栏 40±2 / `#f1f2f3` / 2 枚 28 高按钮 / 单 Task 标签；全屏判 `document.fullscreenElement` | 21 / 0 |
+| `_probe_shell5_1022` | 同上入口卡 | 同改走 `#wrQList` 第一篇；`[data-wr-pane="exam"]` 全屏时自身不一定 hidden（被 `#examPanel` fixed z900 盖住），「收起」判据容高度 0 | 47 / 0 |
+| `_probe_shell4_1022` | 口语模考直接点 `__mockEnter()`；模板表头 sticky + 偏移 0 | ① 11-16 起 `startExam()` 先 `authVipCheck()`，本地无登录态 toast 挡住 → 探针页内打桩 `authVipCheck=true`、`authApiPost` 额度 `remaining:5`（只验 UI 不耗额度）② 11-16 写作四格改版后模板「列表视图」表头 `.tl-row.th` 高度为 0 → 判据回到「列表整块在顶栏下面」+「表头若可见不压第一行」 | 98 / 0 |
+| `_probe_latespk_1017` | 点旧 `#tabs [data-type="MAT"]` / `MOCK` 切视图 | 11-16 起桌面真入口是侧栏 `#hubSubs .hub-sub[data-spt-tab="materials"|"mock"]`（点旧 tab 实测 `show()` 没跑、hash 不变、`#sptMatShell` 空壳 0 字）；素材按结构判（`#sptMatShell` 有子节点＝空态卡也算渲染完成），模考判 `#sptPaneMock` 可见 + 正文 > 40 字（入口卡） | 21 / 0 |
+
+余下未动 6 支：`r1review`（需先造四科成绩 + 一条 mockRecord 夹具）、`latewrt`、`wrttpl`、`wordimport`、`worddemote`、`qtype`（26/3，剩 3 红在统计页「近十天」）。
