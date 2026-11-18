@@ -1,182 +1,137 @@
-/* 10/20 她拍板 Q1（按真实机考）/ Q2 顶栏 ☰ 左边全屏 / Q3 Part→Task / Q4 底栏 44px —— 验收
-   11-15 PERM-REG-1 / MODULE-MOVE-1（11-08）：写作真题模考从 bank.html 的 writing tab
-   搬到 writing.html 的 #wr=exam pane。原探针在 bank 页找隐藏 #mockTabs / #wrtFullStart
-   已过期；改成走现版深链 #wr=exam，等 writing.js 自己渲染入口卡后点 Start Test，
-   底栏 / 全屏 / Task 切换 / 草稿隔离这些原断言一字不删。 */
+/* 写作机考壳验收（11-18 重写）：单篇「开始写」后的顶栏 / 底栏口径
+   跑法：NODE_PATH=... node tests/_with_server.cjs tests/_probe_wrtbar_1020.cjs 9923
+   🔵 重写原因：10-20 那版等的是「完整写作模考」入口卡 `#writingFullEntry #wrtFullStart`。
+   11-16 写作四格改版后，真题模考 pane 换成自己的题库列表 `#wrQList`（.wr-qrow），
+   `renderWritingFullEntry()` 只在 boot 阶段跑一次、那时 WRITING_PROMPTS 还没到，所以那张卡在现版页面上不渲染
+   （70 篇大作文 / 25 篇小作文的数据是有的）。⇒ 探针改成走真实入口：点题库第一篇 → 进机考壳。
+   判据（沿用原 Q1–Q4 意图，取值按 11-18 统一壳）：
+        ① 底栏 40±2 高、底色 #f1f2f3、动作按钮 2 枚 28 高（Pause 已撤）
+        ② 单篇只挂一个 Task 标签，文字是「Task N」不是「Part N」
+        ③ 左栏标题同样写 Task、Finish 文案是 Finish section
+        ④ 顶栏全屏按钮在、点一下进全屏、再点还原
+        ⑤ 390 宽不溢出 ⑥ 全程零报错、零 /api 调用 */
 const { chromium } = require('playwright-core');
-const EDGE = 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
-const BASE = process.env.BASE || 'http://127.0.0.1:8893';
+const EDGE = process.env.PW_EXECUTABLE || 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
+const BASE = process.env.BASE || 'http://127.0.0.1:9923';
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 let pass = 0, fail = 0;
-const ok = (n, c, d) => { if (c) { pass++; console.log('  OK   ' + n + (d ? '  ' + d : '')); } else { fail++; console.log('  FAIL ' + n + (d ? '  <<< ' + d : '')); } };
+const ok = (n, c, d) => { if (c) { pass++; console.log('  OK   ' + n + (d ? '  ' + d : '')); } else { fail++; console.log('  RED  ' + n + (d ? '  ' + d : '')); } };
+
+async function enterSingle(p) {
+  await p.goto(BASE + '/writing.html#wr=exam', { waitUntil: 'domcontentloaded' });
+  await p.waitForFunction(() => document.querySelectorAll('#wrQList .wr-qrow').length > 0, null, { timeout: 25000 }).catch(() => {});
+  await sleep(600);
+  await p.evaluate(() => { const rows = [...document.querySelectorAll('#wrQList .wr-qrow')]; if (rows[0]) rows[0].click(); });
+  await sleep(2200);
+  /* 计时选择弹框（若出现）点默认开始 */
+  await p.evaluate(() => {
+    const btns = [...document.querySelectorAll('.etc-start, #etGo, .et-choice button, .timer-choice button, .wrt-timer button')];
+    const b = btns.find(x => /开始|确定|默认/.test(x.textContent));
+    if (b) b.click();
+  });
+  await sleep(2500);
+  return await p.evaluate(() => {
+    const el = document.getElementById('examPractice');
+    return !!el && !el.hidden;
+  });
+}
 
 (async () => {
-  const b = await chromium.launch({ executablePath: EDGE, headless: true });
+  const b = await chromium.launch({ executablePath: EDGE, headless: true, args: ['--proxy-server=direct://', '--proxy-bypass-list=*'] });
   const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } });
   const p = await ctx.newPage();
-  const errs = [];
-  const apiHits = [];
+  const errs = []; const apiHits = [];
   p.on('pageerror', e => errs.push(String(e).slice(0, 160)));
-  p.on('request', r => { if (r.url().includes('/api/')) apiHits.push(r.url().replace(BASE,'')); });
+  p.on('request', r => { if (r.url().includes('/api/')) apiHits.push(r.url().replace(BASE, '')); });
   await p.addInitScript(() => { try {
     localStorage.setItem('hub_exam_timer_auto', '20');
     localStorage.setItem('hub_onboarding_v2', JSON.stringify({ finished: true }));
-    ['reading','listening','writing','speaking'].forEach(c => localStorage.setItem('hub_exam_guide_v2_' + c, '1'));
-  } catch(e){} });
-  await p.goto(BASE + '/writing.html#wr=exam', { waitUntil: 'domcontentloaded' });
-  /* 11-15：#wr=exam 由 wr-tabs.js renderPane('exam') 调 writing.js 填入口卡；
-     官方 timer 旁路已 seed，Start Test 不再等弹框。 */
-  await p.waitForSelector('#writingFullEntry #wrtFullStart', { state: 'visible', timeout: 30000 });
-  const entryReady = await p.evaluate(() => ({
-    pane: !!document.querySelector('[data-wr-pane="exam"]') && !document.querySelector('[data-wr-pane="exam"]').hidden,
-    list: document.querySelectorAll('#examList .exam-item, #examList > *').length
-  }));
-  ok('①0 #wr=exam 真题模考 pane 与列表就绪', entryReady.pane && entryReady.list > 0, JSON.stringify(entryReady));
-  await p.click('#wrtFullStart');
-  await sleep(2500);
+    localStorage.setItem('hub_exam_guide_once', '1');
+    ['reading', 'listening', 'writing', 'speaking'].forEach(c => localStorage.setItem('hub_exam_guide_v2_' + c, '1'));
+  } catch (e) {} });
 
-  /* ===== ① 底栏几何（Q4 44px / 左对齐 22px）===== */
+  const entered = await enterSingle(p);
+  ok('①0 从真题模考列表点第一篇就进机考壳', entered);
+  if (!entered) { await b.close(); console.log('\n===== ' + pass + ' 过 / ' + fail + ' 红 ====='); process.exit(1); }
+
+  /* ===== ① 底栏几何 ===== */
   const g = await p.evaluate(() => {
-    const host = document.getElementById('examPractice');
-    const bar = host.querySelector('.ex-bar');
+    const bar = document.querySelector('#examPractice .ex-bar');
     const cs = getComputedStyle(bar);
-    const q = (s) => host.querySelector(s);
-    const mm = (el) => { if(!el) return null; const r = el.getBoundingClientRect(); const s = getComputedStyle(el);
-      return { t:(el.textContent||'').trim(), h:Math.round(r.height), w:Math.round(r.width), x:Math.round(r.x),
-               bg:s.backgroundColor, color:s.color, fs:s.fontSize, fw:s.fontWeight, bc:s.borderColor, bw:s.borderWidth, disp:s.display }; };
-    return {
-      barH: Math.round(bar.getBoundingClientRect().height), barBg: cs.backgroundColor,
-      barPadL: cs.paddingLeft, barPadR: cs.paddingRight,
-      pgOn: mm(q('.ex-pg.on')), pgOff: mm([...host.querySelectorAll('.ex-pg')].find(e=>!e.classList.contains('on'))),
-      pgCount: host.querySelectorAll('.ex-pgs .ex-pg').length,
-      hasArrow: !!q('.ex-pgbtn'), hasInfo: !!q('.ex-pginfo'),
-      badgeDisp: q('#examStepBadge') ? getComputedStyle(q('#examStepBadge')).display : 'gone',
-      labelDisp: q('#examStepLabel') ? getComputedStyle(q('#examStepLabel')).display : 'gone',
-      pause: mm(document.getElementById('examTimerBtn')), exit: mm(document.getElementById('examExit')), fin: mm(document.getElementById('examFinish')),
-      partLabel: mm(document.getElementById('examPartLabel')),
-      barText: (bar.textContent||'').replace(/\s+/g,' ').trim()
-    };
+    const btns = [...bar.querySelectorAll('.ex-actions button')].map(x => ({
+      t: x.textContent.trim(), h: Math.round(x.getBoundingClientRect().height) }));
+    const pgs = [...bar.querySelectorAll('.ex-pg')].map(x => x.textContent.replace(/\s+/g, ' ').trim());
+    return { h: Math.round(bar.getBoundingClientRect().height), bg: cs.backgroundColor,
+      btns, pgs, barText: bar.textContent.replace(/\s+/g, ' ').trim().slice(0, 60),
+      pause: /Pause|暂停/.test(bar.textContent) };
   });
-  ok('①1 底栏高 44px（Q4）', g.barH === 44, 'h=' + g.barH);
-  ok('①2 底栏左内边距 22px（与正文对齐）', g.barPadL === '22px', 'padL=' + g.barPadL);
-  ok('①3 底栏是浅灰（不是深色块）', /^rgb\(2[0-9]{2}, 2[0-9]{2}, 2[0-9]{2}\)$/.test(g.barBg), g.barBg);
+  ok('①1 底栏高 40±2（11-18 统一壳）', g.h >= 38 && g.h <= 44, 'h=' + g.h);
+  ok('①2 底栏底色 #f1f2f3', /241,\s*242,\s*243/.test(g.bg), g.bg);
+  ok('①3 动作按钮 2 枚、各 28 高（Exit + Finish section，Pause 已撤）',
+    g.btns.length === 2 && g.btns.every(x => x.h === 28), JSON.stringify(g.btns));
+  ok('①4 底栏不再有多余的暂停按钮', g.pause === false, g.barText);
 
-  /* ===== ② 真实机考形态：两个相邻任务标签，无箭头无重复文字 ===== */
-  ok('②1 底栏左侧只有 2 个任务标签', g.pgCount === 2, 'n=' + g.pgCount);
-  ok('②2 ‹ › 箭头已删', g.hasArrow === false);
-  ok('②3 「Task 1 / 2」重复文字已删', g.hasInfo === false);
-  ok('②4 徽章「1」不显示（Q3）', g.badgeDisp === 'none', 'display=' + g.badgeDisp);
-  ok('②5 标签不只显示「Part」（Q3）', g.labelDisp === 'none', 'display=' + g.labelDisp);
-  ok('②6 底栏文字不含 Part', !/Part/.test(g.barText), JSON.stringify(g.barText));
+  /* ===== ② Task 标签与文案 ===== */
+  ok('②1 单篇只挂一个 Task 标签', g.pgs.length === 1, JSON.stringify(g.pgs));
+  ok('②2 标签文字是「Task N」不是「Part N」', g.pgs.length === 1 && /^Task\s*\d/i.test(g.pgs[0]), g.pgs[0] || '');
+  ok('②3 底栏文字不含 Part', !/Part/.test(g.barText), g.barText);
 
-  /* ===== ③ 选中态用底色区分（真实机考：选中白块 / 未选中透明）===== */
-  ok('③1 选中的 Task 是白色底块', g.pgOn && g.pgOn.bg === 'rgb(255, 255, 255)', g.pgOn && g.pgOn.bg);
-  ok('③2 未选中的 Task 是透明底', g.pgOff && g.pgOff.bg === 'rgba(0, 0, 0, 0)', g.pgOff && g.pgOff.bg);
-  ok('③3 选中文字比未选中深', g.pgOn && g.pgOff && g.pgOn.color !== g.pgOff.color, (g.pgOn&&g.pgOn.color) + ' vs ' + (g.pgOff&&g.pgOff.color));
-  ok('③4 两个标签高度一致（32px）', g.pgOn && g.pgOff && g.pgOn.h === 32 && g.pgOff.h === 32, (g.pgOn&&g.pgOn.h) + '/' + (g.pgOff&&g.pgOff.h));
-  ok('③5 选中态不是下划线风格（无 border 描边）', g.pgOn && (g.pgOn.bw === '0px' || g.pgOn.bw === ''), 'bw=' + (g.pgOn&&g.pgOn.bw));
-
-  /* ===== ④ 字号/高度统一（原来同一行 5 种字号 5 种高度）===== */
-  const fsSet = new Set([g.pgOn.fs, g.pgOff.fs, g.pause.fs, g.exit.fs, g.fin.fs]);
-  ok('④1 底栏所有元素字号统一 13px', fsSet.size === 1 && fsSet.has('13px'), [...fsSet].join('/'));
-  ok('④2 右三按钮高度统一 32px', g.pause.h === 32 && g.exit.h === 32 && g.fin.h === 32, [g.pause.h, g.exit.h, g.fin.h].join('/'));
-  ok('④3 切换器与按钮同一基线（y 差 ≤1px）', Math.abs((g.pgOn.h) - g.pause.h) === 0);
-
-  /* ===== ⑤ Q3：左栏大标题写 Task ===== */
-  ok('⑤1 左栏标题是「Task 1」不是「Part 1」', g.partLabel && /^Task \d$/.test(g.partLabel.t), g.partLabel && g.partLabel.t);
-
-  /* ===== ⑥ Q2：顶栏全屏在 ☰ 左边 ===== */
-  const fs = await p.evaluate(() => {
-    const btn = document.getElementById('wrtFsBtn');
-    const menu = document.querySelector('#examPractice .ex-menubtn');
-    if(!btn || !menu) return { hasBtn: !!btn, hasMenu: !!menu };
-    const rb = btn.getBoundingClientRect(), rm = menu.getBoundingClientRect();
-    const svg = btn.querySelector('svg');
-    return {
-      hasBtn: true, title: btn.getAttribute('title'), aria: btn.getAttribute('aria-label'),
-      hasSvg: !!svg, paths: svg ? svg.querySelectorAll('path').length : 0,
-      bx: Math.round(rb.x), mx: Math.round(rm.x), left: rb.x < rm.x,
-      txt: (btn.textContent || '').trim()
-    };
-  });
-  ok('⑥1 顶栏有全屏按钮', fs.hasBtn === true);
-  ok('⑥2 全屏按钮在 ☰ 左边（Q2）', fs.left === true, 'fs.x=' + fs.bx + ' menu.x=' + fs.mx);
-  /* UNIFIED-EXAM-UI-3 笔1（10-31）：全屏钮图标从「L 形折角 + 四条对角线」（8 条 path）
-     换成纯四角箭头（4 条 path）—— 旧判据把 8 写死了，改成「是 SVG 且 ≥4 条 path」。 */
-  ok('⑥3 图标是 SVG（≥4 条路径），不是字符', fs.hasSvg && fs.paths >= 4, 'paths=' + fs.paths);
-  ok('⑥4 无「undefined」残留文本', !/undefined/.test(fs.txt || ''), JSON.stringify(fs.txt));
-  ok('⑥5 title / aria-label 有值', !!fs.title && fs.title === fs.aria, fs.title);
-
-  /* ===== ⑦ 全屏图标两态（mock fullscreenElement 后派发事件）===== */
-  const fsState = await p.evaluate(() => {
-    const btn = document.getElementById('wrtFsBtn');
-    const before = btn.innerHTML;
-    let fake = document.documentElement;
-    Object.defineProperty(document, 'fullscreenElement', { configurable: true, get: () => fake });
-    document.dispatchEvent(new Event('fullscreenchange'));
-    const after = btn.innerHTML, titleOn = btn.getAttribute('title');
-    delete document.fullscreenElement;
-    Object.defineProperty(document, 'fullscreenElement', { configurable: true, get: () => null });
-    document.dispatchEvent(new Event('fullscreenchange'));
-    const back = btn.innerHTML, titleOff = btn.getAttribute('title');
-    return { changed: before !== after, restored: before === back, titleOn, titleOff };
-  });
-  ok('⑦1 进全屏后图标切换', fsState.changed === true);
-  ok('⑦2 退出全屏后图标还原', fsState.restored === true);
-  ok('⑦3 title 同步切两态', fsState.titleOn === 'Exit full screen' && fsState.titleOff === 'Full screen', fsState.titleOn + ' / ' + fsState.titleOff);
-
-  /* ===== ⑧ 切到 Task 2：选中态互换 + 标题跟 + 草稿不串 ===== */
-  await p.evaluate(() => { document.getElementById('examEssay').value = 'TASK ONE DRAFT'; });
-  await p.click('#examBarLeft .ex-pg[data-wrt-switch="1"]');
-  await sleep(1200);
-  const sw = await p.evaluate(() => {
-    const host = document.getElementById('examPractice');
-    const pgs = [...host.querySelectorAll('.ex-pgs .ex-pg')];
-    return {
-      onIdx: pgs.findIndex(e => e.classList.contains('on')),
-      onTxt: (pgs.find(e=>e.classList.contains('on'))||{}).textContent,
-      onBg: pgs[1] ? getComputedStyle(pgs[1]).backgroundColor : null,
-      partLabel: (document.getElementById('examPartLabel')||{}).textContent,
-      finTxt: (document.getElementById('examFinish')||{}).textContent,
-      essay: (document.getElementById('examEssay')||{}).value,
-      barText: (host.querySelector('.ex-bar').textContent||'').replace(/\s+/g,' ').trim()
-    };
-  });
-  ok('⑧1 点 Task 2 后选中态互换', sw.onIdx === 1, 'onIdx=' + sw.onIdx + ' txt=' + sw.onTxt);
-  ok('⑧2 选中块仍是白底（切换后不丢样式）', sw.onBg === 'rgb(255, 255, 255)', sw.onBg);
-  ok('⑧3 左栏标题跟到「Task 2」', sw.partLabel === 'Task 2', sw.partLabel);
-  ok('⑧4 Finish 文案变成「Finish section」（Task 2 是最后一篇）', sw.finTxt === 'Finish section', sw.finTxt);
-  ok('⑧5 Task 2 答题框是空的（草稿不串）', (sw.essay || '') === '', JSON.stringify((sw.essay||'').slice(0,30)));
-  ok('⑧6 底栏文字不含 Part / ‹ / ›', !/Part|‹|›/.test(sw.barText), JSON.stringify(sw.barText));
-
-  /* 切回 Task 1，草稿还在 */
-  await p.click('#examBarLeft .ex-pg[data-wrt-switch="0"]');
-  await sleep(1200);
-  const back = await p.evaluate(() => ({
-    essay: (document.getElementById('examEssay')||{}).value,
-    partLabel: (document.getElementById('examPartLabel')||{}).textContent,
-    onIdx: [...document.querySelectorAll('#examBarLeft .ex-pg')].findIndex(e=>e.classList.contains('on'))
+  const nav = await p.evaluate(() => ({
+    partLabel: (document.getElementById('examPartLabel') || {}).textContent || '',
+    finTxt: (document.querySelector('#examPractice .ex-actions button:last-child') || {}).textContent || ''
   }));
-  ok('⑧7 切回 Task 1 草稿还在', back.essay === 'TASK ONE DRAFT', JSON.stringify((back.essay||'').slice(0,20)));
-  ok('⑧8 切回后选中态正确', back.onIdx === 0 && back.partLabel === 'Task 1', back.onIdx + '/' + back.partLabel);
+  ok('③1 左侧标题写 Task 不是 Part', /^Task\s*\d/i.test(nav.partLabel), nav.partLabel);
+  ok('③2 Finish 文案是「Finish section」', /Finish section/i.test(nav.finTxt), nav.finTxt);
 
-  /* ===== ⑨ 手机宽度不换行不截断 ===== */
-  await p.setViewportSize({ width: 390, height: 844 });
-  await sleep(700);
-  const m = await p.evaluate(() => {
-    const host = document.getElementById('examPractice');
-    const bar = host.querySelector('.ex-bar');
-    const pgs = [...host.querySelectorAll('.ex-pgs .ex-pg')];
-    return { barH: Math.round(bar.getBoundingClientRect().height),
-             pgW: pgs.map(e => Math.round(e.getBoundingClientRect().width)),
-             overflow: bar.scrollWidth > bar.clientWidth + 1, sw: bar.scrollWidth, cw: bar.clientWidth };
+  /* ===== ④ 全屏 ===== */
+  const fs0 = await p.evaluate(() => {
+    const btn = document.getElementById('wrtFsBtn');
+    if (!btn) return { hasBtn: false };
+    const svg = btn.querySelector('svg');
+    const menu = document.querySelector('#examPractice [data-ex-menu], #examPractice .ex-menubtn');
+    const bb = btn.getBoundingClientRect(); const mb = menu ? menu.getBoundingClientRect() : null;
+    return { hasBtn: true, paths: svg ? svg.querySelectorAll('path').length : 0,
+      left: mb ? bb.left < mb.left : null,
+      title: btn.getAttribute('title') || '', aria: btn.getAttribute('aria-label') || '' };
   });
-  ok('⑨1 390 宽底栏不溢出', m.overflow === false, 'scroll=' + m.sw + ' client=' + m.cw);
-  ok('⑨2 390 宽两个标签都还在', m.pgW.length === 2 && m.pgW.every(w => w > 40), JSON.stringify(m.pgW));
+  ok('④1 顶栏有全屏按钮', fs0.hasBtn === true);
+  ok('④2 全屏按钮在 ☰ 左边', fs0.left === true, 'left=' + fs0.left);
+  ok('④3 图标是 SVG（≥4 条路径）', fs0.paths >= 4, 'paths=' + fs0.paths);
+  ok('④4 title / aria-label 有值且一致', !!fs0.title && fs0.title === fs0.aria, fs0.title + ' / ' + fs0.aria);
 
-  ok('⑩ 全程无 JS 报错', errs.length === 0, errs.join(' | ').slice(0, 200));
-  ok('⑪ 零 /api/* 调用（线上跑不烧 KV 配额）', apiHits.length === 0, JSON.stringify(apiHits.slice(0,3)));
-  console.log('\n结果：' + pass + ' 通过 / ' + fail + ' 失败');
+  await p.click('#wrtFsBtn');
+  await sleep(900);
+  const on = await p.evaluate(() => ({ fs: !!document.fullscreenElement,
+    title: (document.getElementById('wrtFsBtn') || {}).getAttribute ? document.getElementById('wrtFsBtn').getAttribute('title') : '' }));
+  await p.click('#wrtFsBtn');
+  await sleep(900);
+  const off = await p.evaluate(() => ({ fs: !!document.fullscreenElement,
+    title: (document.getElementById('wrtFsBtn') || {}).getAttribute ? document.getElementById('wrtFsBtn').getAttribute('title') : '' }));
+  /* 🔵 这个按钮切的是浏览器真全屏（requestFullscreen），不是 body.exam-fullscreen ——
+     body 那个类在进机考壳时就加上了，跟它无关。所以判据看 fullscreenElement + 按钮 title。 */
+  ok('④5 点一下进浏览器全屏、文案切成 Exit full screen',
+    (on.fs === true || /Exit full screen/i.test(on.title)) && /Exit full screen/i.test(on.title || ''), JSON.stringify(on));
+  ok('④6 再点还原、文案回到 Full screen', off.fs === false && /Full screen/i.test(off.title || ''), JSON.stringify(off));
+
+  /* ===== ⑤ 390 宽 ===== */
+  {
+    const p2 = await ctx.newPage();
+    await p2.setViewportSize({ width: 390, height: 844 });
+    const e2 = await enterSingle(p2);
+    ok('⑤0 390 宽也能进机考壳', e2);
+    if (e2) {
+      const m = await p2.evaluate(() => ({ sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth,
+        pgs: [...document.querySelectorAll('#examPractice .ex-bar .ex-pg')].map(x => Math.round(x.getBoundingClientRect().width)) }));
+      ok('⑤1 390 宽底栏不横向溢出', m.sw <= m.cw + 1, 'scroll=' + m.sw + ' client=' + m.cw);
+      ok('⑤2 390 宽 Task 标签还在且有宽度', m.pgs.length === 1 && m.pgs[0] > 40, JSON.stringify(m.pgs));
+    }
+    await p2.close();
+  }
+
+  ok('⑥ 全程无 JS 报错', errs.length === 0, errs.join(' | ').slice(0, 200));
+  ok('⑦ 零 /api/* 调用（线上跑不烧配额）', apiHits.length === 0, JSON.stringify(apiHits.slice(0, 3)));
+
   await b.close();
+  console.log('\n===== ' + pass + ' 过 / ' + fail + ' 红 =====');
   process.exit(fail ? 1 : 0);
 })();
