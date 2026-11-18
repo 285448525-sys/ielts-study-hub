@@ -213,8 +213,9 @@ const LIST = [
   '_probe_wbdeck_1023.cjs',
   '_probe_wbview_1023.cjs',
   '_probe_todaynum_1023.cjs',
-  '_probe_prac42_1023.cjs',
   '_probe_pracdarks_1023.cjs',
+  /* '_probe_prac42_1023.cjs' 已于 2026-11-18 退役：它验的 #wordList / #bankActionBar 全在 #wmLegacy 死树里，
+     11-16 单词四页改版后不再被任何 tab 打开。原文沉 tests/_archived/。 */
   /* ---- 10/23 B-6 小步1 .streak-chip 三段定义收敛 ----
      加进基线的原因：这个 chip 的配色由「哪段定义排在后面」决定，三段里任何一段被挪位置/改选择器，
      页面都不会报错、只会静默换色（背词连击 chip 就长期吃着首页那条空转规则）。本支钉死三处在用的地方
