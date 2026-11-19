@@ -3404,3 +3404,87 @@ main .m-plancard,main .m-side-card,main .esys--inline,main .exam-item,main .wb2-
 /* 11-11 她纠正：NO-DECO-HEAD 本意只删别的页面的装饰大字，首页 .hero 的问候大字
    被误伤一起藏掉 → 左上角空一块变丑。把 .hero h1 从隐藏名单里摘出来，首页恢复
    她 11-05 拍板的大字问候；别的页面装饰大字照旧隐藏，不动那条硬规矩的其余部分。 */
+
+/* =======================================================================
+   STATE-UNIFY-1119（11-19）：整页 / 主区域空态与「即将上线」统一收口。
+   只统一主状态卡：首次使用、记录为空、权限 / 未开启、功能即将上线。
+   表格筛选无结果、行内加载与普通 muted 短提示不撑成大卡。
+   原顶栏 44px、1160px 普通容器、计划特殊全宽与手机 Dock 均不动。
+   ======================================================================= */
+:root{--hub-state-w:920px;--hub-state-h:340px;--hub-state-radius:14px}
+body:not(.exam-fullscreen):not(.mock-immerse):not(.word-fullscreen):not(.hub-exam-locked) :is(
+  .es-box,.bk2-empty,.bk2-soon,.cp-coming,.tch-state,#wdEmptyState,
+  #sptRecordsBody>.spt-record-empty,#wrRecordsBody>.wr-empty,#mDays .esys,.hub-state-card
+){
+  box-sizing:border-box;width:100%;max-width:var(--hub-state-w);min-height:var(--hub-state-h);
+  margin:0 auto!important;border:1px solid var(--line)!important;border-radius:var(--hub-state-radius)!important;
+  background:var(--surface)!important;background-image:none!important;box-shadow:none!important;
+}
+/* 单栏状态：同一居中骨架。双栏 .es-box 不在此列，保留有价值的真实预览。 */
+body:not(.exam-fullscreen):not(.mock-immerse):not(.word-fullscreen):not(.hub-exam-locked) :is(
+  .bk2-empty,.bk2-soon,.cp-coming,.tch-state,#wdEmptyState,
+  #sptRecordsBody>.spt-record-empty,#wrRecordsBody>.wr-empty,#mDays .esys,.hub-state-card
+){
+  padding:32px 24px!important;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;overflow:hidden;
+}
+/* 首次使用 B 卡：保留左行动 / 右预览，去掉各页不同的外 margin 与过大标题。 */
+.es-box{overflow:hidden}
+.es-box.es-b{width:100%;margin:0!important;grid-template-columns:minmax(0,1fr) 300px}
+.es-box .es-b-top{padding:32px}
+.es-box .es-b-side{padding:28px 24px}
+.es-box .es-b-top h2{font-size:18px;line-height:1.45;margin:14px 0 8px}
+.es-box .es-b-top p{font-size:13px;line-height:1.75}
+.rva-chart-wrap:has(>.es-box){min-height:var(--hub-state-h)}
+.rva-chart-wrap>.es-box{inset:0}
+/* 计划往日空态必须横跨网格，不能再被 auto-fill 挤成一列窄条。 */
+#mDays .esys{grid-column:1/-1!important;justify-self:center}
+#mDays .esys .esys-ic{width:48px;height:48px;border-radius:14px;margin-bottom:14px}
+#mDays .esys .esys-ic svg{width:22px;height:22px}
+#mDays .esys .esys-title{font-size:18px;line-height:1.45;color:var(--ink)}
+#mDays .esys .esys-desc{font-size:13px;line-height:1.75;max-width:480px}
+/* 图标统一：48px 浅色方圆角，22px 线性图标；三套主题均使用 token。 */
+:is(#wdEmptyState .es-ico,.spt-empty-ic,.wr-empty-ic,.bk2-empty-visual,.bk2-soon-icon,.cp-coming-ic,.tch-state .ic,.hub-state-ic){
+  width:48px;height:48px;min-width:48px;margin:0 auto 14px;border:0!important;border-radius:14px!important;
+  background:var(--primary-50)!important;color:var(--primary-700)!important;box-shadow:none!important;
+  display:grid;place-items:center;flex:none;
+}
+:is(#wdEmptyState .es-ico,.spt-empty-ic,.wr-empty-ic,.bk2-empty-visual,.bk2-soon-icon,.cp-coming-ic,.tch-state .ic,.hub-state-ic) svg{
+  width:22px!important;height:22px!important;stroke-width:1.8;
+}
+/* 标题与说明统一，不再 14 / 16 / 22px 各自为政。 */
+:is(#wdEmptyState .es-title,#sptRecordsBody>.spt-record-empty>b,#wrRecordsBody>.wr-empty>b,.bk2-empty>b,.bk2-soon>b,.cp-coming-card>b,.tch-state>b,.hub-state-card h2){
+  display:block;margin:0 0 8px;font-size:18px;font-weight:750;line-height:1.45;letter-spacing:-.01em;color:var(--ink);
+}
+:is(#wdEmptyState .es-desc,#sptRecordsBody>.spt-record-empty>p,#wrRecordsBody>.wr-empty>span:not(.wr-empty-ic),.bk2-empty>p,.cp-coming-card>p,.tch-state>p,.hub-state-card p){
+  max-width:480px;margin:0 auto 18px;font-size:13px;line-height:1.75;color:var(--muted);
+}
+/* 主按钮统一高度，真实链接与事件保持原样。 */
+:is(#wdEmptyState .es-actions,#sptRecordsBody>.spt-record-empty,.wr-empty-actions,.bk2-empty,.tch-state,.hub-state-card) :is(.btn-primary,.spt-btn,.wr-btn,.bk2-empty-act,.tch-btn,.btn-med){
+  min-height:42px;border-radius:10px;font-size:13px;line-height:1.2;
+}
+:is(#wdEmptyState .es-actions,.wr-empty-actions,.tch-state .acts){margin-top:0;gap:10px}
+/* 机经「即将上线」去掉独立渐变与大圆装饰，和普通空态同一张卡。 */
+.bk2-soon:before,.bk2-soon:after{display:none!important}
+/* 句子练习不再用整屏磨砂假底稿 + 悬浮小卡；直接呈现同一主状态。 */
+.cp-coming-demo,.cp-coming-veil{display:none!important}
+.cp-coming-card{position:static!important;transform:none!important;width:min(100%,560px);padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;text-align:center}
+/* 公告原来只有窄内容列；含主状态卡时，公告内容列与统一卡同宽。 */
+@media(min-width:761px){.anc-page:has(>.es-box){max-width:920px}}
+/* 回顾空账号不再保留 520px+ 的旧白色外壳，避免标准卡外又套一张超高卡。 */
+.rva-empty-panel:has(>.es-box){display:block!important;flex:0 0 auto!important;height:auto!important;min-height:0!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important}
+.rva-page:has(>.rva-empty-panel>.es-box){display:block!important;flex:0 0 auto!important;height:auto!important;min-height:0!important}
+/* 单词空态父级旧 grid 会把卡片拉满剩余视口，改为内容高度。 */
+#studyView.is-empty,#studyView.is-empty #preStart{display:block!important;flex:0 0 auto!important;height:auto!important;min-height:0!important}
+#wdEmptyState{height:var(--hub-state-h)!important;flex:0 0 auto!important}
+@media(max-width:760px){
+  :root{--hub-state-h:320px}
+  body:not(.exam-fullscreen):not(.mock-immerse):not(.word-fullscreen):not(.hub-exam-locked) :is(
+    .bk2-empty,.bk2-soon,.cp-coming,.tch-state,#wdEmptyState,
+    #sptRecordsBody>.spt-record-empty,#wrRecordsBody>.wr-empty,#mDays .esys,.hub-state-card
+  ){padding:26px 18px!important}
+  .es-box.es-b{grid-template-columns:1fr}
+  .es-box .es-b-top{padding:24px 20px}
+  .es-box .es-b-side{padding:20px;border-left:0;border-top:1px solid var(--line)}
+  .es-box .es-b-top h2{font-size:18px}
+}

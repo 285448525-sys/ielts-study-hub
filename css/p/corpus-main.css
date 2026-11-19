@@ -126,10 +126,11 @@
   .cp-coming{min-height:calc(100dvh - 130px)}
 }
 
-/* 11-18 她批注：错题空态「不要内外框，直接把里面这个轮廓线删掉」。
-   外框 = #ebView > .kc-card（保留），内框 = es-b.js 换进来的 .es-box（去掉边框/外边距）。
-   只去内框轮廓，B 卡内容（价值句 + 主动作 + 右侧预览）原样保留。 */
-#ebView .kc-card > .es-box{border:0!important;border-radius:0;background:transparent;box-shadow:none}
+/* 11-19 STATE-UNIFY：错题空态只保留一张标准主状态卡。
+   外层 .kc-card 去掉重复框与内边距；内层 .es-box 恢复全站统一的 14px 细边框卡，
+   避免「外面一框、里面又一框」，也避免它成为全站唯一无边框的特例。 */
+#ebView > .kc-card:has(> .es-box){padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important}
+#ebView .kc-card > .es-box{border:1px solid var(--line)!important;border-radius:14px!important;background:var(--surface)!important;box-shadow:none!important}
 #ebView .kc-card > .es-box .es-b{margin:0}
 
 @media(max-width:420px){

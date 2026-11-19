@@ -4,7 +4,7 @@ ready(() => {
     const main = document.querySelector('main.container');
     if(main){
       main.innerHTML = '<h1 class="page-title">服药</h1>'
-        + '<section class="card"><h2>模块未开启</h2>'
+        + '<section class="card hub-state-card"><span class="hub-state-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="2"/><circle cx="15" cy="17" r="2"/></svg></span><h2>模块未开启</h2>'
         + '<p class="muted" style="font-size:14px;line-height:1.8;margin:0 0 14px">当前设置里未启用「服药」模块，'
         + '因此这里没有可操作的内容（9/21 起该模块默认关闭）。已记录的服药数据都还在，重新开启后即可继续查看。</p>'
         + '<a class="btn btn-med" href="settings.html">去设置开启</a></section>';
