@@ -3491,3 +3491,14 @@ body:not(.exam-fullscreen):not(.mock-immerse):not(.word-fullscreen):not(.hub-exa
   .es-box .es-b-side{padding:20px;border-left:0;border-top:1px solid var(--line)}
   .es-box .es-b-top h2{font-size:18px}
 }
+/* 11-19 复检：手机端不同页面的内容容器宽度不同，统一卡此前被带成 342/366 两档。
+   主状态卡统一收成「视口两侧各留 24px」，各页同宽同中心；桌面不受影响。 */
+@media(max-width:760px){
+  body:not(.exam-fullscreen):not(.mock-immerse):not(.word-fullscreen):not(.hub-exam-locked) :is(
+    .es-box,.bk2-empty,.bk2-soon,.cp-coming,.tch-state,#wdEmptyState,
+    #sptRecordsBody>.spt-record-empty,#wrRecordsBody>.wr-empty,#mDays .esys,.hub-state-card
+  ){
+    width:calc(100vw - 48px)!important;max-width:calc(100vw - 48px)!important;
+    margin-left:auto!important;margin-right:auto!important;
+  }
+}
