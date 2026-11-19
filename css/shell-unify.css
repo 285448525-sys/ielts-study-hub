@@ -44,28 +44,16 @@ html[data-theme="dark"] body.shell-unify{
   --su-warm-soft:#1D231D;
 }
 
-/* 五页共用：桌面顶栏从 44 抬到 64，给一级导航留呼吸；手机仍走底栏 */
+/* 五页共用：尺寸完全沿用全站原外壳（44px 顶栏、原 container 宽度与留白）。
+   这里只换表面颜色，不再另造一套顶栏高度、字体或页面几何。 */
 @media (min-width:861px){
-  body.shell-unify[data-shell="top"]{padding-top:64px}
   body.shell-unify[data-shell="top"] .hub-topbar{
-    height:64px;
-    padding-left:28px;
-    padding-right:28px;
     background:color-mix(in srgb, var(--su-paper) 92%, transparent);
     border-bottom-color:var(--su-line);
-    backdrop-filter:blur(14px);
   }
-  body.shell-unify[data-shell="top"] .hub-topbar .tb-logo{font-size:15px;letter-spacing:-.01em}
-  body.shell-unify[data-shell="top"] .hub-topbar .tb-item{font-size:13px}
-  body.shell-unify[data-shell="top"] .hub-topbar .tb-inner{height:64px}
-  body.shell-unify[data-shell="top"] main.container{padding-top:30px;padding-bottom:40px}
-}
-@media (max-width:860px){
-  body.shell-unify{background:var(--su-paper)}
-  body.shell-unify main.container{padding:14px 14px 96px}
 }
 
-.su-page{max-width:1160px;margin:0 auto;color:var(--su-ink);font-family:inherit}
+.su-page{width:100%;max-width:none;margin:0;color:var(--su-ink);font-family:inherit}
 .su-page-head{margin:0 0 22px}
 .su-kicker{
   display:inline-flex;align-items:center;gap:7px;

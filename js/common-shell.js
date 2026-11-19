@@ -1254,10 +1254,10 @@ async function swapPageStyles(doc, pageId){
      直接把这份共用壳样式纳入软导航同步，不再要求用户整页刷新。 */
   const isNavCss = el => {
     const href = el.getAttribute('href') || '';
-    return href.indexOf('css/p/') >= 0 || href.indexOf('css/exam-shell.css') >= 0;
+    return href.indexOf('css/p/') >= 0 || href.indexOf('css/exam-shell.css') >= 0 || href.indexOf('css/shell-unify.css') >= 0;
   };
   const nextHrefs = [...doc.querySelectorAll('link[rel="stylesheet"]')]
-    .map(l => l.getAttribute('href') || '').filter(h => h.indexOf('css/p/') >= 0 || h.indexOf('css/exam-shell.css') >= 0);
+    .map(l => l.getAttribute('href') || '').filter(h => h.indexOf('css/p/') >= 0 || h.indexOf('css/exam-shell.css') >= 0 || h.indexOf('css/shell-unify.css') >= 0);
   const oldLinks = [...document.querySelectorAll('link[rel="stylesheet"]')].filter(isNavCss);
   if(nextHrefs.join('|') === oldLinks.map(l => l.getAttribute('href')).join('|')) return;
   await Promise.all(nextHrefs.map(href => new Promise(res => {
@@ -1276,8 +1276,8 @@ async function swapPageStyles(doc, pageId){
        跟网速无关、跟缓存无关，只要走软导航就必现 —— 她一直是点导航进来的，所以只有她看得见。
        修法：插到第一条内联 <style> 之前，让「外链 CSS 在前、页面内联在后」这个顺序
        与直开完全一致；无内联样式时才退回 appendChild。这是一处修所有同类页的结构层改动。 */
-    if(href.indexOf('css/exam-shell.css') >= 0){
-      /* 直开两页时 exam-shell.css 就在 head 最后；软导航保持同一顺序，避免与页内补丁打架。 */
+    if(href.indexOf('css/exam-shell.css') >= 0 || href.indexOf('css/shell-unify.css') >= 0){
+      /* exam-shell 与 shell-unify 直开时都在 head 最后；软导航保持同一顺序，避免与页内补丁打架。 */
       document.head.appendChild(l);
     } else {
       const firstInline = document.head.querySelector('style');
@@ -1544,6 +1544,9 @@ function syncBodyPageAttrs(doc){
     const GROUP = 'data-hub-group';
     const v = src.getAttribute(GROUP);
     if(v) cur.setAttribute(GROUP, v); else cur.removeAttribute(GROUP);
+    /* SHELL-UNIFY-1119：软导航只换 main，页面级配色标记也必须跟随目标 body。
+       否则 plans -> vip 会丢新样式变量，vip -> plans 又会把暖纸底色残留在旧页。 */
+    cur.classList.toggle('shell-unify', src.classList.contains('shell-unify'));
   }catch(_){}
 }
 
