@@ -445,38 +445,83 @@ function renderStats(){
         +   '<span class="ar">&rsaquo;</span></a>';
       h += '</div>' + searchBox;
     } else {
-      /* plans 组（孤儿页）：保留原来的整页渲染，一行不动 */
-      h += '<div class="hg-head"><h1>' + esc(G.title) + '</h1><p>' + esc(G.tagline) + '</p></div>';
-      h += renderStats();
+      /* plans 组（孤儿页）：换成真实今日状态入口，其他组的渲染一字不动 */
+      const PLAN_ARROW = '<span class="ar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></span>';
+      const PLAN_TODAY = '<span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M16 3v4M8 3v4M3 10h18"/><path d="M8 14h3M14 14h3M8 18h3"/></svg></span>';
+      const PLAN_WEEK = '<span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg></span>';
+      const PLAN_HIST = '<span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 7v5l3 2"/></svg></span>';
+
+      let today = '';
+      let todayItems = [];
+      try{
+        today = (typeof todayKey === 'function') ? todayKey() : '';
+        const p = (DATA && Array.isArray(DATA.plans)) ? DATA.plans.find(x => x && x.date === today) : null;
+        todayItems = (p && Array.isArray(p.items)) ? p.items.slice() : [];
+      }catch(e){ todayItems = []; }
+      const total = todayItems.length;
+      const doneN = todayItems.filter(x => x && x.done).length;
+      const pct = total ? Math.round(doneN / total * 100) : 0;
+      let leftMin = 0;
+      todayItems.forEach(x => {
+        if(!x || x.done) return;
+        const m = String(x.text || '').match(/(\d+)\s*分钟/);
+        if(m) leftMin += Number(m[1]) || 0;
+      });
+      const ordered = todayItems.filter(x => x && !x.done).concat(todayItems.filter(x => x && x.done)).slice(0, 3);
+
+      h += '<div class="su-plan-today">';
+      h += '<section class="su-card su-plan-main">';
+      h += '<div class="su-label">今天 · 真实任务</div>';
+      if(total){
+        h += '<div class="su-progress"><b>' + doneN + ' / ' + total + '</b><span>已完成' + (leftMin ? ' · 剩余约 ' + leftMin + ' 分钟' : '') + '</span></div>';
+        h += '<div class="su-track"><i style="width:' + pct + '%"></i></div>';
+        ordered.forEach(it => {
+          h += '<div class="su-task-line' + (it.done ? ' done' : '') + '">'
+            +   '<span class="cb" aria-hidden="true">' + (it.done ? '✓' : '') + '</span>'
+            +   '<span class="tx">' + esc(String(it.text || '未命名任务')) + '</span>'
+            + '</div>';
+        });
+        if(total > ordered.length) h += '<p class="su-fine">还有 ' + (total - ordered.length) + ' 项，进计划页看全部。</p>';
+        h += '<div class="su-row" style="margin-top:14px"><a class="su-btn su-btn-primary" href="plans.html?sub=today">继续今天的计划 <span class="ar"></span></a></div>';
+      }else{
+        h += '<h2 style="font-size:24px;margin-top:8px">今天还没排任务</h2>';
+        h += '<p class="su-muted" style="font-size:13px;line-height:1.7;margin:8px 0 0">没有任务不代表不用练。去计划页写一条今天想做的，或者让 AI 按弱项排一天。</p>';
+        h += '<div class="su-row" style="margin-top:16px"><a class="su-btn su-btn-primary" href="plans.html?sub=today">去排今天的任务</a><a class="su-btn" href="home.html">先随便练一项</a></div>';
+      }
+      h += '</section>';
+
+      h += '<aside class="su-card su-plan-side">';
+      h += '<div><div class="su-label">Study status</div><h3 style="margin-top:6px">学习状态</h3>';
+      const stats = renderStats();
+      h += stats ? '<div class="su-plan-stats">' + stats + '</div>' : '<p class="su-note">还没有足够的学习记录，练过之后这里会出现连续天数和模考次数。</p>';
+      h += '</div>';
+      h += '<div class="su-plan-links">'
+        +   '<a class="su-plan-link" href="plans.html"><b>打开完整计划页</b><span>日期切换 · 筛选 · 添加任务</span></a>'
+        + '</div>';
+      h += '</aside></div>';
+
       if(!isLogin){
         h += '<div class="hg-loginbar" id="hgLoginBar">'
-          +   '<span class="lb-tx"><b>未登录</b><span>登录后进度、错句、成绩都能跨设备同步</span></span>'
+          +   '<span class="lb-tx"><b>未登录</b><span>登录后今日任务、进度、错句、成绩都能跨设备同步</span></span>'
           +   '<a class="lb-a" href="login.html">去登录</a></div>';
       }
-      h += '<div class="hg-grid">';
-      for(const it of items){
-        const on = (link(it) === cur) ? ' cur' : '';
-        h += '<a class="hg-card' + on + (it.accent ? ' accent' : '') + '" href="' + link(it) + '" data-id="' + it.id + '">'
-          +   '<span class="hg-ic">' + icon(it) + '</span>'
-          +   '<span class="hg-tx"><b>' + esc(it.name) + '</b><span>' + esc(it.desc || '') + '</span></span>'
-          +   '<span class="hg-ar" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></a>';
-      }
-      h += '<div class="hg-search" id="hgSearch" hidden>'
-        +   '<div class="hs-box">'
-        +     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>'
-        +     '<input type="text" id="hgSearchInput" placeholder="搜功能、查单词、搜句子" aria-label="搜索" autocomplete="off">'
-        +     '<button type="button" class="hs-close" id="hgSearchClose" aria-label="收起搜索">&times;</button>'
-        +   '</div><div class="hs-list" id="hgSearchList"></div></div>'
-        +   '<a class="hg-card hg-search-card" id="hgSearchCard" href="javascript:void 0" role="button">'
-        +     '<span class="hg-ic">' + SEARCH_SVG + '</span>'
-        +     '<span class="hg-tx"><b>搜索</b><span>找功能、查单词、搜句子</span></span>'
-        +     '<span class="hg-newbadge">新</span>'
-        +     '<span class="hg-ar" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></a>';
+
+      h += '<div class="su-plan-grid">';
+      const entries = [
+        { href:'plans.html?sub=today', ic:PLAN_TODAY, b:'今日清单', s:'逐项打勾，完成情况一眼看清' },
+        { href:'plans.html?sub=week', ic:PLAN_WEEK, b:'本周安排', s:'AI 排周与时间分配' },
+        { href:'plans.html?sub=history', ic:PLAN_HIST, b:'往日记录', s:'每天完成了多少' }
+      ];
+      entries.forEach(e => {
+        h += '<a class="su-plan-entry" href="' + e.href + '">' + e.ic + '<span><b>' + esc(e.b) + '</b><span>' + esc(e.s) + '</span></span>' + PLAN_ARROW + '</a>';
+      });
       h += '</div>';
-      if(!items.length){
-        h += '<div class="hg-empty"><p>这一组暂时没有可进的页面。</p><a class="btn btn-primary" href="home.html">回首页</a></div>';
-      }
-      h += '<p class="hg-note">导航里都能进这些页面；这里只是把常用的挑出来放一屏。</p>';
+
+      h += '<a class="su-plan-search" id="hgSearchCard" href="javascript:void 0" role="button">'
+        +   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>'
+        +   '<span><b>搜索</b> <span style="color:var(--su-muted);font-size:11px">找功能、查单词、搜句子</span></span>'
+        + '</a>';
+      h += searchBox;
     }
     root.innerHTML = h;
     root.setAttribute('data-shown-group', G.key);
@@ -601,7 +646,7 @@ function renderStats(){
       const g = hostGroup();
       const shown = root.getAttribute('data-shown-group') || null;
       // 条件：组认出来了 且（组变了 或 还没画过卡）
-      if(g && (g !== lastGroup || g !== shown || !root.querySelector('.hg-card, .ln-hero, .me-id'))){
+      if(g && (g !== lastGroup || g !== shown || !root.querySelector('.hg-card, .ln-hero, .me-id, .su-plan-today'))){
         lastGroup = g;
         render();
       }

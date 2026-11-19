@@ -86,8 +86,9 @@ setTimeout(__rvRescue,2500);
   .vip-diff-row{grid-template-columns:1fr 76px 16px 78px;gap:5px;font-size:11.5px}
 }
 </style>
+<link rel="stylesheet" href="css/shell-unify.css?v=20261119b" />
 </head>
-<body data-shell="top">
+<body class="shell-unify" data-shell="top">
 <div id="bootLoader" class="hub-loader show" aria-hidden="true"><div class="ui-loader" role="status" aria-label="Loading"><span class="ui-loader-dot"></span><span class="ui-loader-dot m2"></span><span class="ui-loader-dot m3"></span><span class="ui-loader-shadow"></span><span class="ui-loader-shadow m2"></span><span class="ui-loader-shadow m3"></span></div></div>
 <nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
 
@@ -107,77 +108,39 @@ setTimeout(__rvRescue,2500);
 </svg>
 
 <main class="container">
-  <!-- KIMI-P5-5（10-26）：会员页按 design/kimi-visual-upgrade-2026-10-25/05-vip.html 1:1 重排。
-       结构原文 = 同目录 _KV-vip_结构原文.html（机器导出，前缀 kv-）
-       精确样式 = css/p/vip.css 里的 kv- 块（整段来自 _KV-vip_精确样式.css）
-       验收基线 = 同目录 _KV-vip_验收基线.json（36 元素；收尾跑 scripts/mockup-1to1-check.cjs）
-       🔴 业务 id（10-27 P2-VIP-DEL 后更新）：#vipHowto 整段已删、收款码与转账说明挪去 pay.html，
-          连带 semi 系列 id（#vipSemi #semiPlans #semiSlip #semiLb #semiQr #semiTxt
-          #semiActsLogged #semiDone #semiHelp #semiActsGuest #semiHelp2 #semiDoneCard
-          #semiOid #semiBack）全部随之消失 —— js/vip.js 的 renderSemi() 缺节点即 return（既有写法）。
-          本页现存业务 id：#vipHero #vipWhy #vipPlans #vipMatrix #vipContact
-       🔴 与上一版的四处差别，都是 Kimi 稿要求的：
-          ① 单列堆叠 → 两列扫读（开通方式跨两行在左，方案/对比在右），手机回单列
-          ② 卡片统一 .kv-card（14px 圆角 + 极淡投影），kicker → .kv-section-label
-          ③ 页顶不再有页名大标题；「为什么收费」的折叠钩子改稿子的竖排两行
-          ④ 对比表体由共享层 js/pricing.js 渲染（.mx-scroll > table），稿子类名 kv-compare
-             由 js/vip.js 挂上（见该文件 renderVipMatrix），样式走 .kv-compare 原样 -->
-  <div class="kv-page">
-    <div class="kv-layout">
+  <div class="su-page su-vip">
+    <header class="su-page-head">
+      <div class="su-head-row">
+        <div>
+          <div class="su-kicker">Membership · AI quota</div>
+          <h1>学习功能永久免费，会员只买 AI 额度</h1>
+          <p>词库、题库、计划、回顾、云同步这些学习功能没有会员墙；收费的只有每次都会产生真实接口成本的 AI 批改、陪练、串题和模考。</p>
+        </div>
+        <div class="su-head-aside">
+          <span class="su-tag"><i class="su-dot lime"></i>轻量 AI 不限用</span>
+          <a class="su-back" href="pay.html?plan=month"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg><span>直接去开通</span></a>
+        </div>
+      </div>
+    </header>
 
-      <!-- 当前状态卡（js/vip.js 实时查 /api/auth vip_status 渲染三态：未登录 / 会员生效中 / 免费版） -->
-      <section class="kv-card kv-top-card" id="vipHero"></section>
+    <div class="su-vip-layout">
+      <section class="su-card su-vip-status" id="vipHero"></section>
 
-      <!-- 为什么收费 · 默认折叠（她 13:2x：每次打开都看到这段话非常不美观）
-           文案是 W-FREE-1（10-25）重写版，一个字没动；折叠钩子按稿子改成竖排两行。 -->
-      <section class="kv-card" id="vipWhy">
-        <details class="kv-why-fold">
-          <summary>
-      <span class="kv-why-lead"><b>学习功能全部免费，会员只买 AI 额度</b> —— 每次批改和陪练都要花钱调接口。轻量 AI 不限用，写作批改不限篇，重度功能按功能额度。7 天内只用过免费额度、没碰会员专属功能，可以全额退。</span>
-            <span class="kv-why-more">为什么收费</span>
-          </summary>
-          <div class="kv-why-body">
-            <p><b>免费的</b>：词库、口语题库、作文、备考计划、回顾、计时、听写、长难句、云同步、数据导出。这些和会员完全一样，不会有变化。</p>
-
-            <p><b>收费的</b>：只有 AI 额度。作文批改、口语陪练、素材生成，每用一次都是真实的接口成本；轻度功能先放开用，少数比较耗算力的功能按每项额度来。</p>
-
-        <p><b>两条保证</b>：① 开通 7 天内、未使用会员专属功能，且 AI 使用没有超出免费额度（写作 3 篇、轻量 AI 每周 5 次），可全额退款；② 到期后数据一条不删，随时能导出带走。</p>
-
-            <p style="margin-bottom:0">有问题直接反馈，我会改。</p>
+      <section class="su-card su-vip-plans">
+        <div class="su-between">
+          <div>
+            <div class="su-label">Pricing</div>
+            <h2 style="margin-top:5px">会员方案</h2>
           </div>
-        </details>
-      </section>
-
-      <!-- 开通方式（VIP-SEMI-1 一屏两步 + VIP-PAY-QR 双码，功能一行没动）
-           稿子这一格是「选档位 → 转账 → 我已转账」的静态示例；本站接真数据：
-           档位卡由 js/vip.js 从 Pricing.VIP_PLANS 渲染（本区块零价格字面量）。 -->
-      <!-- P2-VIP-DEL（10-27）：原 #vipHowto「开通方式」卡（档位选择 + 双码 + 我已转账 +
-           已转账完成态）整段删除，收款码与转账说明整体挪到新页 pay.html。
-           删除后的连锁处理（同一笔内，缺一条就是半成品）：
-             ① js/pricing.js 的 .plan-buy 按钮从「滚到 #vipHowto」改成 <a href="pay.html?plan=<id>">；
-                「点按钮滚过去」那段监听已无落点 → 一并撤掉；
-             ② js/vip.js 的 renderSemi() 依赖 #vipSemi → 缺节点时 return（既有写法就是 if(!root) return）。
-           留档：整块原文见本文件 git 上一版；CSS 的 .kv-purchase/.semi-* 按施工书要求**不主动删**。 -->
-
-
-      <!-- 会员方案：价格卡由 js/vip.js 按 VIP_PLANS 渲染（改价只动 js/pricing.js 一处）
-           稿子这格只放一行说明，本站保留真实价格卡（功能不回退，见 css/p/vip.css 的 ⑦ 兼容块）。 -->
-      <section class="kv-card">
-        <div class="kv-card-head">
-          <div><div class="kv-section-label">Pricing · 轻量不限用</div><h2>会员方案</h2></div>
-          <span class="kv-badge">轻量不限用</span>
+          <span class="su-tag green">所有档位权益相同</span>
         </div>
         <div id="vipPlans"></div>
-        <p class="kv-fine">所有方案权益完全相同，只是时长与日均价不同；会员跟账号走，手机/电脑登录同一账号都生效。</p>
+        <p class="su-fine">所有方案权益完全相同，只是时长与日均价不同；会员跟账号走，手机/电脑登录同一账号都生效。</p>
       </section>
 
-      <!-- 权益对比：表体由共享层 js/pricing.js 渲染（全量口径，含模考 / 写作 / 重活额度），
-           稿子类名 kv-compare 由 js/vip.js 挂上，图例按 .kv-fine 口径收成一行。
-           11-12 会员页 B 定版：对比先只给真正有差别的四处，完整表收进「看完整对比表」折叠；
-           #vipMatrix 仍由共享脚本渲染完整表，包一层原生折叠不影响接线、零新增脚本。 -->
-      <section class="kv-card">
-        <div class="kv-section-label">Compare · 差在哪</div>
-        <h2>免费版 vs 会员</h2>
+      <section class="su-card">
+        <div class="su-label">Compare</div>
+        <h2 style="margin-top:5px;font-size:22px">免费版 vs 会员</h2>
         <div class="vip-diff">
           <div class="vip-diff-row"><span>口语模考</span><b>会员专属</b><i>→</i><strong>每周 10 场</strong></div>
           <div class="vip-diff-row"><span>写作批改</span><b>每月 3 篇</b><i>→</i><strong>不限篇</strong></div>
@@ -189,13 +152,38 @@ setTimeout(__rvRescue,2500);
           <summary>看完整对比表</summary>
           <div id="vipMatrix" class="vip-cmp kv-table-scroll"></div>
         </details>
-        <p class="kv-fine">学习功能本身全部免费且无差别——会员提升的是 <b>AI 额度</b>：轻量不限用，写作不限篇，模考每周 10 场，少数重活每项每月 5 次。</p>
+        <p class="su-fine">学习功能本身全部免费且无差别——会员提升的是 <b>AI 额度</b>：轻量不限用，写作不限篇，模考每周 10 场，少数重活每项每月 5 次。</p>
       </section>
 
-      <!-- 常见问题（10/1 扩充到 7 条，她授权「加你觉得可以的」） -->
-      <section class="kv-card kv-full">
-        <div class="kv-section-label">FAQ</div>
-        <h2>常见问题</h2>
+      <aside class="su-vip-side">
+        <section class="su-card" id="vipWhy">
+          <details class="kv-why-fold">
+            <summary>
+              <span class="kv-why-lead"><b>为什么只收 AI 的钱</b> —— 每次批改和陪练都要花钱调接口；学习功能没有接口成本，所以永久免费。</span>
+              <span class="kv-why-more">展开</span>
+            </summary>
+            <div class="kv-why-body">
+              <p><b>免费的</b>：词库、口语题库、作文、备考计划、回顾、计时、听写、长难句、云同步、数据导出。这些和会员完全一样，不会有变化。</p>
+              <p><b>收费的</b>：只有 AI 额度。作文批改、口语陪练、素材生成，每用一次都是真实的接口成本；轻度功能先放开用，少数比较耗算力的功能按每项额度来。</p>
+              <p><b>两条保证</b>：① 开通 7 天内、未使用会员专属功能，且 AI 使用没有超出免费额度（写作 3 篇、轻量 AI 每周 5 次），可全额退款；② 到期后数据一条不删，随时能导出带走。</p>
+              <p style="margin-bottom:0">有问题直接反馈，我会改。</p>
+            </div>
+          </details>
+        </section>
+
+        <section class="su-card kv-contact" id="vipContact" data-wx-open>
+          <div class="su-label">Support</div>
+          <h2>有问题？联系站长</h2>
+          <p>支付 / 开通 / 使用问题直接聊，站长微信在弹层里。</p>
+          <span class="su-btn su-btn-primary su-btn-block">点我拿微信</span>
+        </section>
+
+        <p class="kv-legal"><a href="legal.html">隐私政策 · 用户协议 · AI 免责</a></p>
+      </aside>
+
+      <section class="su-card kv-full" style="grid-column:1/-1">
+        <div class="su-label">FAQ</div>
+        <h2 style="margin-top:5px;font-size:22px">常见问题</h2>
         <details class="kv-faq">
           <summary>免费版 AI 额度是怎么算的？</summary>
           <p>写作批改每月 3 篇（自然月初重置）；其他 AI 辅助（翻译、长难句、AI 安排今天、口语诊断、听写检查等）每周合计 5 次（每周一重置）。口语模考、串题、整套素材生成、换季重映射、完整备考计划、深度诊断比较耗算力，先给会员开放。会员轻量 AI 不限次、写作不限篇；模考每周 10 场，重活逐项各 5 次 / 月，7 天卡按四分之一配额。</p>
@@ -210,7 +198,7 @@ setTimeout(__rvRescue,2500);
         </details>
         <details class="kv-faq">
           <summary>可以退款吗？</summary>
-        <p>开通 7 天内，未使用会员专属功能，且 AI 使用没有超出免费额度（写作 3 篇、轻量 AI 每周 5 次），联系站长可全额退款。</p>
+          <p>开通 7 天内，未使用会员专属功能，且 AI 使用没有超出免费额度（写作 3 篇、轻量 AI 每周 5 次），联系站长可全额退款。</p>
         </details>
         <details class="kv-faq">
           <summary>会员到期后会怎样？</summary>
@@ -225,18 +213,6 @@ setTimeout(__rvRescue,2500);
           <p>云同步的数据只存在你自己账号下面，仅用于跨设备同步，不做任何分析，也不会提供给任何第三方；导出 / 清空数据完全由你自己控制。</p>
         </details>
       </section>
-
-      <!-- 10/2 她拍板：站长微信不在站内平铺，唯一出口 = 意见反馈弹层底部那个超链接。
-           稿子里那枚「意见反馈」按钮是视觉演示件（不是业务 id），本站不照抄。 -->
-      <section class="kv-card kv-full kv-contact" data-wx-open>
-        <div>
-          <h2>有问题？联系站长</h2>
-          <p>支付 / 开通 / 使用问题直接聊，站长微信在下面。</p>
-        </div>
-        <span style="display:inline-block;margin-top:12px;padding:6px 14px;background:var(--kv-teal-s,#eef7f6);color:var(--kv-teal-d,#2c7873);border-radius:999px;font-size:12px;font-weight:500">点我拿微信</span>
-      </section>
-
-      <p class="kv-legal kv-full"><a href="legal.html">隐私政策 · 用户协议 · AI 免责</a></p>
     </div>
   </div>
 </main>

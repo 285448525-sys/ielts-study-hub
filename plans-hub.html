@@ -13,13 +13,14 @@
 <meta name="theme-color" content="#3a9a93" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="description" content="计划：把常用的几个模块放一屏，不用再翻「更多」找入口。" />
+<link rel="stylesheet" href="css/shell-unify.css?v=20261119b" />
 
 <script>
 /* 组页不需要题库清理逻辑（不读 DATA.speaking），占位以保持与其他页一致的结构。 */
 </script>
 </head>
 <!-- data-hub-group：js/hubgroup.js 靠它决定渲染哪个组（G 的唯一依据） -->
-<body data-shell="top" data-hub-group="plans" data-hub-desk-redirect="plans.html">
+<body class="shell-unify" data-shell="top" data-hub-group="plans" data-hub-desk-redirect="plans.html">
 <!-- 10-22 第 1 小步：这三张是**手机的中间层目录页**（手机底栏 4 格指到这里），PC 端没有存在意义 ——
      电脑宽度下直接送到真实页面，避免「点两次才到目的地」「目录页把导航又抄一遍」。手机/窄屏一律不动。 -->
 <script>/* 必须在首屏渲染前跑（放在所有脚本之前）；判据只认宽度，与底栏注入口径一致（≤860 才算手机） */
@@ -28,10 +29,19 @@
 <nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
 
 <main class="container">
-  <!-- 10/4 18:42 她拍板：「我就要一整个界面就行了」（不要底部弹出的浮层）。
-       这一屏把该组的模块全列成卡，点卡进原页面 —— 原页面零改动。 -->
-  <div id="hubGroupRoot">
-    <div class="empty">加载中…</div>
+  <div class="su-page su-plans">
+    <header class="su-page-head">
+      <div class="su-head-row">
+        <div>
+          <div class="su-kicker">Plan · Today</div>
+          <h1>今天该做什么，打开就知道</h1>
+          <p>先看今天剩余任务和总时长，再决定从哪一项开始；计划本身在完整计划页里调整。</p>
+        </div>
+      </div>
+    </header>
+    <div id="hubGroupRoot">
+      <div class="empty">加载中…</div>
+    </div>
   </div>
 </main>
 
@@ -61,7 +71,7 @@
     setTimeout(fin, 8000);        // 兜底：绝不卡死在遮罩上
   })();
 </script>
-<script defer src="js/hubgroup.js?v=20261116a"></script>
+<script defer src="js/hubgroup.js?v=20261119a"></script>
 <!-- 🔴 10/5 15:40 加载顺序契约 —— ⚠️ 三个 defer 的顺序**不可改、不可改成动态加载**！
      hubgroup.js 的渲染门控（boot()）等两个条件：
        A. common.js 已就绪（PAGES 这个顶层 const 可用）

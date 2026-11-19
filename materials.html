@@ -49,7 +49,7 @@
 <script defer src="js/common-shell.js?v=20261118b"></script>
 <script defer src="js/common-pwa.js?v=20261117a"></script>
   <script defer src="js/feedback.js?v=20261111b"></script>
-<script defer src="js/materials.js?v=20261118a"></script>
+<script defer src="js/materials.js?v=20261119a"></script>
 <style>
   /* === 万能素材生成器（沿用全站 Teal Token） === */
   .mat-intro{ padding:14px 16px; background:var(--primary); color:#fff; border-radius:var(--radius); font-size:13.5px; line-height:1.7; margin:12px 0; box-shadow:var(--shadow); }
@@ -520,13 +520,16 @@
   body[data-shell="top"] main.container { padding-top: 58px; }
 }
 </style>
+<link rel="stylesheet" href="css/shell-unify.css?v=20261119b" />
 </head>
-<body data-shell="top">
+<body class="shell-unify" data-shell="top">
 <div id="bootLoader" class="hub-loader show" aria-hidden="true"><div class="ui-loader" role="status" aria-label="Loading"><span class="ui-loader-dot"></span><span class="ui-loader-dot m2"></span><span class="ui-loader-dot m3"></span><span class="ui-loader-shadow"></span><span class="ui-loader-shadow m2"></span><span class="ui-loader-shadow m3"></span></div></div>
 <nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
 
 <main class="container">
-  <div id="matRoot"></div>
+  <div class="su-page su-mat">
+    <div id="matRoot"></div>
+  </div>
 </main>
 
 </body>

@@ -48,14 +48,20 @@ function payRenderSummary(){
   var p = payPlanOf(key);
   var nameEl = document.getElementById('pName');
   var priceEl = document.getElementById('pPrice');
+  var unitEl = document.getElementById('pPlanUnit');
+  var dayEl = document.getElementById('pPerDay');
   if(!p){
     /* 数据没到位（pricing.js 没加载 / 被裁）→ 中性占位，不编价格 */
     if(nameEl) nameEl.textContent = '会员';
     if(priceEl) priceEl.textContent = '以会员页为准';
+    if(unitEl) unitEl.textContent = '';
+    if(dayEl) dayEl.textContent = '价格请回会员页确认';
     return;
   }
   if(nameEl) nameEl.textContent = p.name || '';
   if(priceEl) priceEl.textContent = (p.price ? ('¥' + p.price) : '以会员页为准');
+  if(unitEl) unitEl.textContent = p.unit ? (' / ' + p.unit) : '';
+  if(dayEl) dayEl.textContent = [p.perDay, p.save].filter(Boolean).join(' · ') || '按会员页价格结算';
 }
 
 /* 登录态判定：站内唯一口径 = localStorage.hub_auth_token（与 common-cloud 一致） */
@@ -140,11 +146,34 @@ function payBindActs(){
   }
 }
 
+/* 支付方式切换：只切两张真实收款码的显隐，不生成、不替换二维码文件 */
+function payBindQrTabs(){
+  var tabs = document.querySelectorAll('[data-pay-tab]');
+  var panels = document.querySelectorAll('[data-qr-panel]');
+  if(!tabs.length || !panels.length) return;
+  tabs.forEach(function(tab){
+    if(tab.dataset.bound) return;
+    tab.dataset.bound = '1';
+    tab.addEventListener('click', function(){
+      var key = tab.getAttribute('data-pay-tab');
+      tabs.forEach(function(t){
+        var on = t === tab;
+        t.classList.toggle('on', on);
+        t.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+      panels.forEach(function(p){
+        p.classList.toggle('on', p.getAttribute('data-qr-panel') === key);
+      });
+    });
+  });
+}
+
 /* 入口：ready() 在 common.js 里；软导航重进本页会重跑，所以全部幂等（只读 DOM + 重绑前先判标记） */
 ready(function(){
   payRenderSummary();
   payRenderLoginBranch();
   payBindActs();
+  payBindQrTabs();
   /* 软导航进来时 URL 可能带新参数 → 再渲染一次（幂等，纯读） */
   window.addEventListener('popstate', function(){ payRenderSummary(); payRenderLoginBranch(); });
 });

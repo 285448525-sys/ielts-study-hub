@@ -51,7 +51,7 @@
        漏了 feedback.js → 点了不弹卡、而且**不报错**（静默失效）。 -->
   <script defer src="js/feedback.js?v=20261111b"></script>
   <script src="js/pricing.js?v=20261116a" defer></script>
-  <script src="js/pay.js?v=20261027p2" defer></script>
+  <script src="js/pay.js?v=20261119a" defer></script>
 <script>setTimeout(function(){var b=document.getElementById('bootLoader');if(b){b.classList.remove('show');b.classList.add('hide');}},4000);</script>
 <meta name="description" content="会员开通：档位确认、扫码转账与开通说明。" />
 <link rel="canonical" href="https://yasihub.com/pay" />
@@ -86,92 +86,111 @@
   .pay-order,.pay-paysec{padding:18px 16px}
 }
 </style>
+<link rel="stylesheet" href="css/shell-unify.css?v=20261119b" />
 </head>
-<body data-shell="top">
+<body class="shell-unify" data-shell="top">
 <div id="bootLoader" class="hub-loader show" aria-hidden="true"><div class="ui-loader" role="status" aria-label="Loading"><span class="ui-loader-dot"></span><span class="ui-loader-dot m2"></span><span class="ui-loader-dot m3"></span><span class="ui-loader-shadow"></span><span class="ui-loader-shadow m2"></span><span class="ui-loader-shadow m3"></span></div></div>
 <nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
 
 <main class="container">
-  <!-- P2-PAY-NEW（10-27）：独立开通页。结构 1:1 照 design/_样子稿-pay独立支付页-2026-10-26.html。
-       🔴 三件事一行没做：不新建后端 claim 接口（撞冻结线，她拍板）· 「我已转账」仅本地 UI 切换 ·
-          价格数字全部读 js/pricing.js 的 VIP_PLANS（本页零价格字面量）。
-       🔴 页面分工：vip.html 是介绍页（不放支付元素），本页是功能执行页 —— 所以支付词只出现在这里。 -->
-  <div class="pay-wrap">
-    <div class="pay-top">
-      <!-- BACK-BTN-PAGES-1（10-31）：接线统一基类 .site-back。
-           🔴 只换外观：href 仍是 vip.html（去向不变）、文案仍是「返回会员页重选档位」（去向写全），
-              没有 id / 没有 JS 绑它，所以不存在行为改动。
-           箭头从字符「←」换成 16px svg（规范稿：「固定一枚左箭头，不使用 ←、‹ 混写」）。
-           旧 .pay-back 纯文字规则已在 css/p/pay.css 删掉（全站无元素引用）；.pay-backs 那条是另一族，保留。 -->
-      <a class="site-back" href="vip.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="M11 18l-6-6 6-6"/></svg><span class="site-back-txt">返回会员页重选档位</span></a>
-      <div></div>
-    </div>
-
-    <!-- P2 付费页 B 定版（11-12 她点头「按所有方案的推荐来做」）：订单与付款拆成两栏，
-         左栏一眼看清买了什么、多少钱，右栏只管扫码。收掉一长条三步圆点与土黄警示框的视觉重量，
-         双码收小；两张真实收款码、动态价格、登录分叉、本地完成态切换一个不丢。 -->
-    <div class="pay-cols">
-    <!-- ① 档摘要（左栏 = 你的订单）：档名与价格由 js/pay.js 从 VIP_PLANS + URL ?plan= 渲染 -->
-    <section class="pay-card pay-order">
-      <div class="pay-label">你的订单</div>
-      <div class="pay-summary" id="planSummary">
-        <div class="pay-name" id="pName">30 天</div>
-        <div class="pay-price" id="pPrice">—</div>
-        <div class="pay-note">选好直接扫码转账，转完回来点下方按钮，当天开通。<b>点完「我已转账」仅本地切换为已收到态，站长以实际到账为准开通</b>。</div>
-      </div>
-    </section>
-
-    <!-- ② 付款（右栏 = 扫码付款）：三步圆点按 B 定版收掉，功能节点全部保留 -->
-    <section class="pay-card pay-paysec">
-      <div class="pay-label">扫码付款</div>
-
-      <!-- ③ 未登录分叉（B0 产品方案 §1.3）：未登录能看档摘要，但主按钮置灰 + 引导登录 -->
-      <div class="pay-loginhint" id="loginHint" hidden>
-        <b>先登录再付款</b><span>会员跟账号走，匿名订单站长对不上号。</span>
-        <div class="pay-lh-acts"><a class="pay-lh-btn" id="loginGo" href="login.html">去登录 / 注册</a></div>
-      </div>
-      <div class="pay-loggednote" id="loggedNote" hidden>付款备注填你的邮箱：<b id="userEmail">（读取中…）</b></div>
-
-      <!-- ④ 双码并排（图片路径照现站 vip.html 写法，?v= 时间戳原样不动） -->
-      <div class="pay-qrrow">
-        <figure class="pay-qritem">
-          <div class="pay-qr"><img src="img/pay/wechat-qr.jpg?v=20261026b" alt="微信收款码"></div>
-          <figcaption>微信</figcaption>
-        </figure>
-        <figure class="pay-qritem">
-          <div class="pay-qr"><img src="img/pay/alipay-qr.jpg?v=20261026b" alt="支付宝收款码"></div>
-          <figcaption>支付宝</figcaption>
-        </figure>
-      </div>
-
-      <!-- ⑤ 主操作 -->
-      <div class="pay-acts" id="actsBlock">
-        <button class="pay-primary" type="button" id="doneBtn">我已转账</button>
-        <button class="pay-ghost" type="button" data-wx-open>遇到问题？加站长微信</button>
-      </div>
-
-      <!-- ⑥ 完成态（点完主按钮显示；文案明示「到账前会员页状态不变」防反复转账） -->
-      <div class="pay-received" id="receivedBlock">
-        <div class="pay-tick"></div>
-        <h3>收到了，等我确认</h3>
-        <p>站长以实际到账为准开通，一般当天。<b>到账前会员页状态不变</b>（仍是免费版/到期会员）——这是预期行为，不是没生效。</p>
-        <div class="pay-received-acts">
-          <!-- BACK-BTN-PAGES-1（10-31）：完成态里这两颗性质不同，只有一个算普通返回。
-               #backToVip 是「回会员页」= 离开，接统一基类 .site-back；
-               #notYetBtn 是「留在原地」的次操作（撤掉完成态、回到主操作），不是返回 ——
-               按规范稿「状态出口不伪装成普通返回」保持 .pay-backs 原样。
-               id 与文案一个字没改，js/pay.js:118-135 的切换逻辑完全不受影响。 -->
-          <a class="site-back" href="vip.html" id="backToVip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="M11 18l-6-6 6-6"/></svg><span class="site-back-txt">返回会员页</span></a>
-          <button class="pay-backs" type="button" id="notYetBtn">还没转，继续留在这</button>
+  <div class="su-page su-pay">
+    <header class="su-page-head">
+      <div class="su-head-row">
+        <div>
+          <div class="su-kicker">Membership · Payment</div>
+          <h1>开通会员</h1>
+          <p>先确认档位，再扫码转账。会员跟着账号走，付款备注填你的注册邮箱，站长按实际到账手动开通。</p>
+        </div>
+        <div class="su-head-aside">
+          <span class="su-tag"><i class="su-dot"></i>手动查账 · 当天开通</span>
+          <a class="su-back" href="vip.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="M11 18l-6-6 6-6"/></svg><span>返回会员页重选档位</span></a>
         </div>
       </div>
+    </header>
 
-      <p class="pay-hint"><b>备注自己注册的邮箱</b>——转账时在金额下方的留言栏填你的邮箱（不是金额备注），我拿到就知道是哪笔，当天开通。</p>
-    </section>
-    </div><!-- /pay-cols：FAQ 与页脚回到整行 -->
+    <div class="su-pay-grid">
+      <section class="su-card su-order-card">
+        <div>
+          <div class="su-order-kicker">Your order</div>
+          <div class="su-order-name" id="pName">30 天</div>
+          <div class="su-order-price"><b id="pPrice">—</b><span id="pPlanUnit"></span></div>
+          <div class="su-note" id="pPerDay">以会员页价格为准</div>
+        </div>
+        <div class="su-order-meta" id="planSummary">
+          <div class="su-order-meta-row"><span>权益范围</span><b>轻量 AI 不限用</b></div>
+          <div class="su-order-meta-row"><span>生效方式</span><b>站长查账后开通</b></div>
+          <div class="su-order-meta-row"><span>账号绑定</span><b>跟账号走，多设备通用</b></div>
+        </div>
+        <div>
+          <div class="su-step" style="background:var(--su-card-2);border-color:var(--su-line-2)">
+            <span class="n">i</span>
+            <span class="tx"><b>付款备注填注册邮箱</b><span>不是金额备注，是转账留言栏。备注对了，站长当天就能对上号。</span></span>
+          </div>
+          <p class="su-fine">「我已转账」只把本页切成已收到态，不会自动开通；会员页状态以实际到账为准。</p>
+        </div>
+      </section>
 
-    <!-- ⑦ 缩版 FAQ（从 vip 页挪来的支付相关三条） -->
-    <section class="pay-card pay-faq">
+      <section class="su-card su-pay-card">
+        <header class="su-pay-head">
+          <div class="su-between">
+            <div>
+              <div class="su-label">Scan &amp; pay</div>
+              <h2 style="font-size:22px;margin-top:4px">扫码付款</h2>
+            </div>
+            <span class="su-tag green">¥ 金额见左栏</span>
+          </div>
+        </header>
+        <div class="su-pay-body">
+          <div class="pay-loginhint" id="loginHint" hidden>
+            <b>先登录再付款</b> <span>会员跟账号走，匿名订单站长对不上号。</span>
+            <div class="pay-lh-acts"><a class="pay-lh-btn" id="loginGo" href="login.html">去登录 / 注册</a></div>
+          </div>
+          <div class="pay-loggednote" id="loggedNote" hidden>付款备注填你的邮箱：<b id="userEmail">（读取中…）</b></div>
+
+          <div class="su-pay-tabs" role="tablist" aria-label="选择支付方式">
+            <button class="su-pay-tab on" type="button" data-pay-tab="wechat" role="tab" aria-selected="true">微信</button>
+            <button class="su-pay-tab" type="button" data-pay-tab="alipay" role="tab" aria-selected="false">支付宝</button>
+          </div>
+
+          <div class="su-pay-qr-wrap">
+            <div class="su-pay-qr-panel">
+              <div data-qr-panel="wechat" class="on">
+                <div class="su-pay-qr-visual"><img src="img/pay/wechat-qr.jpg?v=20261026b" alt="微信收款码"></div>
+                <div class="su-qr-cap">微信扫码 · 真实收款码</div>
+              </div>
+              <div data-qr-panel="alipay">
+                <div class="su-pay-qr-visual"><img src="img/pay/alipay-qr.jpg?v=20261026b" alt="支付宝收款码"></div>
+                <div class="su-qr-cap">支付宝扫码 · 真实收款码</div>
+              </div>
+            </div>
+            <div class="su-pay-steps">
+              <div class="su-step"><span class="n">1</span><span class="tx"><b>扫描左码</b><span>微信或支付宝均可，金额按左栏。</span></span></div>
+              <div class="su-step"><span class="n">2</span><span class="tx"><b>备注注册邮箱</b><span>转账留言栏填邮箱，不是金额备注。</span></span></div>
+              <div class="su-step"><span class="n">3</span><span class="tx"><b>回来点我已转账</b><span>仅本地标记，站长查账后开通。</span></span></div>
+            </div>
+          </div>
+
+          <div class="pay-acts" id="actsBlock">
+            <button class="pay-primary" type="button" id="doneBtn">我已转账</button>
+            <button class="pay-ghost" type="button" data-wx-open>遇到问题？加站长微信</button>
+          </div>
+
+          <div class="pay-received" id="receivedBlock">
+            <div class="pay-tick"></div>
+            <h3>收到了，等我确认</h3>
+            <p>站长以实际到账为准开通，一般当天。<b>到账前会员页状态不变</b>（仍是免费版/到期会员）——这是预期行为，不是没生效。</p>
+            <div class="pay-received-acts">
+              <a class="su-back" href="vip.html" id="backToVip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="M11 18l-6-6 6-6"/></svg><span>返回会员页</span></a>
+              <button class="pay-backs" type="button" id="notYetBtn">还没转，继续留在这</button>
+            </div>
+          </div>
+
+          <p class="pay-hint"><b>备注自己注册的邮箱</b>——转账时在金额下方的留言栏填你的邮箱（不是金额备注），我拿到就知道是哪笔，当天开通。</p>
+        </div>
+      </section>
+    </div>
+
+    <section class="su-card pay-faq" style="margin-top:16px">
       <h3>常见问题</h3>
       <details><summary>可以取消并返还剩余费用吗？</summary><p>开通 7 天内、AI 累计使用不到 5 次，联系站长可取消并返还剩余费用。</p></details>
       <details><summary>会员到期续费怎么算？</summary><p>续费时选任意档位都可以，时长在你当前到期日基础上顺延，不会清零或重置。</p></details>

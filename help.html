@@ -41,47 +41,125 @@ details[open] summary::after{transform:rotate(180deg)}
 details .a{padding:0 16px 13px;font-size:13px;line-height:1.85;color:var(--ink-2)}
 .help-acts{display:flex;gap:10px;margin-top:16px}
 </style>
+<link rel="stylesheet" href="css/shell-unify.css?v=20261119b" />
 </head>
-<body data-shell="top">
+<body class="shell-unify" data-shell="top">
 <!-- 顶壳由 common.js injectNav 渲染 -->
 <nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
 
 <main class="container">
-  <div class="help-page">
-    <div class="help-hero">
-      <span class="help-kicker">帮助</span>
-      <h1>常见问题</h1>
-      <p>找不到答案就用下面的「写反馈」，站长本人亲自看。</p>
-    </div>
+  <div class="su-page su-help">
+    <header class="su-page-head">
+      <div class="su-head-row">
+        <div>
+          <div class="su-kicker">Help center</div>
+          <h1>常见问题</h1>
+          <p>先搜一下，找不到答案就用右边的「写反馈」——站长本人看，带截图更容易定位。</p>
+        </div>
+        <div class="su-head-aside">
+          <span class="su-tag"><i class="su-dot"></i>站长本人回复</span>
+        </div>
+      </div>
+    </header>
 
-    <div class="faq-g">
-      <div class="t">账号与会员</div>
-      <details><summary>免费版和会员差在哪？</summary><div class="a">学习功能（单词 / 句子 / 口语题库 / 写作 / 回顾）全部免费；免费版写作批改每月 3 篇、其他轻量 AI 每周 5 次。口语模考、串题、整套素材生成、换季重映射、完整备考计划、深度诊断比较耗算力，先给会员开放；会员写作批改与轻量 AI 不限次，模考每周 10 场，重活每项每月 5 次。云同步和导出永久免费。</div></details>
-      <details><summary>怎么开通会员？</summary><div class="a">会员页选档位 → 按说明转账 → 点「我已转账」。当天开通，开通后会员页自动变会员态。</div></details>
-      <details><summary>会员到期后数据会丢吗？</summary><div class="a">不会。学习记录、词库、成绩全部留在你账号里，到期只是 AI 次数回到免费额度。</div></details>
-    </div>
+    <div class="su-help-grid">
+      <section>
+        <label class="su-search" for="helpSearch">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <input id="helpSearch" type="search" placeholder="搜问题，例如「额度」「错词本」「同步」" autocomplete="off">
+        </label>
+        <div class="su-chips" role="group" aria-label="按分类筛选">
+          <button class="su-chip on" type="button" data-help-filter="all">全部</button>
+          <button class="su-chip" type="button" data-help-filter="account">账号与会员</button>
+          <button class="su-chip" type="button" data-help-filter="study">学习功能</button>
+          <button class="su-chip" type="button" data-help-filter="sync">数据与同步</button>
+        </div>
 
-    <div class="faq-g">
-      <div class="t">学习功能</div>
-      <details><summary>「每日学习上限」是什么？</summary><div class="a">单词页右上角齿轮里设的那个数。首页的「今天还有 N 个词要过」以它为准，不是全词库到期量。设 0 = 不限。</div></details>
-      <details><summary>错词本在哪？</summary><div class="a">单词页右上角。答错过的词按错误次数分档，重练不占今日配额。</div></details>
-      <details><summary>计时是自动开的吗？</summary><div class="a">是。在单词页答题、模考做题、口语练习都会自动开始计时，不用手动开。</div></details>
-    </div>
+        <div class="su-faq-group" data-group="account">
+          <div class="t">账号与会员</div>
+          <details><summary>免费版和会员差在哪？</summary><div class="a">学习功能（单词 / 句子 / 口语题库 / 写作 / 回顾）全部免费；免费版写作批改每月 3 篇、其他轻量 AI 每周 5 次。口语模考、串题、整套素材生成、换季重映射、完整备考计划、深度诊断比较耗算力，先给会员开放；会员写作批改与轻量 AI 不限次，模考每周 10 场，重活每项每月 5 次。云同步和导出永久免费。</div></details>
+          <details><summary>怎么开通会员？</summary><div class="a">会员页选档位 → 按说明转账 → 点「我已转账」。当天开通，开通后会员页自动变会员态。</div></details>
+          <details><summary>会员到期后数据会丢吗？</summary><div class="a">不会。学习记录、词库、成绩全部留在你账号里，到期只是 AI 次数回到免费额度。</div></details>
+        </div>
 
-    <div class="faq-g">
-      <div class="t">数据与同步</div>
-      <details><summary>换设备数据还在吗？</summary><div class="a">在。登录同一个账号，学习记录自动同步。也可以随时在设置里导出 JSON 备份。</div></details>
-      <details><summary>遇到问题怎么反馈？</summary><div class="a">设置页「写反馈」或本页底部的「写反馈」。带截图更容易定位。</div></details>
-    </div>
+        <div class="su-faq-group" data-group="study">
+          <div class="t">学习功能</div>
+          <details><summary>「每日学习上限」是什么？</summary><div class="a">单词页右上角齿轮里设的那个数。首页的「今天还有 N 个词要过」以它为准，不是全词库到期量。设 0 = 不限。</div></details>
+          <details><summary>错词本在哪？</summary><div class="a">单词页右上角。答错过的词按错误次数分档，重练不占今日配额。</div></details>
+          <details><summary>计时是自动开的吗？</summary><div class="a">是。在单词页答题、模考做题、口语练习都会自动开始计时，不用手动开。</div></details>
+        </div>
 
-    <div class="help-acts">
-      <!-- ⭐ data-fb-open = js/feedback.js 的 document 级委托（closest('[data-fb-open]')），零 JS 改动。
-           🔴 主按钮类用站内现成的 .btn-primary（设计稿写的 .btn-p 在本站不存在，别造第二份按钮样式） -->
-      <button class="btn btn-primary btn-sm" data-fb-open type="button">写反馈</button>
-      <button class="btn btn-sm" data-wx-open type="button">联系站长</button>
+        <div class="su-faq-group" data-group="sync">
+          <div class="t">数据与同步</div>
+          <details><summary>换设备数据还在吗？</summary><div class="a">在。登录同一个账号，学习记录自动同步。也可以随时在设置里导出 JSON 备份。</div></details>
+          <details><summary>遇到问题怎么反馈？</summary><div class="a">设置页「写反馈」或本页右边的「写反馈」。带截图更容易定位。</div></details>
+        </div>
+
+        <div class="su-help-empty" id="helpEmpty">没有匹配的问题。换个关键词，或直接写反馈。</div>
+      </section>
+
+      <aside class="su-help-side">
+        <section class="su-card dark">
+          <div class="su-kicker">Feedback</div>
+          <h2>没找到答案？</h2>
+          <p>把页面、操作和截图一起发过来，比只说一句「用不了」快很多。站长本人看。</p>
+          <button class="su-btn su-btn-lime su-btn-block" data-fb-open type="button">写反馈</button>
+        </section>
+        <section class="su-card">
+          <div class="su-label">Contact</div>
+          <h2 style="font-size:18px;margin-top:5px">直接联系站长</h2>
+          <p>支付、开通、账号问题，直接加微信聊。</p>
+          <button class="su-btn su-btn-block" data-wx-open type="button">点我拿微信</button>
+        </section>
+        <section class="su-card">
+          <div class="su-label">Before you ask</div>
+          <h2 style="font-size:18px;margin-top:5px">先确认这三件事</h2>
+          <p>① 是否登录同一个账号；② 是否换了设备或清了浏览器缓存；③ 免费 AI 额度是否已经用完。大部分问题都出在这三步。</p>
+        </section>
+      </aside>
     </div>
   </div>
 </main>
+
+<script>
+(function(){
+  var page = document.querySelector('.su-help');
+  if(!page || page.dataset.helpBound) return;
+  page.dataset.helpBound = '1';
+  var input = document.getElementById('helpSearch');
+  var chips = Array.prototype.slice.call(page.querySelectorAll('[data-help-filter]'));
+  var groups = Array.prototype.slice.call(page.querySelectorAll('.su-faq-group'));
+  var empty = document.getElementById('helpEmpty');
+  var cur = 'all';
+  function apply(){
+    var q = (input && input.value || '').trim().toLowerCase();
+    var visible = 0;
+    groups.forEach(function(g){
+      var groupOn = (cur === 'all' || g.getAttribute('data-group') === cur);
+      var rows = Array.prototype.slice.call(g.querySelectorAll('details'));
+      var hitRows = 0;
+      rows.forEach(function(d){
+        var hit = groupOn && (!q || d.textContent.toLowerCase().indexOf(q) >= 0);
+        d.hidden = !hit;
+        if(hit) hitRows++;
+      });
+      var hideGroup = !hitRows;
+      g.hidden = hideGroup;
+      if(!hideGroup) visible += hitRows;
+    });
+    if(empty) empty.style.display = visible ? 'none' : 'block';
+  }
+  chips.forEach(function(chip){
+    chip.addEventListener('click', function(){
+      cur = chip.getAttribute('data-help-filter') || 'all';
+      chips.forEach(function(c){ c.classList.toggle('on', c === chip); });
+      apply();
+    });
+  });
+  if(input) input.addEventListener('input', apply);
+  apply();
+})();
+</script>
 
 <script defer src="js/data.js?v=20261117a"></script>
 <script defer src="js/common.js?v=20261116a"></script>

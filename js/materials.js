@@ -315,6 +315,80 @@
     </div>
   </div>`;
 
+  /* SHELL-UNIFY-1119：素材页专属引导屏。只挂 #matRoot，口语页 MAT tab 仍用旧模板。 */
+  var MAT_INTRO_HTML = `
+  <div id="introView" class="su-mat-intro">
+    <header class="su-page-head">
+      <div class="su-head-row">
+        <div>
+          <div class="su-kicker">Speaking · Material library</div>
+          <h1>一套素材，接住当季大半题卡</h1>
+          <p>把真实经历写成几个故事，AI 按当季 P2 题库逐题算覆盖。下次遇到新题，加一句过渡就能接上，不用为每道题重写一篇。</p>
+        </div>
+        <div class="su-head-aside">
+          <span class="su-tag green">当季 __MI_P2__ 道 P2 题卡</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="su-steps">
+      <div class="su-step"><span class="n">1</span><span class="tx"><b>写经历</b><span>14 个中文问题，约 15 分钟</span></span></div>
+      <div class="su-step"><span class="n">2</span><span class="tx"><b>对照题库</b><span>只读本站当季 P2 真题</span></span></div>
+      <div class="su-step"><span class="n">3</span><span class="tx"><b>合成故事</b><span>几个可背英文故事 + 骨架</span></span></div>
+      <div class="su-step"><span class="n">4</span><span class="tx"><b>算覆盖</b><span>每张卡能接几道题</span></span></div>
+    </div>
+
+    <div class="su-mat-grid">
+      <div class="su-mat-left">
+        <section class="su-card">
+          <div class="su-label">Why it works</div>
+          <h2 style="margin-top:5px">不是背 __MI_P2__ 篇范文，是准备几个能反复用的故事</h2>
+          <p class="su-note">P2 题卡一直在换，但你的真实经历没变。把经历讲清楚，再用一句过渡把它引到题目上，比临时编一篇稳得多。</p>
+          <div class="su-compare">
+            <div class="su-compare-col old">
+              <h3>老办法 · 一道一准备</h3>
+              <p>__MI_P2__ 道题 = __MI_P2__ 篇素材，写一半就放弃；换个问法接不上；考场一紧张只剩 and。</p>
+            </div>
+            <div class="su-compare-col new">
+              <h3>串题 · 一次准备</h3>
+              <p>只写几个真实故事；一个故事接一大类题；考场加一句过渡就能接上。覆盖以当季题库实际为准，宁多勿漏。</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="su-card">
+          <div class="su-label">How it works</div>
+          <h2 style="margin-top:5px;font-size:22px">生成之后你会得到什么</h2>
+          <div class="su-grid-2" style="margin-top:14px">
+            <div class="su-step" style="min-height:104px"><span class="n">A</span><span class="tx"><b>可背故事卡</b><span>中文逻辑 + 英文正文 + 背诵骨架，按你的真实经历写，不是模板范文。</span></span></div>
+            <div class="su-step" style="min-height:104px"><span class="n">B</span><span class="tx"><b>每张卡的适用题</b><span>标出这张卡能接哪些当季 P2 题，以及一句点题过渡。</span></span></div>
+            <div class="su-step" style="min-height:104px"><span class="n">C</span><span class="tx"><b>覆盖统计</b><span>哪些题已经接住、哪些还没覆盖，一眼看清下一步补什么。</span></span></div>
+            <div class="su-step" style="min-height:104px"><span class="n">D</span><span class="tx"><b>可编辑素材库</b><span>生成后还能逐张改、导入新经历、重新算覆盖。</span></span></div>
+          </div>
+        </section>
+      </div>
+
+      <aside class="su-card dark su-mat-right">
+        <div class="su-kicker">Membership</div>
+        <h2>生成串题卡是会员功能</h2>
+        <p>这一步要 AI 通读当季题库、读你的经历、合成故事并逐题算覆盖，一次消耗大量算力。学习功能和素材库永久免费；只有整套生成按会员额度开放。</p>
+        <div class="su-action-price"><b>5 次 / 月</b><span>重活额度 · 7 天卡 1 次</span></div>
+        <p class="su-muted" style="margin-top:0">具体价格以会员页为准，不在这里写死。</p>
+        <div class="su-cta-list">
+          <button class="su-btn su-btn-primary" id="startGen" type="button">开始整理我的串题卡 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg></button>
+          <button class="su-btn su-btn-ghost" id="goVip" type="button">先看会员权益 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+        </div>
+        <p class="su-muted" style="font-size:11px;margin-top:14px">已经有素材卡了？<a href="javascript:void(0)" id="backRes" style="color:var(--su-lime);text-decoration:none;font-weight:700">回到我的素材 →</a></p>
+      </aside>
+    </div>
+    </div>`;
+
+  function matIntroHtml(){
+    var h = MAT_INTRO_HTML;
+    try{ h = h.replace(/__MI_P2__/g, miCountP2()); }catch(e){}
+    return h;
+  }
+
   function miCountP2(){
     try{
       var arr = (typeof DATA !== 'undefined' && Array.isArray(DATA.speaking)) ? DATA.speaking : [];
@@ -345,7 +419,8 @@
   }
   /* 引导屏 ↔ 结果态/问卷态 之间切换：引导屏显示时把原容器内容藏起来 */
   function showIntro(root){
-    root.innerHTML = miIntroHtml();
+    /* 素材页专属新引导；口语页 MAT tab 复用旧 MI_INTRO_HTML，保持原样 */
+    root.innerHTML = (root && root.id === 'matRoot') ? matIntroHtml() : miIntroHtml();
     root.__miIntro = true;
     bindIntro(root);
   }
