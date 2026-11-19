@@ -2394,7 +2394,7 @@ window.addEventListener('pagehide', saveSideScroll);
 
 /* 图表/状态栏配色：深浅第一位、三套外观第二位（THEME-2，10-26）。
    ink 就是品牌青墨（与 manifest.json 的 theme_color 一致，缺省态靠它兜底）。 */
-var SCHEME_TC = { ink: '#3a9a93', cool: '#54748d', warm: '#78836c' };
+var SCHEME_TC = { ink: '#3a9a93', cool: '#54748d', warm: '#6d785f' };
 function schemeNow(){
   try{ return document.documentElement.getAttribute('data-scheme') || 'ink'; }catch(e){ return 'ink'; }
 }

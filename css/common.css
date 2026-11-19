@@ -19,7 +19,7 @@
   --n-300:#e6e8eb;    /* 常规分割线、卡片边框 */
   --n-400:#d4d7dc;    /* 强调描边、输入框默认边框 */
   --n-500:#a8adb5;    /* 占位文字、次要图标 */
-  --n-600:#71767e;    /* 次级文字、说明文字 */
+  --n-600:#677079;    /* 次级文字：略加深，浅灰底小字对比 4.54:1，减少发雾感 */
   --n-700:#4a4f57;    /* 正文次级 */
   --n-800:#24272c;    /* 主文字（非纯黑，降低长时间阅读疲劳） */
   --n-900:#14161a;    /* 标题、核心数据强调 */
@@ -195,9 +195,9 @@
   --primary-200:#c8d1bd;
   --primary-300:#aeb99e;
   --primary-400:#939f86;
-  --primary-500:#78836c;   /* 主色（规范稿 #78836c） */
-  --primary-600:#64705a;   /* hover */
-  --primary-700:#525d49;   /* 按下 */
+  --primary-500:#6d785f;   /* 苔绿主色：压暗半档，实底按钮更稳、更耐看 */
+  --primary-600:#5f6b54;   /* hover */
+  --primary-700:#4f5946;   /* 按下 */
   --primary-800:#353c32;
   --primary-900:#262b24;   /* 白底苔绿文字用这档（14.45:1） */
   --bg-accent:rgba(120,131,108,.06);
@@ -523,6 +523,12 @@ body.sheet-open .sheet{transform:translateY(0)}
 .btn-primary{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
 .btn-primary:hover{background:var(--primary-600);color:var(--on-primary);box-shadow:0 6px 16px rgba(58,154,147,.28)}
 .btn-primary:active{background:var(--primary-700)}
+/* 三主题浅色档的主按钮统一用深一档实底：保留品牌色，但不靠低对比的亮底白字抢眼。 */
+html:not([data-theme="dark"]) .btn-primary{background:var(--primary-700);border-color:var(--primary-700)}
+html:not([data-theme="dark"]) .btn-primary:hover{background:var(--primary-800);border-color:var(--primary-800)}
+html:not([data-theme="dark"]) .btn-primary:active{background:var(--primary-900);border-color:var(--primary-900)}
+/* 深色档主色本身是浅青，反白会发虚，改用深墨字。 */
+html[data-theme="dark"] .btn-primary{color:#123f3a}
 /* 全站按钮统一过渡 + 点击回弹（质感 + 微交互） */
 .btn:active{transform:translateY(0) scale(.97)}
 /* 计时"进行中"徽标：柔和呼吸光晕，安静提示正在计时 */

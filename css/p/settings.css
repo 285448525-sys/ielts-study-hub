@@ -79,7 +79,7 @@
 .set-sw{ width:10px; height:10px; border-radius:3px; display:inline-block; flex:none; }
 .set-sw[data-s="ink"]{ background:#3a9a93; }
 .set-sw[data-s="cool"]{ background:#54748d; }
-.set-sw[data-s="warm"]{ background:#78836c; }
+.set-sw[data-s="warm"]{ background:#6d785f; }
 
 /* ═══ SET-LAB-1（10-27）· 口语自评 band 组框下常驻小标签 ═══
    标签原来只挂 placeholder —— 框一填值 placeholder 消失，就看不出哪边是哪边（她 10:2x 报）。

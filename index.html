@@ -20,6 +20,10 @@
 <meta name="twitter:image" content="https://yasihub.com/img/landing/plans-demo.png?v=931">
 <link rel="canonical" href="https://yasihub.com/">
 <title>雅思备考 Hub｜今天该练什么，打开就知道</title>
+<script>
+/* 落地页只读取三主题外观；不引入全站脚本，也不改变日间/夜间设置。 */
+(function(){try{var s=localStorage.getItem('hub_theme_scheme');if(s==='cool'||s==='warm')document.documentElement.setAttribute('data-scheme',s);}catch(e){}})();
+</script>
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"WebSite","name":"雅思备考 Hub","url":"https://yasihub.com/","description":"雅思机考备考站：阅读听力练习、口语题库、写作模板、每日清单、AI 批改和成绩回顾。","inLanguage":"zh-CN"}
 </script>
@@ -53,6 +57,41 @@
 .final{background:var(--ink);color:#fff;padding:70px 0}.final .wrap{display:flex;align-items:center;justify-content:space-between;gap:40px}.final .eyebrow{color:#a5d8c8}.final h2{font-size:clamp(32px,3.5vw,46px);line-height:1.3;letter-spacing:-.04em;margin:13px 0 9px}.final p{margin:0;color:#b6ccc5;font-size:14px;line-height:1.75}.final .btn{flex:0 0 auto;background:var(--lime);border-color:var(--lime);color:var(--ink);min-height:52px;padding-inline:25px}.footer{padding:23px 0;background:#102f2c;color:#8ba39c;font-size:11px}.footer .wrap{display:flex;justify-content:space-between;gap:20px}.footer b{color:#c1d3cd}
 @media(max-width:1100px){.wrap{width:min(100% - 44px,1240px)}.nav-links{display:none}.hero-grid{grid-template-columns:1fr;gap:34px}.hero-copy{max-width:700px}.lead{max-width:620px}.hero-visual{max-width:900px}.workflow-grid{grid-template-columns:1fr 1fr}.today-step{grid-column:1/-1;border-right:0;border-bottom:1px solid var(--line);padding:0 0 26px}.today-step .check-list{grid-template-columns:repeat(3,1fr)}.exam-grid,.tools-grid,.boundary-grid{grid-template-columns:1fr;gap:34px}.exam-list{grid-template-columns:repeat(3,1fr);gap:22px}.exam-item{border-bottom:0;border-top:1px solid #cbd9cf;padding:16px 0 0}.final .wrap{align-items:flex-start}}
 @media(max-width:700px){.mobile-only{display:initial}.wrap{width:calc(100% - 32px)}.nav{height:62px}.brand{font-size:17px}.brand-mark{width:30px;height:30px}.nav-actions{gap:10px}.login{display:none}.btn-small{min-height:37px;padding:0 12px;font-size:12px}.hero{padding:38px 0 42px}.hero h1{font-size:41px;line-height:1.2;margin:20px 0 17px}.hero h1 .focus{white-space:normal}.hero h1 .focus:after{height:11px;bottom:3px}.lead{font-size:15px;line-height:1.8}.pill{font-size:9px;padding:7px 10px}.actions{margin-top:24px}.actions .btn{min-height:48px;padding-inline:19px;font-size:13px}.proof-note{font-size:11px}.hero-grid{gap:28px}.hero-visual:before{right:-8px;bottom:-10px}.shot{border-radius:14px}.shot-bar{height:36px;padding:0 11px;font-size:8px}.shot-foot{min-height:30px;padding:0 11px;font-size:8px}.number{padding:19px 12px}.number b{font-size:32px}.number span{font-size:11px;line-height:1.5}.number small{display:none}.workflow,.tools{padding:54px 0}.section-head{display:block;margin-bottom:26px}.section-head h2,.exam h2,.boundary h2{font-size:32px}.section-head p{margin-top:13px;font-size:13px}.workflow-grid{grid-template-columns:1fr;gap:34px}.today-step{padding-bottom:26px}.today-step .check-list{grid-template-columns:1fr}.today-step h3,.step h3{font-size:23px}.step .shot{margin-bottom:16px}.exam{padding:54px 0}.exam-grid{gap:26px}.exam-list{grid-template-columns:1fr;gap:0}.exam-item{padding:14px 0}.exam-item b{font-size:16px}.tools-grid{gap:36px}.vocab{padding:23px 20px;border-radius:16px}.vocab h2{font-size:26px}.vocab-stats{gap:15px}.vocab-stats b{font-size:19px}.word{grid-template-columns:76px 1fr;gap:8px}.word span{display:none}.word p{font-size:11px}.utilities h2{font-size:26px}.utility{grid-template-columns:84px 1fr;gap:12px;padding:17px 0}.utility p{font-size:13px}.boundary{padding:48px 0 62px}.boundary-grid{gap:28px}.plan-row{grid-template-columns:1.2fr .9fr .9fr}.plan-row>div{padding:13px 9px;font-size:12px}.plan-row.head>div{font-size:11px}.final{padding:52px 0}.final .wrap{display:block}.final h2{font-size:31px}.final p{font-size:13px}.final .btn{margin-top:24px;min-height:48px}.footer .wrap{flex-direction:column;gap:7px}}
+/* 三主题外观：沿用设置页的青墨 / 冷色 / 暖灰，默认青墨零变化。 */
+[data-scheme="cool"]{
+  --ink:#293e50;--ink-2:#3a5368;--muted:#5f6b74;--teal:#54748d;--teal-dark:#3a5368;
+  --paper:#f3f5f6;--line:#dce4e9;--mint:#eaf0f3;--lime:#dce8c8;
+  --dark-soft:#e0e9ee;--dark-muted:#bdcbd4;--dark-faint:#9fb2c0;--footer:#1d2c39;
+}
+[data-scheme="warm"]{
+  --ink:#353c32;--ink-2:#4f5946;--muted:#666d5f;--teal:#6d785f;--teal-dark:#4f5946;
+  --paper:#f5f3ed;--line:#e0e3d7;--mint:#eeeee4;--lime:#e2e7c4;
+  --dark-soft:#e4e8dc;--dark-muted:#c9d0bf;--dark-faint:#a9b29e;--footer:#262b24;
+}
+[data-scheme] .nav{background:color-mix(in srgb,var(--paper) 92%,transparent);border-bottom-color:color-mix(in srgb,var(--ink) 8%,transparent)}
+[data-scheme] .pill{border-color:var(--line);color:var(--ink-2);background:color-mix(in srgb,var(--white) 65%,transparent)}
+[data-scheme] .nav-links,[data-scheme] .lead,[data-scheme] .proof-note,[data-scheme] .shot-bar,
+[data-scheme] .shot-foot,[data-scheme] .number small,[data-scheme] .section-head p,
+[data-scheme] .today-step p,[data-scheme] .step p,[data-scheme] .exam-item p,
+[data-scheme] .utilities>p,[data-scheme] .utility p,[data-scheme] .boundary-copy p,
+[data-scheme] .author p,[data-scheme] .lock{color:var(--muted)}
+[data-scheme] .check-list li{color:var(--ink-2)}
+[data-scheme] .hero:before{background-image:linear-gradient(color-mix(in srgb,var(--ink) 3%,transparent) 1px,transparent 1px),linear-gradient(90deg,color-mix(in srgb,var(--ink) 3%,transparent) 1px,transparent 1px)}
+[data-scheme] .hero-visual:before{background:color-mix(in srgb,var(--lime) 50%,var(--paper))}
+[data-scheme] .shot{border-color:var(--line);box-shadow:0 26px 70px color-mix(in srgb,var(--ink) 13%,transparent)}
+[data-scheme] .shot-bar{background:var(--paper);border-bottom-color:var(--line)}
+[data-scheme] .shot-foot{background:var(--white)}
+[data-scheme] .exam-item{border-color:var(--line)}
+[data-scheme] .author{background:var(--mint)}
+[data-scheme] .plans-table{background:var(--white);border-color:var(--line)}
+[data-scheme] .plan-row,[data-scheme] .plan-row>div+div{border-color:var(--line)}
+[data-scheme] .plan-row.head{background:var(--mint)}
+[data-scheme] .btn-primary:hover{background:var(--ink-2)}
+[data-scheme] .vocab .eyebrow,[data-scheme] .final .eyebrow{color:var(--dark-soft)}
+[data-scheme] .vocab-copy,[data-scheme] .final p,[data-scheme] .word p{color:var(--dark-muted)}
+[data-scheme] .vocab-stats span,[data-scheme] .word span{color:var(--dark-faint)}
+[data-scheme] .footer{background:var(--footer);color:var(--dark-faint)}
+[data-scheme] .footer b{color:var(--dark-muted)}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.btn:hover{transform:none}}
 </style>
 </head>

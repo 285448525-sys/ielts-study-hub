@@ -4,26 +4,30 @@
    约束：不改任何业务 id、真实金额、收款码、会员状态和权限逻辑。 */
 
 body.shell-unify{
-  --su-paper:#F6F5EF;
-  --su-paper-2:#EFEDE3;
-  --su-card:#FBFAF4;
-  --su-card-2:#F2F0E6;
-  --su-ink:#16201D;
-  --su-ink-2:#4F5C56;
-  --su-muted:#7D867F;
-  --su-line:#DCD9CC;
-  --su-line-2:#C8C4B4;
-  --su-green:#123F3A;
-  --su-green-2:#0D322E;
-  --su-heading:#123F3A;
-  --su-teal:#2F7F76;
-  --su-teal-2:#256B64;
+  /* 表面色直接继承全站 token：青墨 / 冷色 / 暖灰切换时，五页与工作页同步换色。 */
+  --su-paper:var(--n-200);
+  --su-paper-2:var(--n-100);
+  --su-card:var(--n-0);
+  --su-card-2:var(--n-50);
+  --su-ink:var(--n-800);
+  --su-ink-2:var(--n-700);
+  --su-muted:var(--n-600);
+  --su-line:var(--n-300);
+  --su-line-2:var(--n-400);
+  --su-green:var(--primary-800);
+  --su-green-2:var(--primary-900);
+  --su-heading:var(--primary-900);
+  --su-teal:var(--primary-700);
+  --su-teal-2:var(--primary-600);
   --su-lime:#D7F36A;
-  --su-on-dark:#F7F6F0;
-  --su-warm-soft:#F0EEE2;
+  --su-on-dark:#F7F7F4;
+  --su-warm-soft:var(--primary-50);
   background:var(--su-paper);
   color:var(--su-ink);
 }
+/* 点缀色也随外观收敛：冷色与暖灰不再沿用高亮荧光黄绿。 */
+[data-scheme="cool"] body.shell-unify{--su-lime:#DCE8C8}
+[data-scheme="warm"] body.shell-unify{--su-lime:#E2E7C4}
 html[data-theme="dark"] body.shell-unify{
   --su-paper:#111512;
   --su-paper-2:#161B17;
