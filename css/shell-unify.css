@@ -385,7 +385,7 @@ html[data-theme="dark"] .su-vip #vipPlans .plan-price-num{color:var(--su-ink)}
 .su-vip .su-vip-side .su-card{padding:18px}
 .su-vip .su-vip-side h2{font-size:19px;margin-bottom:7px}
 .su-vip .su-vip-side p{font-size:11.5px;line-height:1.7;color:var(--su-muted);margin:0}
-.su-vip .kv-contact{cursor:pointer}
+.su-vip .kv-contact{display:block;cursor:pointer}
 .su-vip .kv-contact .su-btn{margin-top:12px}
 .su-vip .kv-legal{text-align:center;font-size:11px;color:var(--su-muted);margin:8px 0 0}
 .su-vip .kv-legal a{color:var(--su-muted);text-decoration:underline;text-underline-offset:3px}
