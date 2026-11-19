@@ -3471,6 +3471,9 @@ body:not(.exam-fullscreen):not(.mock-immerse):not(.word-fullscreen):not(.hub-exa
 .cp-coming-card{position:static!important;transform:none!important;width:min(100%,560px);padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;text-align:center}
 /* 公告原来只有窄内容列；含主状态卡时，公告内容列与统一卡同宽。 */
 @media(min-width:761px){.anc-page:has(>.es-box){max-width:920px}}
+/* 计划「往日」空态：统一卡外侧的旧白色 m-mcard 外壳与 24px 内边距一并收掉。 */
+.m-mk-body:has(#mDays > .esys){padding:0!important}
+.m-mcard:has(#mDays > .esys){background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important}
 /* 回顾空账号不再保留 520px+ 的旧白色外壳，避免标准卡外又套一张超高卡。 */
 .rva-empty-panel:has(>.es-box){display:block!important;flex:0 0 auto!important;height:auto!important;min-height:0!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important}
 .rva-page:has(>.rva-empty-panel>.es-box){display:block!important;flex:0 0 auto!important;height:auto!important;min-height:0!important}

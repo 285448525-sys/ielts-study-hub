@@ -3,7 +3,7 @@
   --rva-teal:#3a9a93;--rva-teal-d:#2f7d76;--rva-teal-50:#eef7f6;
   --rva-amber:#b3792c;--rva-amber-50:#fbf4e8;
   --rva-ink:#1f2328;--rva-ink-2:#3f4147;--rva-muted:#71767e;--rva-muted-2:#9aa0a6;
-  --rva-line:#e6e9ea;--rva-line-2:#eef1f2;--rva-bg:#f6f9fb;--rva-surface:#fff;
+  --rva-line:#e6e9ea;--rva-line-2:#eef1f2;--rva-bg:#f6f9fb;--rva-surface:#fff;--rva-soft:#fafbfc;
   --rva-radius:16px;--rva-shadow:0 1px 2px rgba(24,40,48,.04),0 12px 30px -26px rgba(24,40,48,.24);
 }
 body{background:var(--rva-bg)}
@@ -25,7 +25,7 @@ body{background:var(--rva-bg)}
 .rva-link{display:inline-flex;align-items:center;gap:3px;border:0;background:none;padding:2px 0;color:var(--rva-teal-d);font:inherit;font-size:11.5px;font-weight:700;cursor:pointer;white-space:nowrap}
 .rva-link:hover{color:var(--rva-teal)}
 .rva-link span{font-size:14px;line-height:1}
-.rva-seg{display:inline-flex;align-items:center;gap:2px;padding:2px;border:1px solid var(--rva-line);border-radius:9px;background:#f7f9f9;flex:0 0 auto}
+.rva-seg{display:inline-flex;align-items:center;gap:2px;padding:2px;border:1px solid var(--rva-line);border-radius:9px;background:var(--rva-soft);flex:0 0 auto}
 .rva-seg button{min-height:28px;padding:0 10px;border:0;border-radius:7px;background:transparent;color:var(--rva-muted);font:inherit;font-size:12px;font-weight:650;white-space:nowrap;cursor:pointer;transition:background .15s,color .15s,box-shadow .15s}
 .rva-seg button:hover{color:var(--rva-ink)}
 .rva-seg button.active{background:var(--rva-surface);color:var(--rva-teal-d);font-weight:750;box-shadow:0 1px 3px rgba(24,40,48,.09)}
@@ -42,10 +42,10 @@ body{background:var(--rva-bg)}
 #reviewMain #rvNav .hub-sub{min-height:52px;margin-bottom:7px;padding:8px 12px;border-radius:12px}
 #reviewMain #rvNav .hub-sub.on{border-color:#cde5e1;background:var(--rva-teal-50)}
 #reviewMain .hub-side-div{margin:8px 18px 10px}
-#reviewMain .hub-td{margin:4px 18px 0;padding:11px 12px 9px;border:1px solid var(--rva-line);border-radius:12px;background:#fafbfc}
+#reviewMain .hub-td{margin:4px 18px 0;padding:11px 12px 9px;border:1px solid var(--rva-line);border-radius:12px;background:var(--rva-soft)}
 #reviewMain .hub-td-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 2px;margin-bottom:3px}
 #reviewMain .hub-td-head b{font-size:11.5px;font-weight:750;color:var(--rva-ink)}
-#reviewMain .hub-td-count{padding:1px 7px;border:1px solid var(--rva-line);border-radius:999px;background:#fff;font-size:10px;font-weight:700;color:var(--rva-muted);font-variant-numeric:tabular-nums;line-height:1.5}
+#reviewMain .hub-td-count{padding:1px 7px;border:1px solid var(--rva-line);border-radius:999px;background:var(--rva-surface);font-size:10px;font-weight:700;color:var(--rva-muted);font-variant-numeric:tabular-nums;line-height:1.5}
 #reviewMain .hub-task{display:flex;align-items:flex-start;gap:7px;width:100%;padding:7px 2px;border:none;border-radius:8px;background:transparent;font:inherit;color:inherit;text-align:left;cursor:pointer}
 #reviewMain .hub-task:hover{background:#f5f6f8}
 #reviewMain .hub-tick{width:17px;height:17px;margin-top:1px;border-radius:5px;border:1.5px solid #d4d7dc;flex:none;display:grid;place-items:center;background:#fff;transition:border-color .15s,background .15s}
@@ -258,20 +258,30 @@ body{background:var(--rva-bg)}
    浅灰轨道 + 白色选中块 + 细边 + 极轻投影。 */
 .rva-mobile-tabs button{font-size:12px}
 .rva-mobile-tabs button.on{background:var(--rva-surface);border-color:var(--rva-line);color:var(--rva-teal-d);box-shadow:0 1px 2px rgba(16,24,40,.06)}
-.rva-seg{height:32px;padding:3px;gap:2px;border-radius:9px;background:#f7f9f9;border-color:var(--rva-line)}
+.rva-seg{height:32px;padding:3px;gap:2px;border-radius:9px;background:var(--rva-soft);border-color:var(--rva-line)}
 .rva-seg button{height:24px;min-height:24px;padding:0 10px;border:1px solid transparent;border-radius:6px;font-size:11.5px}
 .rva-seg button.active{background:var(--rva-surface);border-color:var(--rva-line);color:var(--rva-teal-d);font-weight:750;box-shadow:0 1px 2px rgba(16,24,40,.06)}
 /* UI-EMPTY-1117：空态字号与机经 / 口语 / 写作对齐。 */
 .rva-empty b{font-size:14px}
 .rva-empty p{font-size:12px}
 .rva-empty .rva-primary{min-height:36px;font-size:12px}
+/* 11-19 全站复检：补齐回顾页自有变量与写死浅底的夜间档，避免页面白底、卡片黑底割裂。 */
+[data-theme="dark"]{
+  --rva-teal:#5cb3ab;--rva-teal-d:#7ccac2;--rva-teal-50:rgba(92,179,171,.14);
+  --rva-amber:#d8aa62;--rva-amber-50:rgba(216,170,98,.12);
+  --rva-ink:#f2f2f4;--rva-ink-2:#aeaeb2;--rva-muted:#9a9aa0;--rva-muted-2:#7c7c82;
+  --rva-line:#2e2e32;--rva-line-2:#262629;--rva-bg:#0e0e10;--rva-surface:#1a1a1c;--rva-soft:#262629;
+  --rva-shadow:0 1px 2px rgba(0,0,0,.25),0 12px 30px -26px rgba(0,0,0,.45);
+}
+[data-theme="dark"] .rva-seg{background:var(--rva-line-2)}
+[data-theme="dark"] .rva-mobile-tabs button.on{background:var(--rva-surface);border-color:var(--rva-line)}
 @media(max-width:860px){
   /* 卡片本来就在 24px；只把导航补到同一左缘，不再比卡片宽一圈。 */
   #reviewMain .hub-main{padding:8px 0 22px}
   #reviewMain .rva-page[data-rv-pane="home"],
   #reviewMain .rva-page[data-rv-pane="trend"],
   #reviewMain .rva-page[data-rv-pane="records"]{margin:0 12px}
-  #reviewMain #rvMobileTabs{margin:0 12px 8px;background:#f7f9f9;border-color:var(--rva-line)}
+  #reviewMain #rvMobileTabs{margin:0 12px 8px;background:var(--rva-soft);border-color:var(--rva-line)}
   .rva-seg{height:36px}
   .rva-panel-head .rva-seg button{height:28px;min-height:28px}
 }
