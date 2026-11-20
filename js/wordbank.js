@@ -23,7 +23,7 @@
        全部来自 outputs/雅思词表汇总_五合一.xlsx 的 4 个页签，同一套「每章约 56 词、按出现次数从高到低」的切法。 */
     { id: 'rdtext', file: 'data/official-banks/rdtext.json', v: '20261024b', tag: '阅读原文', total: 2651 },
     { id: 'lstext', file: 'data/official-banks/lstext.json', v: '20261024b', tag: '听力原文', total: 1738 },
-    { id: 'lstans', file: 'data/official-banks/lstans.json', v: '20261120', tag: '听力答案', total: 456 },
+    { id: 'lstans', file: 'data/official-banks/lstans.json', v: '20261120', tag: '听力答案', total: 452 },
     { id: 'phr',    file: 'data/official-banks/phr.json',    v: '20261024b', tag: '高频词组', total: 2256 }
   ];
 
@@ -726,5 +726,6 @@
   };
   window.wbRenderSwitchers = wbRenderSwitchers;
 })();
+
 
 
