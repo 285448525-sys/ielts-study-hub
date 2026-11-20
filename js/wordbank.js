@@ -635,10 +635,13 @@
     }
     return n;
   }
-  /* 11-20 智能模式：三本合计统计（词书卡 / 词书详情 / 已掌握数共用，避免各算一套对不上）。
-     total = 合并去重后的词数：优先用已加载的虚拟库词表长度，否则按三本已加载词表的 en 去重；
-     三本都没加载时退回注册表合计（含重复，仅占位，加载后重算）。
-     mastered / learning / notDue = 三本 prog 各自合计（每词只归属一本，不会重复计数）。 */
+    /* 11-20 智能模式：三本合计统计（词书卡 / 词书详情 / 已掌握数共用，避免各算一套对不上）。
+       total = 合并去重后的词数：优先用已加载的虚拟库词表长度，否则按三本已加载词表的 en 去重；
+       三本都没加载时退回注册表合计（含重复，仅占位，加载后重算）。
+       11-20 修：mastered / learning / notDue **不能**简单三本相加 —— 同一词在多本 prog 都可能有
+       旧进度（智能库上线前在各本单练过，_wbSaveSmart 刻意保留旧副本不清），相加会把一个词数成 2~3 个。
+       改成按「每词只归属它最高身份那本」计一次：优先读智能库词表的 _smartHome；
+       未加载时按三本已加载词表重建 home 映射（与 _smartReady 的覆盖顺序一致）。 */
   function wbSmartStats(){
     var homes = ['rdtext','lstext','lstans'];
     var total = 0, mastered = 0, learning = 0, notDue = 0;
@@ -657,16 +660,26 @@
       }
     }
     var today = todayKey();
-    homes.forEach(function(home){
-      var prog = (state.banks[home] && state.banks[home].prog) || {};
-      for(var en in prog){
-        if(!Object.prototype.hasOwnProperty.call(prog, en)) continue;
-        var p = prog[en] || {};
-        if(p.cleared === true && (Number(p.level) || 0) >= 5) mastered++;
-        else if((Number(p.level) || 0) > 0 || p.lastReview) learning++;
-        if(p.nextReview && p.nextReview > today) notDue++;
-      }
-    });
+    // en → 最高身份 home（答案词 > 听力词 > 阅读词），与 _smartReady 的覆盖顺序同源
+    var homeOf = {};
+    if(srec && srec.words && srec.words.length){
+      srec.words.forEach(function(w){
+        if(w && w.en && w._smartHome) homeOf[String(w.en).trim().toLowerCase()] = w._smartHome;
+      });
+    } else {
+      ['rdtext','lstext','lstans'].forEach(function(home){
+        var ws = state.banks[home] && state.banks[home].words;
+        (ws || []).forEach(function(w){ if(w && w.en) homeOf[String(w.en).trim().toLowerCase()] = home; });
+      });
+    }
+    for(var en in homeOf){
+      if(!Object.prototype.hasOwnProperty.call(homeOf, en)) continue;
+      var hrec = state.banks[homeOf[en]];
+      var p = (hrec && hrec.prog && hrec.prog[en]) || {};
+      if(p.cleared === true && (Number(p.level) || 0) >= 5) mastered++;
+      else if((Number(p.level) || 0) > 0 || p.lastReview) learning++;
+      if(p.nextReview && p.nextReview > today) notDue++;
+    }
     return { total: total, mastered: mastered, learning: learning, notDue: notDue };
   }
 
@@ -701,10 +714,17 @@
       var fresh = [];
       for(var i = 0; i < rec.words.length; i++){
         var w = rec.words[i];
-        fresh.push({ id: w.id, en: w.en, cn: w.cn, pos: w.pos, ipa: w.ipa, sl: w.sl,
+        // 保留全部内容字段（含例句 eg），只把进度字段重置为初值。
+        // 修：此前漏掉 eg，重置后例句从内存消失，要等软导航重载才回来。
+        fresh.push({ id: w.id, en: w.en, cn: w.cn, pos: w.pos, ipa: w.ipa, eg: w.eg, sl: w.sl,
                      ts: _now, level: 0, nextReview: todayKey() });
       }
       rec.words = fresh;
+      /* 11-20 修：重建了 rec.words，但 state.loaded[id] 这个 Promise 仍解析到**旧**数组。
+         智能模式重新合并时走 obBankReady(home)，拿到的就是旧词对象（还带着重置前的
+         level/cleared），表现为「重置完还有十几个词残留进度」。这里一并让缓存失效，
+         下次 ready 重新拉 json（静态词包，代价一次请求）。 */
+      delete state.loaded[id];
     }
     /* 非活跃库重置后内存已改，但 _persist 只写活跃库、未标脏的非活跃库会原样带上盘上旧值
        —— 不标脏等于重置没落盘。标脏后由 _flushDirty 补写。 */
