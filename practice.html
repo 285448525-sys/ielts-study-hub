@@ -31,8 +31,8 @@
 })();
 </script>
 <title>单词 · 雅思备考 Hub</title>
-<link rel="preload" as="script" href="js/practice.js?v=20261117d" /> <!-- W1-PRELOAD-1 (168KB)：与下方 defer 同串防双下载 -->
-<link rel="preload" as="script" href="js/words.js?v=20261102c" /> <!-- W1-PRELOAD-1 (90KB)：与下方 defer 同串防双下载 -->
+<link rel="preload" as="script" href="js/practice.js?v=20261120a" /> <!-- W1-PRELOAD-1 (168KB)：与下方 defer 同串防双下载 -->
+<link rel="preload" as="script" href="js/words.js?v=20261120a" /> <!-- W1-PRELOAD-1 (90KB)：与下方 defer 同串防双下载 -->
 <link rel="preload" as="script" href="js/common-shell.js?v=20261119c" /> <!-- W1-PRELOAD-1 (113KB)：与下方 defer 同串防双下载 -->
 <link rel="stylesheet" href="css/common.css?v=20261120a" />
 <link rel="stylesheet" href="css/p/practice.css?v=20261120a" />
@@ -55,11 +55,11 @@
   <script defer src="js/common-pwa.js?v=20261120a"></script>
   <script defer src="js/feedback.js?v=20261111b"></script>
   <!-- design/78 双词库适配层：必须在 dhp_policy.js / practice.js / words.js 之前（defer 按文档序执行） -->
-  <script defer src="js/wordbank.js?v=20261120a"></script>
+  <script defer src="js/wordbank.js?v=20261120b"></script>
   <!-- design/77 DHP+SSP-MMC 策略表：必须在 practice.js 之前（defer 按文档序执行，表未加载时 practice.js 有回退兜底） -->
   <script defer src="js/dhp_policy.js?v=20260921a"></script>
-  <script src="js/practice.js?v=20261117d" defer></script>
-  <script src="js/words.js?v=20261102c" defer></script>
+  <script src="js/practice.js?v=20261120a" defer></script>
+  <script src="js/words.js?v=20261120a" defer></script>
   <script src="js/wd-dict.js?v=20261117e" defer></script>
 <style>
 /* ============================================================
@@ -1257,6 +1257,7 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
     var label = '我的词库';
     try{
       var cur = (typeof wbActive === 'function') ? wbActive() : 'custom';
+      if (cur === 'smart'){ return '智能模式'; }
       if (cur && cur !== 'custom' && typeof OB_BANKS !== 'undefined' && OB_BANKS){
         for (var i = 0; i < OB_BANKS.length; i++){
           var b = OB_BANKS[i];
@@ -1411,6 +1412,8 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
   function syncModeTxt(){
     var m = 'visual';
     try{ m = (typeof pc === 'function' ? pc() : {}).questionMode || 'visual'; }catch(e){}
+    /* 11-20 智能模式：当前词库是 smart 时，模式胶囊显示「智能模式」而非全局题型 */
+    try{ if (typeof wbActive === 'function' && wbActive() === 'smart'){ setTxt('wdModeTxt', '智能模式'); return; } }catch(e){}
     setTxt('wdModeTxt', MODE_TXT[m] || MODE_TXT.visual);
   }
   /* WORDBOOK-UX-1：把「刷新头部模式胶囊」开成全局口子，给设置页切模式时同步调用。
@@ -1781,9 +1784,10 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
     { id: 'lstext',  nm: '听力原文高频词',   dir: 'listening',  own: 'official', mt: '347 篇听力原文统计',   ic: 'audio',  src: '真题来源' },
     { id: 'phr',     nm: '高频词组',         dir: 'listening',  own: 'official', mt: '1314 组固定搭配',      ic: 'audio',  src: '真题来源' },
     { id: 'awl',     nm: '学术阅读核心词 AWL', dir: 'reading',   own: 'official', mt: 'Coxhead 学术词表',     ic: 'book',   src: '真题来源' },
-    { id: 'lstans',  nm: '听力填空答案词',   dir: 'listening',  own: 'official', mt: '真题填空真答案',        ic: 'audio',  src: '真题来源' }
+    { id: 'lstans',  nm: '听力填空答案词',   dir: 'listening',  own: 'official', mt: '真题填空真答案',        ic: 'audio',  src: '真题来源' },
+    { id: 'smart',   nm: '智能模式',           dir: 'smart',      own: 'official', mt: '阅读/听力/答案自动调配', ic: 'audio',  src: '三本合并' }
   ];
-  var WM_DIR_TXT = { listening: '听力', reading: '阅读', writing: '写作', speaking: '口语', mine: '我的' };
+  var WM_DIR_TXT = { listening: '听力', reading: '阅读', writing: '写作', speaking: '口语', mine: '我的', smart: '智能' };
   /* WORD-3B：答题态头部的「词书名即切换器」要用同一份词书档案（不造第二份）。
      本文件是 IIFE，WM_BOOKS 不外露 → 显式挂到 window 给 HEAD 里那段脚本读。 */
   window.__WM_BOOKS = WM_BOOKS;
@@ -2185,6 +2189,8 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
     if (!w || !w.en) return '';
     var bankId = (typeof wbActive === 'function') ? wbActive() : 'custom';
     var key = String(w.en).trim().toLowerCase();
+    /* 11-20 智能模式：smart 是虚拟库（无 json），例句按词的 _smartHome 路由到 home 库的 eg 缓存 */
+    if (bankId === 'smart' && w._smartHome) bankId = w._smartHome;
     var map = _egCache[bankId];
     /* 11-07 WORDBOOK-AUDIT-1：custom 词库本就没有例句表（wdEgLoad('custom') 直接
        Promise.resolve(null)，永不写 _egCache.custom），旧码这里每次 !map 都 .then(refreshExampleFor)，
@@ -2487,7 +2493,7 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
 <link rel="stylesheet" href="css/p/hub-shell.css?v=20261120a" />
 <script defer src="js/hub-side-shell.js?v=20261118a"></script>
   <link rel="stylesheet" href="css/p/word-master.css?v=20261120a" />
-<script defer src="js/wb-tabs.js?v=20261118a"></script>
+<script defer src="js/wb-tabs.js?v=20261120a"></script>
 </body>
 </html>
 

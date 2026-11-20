@@ -1566,6 +1566,12 @@ function renderQuestion(cur, isRehold){
       : (c.questionMode === 'self') ? 'self'
       : 'visual';
   }
+  /* 11-20 智能模式：当前词库是 smart 时，每题按词的 _smartMode 覆盖全局 questionMode。
+     词对象在 wordbank.js 的 _smartReady() 里已标注 _smartMode（dictation/audio/visual）。
+     isRehold（当场重考）时沿用原 _curQMode，不重新按词覆盖。 */
+  if(!isRehold && typeof wbActive === 'function' && wbActive() === 'smart' && cur._smartMode){
+    pq._curQMode = cur._smartMode;
+  }
   /* WD-DICT-MODE-1（10-31）：听写模式。形态与听音选义同源（题干英文隐藏、只留音标+喇叭），
      差别只有一处 —— **选项从「选释义」换成「选拼写」**（四个拼写变体）。
      🔴 判题链路一个字不改：选项仍然挂 data-en，点击仍然走 judge(cur, dataset.en, dataset.en===cur.en)，

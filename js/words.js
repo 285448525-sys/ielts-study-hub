@@ -1183,6 +1183,12 @@ function wbDeckStats(key){
   }
   // 官方词包：**不依赖词包是否已加载** —— 进度本来就落在 localStorage 的 prog（键 = 小写 en），
   // 用它反推「已学 / 待复习 / 已掌握」。全部词都没练过时 prog 为空 → 整本都算待复习，与学习页口径一致。
+  /* 11-20 智能模式：三本合计口径，统计走 wordbank.js 的 wbSmartStats（词书卡 / 词书详情同源）。
+     total = 合并去重词数；mastered / learned = 三本 prog 合计；due = total - 未到期。 */
+  if(key === 'smart'){
+    var ss = (typeof wbSmartStats === 'function') ? wbSmartStats() : { total: 0, mastered: 0, learning: 0, notDue: 0 };
+    return { count: ss.total, total: ss.total, due: Math.max(0, ss.total - ss.notDue), overdue: 0, mastered: ss.mastered, learned: ss.learning, pct: ss.total ? Math.round(ss.learning * 100 / ss.total) : 0, loaded: true };
+  }
   const ent = (typeof OB_BANKS !== 'undefined' ? OB_BANKS : []).find(x => x.id === key);
   const total = (ent && ent.total) || 0;
   let prog = {};
@@ -1211,6 +1217,17 @@ function wbDecks(){
   });
   const banks = (typeof OB_BANKS !== 'undefined' && Array.isArray(OB_BANKS)) ? OB_BANKS : [];
   banks.forEach(ent => {
+    // 11-20 智能模式：插在 lstans 之后、phr 之前（用户习惯：答案词旁边就是智能模式）
+    if(ent.id === 'phr'){
+      const st = wbDeckStats('smart');
+      out.push({
+        key: 'smart', title: '智能模式', official: true,
+        meta: '按词的最高身份自动调配练法',
+        count: st.count, due: st.due, overdue: 0, mastered: st.mastered, pct: st.pct
+      });
+    }
+    // 11-20：smart 是虚拟库，上面已在 phr 前插入一张卡；OB_BANKS 里的这条跳过，避免重复出卡
+    if(ent.id === 'smart') return;
     let meta = null;
     try{ meta = (typeof wbBankMeta === 'function') ? wbBankMeta(ent.id) : null; }catch(e){ meta = null; }
     const st = wbDeckStats(ent.id);
@@ -1264,6 +1281,17 @@ function wbRenderDeckGrid(){
   box.innerHTML = decks.map(wbDeckCardHtml).join('') +
     '<button type="button" class="wb-deck--add" id="wbDeckAdd" aria-label="添加词书">' +
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>添加词书</button>';
+  /* 11-20 智能模式：虚拟库词数要等三本加载完才准。若三本里已有加载过的，加载完成后补渲一次网格，
+     让智能模式卡的词数从占位合计刷新成合并去重后的真实词数。只补一次，不反复触发。 */
+  if(typeof obBankReady === 'function' && !window.__wbSmartDeckLoaded){
+    var _smartHas = ['rdtext','lstext','lstans'].some(function(h){ return typeof wbLoaded === 'function' && wbLoaded(h); });
+    if(_smartHas){
+      Promise.resolve(obBankReady('smart')).then(function(){
+        window.__wbSmartDeckLoaded = true;
+        try{ wbRenderDeckGrid(); }catch(e){}
+      }).catch(function(){});
+    }
+  }
 }
 
 /* 点书卡：切到那本书 → 展开它的词列表（软切，不换页）。

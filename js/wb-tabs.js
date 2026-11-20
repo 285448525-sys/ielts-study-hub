@@ -26,7 +26,8 @@
     lstext:{overline:'IELTS · LISTENING', index:'03', source:'剑桥雅思听力原文', desc:'高频场景词与同义替换', priority:'听力必背'},
     phr:{overline:'IELTS · COLLOCATION', index:'04', source:'阅读 / 听力高频搭配', desc:'按真题语境整理的词组与固定表达', priority:'写作可复用'},
     awl:{overline:'AWL · ACADEMIC', index:'05', source:'Academic Word List', desc:'学术阅读与写作通用的核心词族', priority:'学术优先'},
-    lstans:{overline:'IELTS · LISTENING', index:'06', source:'剑雅听力填空答案', desc:'听力填空题中的真实答案词', priority:'拼写必背'}
+    lstans:{overline:'IELTS · LISTENING', index:'06', source:'剑雅听力填空答案', desc:'听力填空题中的真实答案词', priority:'拼写必背'},
+    smart:{overline:'IELTS · SMART', index:'07', source:'阅读 / 听力 / 答案三本合并', desc:'按词的最高身份自动调配练法', priority:'智能优先'}
   };
   var selectedBook = '', statRange = 7, activeWord = null, wrongLoadToken = 0;
   function $(id){return document.getElementById(id);}
@@ -49,6 +50,11 @@
     try{return (window.__OB.banks[bankId].prog||{})[String(en).toLowerCase()]||{};}catch(e){return {};}
   }
   function counts(id){
+    /* 11-20 智能模式：三本合计，口径与词书卡同源（wbSmartStats） */
+    if(id === 'smart'){
+      var ss = (typeof wbSmartStats === 'function') ? wbSmartStats() : { total:0, mastered:0, learning:0 };
+      return { m: ss.mastered, l: ss.learning, n: Math.max(0, ss.total - ss.mastered - ss.learning), t: ss.total };
+    }
     var mastered=0, learning=0, list=[];
     try{
       if(id==='custom')list=DATA.words||[];
@@ -102,7 +108,10 @@
     try{var list=typeof wbWords==='function'?wbWords():[];word=list.filter(function(w){return w&&w.en&&w.cleared!==true;})[0]||list[0];}catch(e){}
     setText('wbPreviewWord',word?word.en:'—');setText('wbPreviewIpa',word?word.ipa||'':'');
     setText('wbPreviewCn',word?((word.pos?word.pos+' ':'')+(word.cn||'')):'');
-    setText('wbPreviewMode',MODE[cfg().questionMode]||MODE.visual);
+    /* 11-20 智能模式：预览卡显示该词实际练法（词的 _smartMode），不沿用全局题型 */
+    var previewMode=MODE[cfg().questionMode]||MODE.visual;
+    if(current==='smart' && word && word._smartMode) previewMode=MODE[word._smartMode]||previewMode;
+    setText('wbPreviewMode',previewMode);
     $('wbPreviewCard').disabled=!word;
     activeWord=word?{en:word.en,bankId:current,d:word,wrong:false}:null;
     if(word && current!=='custom' && !wbLoaded(current)){obBankReady(current).then(function(){renderStudy();}).catch(function(){});}

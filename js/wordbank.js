@@ -24,7 +24,12 @@
     { id: 'rdtext', file: 'data/official-banks/rdtext.json', v: '20261024b', tag: '阅读原文', total: 2651 },
     { id: 'lstext', file: 'data/official-banks/lstext.json', v: '20261024b', tag: '听力原文', total: 1738 },
     { id: 'lstans', file: 'data/official-banks/lstans.json', v: '20261120', tag: '听力答案', total: 452 },
-    { id: 'phr',    file: 'data/official-banks/phr.json',    v: '20261024b', tag: '高频词组', total: 2256 }
+    { id: 'phr',    file: 'data/official-banks/phr.json',    v: '20261024b', tag: '高频词组', total: 2256 },
+    /* 11-20 智能模式：虚拟词库，不 fetch json。合并 rdtext/lstext/lstans 三本，
+       按词的最高身份（答案词 > 听力词 > 阅读词）自动标注练法：
+         答案词 → dictation（听音写词）/ 听力词 → audio（听音选义）/ 阅读词 → visual（看词选义）。
+       每词进度写到它最高身份那本的 localStorage（不存虚拟库自身）；当日 session/seen/错词/统计存虚拟库。 */
+    { id: 'smart', file: null, v: '', tag: '智能模式', total: 0, virtual: true }
   ];
 
   var OB_KEY = 'ielts_hub_obank_v1';
@@ -230,9 +235,57 @@
       if(p[f] !== undefined) obj[f] = p[f];
     }
   }
+  /* 11-20 智能模式：虚拟词库构建。
+     合并 rdtext/lstext/lstans 三本，按 en 去重，每词取「最高身份」那本的词对象并标注练法：
+       答案词（lstans）→ _smartMode='dictation'，_smartHome='lstans'
+       听力词（lstext）→ _smartMode='audio'，_smartHome='lstext'
+       阅读词（rdtext）→ _smartMode='visual'，_smartHome='rdtext'
+     词对象直接引用 home 库的词对象（同一引用），SRS 字段更新天然同步到 home 库内存态。
+     进度落盘由 _wbSaveSmart 按 _smartHome 路由到各 home 库的 prog，不存虚拟库自身。 */
+  function _smartReady(){
+    if(state.loaded.smart) return state.loaded.smart;
+    state.loaded.smart = Promise.all([
+      obBankReady('rdtext'), obBankReady('lstext'), obBankReady('lstans')
+    ]).then(function(arr){
+      var rd = arr[0] || [], ls = arr[1] || [], an = arr[2] || [];
+      var map = {};   // en_lower -> { word, mode, home }
+      // 阅读词：最低身份，只占位
+      rd.forEach(function(w){
+        if(!w || !w.en) return;
+        var k = String(w.en).trim().toLowerCase();
+        if(!map[k]) map[k] = { word: w, mode: 'visual', home: 'rdtext' };
+      });
+      // 听力词：覆盖阅读词
+      ls.forEach(function(w){
+        if(!w || !w.en) return;
+        var k = String(w.en).trim().toLowerCase();
+        map[k] = { word: w, mode: 'audio', home: 'lstext' };
+      });
+      // 答案词：最高身份，覆盖一切
+      an.forEach(function(w){
+        if(!w || !w.en) return;
+        var k = String(w.en).trim().toLowerCase();
+        map[k] = { word: w, mode: 'dictation', home: 'lstans' };
+      });
+      var words = [];
+      for(var k in map){
+        if(!Object.prototype.hasOwnProperty.call(map, k)) continue;
+        var e = map[k];
+        e.word._smartMode = e.mode;
+        e.word._smartHome = e.home;
+        words.push(e.word);
+      }
+      var rec = _rec('smart');
+      rec.words = words;
+      rec.meta = { id:'smart', name:'智能模式', desc:'按词的最高身份自动调配练法', source:'合并阅读/听力/答案三本', total: words.length };
+      return words;
+    });
+    return state.loaded.smart;
+  }
   function obBankReady(bankId){
     var id = bankId || 'awl';
     if(id === 'custom') return Promise.resolve();   // custom 无需加载
+    if(id === 'smart') return _smartReady();         // 智能模式：合并三本，不 fetch json
     if(state.loaded[id]) return state.loaded[id];
     var ent = _findEnt(id);
     if(!ent) return Promise.reject(new Error('未知官方词库：' + id));
@@ -318,6 +371,15 @@
   function wbFind(en){
     var k = String(en || '').trim().toLowerCase();
     if(!k) return null;
+    // 11-20 智能模式：直接查合并词表（词对象已带 _smartMode/_smartHome）
+    if(wbActive() === 'smart'){
+      var rec = state.banks.smart;
+      var ws = (rec && rec.words) ? rec.words : [];
+      for(var i = 0; i < ws.length; i++){
+        if(String(ws[i].en || '').trim().toLowerCase() === k) return ws[i];
+      }
+      return null;
+    }
     var ws = wbWords();
     for(var i = 0; i < ws.length; i++){
       if(String(ws[i].en || '').trim().toLowerCase() === k) return ws[i];
@@ -329,6 +391,8 @@
   function wbSave(){
     var a = wbActive();
     if(a === 'custom'){ hubSave(); return; }
+    // 11-20 智能模式：进度按每词的 _smartHome 路由到各 home 库，不落虚拟库自身
+    if(a === 'smart'){ _wbSaveSmart(); return; }
     // 官方词库：把内存词数组的进度字段 pick 回 prog，再整体写独立 localStorage
     var rec = _rec(a);
     var ws = rec.words || [];
@@ -346,6 +410,39 @@
     rec.prog = prog;
     _persist();
     // 11-01：非活跃库在此路径不会进来（wbSave 只处理活跃库），无需标脏；补写兜底交给 _scheduleFlush
+  }
+  /* 11-20 智能模式：把每词进度写到它最高身份那本的 prog，再标脏那几本。
+     虚拟库自身的 session/seen/seen/wrong/dayStats 由 _persist 正常落盘（active='smart' 时）。 */
+  function _wbSaveSmart(){
+    var rec = _rec('smart');
+    var ws = rec.words || [];
+    var byHome = {};   // homeId -> { en: progFields }
+    for(var i = 0; i < ws.length; i++){
+      var w = ws[i];
+      if(!w || !w.en || !w._smartHome) continue;
+      var p = null;
+      for(var j = 0; j < PROG_FIELDS.length; j++){
+        var f = PROG_FIELDS[j];
+        if(w[f] !== undefined){ if(!p) p = {}; p[f] = w[f]; }
+      }
+      if(p){
+        if(!byHome[w._smartHome]) byHome[w._smartHome] = {};
+        byHome[w._smartHome][String(w.en).trim().toLowerCase()] = p;
+      }
+    }
+    for(var home in byHome){
+      if(!Object.prototype.hasOwnProperty.call(byHome, home)) continue;
+      var hrec = _rec(home);
+      if(!hrec.prog || typeof hrec.prog !== 'object') hrec.prog = {};
+      /* 合并而非整包替换：home 库里还存着「身份被更高那本覆盖」的词的旧进度
+         （比如既是阅读词又是答案词的词，其阅读库副本的进度仍在），整包替换会把它们清掉。 */
+      for(var en in byHome[home]){
+        if(Object.prototype.hasOwnProperty.call(byHome[home], en)) hrec.prog[en] = byHome[home][en];
+      }
+      _dirty[home] = true;   // 非活跃 home 库标脏，_persist 会跳过、_flushDirty 补写
+    }
+    _persist();
+    if(Object.keys(_dirty).length) _scheduleFlush();
   }
 
   // ---------- 当日 session ----------
@@ -518,6 +615,7 @@
   function wbBankMeta(bankId){
     var id = bankId || wbActive();
     if(id === 'custom') return null;
+    if(id === 'smart') return { id:'smart', name:'智能模式', desc:'按词的最高身份自动调配练法', source:'合并阅读/听力/答案三本', total: (state.banks.smart && state.banks.smart.words ? state.banks.smart.words.length : 0) };
     var rec = state.banks[id];
     if(rec && rec.meta) return rec.meta;
     var ent = _findEnt(id);
@@ -526,6 +624,8 @@
   function wbMasteredCount(bankId){
     var id = bankId || wbActive();
     var ws;
+    // 11-20 智能模式：三本已掌握数合计，口径与 wbSmartStats 同源
+    if(id === 'smart') return wbSmartStats().mastered;
     if(id === 'custom') ws = DATA.words || [];
     else { var rec = state.banks[id]; ws = (rec && rec.words) ? rec.words : []; }
     var n = 0;
@@ -535,11 +635,58 @@
     }
     return n;
   }
+  /* 11-20 智能模式：三本合计统计（词书卡 / 词书详情 / 已掌握数共用，避免各算一套对不上）。
+     total = 合并去重后的词数：优先用已加载的虚拟库词表长度，否则按三本已加载词表的 en 去重；
+     三本都没加载时退回注册表合计（含重复，仅占位，加载后重算）。
+     mastered / learning / notDue = 三本 prog 各自合计（每词只归属一本，不会重复计数）。 */
+  function wbSmartStats(){
+    var homes = ['rdtext','lstext','lstans'];
+    var total = 0, mastered = 0, learning = 0, notDue = 0;
+    var uniq = {};
+    var srec = state.banks.smart;
+    if(srec && srec.words && srec.words.length){
+      total = srec.words.length;
+    } else {
+      homes.forEach(function(home){
+        var ws = state.banks[home] && state.banks[home].words;
+        (ws || []).forEach(function(w){ if(w && w.en) uniq[String(w.en).trim().toLowerCase()] = 1; });
+      });
+      total = Object.keys(uniq).length;
+      if(!total){
+        homes.forEach(function(home){ var ent = _findEnt(home); total += (ent && ent.total) || 0; });
+      }
+    }
+    var today = todayKey();
+    homes.forEach(function(home){
+      var prog = (state.banks[home] && state.banks[home].prog) || {};
+      for(var en in prog){
+        if(!Object.prototype.hasOwnProperty.call(prog, en)) continue;
+        var p = prog[en] || {};
+        if(p.cleared === true && (Number(p.level) || 0) >= 5) mastered++;
+        else if((Number(p.level) || 0) > 0 || p.lastReview) learning++;
+        if(p.nextReview && p.nextReview > today) notDue++;
+      }
+    });
+    return { total: total, mastered: mastered, learning: learning, notDue: notDue };
+  }
 
   // ---------- 重置官方词库进度（两步内联确认由调用方 UI 负责） ----------
   function wbResetBank(bankId){
     var id = bankId;
     if(!id || id === 'custom' || !_findEnt(id)) return;
+    // 11-20 智能模式：重置 = 重置三本 home 库的进度 + 清虚拟库自身 session/seen/错词/统计
+    if(id === 'smart'){
+      ['rdtext','lstext','lstans'].forEach(function(home){ wbResetBank(home); });
+      var srec = _rec('smart');
+      srec.prog = {}; srec.session = null;
+      srec.seen = { date: '', words: [] }; srec.wrong = {}; srec.dayStats = {};
+      // 智能库 words 是 home 库词对象的引用，重置后需重建内存词数组（重新拉 home 库）
+      delete state.loaded.smart;
+      srec.words = null;
+      _persist();
+      if(Object.keys(_dirty).length) _scheduleFlush();
+      return;
+    }
     var rec = _rec(id);
     rec.prog = {};
     rec.session = null;
@@ -559,7 +706,11 @@
       }
       rec.words = fresh;
     }
+    /* 非活跃库重置后内存已改，但 _persist 只写活跃库、未标脏的非活跃库会原样带上盘上旧值
+       —— 不标脏等于重置没落盘。标脏后由 _flushDirty 补写。 */
+    if(id !== state.active) _dirty[id] = true;
     _persist();
+    if(Object.keys(_dirty).length) _scheduleFlush();
   }
 
   // ---------- 词库切换控件（只渲染词库页 #wbSwitcher；9/26 她拍板：学习页不再显示词库切换器，
@@ -688,6 +839,7 @@
   window.wbDueSplit = wbDueSplit;
   window.wbBankMeta = wbBankMeta;
   window.wbMasteredCount = wbMasteredCount;
+  window.wbSmartStats = wbSmartStats;
   window.wbResetBank = wbResetBank;
   window.wbForgetWrong = function(en){
     var key = _wrongKey(wbActive(), en);
