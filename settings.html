@@ -348,14 +348,24 @@ setTimeout(__rvRescue,2500);
   .set-pane .set-card{padding:4px 14px 6px}
 }
 @media(max-width:640px){
-  .set-topbar.set-profile{padding:16px;gap:12px}
-  .set-topbar .acct-avatar{width:44px;height:44px;border-radius:13px}
-  .set-topbar .acct-main>b{font-size:15px}
+  /* 11-23：手机端身份卡从根瘦身。原 ≤640px 档两条规则是死规则——
+     .set-topbar .acct-avatar 被 #acctAvatarBtn（ID 权重 1,0,0）压住，头像仍是 56px；
+     .set-topbar .acct-main>b 匹配不到任何元素（名字是 span.me-name）。
+     改法：选择器提到 #setMe / .set-topbar .me-name，让 44px 头像与 15px 名字真正生效；
+     同时去掉 min-height:100px 的人工撑高、收紧 padding/gap，卡片回到内容自然高度。 */
+  .set-topbar.set-profile{padding:14px;gap:10px;min-height:0}
+  #setMe .acct-avatar{width:44px;height:44px;border-radius:13px}
+  .set-topbar .me-name{font-size:15px}
+  .set-profile-status{margin-top:5px}
   /* 数据管理三个按钮手机端各自整行占满：文字不被折行、也不溢出，顺带减少误触「清空」 */
   .set-btns .btn-sm{flex:1 1 100%}
 }
 @media(max-width:520px){
   .set-topbar.set-profile{flex-wrap:wrap}
+  /* 11-23：窄屏不让 acct-main 贪婪占宽——它一撑满，右侧操作按钮就被挤到第二行，
+     卡片翻倍高（320/360 实测 128px）。改 flex:0 1 auto 让按钮留在同一行，
+     卡片回到内容自然高度；状态行自带 flex-wrap，文字窄了会自动折行不溢出。 */
+  .acct-main{flex:1 1 0;min-width:0}
   .set-profile-actions{flex:0 0 auto;justify-content:flex-end;margin:0 0 0 auto}
 }
 /* ===== 10-23 T-002 步5：字号三档分段控件 =====
