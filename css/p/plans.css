@@ -1,622 +1,126 @@
-/* 10/17 拆分：只属于 plans.html 的样式块（tests/_split_css_1017.cjs 生成，12 块）。
-   ⚠️ 这里的样式只在这一个页面生效；改这里不用管别的页面。 */
+.m-page,.m-page *{box-sizing:border-box}
+.m-page{font:inherit;line-height:1.65;color:var(--ink)}
+.m-mk,.m-mk-body{padding:0;background:transparent;border-radius:0;overflow:visible}
+.m-mcard{margin:0;padding:0;border:0;background:transparent}
+.m-mcard h4{display:flex;justify-content:flex-end;align-items:center;min-height:20px;margin:0 0 16px;font-size:0}
+.m-mcard h4 .m-r{font-size:12px;font-weight:400;color:var(--muted)}
 
+.pl-board{max-width:1160px;margin:0 auto;background:transparent}
+.pl-board-head{display:none}
+.pl-board-body,.pl-viewport{min-width:0}
+.tab-panel#ptabToday,.tab-panel#ptabWeek,.tab-panel#ptabHistory{animation:none}
+#ptabToday>.card[hidden]{display:none!important}
+.plan-tabsbar{padding:0;margin-bottom:20px}
+#planTabs{display:flex;gap:3px;padding:3px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface-2)}
+#planTabs .pill-tab{flex:1;min-width:0;min-height:34px;padding:0 12px;border:0;border-radius:9px;background:transparent;color:var(--muted);font:inherit;font-size:12px;font-weight:650;white-space:nowrap;cursor:pointer}
+#planTabs .pill-tab:hover{background:var(--n-100);color:var(--ink)}
+#planTabs .pill-tab.active{background:var(--surface);color:var(--primary-text);box-shadow:var(--sh-1)}
+.pl-add-entry{display:none}
 
-/* plans */
-.plan-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
-.plan-edit{color:var(--primary);margin-right:2px}
-.plan-edit:hover{color:var(--on-primary);background:var(--primary)}
-.plan-input{flex:1;font-size:14px;padding:6px 8px;border:1px solid var(--primary);border-radius:var(--radius-sm);background:var(--surface);color:var(--ink);outline:none;box-shadow:0 0 0 3px var(--primary-soft)}
-.hist-mid{flex:1;display:flex;align-items:center;gap:8px;min-width:0}
-.hist-pct{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums;width:36px;text-align:right}
-.hist-chev{color:var(--muted);font-size:12px;transition:transform .2s}
-.hist-plan[open] .hist-chev{transform:rotate(90deg)}
-/* 昨日未完成自动延续提示 + 延续项左侧标记 */
-.plan-carry-tip{font-size:12.5px;color:var(--primary);background:var(--primary-soft);border-radius:var(--radius-sm);padding:7px 10px;margin-bottom:8px;line-height:1.5}
+#mkToday .m-pghead{position:absolute;width:1px;height:1px;padding:0;margin:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
+#mkToday .m-datebar{display:flex;align-items:center;gap:10px;min-height:44px;margin:0 0 20px;padding:0 2px}
+#mkToday .m-daynav-lg{display:grid;place-items:center;flex:none;width:40px;height:40px;padding:0;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink-2);cursor:pointer}
+#mkToday .m-daynav-lg:hover{background:var(--primary-50);border-color:var(--primary-300);color:var(--primary-text)}
+#mkToday .m-daynav-lg svg{width:15px;height:15px}
+#mkToday .m-datemain{flex:0 1 auto;min-width:0}
+#mkToday .m-datetitle{display:flex;align-items:center;gap:10px;font-size:20px;font-weight:750;line-height:1.35;color:var(--ink)}
+#mkToday .m-todaytag{flex:none;padding:3px 8px;border-radius:999px;background:var(--primary-50);color:var(--primary-text);font-size:10px;font-weight:650}
+#mkToday .m-datesub{margin-top:3px;color:var(--muted);font-size:11px}
+#mkToday .m-backtoday{display:block;min-height:28px;margin:2px 0 0;padding:0;border:0;background:transparent;color:var(--primary-text);font:inherit;font-size:11px;cursor:pointer}
+#mkToday .m-backtoday:hover{text-decoration:underline}
+#mkToday .m-phase{display:flex;align-items:center;min-width:0;margin:0 0 0 auto;padding:0;border:0;background:none}
+#mkToday .m-phase-chip{display:flex;align-items:center;gap:10px;padding:8px 12px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--muted)}
+#mkToday .m-phase .m-chip{display:inline-flex;align-items:center;gap:6px;padding:0;border:0;background:none;color:var(--ink-2);font-size:11px;font-weight:650;white-space:nowrap}
+#mkToday .m-phase .m-chip::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--primary)}
+#mkToday .m-phase b,#mkToday .m-phatime,#mkToday .m-phatime a{font-size:11px;font-weight:400}
+#mkToday .m-phatime a{color:var(--primary-text);font-weight:650}
 
-/* weekly suggest */
-.suggest-list{margin:0;padding-left:18px;color:var(--ink);font-size:14px;line-height:1.9}
-.suggest-list li{margin:2px 0}
-#histPlans{padding:0 20px 18px}
+#mkToday .m-summary{display:grid;grid-template-columns:minmax(0,1fr) minmax(210px,.42fr);gap:28px;align-items:center;margin:0 0 16px;padding:26px 28px;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);box-shadow:var(--sh-1);overflow:hidden}
+#mkToday .m-summary[hidden]{display:none!important}
+#mkToday .m-nextmain{min-width:0}
+#mkToday .m-nextlab{display:flex;align-items:center;gap:7px;margin-bottom:10px;color:var(--muted);font-size:11px;font-weight:650}
+#mkToday .m-nextlab::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--primary)}
+#mkToday .m-nexttitle{margin:0;color:var(--ink);font-size:24px;font-weight:750;line-height:1.4;overflow-wrap:anywhere}
+#mkToday .m-nextmeta{margin-top:6px;color:var(--muted);font-size:12px;line-height:1.6;font-variant-numeric:tabular-nums}
+#mkToday .m-nextbtn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;margin-top:18px;padding:0 17px;border:1px solid var(--primary);border-radius:10px;background:var(--primary);color:var(--on-primary);font:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:background var(--ds-fast),border-color var(--ds-fast)}
+#mkToday .m-nextbtn:hover{background:var(--primary-d);border-color:var(--primary-d)}
+#mkToday .m-nextbtn[hidden]{display:none!important}
+#mkToday .m-nextbtn svg{width:14px;height:14px;flex:none}
+#mkToday .m-nextstats{padding-left:26px;border-left:1px solid var(--line)}
+#mkToday .m-remain{display:flex;align-items:baseline;gap:7px;min-width:0}
+#mkToday .m-remain strong{font-size:38px;line-height:1;font-weight:750;letter-spacing:-.04em;font-variant-numeric:tabular-nums;color:var(--ink)}
+#mkToday .m-remain span{font-size:11px;color:var(--muted);white-space:nowrap}
+#mkToday .m-statline{display:flex;justify-content:space-between;gap:12px;margin-top:16px;padding-top:13px;border-top:1px solid var(--line);color:var(--muted);font-size:11px;font-variant-numeric:tabular-nums}
+#mkToday .m-summary .m-bar{height:5px;margin:13px 0 0;border-radius:999px;background:var(--n-100);overflow:hidden}
+#mkToday .m-summary .m-bar i{display:block;height:100%;border-radius:inherit;background:var(--primary)}
 
-
-/* ══════════════════════════════════════════════════════════════════════
-   P-1R（10-24）计划页 1:1 重做 · 第一批：静态骨架
-   ══════════════════════════════════════════════════════════════════════
-   她 22:4x：「计划的那个图我看了还是丑的要死，明明设计图是好看的，
-             能不能 1:1 还原，每次都跟实物完全不符的我受不了了」
-   来源：design/_M-plans_精确样式.css（scripts/mockup-export.cjs 机器导出）。
-
-   🔴 硬约束（施工书 §四）：
-     ① 类名不许改，m- 前缀不许删（站点 .card/.chip/.bar/.muted 都有定义）
-     ② 只进本文件，一行不许进 common.css
-     ③ 开头 .m-page 的 token 块必须留（私有变量兜底 + 设计稿真实基准 15px/1.65）
-   ══════════════════════════════════════════════════════════════════════ */
-
-/* ======================================================================
-   M-plans · 精确样式（机器导出，勿手改）
-   ======================================================================
-   来源：计划页重设计-我的版本-2026-10-24.html 里的 .mk-shell
-   导出：scripts/mockup-export.cjs · 前缀 m-
-
-   放在哪
-     只追加到 css/p/plans.css 末尾（本页专用），不许进 common.css。
-
-   为什么类名都带 m-
-     站点 .card / .bar / .chip / .muted / .yes / .no / .big 在 common.css 里已有定义，
-     不加前缀直接覆盖会打穿别的 18 个页面。
-
-   配套
-     · _M-plans_结构原文.html   ← 类名与本文件一一对应
-     · _M-plans_验收基线.json   ← 关键元素宽高与样式基线，收尾自检用
-
-   🔴 本文件开头那个 token 块必须原样保留：
-      设计稿自带一套私有变量（--card / --p500 / --line2 / --r ...），站点没有。
-      导出时已把能映射的换成站点 token，映射不到的按设计稿原值兜底成 m-xxx。
-      删掉这个块 → var() 解析成空 → 边框/底色全丢。
-
-   🔴 基准字号 / 行高 / 字体栈照**设计稿 body** 原样搬（不是随便写 16px）：
-      站点 body 是 15px + 行高 1.62，设计稿可能是别的值，不搬会让所有继承字号的元素偏 1px。
-      本次设计稿 body 采到：{"margin":"0","background":"var(--bg)","color":"var(--ink)","font":"15px/1.65 -apple-system,BlinkMacSystemFont,\"Segoe UI\",\"PingFang SC\",\"Microsoft YaHei\",sans-serif","-webkit-font-smoothing":"an
-   ====================================================================== */
-
-.m-page{
-  --m-line:#e6e9ea;
-  --m-bg:#f6f7f7;
-  --m-muted:#71767e;
-  --m-ink:#1f2328;
-  font-size:15px;
-  line-height:1.65;
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
-  -webkit-font-smoothing:antialiased;
-}
-
-.m-page, .m-page *{ box-sizing: border-box; }
-/* 🔴 FE-DEAD-2（10-27，B 第二批）：这里原本有一条
-   `.m-mk-shell { border:1px solid var(--m-line); background:rgb(238,240,240); padding:16px; ... }`
-   和一条 `.m-page .m-mk-shell{ background:transparent;border:0;padding:0;border-radius:0 }`
-   —— 都已删除。理由：设计稿「浏览器窗口」外壳，**页面上根本没有这个节点**
-   （全站 HTML/JS 里 m-mk-shell 出现 3 次，全在注释里，0 个真实 element），
-   两条规则都是永命不中的死代码。
-   今晚连着三次「跟别的页不齐」的排查里，它把人带去错误方向（连 A1 都判定
-   「灰框来自 .m-mk-shell」——实际灰底来自 .m-mk 自己，已在 PLAN-W-2 修）。
-   ⚠️ 留这段说明而不是删干净：`tests/_probe_pl1_1025.cjs` 有一行
-      `if (r.mkShell) ok(...)` 会查它，没有节点时自动跳过（已有 if 守卫）；
-      更主要是免得下一个人又从设计稿把这块壳加回来。 */
-/* 🔴 PLAN-W-2（10-27 她：「计划页尺寸跟其他页面也不一致……我看好像是因为有一个边框色块」）：
-   病根就在这两行。`.m-mk` 原本是设计稿里「浏览器窗口」那层外壳的底色 #f6f7f7，
-   真页面上它直接把整块内容包住 → 页面上就出现「一圈灰底（圆角 10px）套着里面的白卡（圆角 16px）」，
-   跟全站 .card（白底 + 1px 边 + 16px 圆角）完全不是一个视觉口径，所以她看着「本站对齐了、
-   但跟整体没对齐」。.m-mk-shell 那层真页面根本没有节点（骨架里已摘掉），那条覆盖规则是死代码。
-   改法：把 .m-mk 还原成「透明容器」——不画底色、圆角与全站一致，让里面那张白卡自己承担卡片外观。
-   零结构改动、零类名改动，纯尺寸/颜色。 */
-.m-mk { background: transparent; border-radius: var(--radius); overflow: hidden; }
-/* FE-DEAD-2（10-27 · B 第二批）：以下 4 条 .m-mk-top 系规则对应的 DOM 节点**早已删除**
-   （P-1R 摘掉浏览器外壳：三圆点 + 假地址栏），实测全站 HTML+JS 引用计数 0
-   （plans.html 里只剩两处注释提到类名），是纯悬空规则。删掉不影响任何渲染，
-   plans 页验收 12/0 不变。原文留档，日后回滚照着写回来即可：
-     .m-mk-top { display:flex; align-items:center; gap:10px; padding:11px 16px; background:var(--surface); border-bottom:1px solid var(--m-line); }
-     .m-mk-top .m-dot { width:9px; height:9px; border-radius:50%; background:rgb(226,229,230) }
-     .m-mk-top .m-nm { font-size:12.5px; color:var(--m-muted); margin-left:4px }
-     .m-mk-top .m-sh { font-size:11.5px; color:var(--m-muted); margin-left:auto } */
-/* 🔴 FE-FIX-1（10-27 她：「计划页宽度对齐全站」）：这行 padding:16px 是设计稿「浏览器窗口」
-   那层外壳的内边距，外壳拆掉之后它还在，结果里面每张卡左右各缩进 16px（1132 → 1100），
-   跟 review/home 那种通栏卡片对不上。改成 0，卡片与容器同宽。 */
-.m-mk-body { padding: 0; }
-.m-mcard { background: var(--surface); border: 1px solid var(--m-line); border-radius: 12px; padding: 16px 18px; margin-bottom: 12px; }
-.m-mcard:last-child { margin-bottom: 0px; }
-.m-mcard h4 { margin: 0px 0px 11px; font-size: 13px; font-weight: 650; color: var(--ink-2); letter-spacing: 0.2px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.m-mcard h4 .m-r { font-weight: 400; font-size: 12px; color: var(--m-muted); }
-.m-phase { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; padding: 9px 13px; border: 1px solid var(--primary-200); background: var(--primary-50); border-radius: 10px; margin-bottom: 12px; font-size: 12.5px; color: var(--primary-text); }
-.m-phase b { font-weight: 700; }
-.m-phase .m-chip { background: rgb(255, 255, 255); border: 1px solid var(--primary-200); border-radius: 999px; padding: 2px 9px; font-weight: 650; }
-.m-bigq { font-size: 40px; font-weight: 700; letter-spacing: -2px; line-height: 1; color: var(--m-ink); }
-.m-bigq small { font-size: 17px; font-weight: 600; color: var(--m-muted); margin-left: 1px; }
-.m-sublab { font-size: 12.5px; color: var(--m-muted); line-height: 1.4; }
-.m-bar { height: 8px; background: var(--n-100); border-radius: 5px; overflow: hidden; margin-top: 11px; }
-.m-bar i { display: block; height: 100%; background: var(--primary); border-radius: 5px; }
-.m-task { display: flex; align-items: center; gap: 10px; padding: 10px 0px; border-bottom: 1px solid var(--n-100); font-size: 13.5px; }
-.m-task .m-cb { width: 16px; height: 16px; border: 1.5px solid var(--m-line); border-radius: 4px; flex: 0 0 auto; }
-.m-task.m-done .m-cb { background: var(--primary); border-color: var(--primary); }
-.m-task .m-t { flex: 1 1 0%; color: var(--m-ink); }
-.m-task.m-done .m-t { color: var(--m-muted); text-decoration: line-through; }
-.m-task .m-tagline { font-size: 11.5px; color: var(--m-muted); border: 1px solid var(--m-line); border-radius: 5px; padding: 1px 6px; flex: 0 0 auto; }
-.m-task .m-jmp { font-size: 11.5px; color: var(--primary-700); flex: 0 0 auto; }
-/* 11-04 PLAN-SOFTNAV-COLLAPSE-1：原规则里有 `display: flex`，是给「写一条，或让 AI 安排今天」那条
-   旧虚线窄条用的。新版添加区需要 block（label 独占一行，下面放输入框和按钮），
-   原来只靠 plans.html 里一条内联 `display:block` 压着 —— 软导航时 CSS 被挪到内联之后，flex 就赢了，
-   页面塌成「一字一行」。这里把 `display: flex` 摘掉（其余属性全部保留：直开实测 padding 18px 14px 10px
-   里的左右 14px / 底部 10px、边框、虚线圆角背景都是这条规则给的，整条删会让直开也变样）。
-   摘掉之后不管 HTML 顺序怎么变，都不再有任何规则把添加区设成 flex。 */
-.m-addrow { border: 1px dashed var(--m-line); border-radius: 10px; padding: 10px 14px; background: rgb(252, 252, 252); align-items: center; gap: 9px; font-size: 13px; color: var(--m-muted); margin-top: 11px; }
-.m-days { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 10px; }
-.m-day { border: 1px solid var(--m-line); border-radius: 10px; padding: 11px 13px; background: rgb(252, 252, 252); cursor: pointer; }
-.m-day:hover { border-color: var(--primary); }
-.m-day .m-dh { display: flex; align-items: baseline; gap: 7px; margin-bottom: 7px; }
-.m-day .m-dd { font-size: 19px; font-weight: 700; letter-spacing: -0.6px; line-height: 1; }
-.m-day .m-dm { font-size: 11.5px; color: var(--m-muted); }
-.m-day .m-db { height: 6px; background: var(--n-100); border-radius: 4px; overflow: hidden; }
-.m-day .m-db i { display: block; height: 100%; background: var(--primary); border-radius: 4px; }
-.m-day .m-df { display: flex; justify-content: space-between; margin-top: 6px; font-size: 11.5px; color: var(--m-muted); }
-.m-day.m-full .m-db i { background: var(--primary-700); }
-@media (max-width: 900px){
-  .m-days { grid-template-columns: repeat(2, 1fr); }
-}
-
-/* FE-DEAD-2（10-27 · B 第二批）：原 P-1R 的「用 CSS 隐藏外壳而不删节点」两条规则，
-   对应的 .m-mk-top / .m-dot / .m-nm / .m-sh / .m-mk-shell 节点**后来还是删了**（实测
-   querySelector 全为 null、全站 HTML+JS 引用计数 0），所以这两条覆盖规则永命不中，已删。
-   原文留档：`.m-page .m-mk-top{display:none}` / `.m-page .m-mk-shell{background:transparent;border:0;padding:0;border-radius:0}`
-   ⚠️ 旧注释说「验收基线里含这 4 个元素，删了会报缺失」——该基线 JSON 已不在仓库，
-      且删除后 plans 页验收 12/0 不变，确认无依赖。 */
-
-/* ==========================================================================
-   PL-1（10-25）：深色覆盖 —— 上面 .m-page 那组私有 token 全是写死浅色值，
-   深色下没有覆盖，后果是两块：
-     ① .m-mk 永远是 #f6f7f7 浅灰块，压在深色页面中间；
-     ② .m-task .m-t 是 #1a1a1c 底 + #1f2328 字 = 1.10:1，**整页任务行看不见**。
-   ⚠️ 只覆盖 token 值，不动任何类名 / DOM / 字号 / 间距 —— 那 7 项是 1:1 的判据。
-   ⚠️ 站点深色值：--surface:#1a1a1c · --bg:#0e0e10 · --ink:#f2f2f4 · --line:#2e2e32。
-      --m-bg 比 --surface 再暗一档（#141416）而不是照搬 --bg（#0e0e10）——
-      照搬会让块与卡片糊成一片，留一档差才有层次。
-   ⚠️ 末尾那条 `.m-page .m-mk-shell{background:transparent}` 是 P-1R 的 1:1 决定
-      （效果稿那圈灰边真页面不该有）。所以这里**不覆盖 .m-mk-shell 的底色**，
-      跟着那条透明走即可 —— 施工书 §一 的 `.m-mk-shell{background:#0b0b0d}` 是**照旧稿写的**，
-      照它填会把 P-1R 的透明壳又涂成深色，等于推翻她点头过的 1:1。
-   ========================================================================== */
-[data-theme="dark"] .m-page{
-  --m-line:#2e2e32;
-  --m-bg:#141416;
-  --m-muted:#8e939b;
-  --m-ink:#f2f2f4;
-}
-/* .m-mk 的浅底跟着 --m-bg 走，不用单独再写一条；这里只补「深色下要脱掉浅灰」的那层 */
-/* 🔴 10-28 恢复 b41d050f 深色透明覆盖（本行原值 `var(--m-bg)` 是灰壳，与她拍板的 PLAN-W-2 相反）。
-   丢失实证：深色下 .m-mk 实测 rgb(20,20,22) = #141416 灰壳复发（B2 探针 11/1；本仓同样复现），
-   浅色侧 .m-mk{transparent} 正常。改回 transparent 后深色也是 rgba(0,0,0,0)。
-   ⚠️ 上面 L93 附近那条同名覆盖已于本笔撤掉 —— 两条同特异性 (0,3,0) 时**后写的赢**，
-      写在 L99 会被本行压住，等于没改。只保留这一条，位置在原值所在处，最小改动。 */
-[data-theme="dark"] .m-page .m-mk{ background: transparent; }
-/* FE-DEAD-2：原 `[data-theme="dark"] .m-page .m-mk-shell{...}` 已删（死代码，无节点）。 */
-
-/* .m-phase / .m-dg 用的是站点 --primary-50 / --primary-200 / --primary-text，
-   深色档早已重定义（DK-4b 之后 200/300/400/600 也齐了），所以这两块自动跟着翻。
-   唯一写死的两处白底要单独提：
-     .m-phase .m-chip{background:#fff} 与 .m-dg .m-ic{background:#fff}
-   —— 深色下是「白方块压在浅青条上」，一眼跳出来。改用卡片底即可。 */
-[data-theme="dark"] .m-page .m-phase .m-chip{ background:var(--surface); border-color:var(--primary-200) }
-/* .m-mk-top 里那颗圆点也是写死 rgb(226,229,230)，深色下是亮白点 */
-
-/* 补两处同样写死白底的地方（真机深色截图里跳出来的）：
-   `.m-addrow` 是「写一条，或让 AI 安排今天」那条虚线输入区（background:rgb(252,252,252)），
-   `.m-btn` 是普通按钮（background:rgb(255,255,255)）—— 深色下两块都是白砖。
-   改用站点的表面色，描边走 --m-line，字走 --m-ink/--m-muted，不改字号与内距。 */
-[data-theme="dark"] .m-page .m-addrow{ background:var(--surface) }
-/* .m-pri 是主色实底 + 白字，深色下主色不变 → 白字仍然成立，不用动 */
-
-
-/* ═══ PLAN-VISIBLE-4（11-02）今天／往日 tab 条独立成行 ═══
-   原状：#planTabs 挂在 #ptabToday > .m-page > .m-mk > .m-pghead-r > .m-phase 里，
-   切到「往日」时 #ptabToday 整块 display:none → tab 一并消失，用户回不来。
-   现在 DOM 提到 <main> 直属层（plans.html），这里只负责它自己的外观与位置：
-   · 手机 ≤860：内容区顶部、左对齐，与回顾页 .review-pill-tabs 的位置一致（全站惯例）。
-   · 桌面 ≥861：plans.html 顶部那条媒体查询按 id 隐藏，由顶栏二级菜单接管，不重复。
-   🔴 之所以不复用 `.m-page .m-phase #planTabs` 那套（原来靠它定位）：
-      那条选择器要求 #planTabs 是 .m-phase 的后代，提出来之后必然失配；
-      与其留一堆永命不中的死规则，不如把这层样式收进这里一份。 */
-.plan-tabsbar{padding:12px 16px 0}
-.plan-tabsbar #planTabs{margin:0}
-@media(max-width:860px){
-  .plan-tabsbar{padding:14px 16px 4px}
-  /* 11-23：手机端子导航统一成分段控件，与回顾/写作同一套——浅灰轨道 + 白色选中块 + 细边。 */
-  .plan-tabsbar #planTabs{display:flex;gap:2px;overflow-x:auto;padding:3px;background:var(--surface-2);border:1px solid var(--line);border-radius:12px;box-shadow:0 1px 2px rgba(28,55,48,.035);scrollbar-width:none}
-  .plan-tabsbar #planTabs::-webkit-scrollbar{display:none}
-  .plan-tabsbar #planTabs .pill-tab{flex:1;min-width:0;height:32px;padding:0 8px;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--muted);font:inherit;font-size:12px;font-weight:650;white-space:nowrap;cursor:pointer;transition:background .16s,border-color .16s,color .16s}
-  .plan-tabsbar #planTabs .pill-tab:hover{background:var(--n-100);color:var(--ink)}
-  .plan-tabsbar #planTabs .pill-tab.active{border-color:#cde5e1;background:var(--surface);color:var(--primary-700);font-weight:750;box-shadow:0 1px 2px rgba(16,24,40,.06)}
-}
-/* 11-23：夜间档选中态边框换成深色线，避免浅色 #cde5e1 在深底上割裂。 */
-[data-theme="dark"] .plan-tabsbar #planTabs .pill-tab.active{border-color:var(--line)}
-
-/* ═══ P-HEAD-1（10-25）首屏对齐 ═══
-   她 17:0x 两条一起提：「计划这个页面第一尺寸跟其他页面不一样，不对」+
-   「所有页面上面不能有 tab 标题…记住这个规矩」。
-   删掉 .m-pg-head（页内标题行）与 .m-mk-top（假浏览器框）两个节点后，
-   首屏直接是页头一行 + 日期条，不再有第二层标题。
-
-   ⚠️ PLAN-VISIBLE-4（11-02）：这里原来还有 4 条 `.m-page .m-phase #planTabs{…}` 规则
-      （把 tab 条并进阶段条右侧）。#planTabs 已从 .m-phase 里提出去、放到 <main> 直属层，
-      那 4 条选择器从此永远命不中 —— 已整组删除，别再加回来。
-      现役样式在下面「今天／往日 tab 条独立成行」那一段。 */
-/* 🔴 首屏贴顶对齐：.m-mk 原来靠 .m-mk-top 的高度 + .m-pg-head 的内边距把内容顶到 76px。
-   两个节点删掉后，把 .m-mk / .m-mk-body 的上内距收成与其他页卡片一致（目标 ≤20px）。 */
-.m-page .m-mk{padding-top:0}
-.m-page .m-mk-body{padding-top:0}
-.m-page .m-phase{margin-top:0}
-
-/* PLAN-DAYS-1（10-27）：往日网格里的空态占满整行 —— .m-days 是 auto-fill 网格，
-   不占满会被挤成 168px 一格的小方框，看着像坏了。空态本体仍走 common.js 的 renderEmpty(.empty)。 */
-#mDays .empty{ grid-column: 1 / -1; }
-
-
-/* ══════════════════════════════════════════════════════════════════════
-   PLANS-REDESIGN-CODE-1（10-31）计划页整面重做 · 笔 1／3：壳
-   ══════════════════════════════════════════════════════════════════════
-   依据 design/plan-redesign-SSR-2026-10-30.html（SSR 出稿，她 10-31 回「通过」）。
-
-   🔴 全部规则挂在 #mkToday 作用域下，配合 m- 类名双保险：
-      站点 common.css 的 .card / .chip / .filter / .muted / .btn 都是无前缀类，
-      裸 class 会打穿别的 18 个页面。这里一个新类名都不进 common.css。
-   🔴 色值一律取站点 token（--primary-*、--surface、--line），不新造色板；
-      稿子里写死的 #3a9a93 / #eef7f6 在站点就是 --primary-500 / --primary-50，同值。
-   🔴 字号/间距按稿子取，手机档再收一档（见 @media 760 段），守「不滚不裁」红线。
-   ══════════════════════════════════════════════════════════════════════ */
-
-/* ── 页头：PAGEHEAD-SLIM-1（11-04，她点头定版《页头精简》第 1 节）──────────────
-   她 11-04 原话「所有页面我说了不要加这个前面这个标题」「尽量所有页面 100 缩放下
-   把屏幕占满」。定版第 1 节给计划页的开法：进去第一屏就是能点的日期条。
-
-   改前实测量到的正是这一块：.m-pghead 高 73px + margin-bottom 26px = 99px 纯空白，
-   日期条要等到 y=197 才出现（1440×900 视口，改前基线见群里那份几何表）。
-
-   🔴 为什么是「视觉隐藏」而不是删节点：
-      · <h1 class="m-h1">学习计划</h1> 是**本页唯一的 h1**（plans.html 里 grep 全文只有 1 处）。
-        删了整页没有一级标题，读屏器与站点 SEO 都受影响；藏起来即可，语义还在。
-      · 副标语 .m-pgsub 是纯装饰，跟着一起藏。
-      · 阶段胶囊 .m-phase **不能留在这里被连带藏掉** —— js/plans.js 的 syncSkeleton()
-        用 mk.querySelector('.m-phase') 取节点、再往里写 .m-chip / .m-phatime，
-        节点被 display:none 包住它照样取得到（querySelector 不看可见性），但用户就再也
-        看不见「距考试 N 天」了，等于把她要的功能藏没了。所以节点已在 plans.html 里
-        整块搬到下面日期条右侧，这里不再管它的外观。
-   🔴 隐藏手法取「1px + clip-path」而不是 display:none：display:none 会把 h1 从无障碍树
-      一起摘掉，读屏器就真没了；clip-path 那套是标准 visually-hidden，视觉上看不见、
-      机器读得到。宽高都 1px + overflow:hidden，不会撑出任何滚动区（站点 common.css:2079
-      记过 sr-only 包含块逃逸撑出 166px 幽灵滚动区的旧账，这里靠 1px 尺寸规避）。
-   ⚠️ 若将来要把页头加回来：删掉这一条即可，下面的 .m-h1 / .m-pgsub 字号规则已随之删除，
-      恢复时按站点其他页 h1 口径重新给。 */
-#mkToday .m-pghead{position:absolute;width:1px;height:1px;padding:0;margin:0;overflow:hidden;
-  clip-path:inset(50%);white-space:nowrap;border:0}
-
-/* 阶段胶囊从页头搬进日期条后（PAGEHEAD-SLIM-1）：基础规则给它挂的 margin-bottom:12px
-   在 grid 里会把整行顶偏，这里清零。胶囊本体外观一个字没动，仍走下面 .m-phase-chip 那套。 */
-#mkToday .m-datebar .m-phase{margin:0;min-width:0}
-/* .m-phase 在新骨架里是「阶段那一行」的容器（胶囊 + 今天/往日 tab），本身不画外观；
-   胶囊外观交给 .m-phase-chip。这样 #planTabs 仍是 .m-phase 的后代，
-   P-HEAD-1 定下的回归判据（tab 并进阶段条那一行）继续成立。 */
-#mkToday .m-phase{display:flex;align-items:center;gap:10px;flex:none}
-#mkToday .m-phase.m-phase-row{padding:0;border:0;background:none;border-radius:0}
-#mkToday .m-phase-chip{display:flex;align-items:center;gap:9px;padding:9px 12px;
-  border:1px solid var(--primary-200);background:var(--primary-50);border-radius:12px;
-  color:var(--primary-900);font-size:12px;min-width:0}
-#mkToday .m-phase b{font-size:14px}
-#mkToday .m-phase .m-chip{display:inline-flex;align-items:center;gap:6px;padding:0;border:0;background:none;
-  font-size:12px;font-weight:700;color:var(--primary-900)}
-#mkToday .m-phase .m-chip::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--primary)}
-
-/* ── 日期条 ──
-   PAGEHEAD-SLIM-1：第三列之后多出一列给阶段胶囊（auto，按内容撑开；窄屏在下面 media 里换行）。
-   前三条列宽与改前完全一致，‹ / 日期 / › 的位置与尺寸零变化。 */
-#mkToday .m-datebar{display:grid;grid-template-columns:44px minmax(0,1fr) 44px auto;align-items:center;gap:12px;
-  margin:0 0 22px;padding:14px 16px;background:var(--surface);border:1px solid var(--line);
-  border-radius:var(--radius);box-shadow:0 1px 2px rgba(16,24,40,.03)}
-#mkToday .m-daynav-lg{width:44px;height:44px;padding:0;border:1px solid var(--line);border-radius:12px;
-  background:var(--n-100);color:var(--ink-2);display:grid;place-items:center;
-  font:inherit;font-size:19px;line-height:1;cursor:pointer;transition:background .15s,border-color .15s,color .15s}
-#mkToday .m-daynav-lg:hover{background:var(--primary-50);border-color:var(--primary-200);color:var(--primary-700)}
-#mkToday .m-daynav-lg:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(58,154,147,.25)}
-#mkToday .m-datemain{text-align:center;min-width:0}
-#mkToday .m-datetitle{display:flex;align-items:center;justify-content:center;gap:9px;
-  font-size:18px;font-weight:750;line-height:1.3;color:var(--ink)}
-#mkToday .m-todaytag{padding:2px 7px;background:var(--primary-50);border-radius:6px;
-  color:var(--primary-700);font-size:10px;font-weight:700;letter-spacing:.04em}
-#mkToday .m-datesub{margin-top:4px;color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
-#mkToday .m-backtoday{display:block;margin:2px auto 0;padding:6px 8px;border:0;background:none;
-  color:var(--primary-700);font-size:12px;min-height:32px;cursor:pointer;border-radius:8px}
-#mkToday .m-backtoday:hover{background:var(--primary-50)}
-
-/* ── 两栏工作区 ── */
-#mkToday .m-ws{display:grid;grid-template-columns:minmax(0,1fr) 306px;gap:22px;align-items:start}
-#mkToday .m-plancard,#mkToday .m-side-card{background:var(--surface);border:1px solid var(--line);
-  border-radius:var(--radius);box-shadow:0 1px 2px rgba(16,24,40,.04),0 8px 24px -4px rgba(16,24,40,.06)}
-#mkToday .m-plancard{overflow:hidden}
-
-/* ── 今日进度 ── */
-#mkToday .m-summary{padding:24px 26px 20px;border-bottom:1px solid var(--line);
-  background:linear-gradient(115deg,var(--surface) 45%,var(--primary-50))}
-#mkToday .m-sumtop{display:flex;align-items:center;justify-content:space-between;gap:16px}
-#mkToday .m-seclabel{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.03em}
-#mkToday .m-count{display:flex;align-items:baseline;gap:5px;font-variant-numeric:tabular-nums}
-#mkToday .m-bigq{font-size:32px;line-height:1;color:var(--primary-900);letter-spacing:-.04em;font-weight:750}
-#mkToday .m-bigq small{font-size:14px;color:var(--muted);font-weight:400;margin-left:3px}
-#mkToday .m-sumcopy{margin:8px 0 16px;font-size:14px;color:var(--ink-2)}
-#mkToday .m-sumcopy b{color:var(--ink);font-weight:700}
-#mkToday .m-bar{height:7px;border-radius:99px;background:var(--primary-100);overflow:hidden}
-#mkToday .m-bar i{display:block;height:100%;width:0;background:var(--primary);border-radius:inherit;transition:width .25s ease}
-#mkToday .m-summeta{display:flex;justify-content:space-between;gap:12px;margin-top:9px;color:var(--muted);font-size:11px}
-
-/* ── 顺延提示 ── */
-#mkToday .m-carry{display:flex;gap:9px;align-items:flex-start;margin:18px 26px 0;padding:11px 13px;
-  background:#fff7eb;border-radius:11px;color:#8a5200;font-size:12px}
-#mkToday .m-carry-ic{flex:none;line-height:1.4}
-#mkToday .m-carry b{font-weight:700}
-
-/* ── 任务区 ── */
-#mkToday .m-taskhead{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:22px 26px 9px}
-#mkToday .m-th2{margin:0;font-size:16px;line-height:1.4;letter-spacing:-.01em;color:var(--ink)}
-#mkToday .m-filter{display:flex;gap:3px;padding:3px;background:var(--bg);border-radius:9px}
-#mkToday .m-fbtn{min-height:32px;padding:3px 10px;border:0;border-radius:7px;background:none;
-  color:var(--muted);font:inherit;font-size:11px;cursor:pointer}
-#mkToday .m-fbtn.active{background:var(--surface);color:var(--ink);font-weight:650;box-shadow:0 1px 3px rgba(16,24,40,.09)}
-#mkToday .m-tasklist{margin:0;padding:4px 18px 12px}
-#mkToday .m-tasklist .m-task{display:flex;align-items:flex-start;gap:12px;padding:16px 8px;
-  border-bottom:1px solid var(--line);transition:opacity .18s;cursor:pointer}
-#mkToday .m-tasklist .m-task:last-child{border-bottom:0}
+#mkToday .m-ws{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:16px;align-items:start}
+#mkToday .m-maincol{display:flex;flex-direction:column;gap:16px;min-width:0}
+#mkToday .m-plancard,#mkToday .m-addcard,#mkToday .m-side-card{min-width:0;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);box-shadow:var(--sh-1)}
+#mkToday .m-plancard,#mkToday .m-addcard{overflow:hidden}
+#mkToday .m-side{display:flex;flex-direction:column;gap:16px;min-width:0}
+#mkToday .m-side-card{padding:22px}
+#mkToday .m-timecard{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:12px;align-items:start}
+#mkToday .m-timecard[hidden]{display:none!important}
+#mkToday .m-side-h2{grid-column:1;grid-row:1;margin:0 0 16px;font-size:15px;line-height:1.4;font-weight:700;color:var(--ink)}
+#mkToday .m-carry{display:flex;gap:9px;align-items:flex-start;margin:16px 20px 0;padding:10px 12px;border-radius:10px;background:var(--warn-soft);color:var(--warn-ink);font-size:11px}
+#mkToday .m-carry-ic{flex:none}
+#mkToday .m-taskhead{display:flex;align-items:center;justify-content:flex-end;gap:12px;padding:16px 20px 10px}
+#mkToday .m-th2,#mkToday .m-taskcount{display:none}
+#mkToday .m-filter{display:flex;gap:3px;padding:3px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2)}
+#mkToday .m-fbtn{min-height:30px;padding:3px 12px;border:0;border-radius:7px;background:transparent;color:var(--muted);font:inherit;font-size:11px;cursor:pointer}
+#mkToday .m-fbtn.active{background:var(--surface);color:var(--primary-text);font-weight:650;box-shadow:var(--sh-1)}
+#mkToday .m-tasklist{display:flex;flex-direction:column;gap:8px;margin:0;padding:2px 14px 14px}
+#mkToday .m-tasklist .m-task{display:flex;align-items:center;gap:12px;min-width:0;padding:14px 12px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface);transition:background var(--ds-fast),border-color var(--ds-fast),opacity var(--ds-fast);cursor:pointer}
+#mkToday .m-tasklist .m-task:hover{background:var(--surface-2);border-color:var(--primary-300)}
 #mkToday .m-task[data-mfiltered]{display:none!important}
-#mkToday .m-task .m-cb{position:relative;flex:none;width:24px;height:24px;margin:1px 0 0;
-  border:1.5px solid var(--n-500);border-radius:8px;background:var(--surface);
-  display:grid;place-items:center;color:#fff;transition:background .15s,border-color .15s}
-#mkToday .m-task .m-cb::after{content:"";width:11px;height:6px;border-left:2px solid currentColor;
-  border-bottom:2px solid currentColor;transform:rotate(-45deg) translateY(-1px);opacity:0}
+#mkToday .m-task:not(.m-done){order:1}
+#mkToday .m-task.m-done{order:2;opacity:.65}
+#mkToday .m-task.m-next{background:var(--primary-50);border-color:var(--primary-200)}
+#mkToday .m-task.m-next-flash{box-shadow:0 0 0 2px var(--primary-200)}
+#mkToday .m-task .m-cb{position:relative;display:grid;place-items:center;flex:none;width:22px;height:22px;margin:0;border:1.5px solid var(--n-400);border-radius:7px;background:var(--surface);color:var(--on-primary)}
+#mkToday .m-task .m-cb::after{content:"";width:10px;height:5px;border-left:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(-45deg) translateY(-1px);opacity:0}
 #mkToday .m-task.m-done .m-cb{background:var(--primary);border-color:var(--primary)}
 #mkToday .m-task.m-done .m-cb::after{opacity:1}
-/* 笔 2/3：标题与元信息分两行（稿子形态）——标题一行，下面一行「科目 · N 分钟 · 昨天顺延」。
-   🔴 类名不变：标题仍是 .m-t、科目仍是 .m-tagline，只多一层 .m-taskbody/.m-tmeta 包住。 */
-#mkToday .m-task .m-taskbody{flex:1 1 0%;min-width:0;display:block}
-#mkToday .m-task .m-t{display:block;color:var(--ink);font-size:14px;font-weight:600;
-  line-height:1.5;overflow-wrap:anywhere}
-#mkToday .m-task.m-done .m-t{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--n-500)}
-#mkToday .m-task .m-tmeta{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin-top:6px}
-#mkToday .m-task .m-tagline{flex:none;padding:1px 7px;border-radius:5px;background:var(--n-100);
-  border:1px solid var(--line);color:var(--ink-2);font-size:11px;font-weight:650;line-height:1.6}
-#mkToday .m-task .m-tmin{flex:none;color:var(--muted);font-size:11px;font-variant-numeric:tabular-nums}
-#mkToday .m-task .m-tcarry{flex:none;color:#8a5200;font-size:11px}
-#mkToday .m-task .m-jmp{flex:none;color:var(--primary-700);font-size:12px;font-weight:650;
-  line-height:1.8;align-self:center}
-
-/* ── 添加区 ── */
-#mkToday .m-addrow{margin:4px 26px 24px;padding-top:18px;border-top:1px solid var(--line);
-  background:none;border-radius:0;border-left:0;border-right:0;border-bottom:0}
-#mkToday .m-addlab{display:block;margin-bottom:8px;color:var(--ink-2);font-size:12px;font-weight:650}
-#mkToday .m-addbox{display:flex;gap:9px;flex-wrap:nowrap}
-#mkToday .m-addinput{min-width:0;flex:1;height:44px;padding:0 13px;border:1px solid var(--line);
-  border-radius:11px;background:var(--n-100);color:var(--ink);font:inherit;font-size:13px}
-#mkToday .m-addinput::placeholder{color:var(--muted)}
-#mkToday .m-addinput:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(58,154,147,.2);background:var(--surface)}
-#mkToday .m-addbtn{min-height:44px;padding:9px 15px;border:1px solid var(--line);border-radius:11px;
-  background:var(--surface);color:var(--ink-2);font:inherit;font-size:13px;font-weight:650;
-  display:inline-flex;align-items:center;justify-content:center;gap:7px;white-space:nowrap;
-  cursor:pointer;transition:background .15s,border-color .15s}
-#mkToday .m-addbtn:hover{background:var(--n-100)}
-#mkToday .m-addbtn.m-pri{background:var(--primary-700);border-color:var(--primary-700);color:#fff}
-#mkToday .m-addbtn.m-pri:hover{background:var(--primary-900);border-color:var(--primary-900)}
-#mkToday .m-addbtn:disabled{opacity:.55;cursor:default}
-#mkToday .m-addbtn.m-aibtn{width:100%;margin-top:9px;background:var(--primary-50);
-  border-color:var(--primary-200);color:var(--primary-900)}
-#mkToday .m-addbtn.m-aibtn:hover{background:var(--primary-100)}
-#mkToday .m-ainote{margin:7px 0 0;text-align:center;color:var(--muted);font-size:10px}
-
-/* ── 空态 ── */
-#mkToday .m-empty{padding:34px 18px;text-align:center;color:var(--muted);font-size:13px}
-#mkToday .m-empty b{display:block;margin-bottom:4px;color:var(--ink);font-size:15px}
-
-/* ── 右栏（笔 3 填内容） ── */
-#mkToday .m-side{display:grid;gap:18px}
-
-/* ── 手机 / 窄屏：一屏收一档，不许横向溢出 ── */
-@media(max-width:900px){
-  #mkToday .m-ws{grid-template-columns:minmax(0,1fr) 270px;gap:16px}
-}
-@media(max-width:760px){
-  /* 页头已视觉隐藏（PAGEHEAD-SLIM-1），原来那几条 margin/字号/换行规则全部失去对象，随删除：
-     .m-pghead / .m-h1 / .m-pgsub / .m-pghead-r 的窄屏补丁在这里不再需要。
-     阶段胶囊的窄屏收档照留 —— 它现在住在日期条里，手机上仍是可见的实功能。 */
-  #mkToday .m-phase-chip{padding:7px 9px;gap:6px;font-size:10px}
-  #mkToday .m-phase b{font-size:12px}
-  /* 手机档：胶囊在 390 宽放不进第三列旁边 → 整行换到日期条下半行（grid 第 1 行跨满三列）。
-     span 1/-1 让它独占一行，不挤压 ‹ / 日期 / ›。 */
-  #mkToday .m-datebar{grid-template-columns:38px minmax(0,1fr) 38px;padding:10px;gap:8px;
-    margin-bottom:14px;border-radius:15px}
-  #mkToday .m-datebar .m-phase{grid-column:1/-1;justify-content:center;margin-top:2px}
-  #mkToday .m-daynav-lg{width:38px;height:38px;border-radius:11px;font-size:17px}
-  #mkToday .m-datetitle{font-size:16px}
-  #mkToday .m-datesub{font-size:11px}
-  #mkToday .m-ws{display:flex;flex-direction:column;gap:14px}
-  #mkToday .m-plancard,#mkToday .m-side{width:100%}
-  #mkToday .m-summary{padding:18px 18px 15px}
-  #mkToday .m-bigq{font-size:28px}
-  #mkToday .m-sumcopy{font-size:13px;margin-bottom:13px}
-  #mkToday .m-carry{margin:14px 16px 0;font-size:11px}
-  #mkToday .m-taskhead{padding:18px 18px 8px}
-  #mkToday .m-th2{font-size:15px}
-  #mkToday .m-tasklist{padding:3px 10px 8px}
-  #mkToday .m-tasklist .m-task{padding:14px 6px;gap:10px}
-  #mkToday .m-task .m-cb{width:25px;height:25px}
-  #mkToday .m-task .m-t{font-size:13.5px}
-  #mkToday .m-task .m-tmeta{margin-top:5px;gap:6px}
-  #mkToday .m-task .m-jmp{font-size:0;width:34px}
-  #mkToday .m-task .m-jmp::after{content:"→";font-size:15px}
-  #mkToday .m-addrow{margin:3px 18px 18px;padding-top:15px}
-  /* 手机档：输入框占满整行、按钮落到下一行。
-     并排会裁掉占位文字（实测 390 宽只剩约 200px，稿子里那句例子读不全）—
-     宁可多一行也不裁字，这是她反复强调的红线。 */
-  #mkToday .m-addbox{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
-  #mkToday .m-addinput{width:100%;height:46px;font-size:16px}
-  #mkToday .m-addbtn{width:100%;min-height:46px}
-}
-
-/* ── 深色：只补几处写死白的底面，其余全走站点 token ── */
-[data-theme="dark"] #mkToday .m-task .m-cb{background:var(--surface);border-color:var(--n-500)}
-[data-theme="dark"] #mkToday .m-addinput{background:var(--surface)}
-[data-theme="dark"] #mkToday .m-daynav-lg{background:var(--surface)}
-[data-theme="dark"] #mkToday .m-carry{background:var(--surface);color:var(--warn-ink,#e0a458)}
-[data-theme="dark"] #mkToday .m-task .m-tcarry{color:var(--warn-ink,#e0a458)}
-
-/* ══════════════════════════════════════════════════════════════════════
-   PLANS-REDESIGN-CODE-1 笔 3（10-31）：右栏两块
-   依据 design/plan-redesign-SSR-2026-10-30.html 的 .sidebar / .side-card。
-   ① .m-timecard 今天的时间分配（数据由 renderTimeSplit() 真算，没数据整卡 hidden）
-   ② .m-diagcard 备考诊断（里面还是 #diagRoot 那套真功能，只改成竖窄排版）
-   ══════════════════════════════════════════════════════════════════════ */
-#mkToday .m-side-card{padding:21px}
-#mkToday .m-side-h2{margin:0;font-size:15px;line-height:1.4;letter-spacing:-.01em}
-#mkToday .m-side-kicker{margin:4px 0 16px;color:var(--muted);font-size:12px;line-height:1.5}
-#mkToday .m-side-foot{margin:15px 0 0;padding-top:12px;border-top:1px solid var(--line);
-  color:var(--muted);font-size:11px;line-height:1.6}
-
-/* 总时长：数字大、单位小，与稿子一致 */
-#mkToday .m-timetotal{display:flex;align-items:baseline;gap:5px;margin-bottom:15px;flex-wrap:wrap}
-#mkToday .m-timetotal strong{font-size:28px;line-height:1;color:var(--primary-900);
-  font-variant-numeric:tabular-nums;letter-spacing:-.03em}
-#mkToday .m-timetotal span{font-size:12px;color:var(--muted)}
-
-/* 分科条：科目名 / 细轨 / 分钟数，三列固定，数字右对齐不跳 */
-#mkToday .m-timesplit{display:grid;gap:12px}
-#mkToday .m-timeline{display:grid;grid-template-columns:38px minmax(0,1fr) 46px;align-items:center;gap:9px;font-size:11px}
-#mkToday .m-tl-lab{color:var(--ink-2);font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#mkToday .m-tl-track{height:5px;border-radius:9px;background:var(--bg);overflow:hidden}
-#mkToday .m-tl-track i{display:block;height:100%;border-radius:inherit;background:var(--primary)}
-#mkToday .m-tl-track i.m-tl-soft{background:var(--primary-200)}
-#mkToday .m-tl-min{text-align:right;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
-#mkToday .m-timesplit-na{margin:0;color:var(--muted);font-size:12px;line-height:1.7}
-
-/* 诊断卡：外层卡片拆掉，让 #diagRoot 里那张 .card 自己当卡（避免卡套卡两层边框） */
-#mkToday .m-diagcard{padding:0;background:none;border:0;box-shadow:none}
-#mkToday .m-diagcard #diagRoot{margin:0}
-#mkToday .m-diagcard #diagRoot > .card{margin:0;height:100%}
-
-/* 🔴 关键：.dg-hero 原来是「左文案 / 右三步」两列（plans.html 里那套 1fr 1fr + 44px gap），
-   放进 306px 的右栏会被压成两条窄缝。右栏里一律改回竖排单列，顺序：图标 → 标题 → 正文 → 按钮 → 步骤。 */
-#mkToday .m-side #diagRoot .dg-hero{
-  display:block;padding:20px 18px;border-radius:var(--radius);
-}
-#mkToday .m-side #diagRoot .dg-hero-ic{font-size:30px;margin:0 0 12px;line-height:1}
-#mkToday .m-side #diagRoot .dg-hero h2{font-size:15px;margin:0 0 8px;line-height:1.4}
-#mkToday .m-side #diagRoot .dg-hero-p{font-size:12px;line-height:1.75;margin:0 0 15px}
-#mkToday .m-side #diagRoot .dg-hero .dg-block-btn,
-#mkToday .m-side #diagRoot .dg-hero .dg-text-btn{
-  width:100%;max-width:none;margin:0;text-align:center;
-}
-#mkToday .m-side #diagRoot .dg-hero .dg-text-btn{margin-top:9px;font-size:12px}
-/* 三步在窄栏里不做带序号的卡（太挤），改成轻量列表；手机上稿子也是收起来的 */
-#mkToday .m-side #diagRoot .dg-hero-steps{
-  display:block;counter-reset:none;margin:15px 0 0;padding:14px 0 0;
-  border-top:1px solid var(--line);
-}
-#mkToday .m-side #diagRoot .dg-hero-steps li{
-  display:block;position:static;padding:0 0 0 15px;margin:0 0 8px;
-  border:0;border-radius:0;background:none;box-shadow:none;
-  font-size:11.5px;line-height:1.7;color:var(--muted);counter-increment:none;
-}
-#mkToday .m-side #diagRoot .dg-hero-steps li:last-child{margin-bottom:0}
-#mkToday .m-side #diagRoot .dg-hero-steps li::before{
-  content:'';position:absolute;left:3px;top:7px;width:4px;height:4px;border-radius:50%;
-  background:var(--primary-200);counter-increment:none;
-}
-#mkToday .m-side #diagRoot .dg-hero-steps li{position:relative}
-
-/* 诊断「已做过」那张汇总卡（.dg-summary）在窄栏里也收一档 */
-#mkToday .m-side #diagRoot .dg-summary{padding:18px 16px}
-#mkToday .m-side #diagRoot .dg-chips{grid-template-columns:1fr 1fr;gap:8px}
-#mkToday .m-side #diagRoot .dg-block-btn{max-width:none;width:100%}
-
-/* 手机档：右栏两块跟着主栏下移（稿子里时间分配在手机上隐藏，诊断仍在） */
-@media(max-width:760px){
-  #mkToday .m-side-card{padding:18px}
-  #mkToday .m-side #diagRoot .dg-hero{padding:18px 16px}
-  #mkToday .m-side .m-timecard{display:none}
-}
-
-/* PLANS-UNIFIED-1（11-16）：今天 / 本周 / 往日共用一张板，今日清单优先。
-   11-16 定版：左栏恢复成与句子/练习/写作同一套 264 侧栏（分栏 + 今日任务卡），
-   页面里只藏板头那排原分栏条。 */
-body .hub-main{padding:24px 28px 40px;overflow:auto}
-/* 板上那排 tab 与左栏重复：桌面收掉（手机上左栏不可见，仍用这排切 今天/本周/往日） */
-@media(min-width:861px){ .plan-tabsbar,.pl-board-head .plan-tabsbar{display:none!important} }
-.pl-board{max-width:1120px;margin:0 auto;border:1px solid var(--line);border-radius:16px;background:var(--surface);box-shadow:0 1px 2px rgba(24,40,48,.04),0 6px 18px -12px rgba(24,40,48,.18);overflow:hidden}
-.pl-board-head{min-height:76px;display:flex;align-items:center;gap:20px;padding:14px 24px;border-bottom:1px solid var(--line)}
-.pl-head-copy{min-width:160px;flex:1}
-.pl-head-copy h1{margin:0;font-size:18px;line-height:1.35;font-weight:750;letter-spacing:-.02em}
-.pl-head-copy p{margin:5px 0 0;font-size:11.5px;line-height:1.5;color:var(--muted)}
-#mkToday .m-pghead{display:none}
-#planTabs .pill-tab{min-height:32px;padding:0 16px;border:0;border-radius:999px;background:transparent;color:var(--muted);font-size:12px;font-weight:650;white-space:nowrap;cursor:pointer}
-#planTabs .pill-tab.active{background:var(--surface);color:var(--primary-700);font-weight:750;box-shadow:0 1px 3px rgba(24,40,48,.10)}
-.pl-add-entry{display:none;min-height:38px;padding:0 15px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--primary-700);font:inherit;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
-#plBoard[data-view="today"] .pl-add-entry{display:block}
-.pl-add-entry:hover{border-color:var(--primary-200);background:var(--primary-50)}
-.pl-board-body,.pl-viewport{min-width:0}
-#ptabToday,#ptabWeek,#ptabHistory{animation:none!important}
-#ptabToday .m-page{max-width:none}
-#mkToday{overflow:visible}
-#mkToday .m-datebar{display:flex;gap:10px;margin:0;padding:18px 24px;border:0;border-bottom:1px solid var(--line);border-radius:0;box-shadow:none;background:var(--surface)}
-#mkToday .m-daynav-lg{width:36px;height:36px;border-color:var(--line);border-radius:9px;background:var(--surface)}
-#mkToday .m-daynav-lg svg{width:14px;height:14px}
-#mkToday .m-datemain{flex:1;text-align:left}
-#mkToday .m-datetitle{justify-content:flex-start;font-size:16px;gap:10px}
-#mkToday .m-datesub{margin-top:5px;font-size:11.5px}
-#mkToday .m-backtoday{margin:3px 0 0;padding:4px 0;min-height:26px;font-size:11.5px}
-#mkToday .m-phase{margin:0}
-#mkToday .m-phase-chip{padding:7px 10px;background:var(--surface);border-color:var(--line);border-radius:9px;color:var(--muted)}
-#mkToday .m-phase .m-chip{color:var(--ink-2);font-size:11px}
-#mkToday .m-phase .m-chip::before{width:5px;height:5px}
-#mkToday .m-phase b,#mkToday .m-phatime,#mkToday .m-phatime a{font-size:11px}
-#mkToday .m-phatime a{color:var(--primary-700)!important}
-#mkToday .m-ws{grid-template-columns:minmax(0,1fr) 280px;gap:0;align-items:stretch}
-#mkToday .m-plancard,#mkToday .m-side-card{border:0;border-radius:0;box-shadow:none}
-#mkToday .m-plancard{min-width:0}
-#mkToday .m-side{border-left:1px solid var(--line);background:var(--surface-2);gap:0}
-#mkToday .m-summary{padding:24px 26px 22px;background:var(--surface);border-bottom:0}
-#mkToday .m-sumtop{align-items:baseline}
-#mkToday .m-seclabel{font-size:11px;color:var(--muted);font-weight:650}
-#mkToday .m-bigq{font-size:44px;font-weight:750;color:var(--ink);letter-spacing:-.05em}
-#mkToday .m-bigq small{font-size:13px;margin-left:8px;color:var(--muted);font-weight:550;letter-spacing:0}
-#mkToday .m-sumcopy{margin:8px 0 18px;font-size:13px;line-height:1.65}
-#mkToday .m-sumcopy b{font-weight:700}
-#mkToday .m-bar{height:5px;margin-top:0;background:var(--surface-2)}
-#mkToday .m-summeta{margin-top:9px;font-size:11px}
-#mkToday .m-carry{margin:0 26px 16px;padding:10px 12px;border-radius:9px;font-size:11.5px}
-#mkToday .m-taskhead{padding:19px 26px 12px;border-top:1px solid var(--line);gap:16px}
-#mkToday .m-th2{font-size:14px;font-weight:750}
-#mkToday .m-filter{padding:3px;gap:4px;background:var(--surface-2);border:1px solid var(--line);border-radius:999px}
-#mkToday .m-fbtn{min-height:28px;padding:2px 10px;font-size:11px;border-radius:999px;color:var(--muted)}
-#mkToday .m-fbtn.active{color:var(--primary-700);box-shadow:0 1px 3px rgba(24,40,48,.10)}
-#mkToday .m-tasklist{padding:0 26px}
-#mkToday .m-tasklist .m-task{align-items:center;gap:14px;padding:16px 0;border-color:var(--line);border-radius:0}
-#mkToday .m-task .m-cb{width:24px;height:24px;margin:0;border-color:var(--n-300);border-radius:7px}
-#mkToday .m-task .m-t{font-size:13.5px;font-weight:600;line-height:1.65}
-#mkToday .m-task .m-tmeta{margin-top:4px;gap:9px}
-#mkToday .m-task .m-tagline{padding:0;border:0;background:none;color:var(--muted);font-size:11px;font-weight:550}
-#mkToday .m-task .m-tmin{font-size:11px}
-#mkToday .m-task .m-jmp{display:inline-flex;align-items:center;gap:4px;font-size:11px;white-space:nowrap}
-#mkToday .m-task .m-jmp svg{width:14px;height:14px;flex:0 0 14px}
-#mkToday .m-task .m-act{gap:4px}
-#mkToday .m-task .m-actbtn{width:28px;height:28px;color:var(--muted)}
-#mkToday .m-addrow{margin:14px 26px 24px;padding:18px 0 0;border-top:1px solid var(--line)}
-#mkToday .m-addlab{font-size:11.5px;color:var(--muted);font-weight:600}
-#mkToday .m-addbox{gap:10px}
-#mkToday .m-addinput{height:40px;background:var(--surface);font-size:13px;border-radius:10px}
-#mkToday .m-addbtn{min-height:40px;padding:8px 14px;border-radius:10px;font-size:12px}
-#mkToday .m-addbtn.m-aibtn{width:auto;margin-top:0;margin-left:16px;background:var(--surface);border-color:var(--line);color:var(--primary-700)}
-#mkToday .m-empty{padding:46px 20px 40px;display:flex;flex-direction:column;align-items:center;gap:8px}
+#mkToday .m-task .m-taskbody{flex:1 1 0%;min-width:0}
+#mkToday .m-task .m-t{display:block;color:var(--ink);font-size:14px;font-weight:600;line-height:1.5;overflow-wrap:anywhere}
+#mkToday .m-task.m-done .m-t{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--n-400)}
+#mkToday .m-task .m-tmeta{display:none}
+#mkToday .m-task .m-jmp{display:inline-flex;align-items:center;gap:3px;flex:none;min-height:32px;padding:0 9px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--primary-text);font-size:11px;font-weight:650;white-space:nowrap}
+#mkToday .m-task .m-jmp:hover{background:var(--primary-50);border-color:var(--primary-200)}
+#mkToday .m-task .m-jmp svg{width:13px;height:13px}
+#mkToday .m-task .m-act{display:flex;gap:2px;flex:none;opacity:.55}
+#mkToday .m-task:hover .m-act,#mkToday .m-task:focus-within .m-act{opacity:1}
+#mkToday .m-task .m-actbtn{display:grid;place-items:center;width:30px;height:30px;padding:0;border:0;border-radius:8px;background:transparent;color:var(--muted);cursor:pointer}
+#mkToday .m-task .m-actbtn:hover{background:var(--n-100);color:var(--ink)}
+#mkToday .m-editinput{flex:1;min-width:0;min-height:40px;padding:7px 10px;border:1px solid var(--primary);border-radius:8px;background:var(--surface);color:var(--ink);font:inherit;outline:none;box-shadow:0 0 0 3px var(--primary-soft)}
+#mkToday .m-empty{display:flex;flex-direction:column;align-items:center;gap:8px;padding:42px 20px 34px;text-align:center;color:var(--muted);font-size:12px}
 #mkToday .m-empty[hidden]{display:none}
-#mkToday .m-empty b{margin:4px 0 0;font-size:16px;font-weight:750}
-#mkToday .m-empty span:not(.m-empty-ic){font-size:12px;line-height:1.7}
-.m-empty-ic{width:48px;height:48px;display:grid;place-items:center;border-radius:13px;background:var(--primary-50);color:var(--primary)}
-.m-empty-ic svg{width:24px;height:24px}
-#mkToday .m-side-card{padding:24px 22px;background:transparent}
-#mkToday .m-side-h2{font-size:13px;font-weight:750}
-#mkToday .m-side-kicker{font-size:11px;margin:7px 0 16px}
-#mkToday .m-timetotal strong{font-size:26px;color:var(--ink)}
-#mkToday .m-side-foot{font-size:10.5px;line-height:1.7}
-#mkToday .m-timesplit{gap:14px}
-.pl-rhythm{border-top:1px solid var(--line)!important}
-.pl-rhythm>p{margin:13px 0 0;font-size:11.5px;line-height:1.8;color:var(--muted)}
-#plManage{margin:0 26px 22px;border-top:1px solid var(--line)}
-.pl-manage>summary{display:flex;align-items:center;justify-content:space-between;gap:16px;list-style:none;cursor:pointer;font-size:11.5px;color:var(--primary-700);font-weight:650;min-height:44px}
+#mkToday .m-empty b{margin:4px 0 0;color:var(--ink);font-size:15px}
+#mkToday .m-empty span:not(.m-empty-ic){line-height:1.7}
+.m-empty-ic{display:grid;place-items:center;width:46px;height:46px;border-radius:var(--radius-sm);background:var(--primary-50);color:var(--primary)}
+.m-empty-ic svg{width:23px;height:23px}
+
+#mkToday .m-addrow{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:center;margin:0;padding:20px;border:0;background:transparent}
+#mkToday .m-addlab{display:none}
+#mkToday .m-addbox{display:contents}
+#mkToday .m-addinput{grid-column:1;width:100%;min-width:0;height:42px;padding:0 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);font:inherit;font-size:13px}
+#mkToday .m-addinput::placeholder{color:var(--muted)}
+#mkToday .m-addinput:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+#mkToday .m-addbtn{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:42px;padding:0 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink-2);font:inherit;font-size:12px;font-weight:650;white-space:nowrap;cursor:pointer}
+#mkToday .m-addbtn:hover{background:var(--n-100)}
+#mkToday .m-addbtn.m-pri{grid-column:2;background:var(--primary);border-color:var(--primary);color:var(--on-primary)}
+#mkToday .m-addbtn.m-pri:hover{background:var(--primary-d);border-color:var(--primary-d)}
+#mkToday .m-addbtn.m-aibtn{grid-column:3;width:auto;margin:0;color:var(--primary-text)}
+#mkToday .m-addbtn.m-aibtn:hover{background:var(--primary-50);border-color:var(--primary-200)}
+#mkToday .m-addbtn:disabled{opacity:.55;cursor:default}
+
+.pl-manage>summary{display:flex;align-items:center;justify-content:space-between;gap:16px;list-style:none;cursor:pointer;font-size:12px;color:var(--primary-text);font-weight:650;min-height:44px}
 .pl-manage>summary::-webkit-details-marker{display:none}
-.pl-manage>summary svg{width:14px;height:14px;flex:0 0 14px;transition:transform .16s}
+.pl-manage>summary svg{width:14px;height:14px;flex:0 0 14px;transition:transform var(--ds-fast)}
 .pl-manage[open]>summary svg{transform:rotate(90deg)}
-#ptabToday>.card[hidden]{display:none!important}
-#plManageBody{padding:0 0 2px}
+#mkToday #plManage{margin:0 20px 14px;border-top:1px solid var(--line)}
+#plManageBody{padding-bottom:2px}
 #plManageBody #rbStale{display:block!important}
 #plManageBody #rbStale:empty{display:none!important}
 #plManageBody #rbBar{display:block!important;margin-top:12px}
@@ -625,318 +129,112 @@ body .hub-main{padding:24px 28px 40px;overflow:auto}
 #rbBar .rb-txt,#rbBar .rb-more,#rbBar .rb-all{font-size:11.5px}
 #rbBar .rb-more,#rbBar .rb-all{min-height:32px}
 #rbBar .rb-numwrap{gap:12px}
-.pl-week{padding:24px}
-.pl-week-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
-.pl-week-grid:empty{display:none}
-.pl-week-day{min-width:0;min-height:170px;padding:16px;border:1px solid var(--line);border-radius:12px;background:var(--surface);text-align:left;font:inherit;cursor:pointer}
-.pl-week-day:hover{border-color:var(--primary-200)}
-.pl-week-day.is-today{background:var(--primary-50);border-color:var(--primary-200)}
-.pl-week-date{display:flex;align-items:baseline;gap:8px}
-.pl-week-date b{font-size:15px;font-weight:750}
-.pl-week-date span{font-size:11px;color:var(--muted)}
-.pl-week-count{display:block;margin-top:20px;font-size:22px;font-weight:750;letter-spacing:-.03em}
-.pl-week-count small{font-size:11px;font-weight:500;letter-spacing:0;color:var(--muted);margin-left:4px}
-.pl-week-min{display:block;margin-top:5px;font-size:11px;color:var(--muted)}
-.pl-week-open{display:block;margin-top:17px;font-size:11px;color:var(--primary-700)}
-.pl-week-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:320px;text-align:center}
-.pl-week-empty h2{margin:18px 0 0;font-size:18px}
-.pl-week-empty p{margin:10px 0 0;font-size:12.5px;color:var(--muted);line-height:1.8}
-.pl-week>.pl-manage{margin:20px 0 0;border-top:1px solid var(--line);padding-top:0}
-.pl-week>.pl-manage>summary{font-size:12.5px}
-.pl-week-manage-body{padding-top:18px;max-width:680px;margin:0 auto}
-.pl-week-manage-body #diagRoot{margin:0}
-.pl-week-manage-body .card{box-shadow:none}
-#mkPast .m-mk-body{padding:24px}
-#mkPast .m-mcard{padding:0;border:0;border-radius:0;margin:0}
-#mkPast .m-mcard h4{font-size:13px;margin-bottom:20px}
-#mkPast .m-days{grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
-#mkPast .m-day{padding:16px;min-height:118px;border-radius:12px;background:var(--surface)}
-#mkPast .m-day .m-dd{font-size:24px;font-weight:750}
-#mkPast .m-day .m-dm,#mkPast .m-day .m-df{font-size:11px}
-#mkPast .m-day .m-df{margin-top:9px}
-#mkPast .empty{display:flex;min-height:330px;align-items:center;justify-content:center;font-size:13px}
-@media(max-width:1100px) and (min-width:761px){
-  body .hub-main{padding:20px}
-  #mkToday .m-ws{grid-template-columns:minmax(0,1fr) 240px}
-  #mkToday .m-summary,#mkToday .m-taskhead{padding-left:20px;padding-right:20px}
-  #mkToday .m-tasklist{padding:0 20px}
-  #mkToday .m-addrow{margin-left:20px;margin-right:20px}
-  .pl-week-grid,#mkPast .m-days{grid-template-columns:repeat(3,minmax(0,1fr))}
-}
-@media(max-width:860px){
-  body .hub-main{padding:0 0 24px;overflow:visible}
-  .pl-board{border-radius:14px}
-  .pl-board-head{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:16px}
-  .pl-head-copy{min-width:0}
-  .pl-head-copy h1{font-size:17px}
-  .pl-board-head .plan-tabsbar{grid-column:1/-1;grid-row:2}
-  #planTabs{width:100%}
-  #planTabs .pill-tab{flex:1}
-  .pl-add-entry{min-height:36px;padding:0 12px;font-size:11.5px}
-  #mkToday .m-ws{display:block}
-  #mkToday .m-side{display:block;border-left:0;border-top:1px solid var(--line)}
-  #mkToday .m-side .m-timecard{display:block}
-  #mkToday .m-side-card{padding:20px}
-  #mkToday .m-side .m-timecard,#mkToday .m-side .pl-rhythm{display:none}
-  .pl-week-grid,#mkPast .m-days{grid-template-columns:repeat(2,minmax(0,1fr))}
-}
-@media(max-width:560px){
-  .pl-board-head{padding:14px 16px;gap:10px}
-  .pl-head-copy p{font-size:11px}
-  #mkToday .m-datebar{display:grid;grid-template-columns:36px minmax(0,1fr) 36px;padding:14px 16px;gap:8px}
-  #mkToday .m-datemain{text-align:center}
-  #mkToday .m-datetitle{justify-content:center;font-size:15px}
-  #mkToday .m-phase{grid-column:1/-1;justify-content:center}
-  #mkToday .m-phase-chip{border:0;padding:2px 0;background:none}
-  #mkToday .m-backtoday{margin:3px auto 0}
-  #mkToday .m-summary{padding:22px 18px 20px}
-  #mkToday .m-bigq{font-size:40px}
-  #mkToday .m-taskhead{padding:17px 18px 12px;align-items:center;flex-wrap:wrap;gap:12px}
-  #mkToday .m-filter{width:100%;justify-content:space-between}
-  #mkToday .m-fbtn{flex:1;min-height:32px}
-  #mkToday .m-tasklist{padding:0 18px}
-  #mkToday .m-tasklist .m-task{align-items:flex-start;gap:11px;padding:15px 0}
-  #mkToday .m-task .m-t{font-size:13px}
-  #mkToday .m-task .m-actbtn{width:30px;height:30px}
-  #mkToday .m-task .m-jmp{display:none!important}
-  #mkToday .m-addrow{margin:14px 18px 20px}
-  #mkToday .m-addbox{gap:10px}
-  #mkToday .m-addinput{height:44px;font-size:16px}
-  #mkToday .m-addbtn{min-height:44px}
-  #mkToday .m-addbtn.m-aibtn{width:100%;margin:14px 0 0;justify-content:center}
-  #mkToday .m-empty{padding:36px 18px 30px}
-  #plManage{margin:0 18px 20px}
-  .pl-week,#mkPast .m-mk-body{padding:18px 16px}
-  .pl-week-grid{gap:10px}
-  .pl-week-day{min-height:145px;padding:14px}
-  .pl-week-count{margin-top:15px;font-size:21px}
-  .pl-week-open{margin-top:12px}
-  #mkPast .m-day{padding:14px}
-  .pl-manage>summary{min-height:44px}
-}
-@media(prefers-reduced-motion:reduce){.pl-manage>summary svg{transition:none}}
 
-/* ===== PLAN-COMMENT-1118：她 11-18 计划页 4 条批注 · 覆盖样式 =====
-   只动可见样式，DOM/ID/数据/事件零改动。 */
-/* 批注 1：本周空态「不应该居中吗」——空态在 4 列 grid 里只占第一格，
-   跨满整行并铺满宽度，内容自然居中。 */
-.pl-week-grid > .pl-week-empty{grid-column:1/-1;width:100%;min-height:max(320px,calc(100dvh - 300px))}
-/* 批注 2：往日空态「应该占满屏幕，外面那个框删掉」。 */
-#mDays > .esys--inline{min-height:max(320px,calc(100dvh - 260px));border:0;border-radius:0;background:transparent;box-shadow:none;display:flex;flex-direction:column;align-items:center;justify-content:center}
-/* 批注 3/4：今天 / 本周页头「这个框有点多余 / 也多余」——去掉说明小字，只留标题与主操作。 */
-.pl-board-head .pl-head-copy p{display:none}
-
-/* ══════════════════════════════════════════════════════════════════════
-   PLAN-REDESIGN-1118（11-18）：按 design/PLAN-REDESIGN-1118 施工。
-   只改「今天」页的可见结构：日期条、深绿主卡、任务卡、添加区、时间分配。
-   ID / 类名 / 数据流不动；已有覆盖统一在本段末尾收口，不删旧规则。
-   ══════════════════════════════════════════════════════════════════════ */
-#mkToday{
-  --pd-ink:#143c38;
-  --pd-teal:var(--primary-600);
-  --pd-lime:#d9f277;
-  --pd-line:var(--line);
-  --pd-card:var(--surface);
-  --pd-row:var(--surface-2);
-}
-[data-theme="dark"] #mkToday{--pd-ink:#0f2f2c;--pd-card:var(--surface);--pd-row:var(--n-100)}
-
-/* 桌面骨架：页面不再是一张大卡套所有内容，拆成日期条 + 主卡 + 任务卡 + 右栏 */
-body .hub-main{padding:24px 24px 44px}
-@media(min-width:861px){body .hub-shell{grid-template-columns:240px minmax(0,1fr)}}
-body .pl-board{max-width:1160px;margin:0 auto;border:0;border-radius:0;background:transparent;box-shadow:none;overflow:visible}
-body .pl-board-body,body .pl-viewport{background:transparent}
-body .hub-side{background:var(--bg)}   /* 侧栏只留导航，底色跟纸面一致，不空出一条白柱 */
-.pl-board-head{display:none!important}
-#hubTd{display:none!important}   /* 左栏「今日任务」与右侧任务卡重复，按设计稿只留侧栏导航 */
-
-/* 日期条：左日期、右备考阶段，不再是一张带边框的白卡 */
-#mkToday .m-datebar{display:flex;align-items:center;gap:8px;margin:0 0 14px;padding:0 2px;border:0;border-radius:0;background:transparent;box-shadow:none}
-#mkToday .m-daynav-lg{width:34px;height:34px;border:1px solid var(--pd-line);border-radius:10px;background:var(--pd-card);color:var(--primary-900)}
-#mkToday .m-daynav-lg:hover{border-color:var(--primary-200);background:var(--primary-50)}
-#mkToday .m-daynav-lg svg{width:13px;height:13px}
-#mkToday .m-datemain{flex:0 1 auto;min-width:0;text-align:left}
-#mkToday .m-datetitle{justify-content:flex-start;gap:9px;font-size:22px;font-weight:750;line-height:1.25;letter-spacing:-.035em;color:var(--ink)}
-#mkToday .m-todaytag{flex:none;padding:3px 8px;border-radius:999px;background:var(--primary-50);color:var(--primary-700);font-size:10.5px;font-weight:700;letter-spacing:0}
-#mkToday .m-datesub{margin-top:5px;font-size:12px;color:var(--muted)}
-#mkToday .m-backtoday{margin:4px 0 0;padding:2px 0;min-height:24px;font-size:11.5px;color:var(--primary-700)}
-#mkToday .m-phase{margin-left:auto;flex:none;white-space:nowrap}
-#mkToday .m-phase-chip{display:inline-flex;align-items:center;flex-wrap:nowrap;padding:8px 12px;border:1px solid var(--pd-line);border-radius:999px;background:var(--pd-card);gap:9px;color:var(--muted);white-space:nowrap}
-#mkToday .m-phase .m-chip{display:inline-flex;align-items:center;gap:6px;width:auto;height:auto;padding:0;background:none;color:var(--ink-2);font-size:11px;white-space:nowrap}
-#mkToday .m-phase .m-chip::before{display:inline-block;content:"";width:6px;height:6px;border-radius:50%;background:var(--primary)}
-#mkToday .m-phase b,#mkToday .m-phatime,#mkToday .m-phatime a{font-size:11px;color:var(--muted);font-weight:500}
-#mkToday .m-phatime a{color:var(--primary-700)!important;font-weight:650}
-
-/* 今日主卡：深绿底、左侧先做这一项、右侧剩余分钟与完成度 */
-#mkToday .m-summary{
-  display:grid;grid-template-columns:minmax(0,1.45fr) minmax(230px,.72fr);
-  gap:30px;align-items:center;margin:0 0 16px;padding:24px 28px;
-  border:0;border-radius:18px;background:var(--pd-ink);color:#fff;
-  box-shadow:0 12px 30px -22px rgba(16,40,38,.55);overflow:hidden;
-}
-#mkToday .m-summary[hidden]{display:none!important}
-#mkToday .m-nextmain{min-width:0}
-#mkToday .m-nextlab{display:flex;align-items:center;gap:7px;margin-bottom:8px;color:rgba(255,255,255,.62);font-size:10.5px;font-weight:650;letter-spacing:.08em}
-#mkToday .m-nextlab::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--pd-lime)}
-#mkToday .m-nexttitle{margin:0;color:#fff;font-size:25px;font-weight:750;line-height:1.32;letter-spacing:-.025em;overflow-wrap:anywhere}
-#mkToday .m-nextmeta{margin-top:7px;color:rgba(255,255,255,.6);font-size:11.5px;line-height:1.6;font-variant-numeric:tabular-nums}
-#mkToday .m-nextbtn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;margin-top:16px;padding:0 18px;
-  border:0;border-radius:999px;background:var(--pd-lime);color:var(--pd-ink);font:inherit;font-size:12.5px;font-weight:750;
-  cursor:pointer;transition:transform .15s,background .15s}
-#mkToday .m-nextbtn:hover{background:#e3f88c;transform:translateY(-1px)}
-#mkToday .m-nextbtn:active{transform:none}
-#mkToday .m-nextbtn:focus-visible{outline:2px solid #fff;outline-offset:2px}
-#mkToday .m-nextbtn[hidden]{display:none!important}
-#mkToday .m-nextbtn svg{width:14px;height:14px;flex:none}
-#mkToday .m-nextstats{padding-left:26px;border-left:1px solid rgba(255,255,255,.14)}
-#mkToday .m-remain{display:flex;align-items:baseline;gap:7px;min-width:0}
-#mkToday .m-remain strong{font-size:42px;line-height:1;font-weight:750;letter-spacing:-.055em;font-variant-numeric:tabular-nums;color:#fff}
-#mkToday .m-remain span{font-size:11.5px;color:rgba(255,255,255,.58);white-space:nowrap}
-#mkToday .m-statline{display:flex;justify-content:space-between;gap:12px;margin-top:15px;padding-top:13px;border-top:1px solid rgba(255,255,255,.14);color:rgba(255,255,255,.66);font-size:11px;font-variant-numeric:tabular-nums}
-#mkToday .m-summary .m-bar{height:6px;margin:12px 0 0;border-radius:999px;background:rgba(255,255,255,.14);overflow:hidden}
-#mkToday .m-summary .m-bar i{display:block;height:100%;border-radius:inherit;background:var(--pd-lime)}
-
-/* 主列 + 右栏：任务卡与时间分配是两张独立卡 */
-#mkToday .m-ws{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:start}
-#mkToday .m-maincol{display:flex;flex-direction:column;gap:16px;min-width:0}
-#mkToday .m-plancard{min-width:0;background:var(--pd-card);border:1px solid var(--pd-line);border-radius:18px;box-shadow:0 10px 28px -24px rgba(16,40,38,.35);overflow:hidden}
-#mkToday .m-side{display:flex;flex-direction:column;gap:16px;min-width:0;background:transparent;border:0}
-#mkToday .m-side-card{padding:20px;background:var(--pd-card);border:1px solid var(--pd-line);border-radius:18px;box-shadow:0 10px 28px -24px rgba(16,40,38,.35)}
-#mkToday .m-timecard{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:12px;align-items:start}
-#mkToday .m-timecard[hidden]{display:none!important}
-#mkToday .m-side-h2{grid-column:1;grid-row:1;margin:0 0 16px;font-size:16px;line-height:1.4;font-weight:750;letter-spacing:-.02em;color:var(--ink)}
-
-/* 顺延提示 */
-#mkToday .m-carry{margin:16px 20px 0;padding:10px 12px;border-radius:10px;background:var(--warn-bg,#fff7eb);color:var(--warn-ink,#8a5200);font-size:11.5px}
-#mkToday .m-taskhead{justify-content:flex-start;padding:18px 20px 10px;border-top:0;gap:8px}
-#mkToday .m-th2{font-size:20px;font-weight:750;letter-spacing:-.03em;color:var(--ink)}
-#mkToday .m-taskcount{margin-right:auto;color:var(--muted);font-size:11.5px;font-weight:550;font-variant-numeric:tabular-nums}
-#mkToday .m-filter{padding:3px;gap:3px;background:var(--pd-row);border:1px solid var(--pd-line);border-radius:10px}
-#mkToday .m-fbtn{min-height:30px;padding:3px 11px;border-radius:7px;color:var(--muted);font-size:11px;font-weight:600}
-#mkToday .m-fbtn.active{background:var(--pd-card);color:var(--primary-700);box-shadow:0 1px 3px rgba(16,24,40,.08)}
-
-/* 任务行：从「表格分隔线」改成一张张可点的行卡；待办在前、已完成置底 */
-#mkToday .m-tasklist{display:flex;flex-direction:column;gap:8px;padding:2px 14px 12px}
-#mkToday .m-tasklist .m-task{align-items:center;gap:12px;padding:14px 12px;border:1px solid var(--pd-line);border-radius:12px;background:var(--pd-row);transition:background .15s,border-color .15s,opacity .18s}
-#mkToday .m-tasklist .m-task:last-child{border-bottom:1px solid var(--pd-line)}
-#mkToday .m-tasklist .m-task:hover{background:var(--pd-card);border-color:var(--primary-200)}
-#mkToday .m-task:not(.m-done){order:1}
-#mkToday .m-task.m-done{order:2;opacity:.66;background:var(--pd-card)}
-#mkToday .m-task.m-next{background:var(--primary-50);border-color:var(--primary-200);box-shadow:0 0 0 1px var(--primary-200) inset}
-#mkToday .m-task.m-next:hover{background:var(--primary-50)}
-#mkToday .m-task.m-next-flash{box-shadow:0 0 0 2px var(--primary),0 8px 24px -14px rgba(49,153,141,.5)}
-#mkToday .m-task .m-cb{width:24px;height:24px;margin:0;border-color:var(--n-400);border-radius:7px;background:var(--pd-card)}
-#mkToday .m-task.m-done .m-cb{border-color:var(--primary);background:var(--primary)}
-#mkToday .m-task .m-taskbody{flex:1 1 0%;min-width:0}
-#mkToday .m-task .m-t{font-size:14.5px;font-weight:650;line-height:1.5;color:var(--ink)}
-#mkToday .m-task.m-done .m-t{color:var(--muted);text-decoration-color:var(--n-400)}
-#mkToday .m-task .m-tmeta{margin-top:4px;gap:8px}
-#mkToday .m-task .m-tagline{padding:1px 7px;border:0;border-radius:5px;background:var(--pd-card);color:var(--ink-2);font-size:10.5px;font-weight:650;line-height:1.65}
-#mkToday .m-task .m-tmin{font-size:10.5px;color:var(--muted)}
-#mkToday .m-task .m-tagline + .m-tmin::before{content:"·";margin-right:8px;color:var(--muted);font-weight:400}
-#mkToday .m-task .m-tcarry{font-size:10.5px}
-#mkToday .m-task .m-jmp{display:inline-flex;align-items:center;gap:3px;min-height:30px;padding:0 9px;border:1px solid var(--primary-200);border-radius:8px;background:var(--pd-card);color:var(--primary-700);font-size:11px;font-weight:700;white-space:nowrap}
-#mkToday .m-task .m-jmp:hover{background:var(--primary-50)}
-#mkToday .m-task .m-jmp svg{width:13px;height:13px}
-#mkToday .m-task .m-act{gap:2px;opacity:.55;transition:opacity .15s}
-#mkToday .m-task:hover .m-act,#mkToday .m-task:focus-within .m-act{opacity:1}
-#mkToday .m-task .m-actbtn{width:30px;height:30px;border-radius:7px;color:var(--muted)}
-#mkToday .m-task .m-actbtn:hover{background:var(--pd-card);color:var(--ink)}
-#mkToday .m-empty{padding:42px 20px 34px}
-#mkToday .m-empty b{font-size:16px}
-#mkToday .m-empty span:not(.m-empty-ic){font-size:12px}
-
-/* 添加区：单独一张卡；输入与两个操作同一行，手机上输入整行、按钮下一行 */
-#mkToday .m-addcard{background:var(--pd-card);border:1px solid var(--pd-line);border-radius:18px;box-shadow:0 10px 28px -24px rgba(16,40,38,.35);overflow:hidden}
-#mkToday .m-addrow{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:center;margin:0;padding:18px 20px 8px;border-top:0;background:transparent}
-#mkToday .m-addlab{grid-column:1/-1;margin:0 0 1px;color:var(--ink-2);font-size:11.5px;font-weight:600}
-#mkToday .m-addbox{display:contents}
-#mkToday .m-addinput{grid-column:1;width:100%;height:44px;padding:0 13px;border:1px solid var(--pd-line);border-radius:10px;background:var(--pd-row);font-size:13px}
-#mkToday .m-addbtn{min-height:44px;padding:0 14px;border-radius:10px;font-size:12px}
-#mkToday .m-addbtn.m-pri{grid-column:2;background:var(--primary-700);border-color:var(--primary-700)}
-#mkToday .m-addbtn.m-aibtn{grid-column:3;width:auto;margin:0;background:var(--pd-card);border-color:var(--pd-line);color:var(--primary-700)}
-#mkToday .m-addbtn.m-aibtn:hover{background:var(--primary-50)}
-#mkToday #plManage{margin:0 20px 14px;border-top:1px solid var(--pd-line)}
-#mkToday .pl-manage>summary{font-size:11.5px;color:var(--primary-700);font-weight:650}
-#mkToday #plManageBody{padding-bottom:2px}
-
-/* 右栏时间分配：总时长 + 堆叠条 + 分科行 */
 #mkToday .m-timetotal{grid-column:2;grid-row:1;justify-self:end;display:flex;align-items:baseline;gap:5px;flex-wrap:wrap;margin:0}
-#mkToday .m-timetotal strong{font-size:34px;line-height:1;color:var(--ink);font-weight:750;letter-spacing:-.05em;font-variant-numeric:tabular-nums}
-#mkToday .m-timetotal span{font-size:11.5px;color:var(--muted)}
-#mkToday .m-timestack{grid-column:1/-1;display:flex;gap:2px;width:100%;height:7px;margin:0 0 18px;border-radius:999px;background:var(--pd-row);overflow:hidden}
+#mkToday .m-timetotal strong{font-size:28px;line-height:1;color:var(--ink);font-weight:750;font-variant-numeric:tabular-nums}
+#mkToday .m-timetotal span{font-size:11px;color:var(--muted)}
+#mkToday .m-timestack{grid-column:1/-1;display:flex;gap:2px;width:100%;height:6px;margin:0 0 18px;border-radius:999px;background:var(--n-100);overflow:hidden}
 #mkToday .m-ts{display:block;min-width:3px;height:100%}
 #mkToday .m-ts-c0{background:var(--primary-600)}
-#mkToday .m-ts-c1{background:var(--pd-ink)}
-#mkToday .m-ts-c2{background:var(--pd-lime)}
+#mkToday .m-ts-c1{background:var(--primary-900)}
+#mkToday .m-ts-c2{background:var(--primary-400)}
 #mkToday .m-ts-c3{background:var(--primary-200)}
 #mkToday .m-timesplit{grid-column:1/-1;display:grid;gap:12px}
 #mkToday .m-trow{display:grid;grid-template-columns:7px minmax(0,1fr) auto;gap:10px;align-items:center}
 #mkToday .m-tdot{width:7px;height:7px;border-radius:50%}
-#mkToday .m-tlab{min-width:0;color:var(--ink-2);font-size:12px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#mkToday .m-tlab{min-width:0;color:var(--ink-2);font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #mkToday .m-tmin{color:var(--muted);font-size:11px;font-variant-numeric:tabular-nums;white-space:nowrap}
 #mkToday .m-timesplit-na{margin:0;color:var(--muted);font-size:12px;line-height:1.8}
 
-@media(max-width:1080px){
-  #mkToday .m-summary{grid-template-columns:minmax(0,1fr);gap:20px}
-  #mkToday .m-nextstats{padding:18px 0 0;border-left:0;border-top:1px solid rgba(255,255,255,.14)}
-  #mkToday .m-statline{margin-top:12px;padding-top:12px}
-  #mkToday .m-ws{grid-template-columns:minmax(0,1fr) 260px}
-}
+.pl-week{padding:0}
+.pl-week-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.pl-week-grid:empty{display:none}
+.pl-week-day{display:flex;flex-direction:column;min-width:0;min-height:168px;padding:18px;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);box-shadow:var(--sh-1);text-align:left;font:inherit;cursor:pointer}
+.pl-week-day:hover{border-color:var(--primary-300);box-shadow:var(--shadow)}
+.pl-week-day.is-today{background:var(--primary-50);border-color:var(--primary-200)}
+.pl-week-date{display:flex;align-items:baseline;gap:8px;color:var(--ink)}
+.pl-week-date b{font-size:15px;font-weight:700}
+.pl-week-date span{font-size:11px;color:var(--muted)}
+.pl-week-count{display:block;margin-top:22px;font-size:23px;font-weight:750;color:var(--ink)}
+.pl-week-count small{font-size:11px;font-weight:400;color:var(--muted);margin-left:4px}
+.pl-week-min{display:block;margin-top:5px;font-size:11px;color:var(--muted)}
+.pl-week-open{display:block;margin-top:auto;padding-top:16px;font-size:11px;color:var(--primary-text)}
+.pl-week-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;grid-column:1/-1;min-height:420px;text-align:center}
+.pl-week-empty h2{margin:18px 0 0;font-size:18px}
+.pl-week-empty p{margin:10px 0 0;font-size:12px;color:var(--muted);line-height:1.8}
+.pl-week>.pl-manage{margin:16px 0 0;padding:0 4px;border-top:1px solid var(--line)}
+.pl-week-manage-body{padding-top:18px;max-width:680px;margin:0 auto}
+.pl-week-manage-body #diagRoot{margin:0}
+.pl-week-manage-body .card{box-shadow:none}
 
+#mkPast .m-mk-body{padding:0}
+#mkPast .m-days{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+#mkPast .m-day{min-width:0;min-height:132px;padding:18px;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);box-shadow:var(--sh-1);cursor:pointer}
+#mkPast .m-day:hover{border-color:var(--primary-300);box-shadow:var(--shadow)}
+#mkPast .m-day .m-dh{display:flex;align-items:baseline;gap:8px;margin-bottom:18px}
+#mkPast .m-day .m-dd{font-size:26px;font-weight:750;line-height:1;color:var(--ink)}
+#mkPast .m-day .m-dm{font-size:11px;color:var(--muted)}
+#mkPast .m-day .m-db{height:5px;background:var(--n-100);border-radius:999px;overflow:hidden}
+#mkPast .m-day .m-db i{display:block;height:100%;background:var(--primary);border-radius:inherit}
+#mkPast .m-day.m-full .m-db i{background:var(--primary-600)}
+#mkPast .m-day .m-df{display:flex;justify-content:space-between;margin-top:9px;font-size:11px;color:var(--muted)}
+#mDays .empty,#mDays>.esys--inline{grid-column:1/-1;display:flex;min-height:420px;flex-direction:column;align-items:center;justify-content:center;border:0;background:transparent;box-shadow:none;font-size:13px}
+
+.m-page button:focus-visible,.m-page input:focus-visible,.pl-board button:focus-visible,.pl-board summary:focus-visible{outline:2px solid var(--primary-600);outline-offset:3px}
+
+@media(max-width:1100px) and (min-width:861px){
+  #mkToday .m-ws{grid-template-columns:minmax(0,1fr) 240px}
+  #mkToday .m-summary{padding:24px;gap:20px}
+  #mkToday .m-addrow{grid-template-columns:minmax(0,1fr) auto}
+  #mkToday .m-addinput{grid-column:1/-1}
+  .pl-week-grid,#mkPast .m-days{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
 @media(max-width:860px){
-  body .hub-main{padding:10px 12px 26px}
-  #mkToday .m-summary{padding:22px 20px;border-radius:16px}
-  #mkToday .m-nexttitle{font-size:22px}
-  #mkToday .m-remain strong{font-size:36px}
+  .pl-board-head{display:block;min-height:0;padding:0;border:0;background:transparent}
+  .pl-head-copy{display:none}
+  .pl-board-head .plan-tabsbar{display:block;padding:0;margin-bottom:20px}
+  #mkToday .m-summary{padding:22px}
   #mkToday .m-ws{display:block}
-  #mkToday .m-side{margin-top:14px}
+  #mkToday .m-side{margin-top:16px}
   #mkToday .m-side .m-timecard:not([hidden]){display:grid!important}
-  #mkToday .m-side-card{display:block;padding:18px}
-  #mkToday .m-plancard{border-radius:16px}
-  #mkToday .m-addcard{border-radius:16px}
-  #mkToday .m-taskhead{padding:16px 16px 10px;flex-wrap:wrap;gap:8px 10px}
-  #mkToday .m-taskcount{margin-right:0}
-  #mkToday .m-filter{order:3;width:100%;justify-content:space-between;margin-top:2px}
-  #mkToday .m-fbtn{flex:1;min-height:34px}
-  #mkToday .m-tasklist{padding:2px 12px 10px}
-  #mkToday .m-tasklist .m-task{padding:13px 12px;gap:11px}
-  #mkToday .m-addrow{padding:16px 16px 8px}
-  #mkToday #plManage{margin:0 16px 12px}
-  .pl-board-head{display:block!important;min-height:0;padding:2px 2px 12px;border:0;background:transparent}
-  .pl-head-copy,.pl-add-entry{display:none!important}
-  .pl-board-head .plan-tabsbar{display:block;padding:0}
+  .pl-week-grid,#mkPast .m-days{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
-
 @media(max-width:560px){
-  #mkToday .m-datebar{display:grid;grid-template-columns:34px minmax(0,1fr) 34px;gap:8px;padding:2px 0 12px}
+  #mkToday .m-datebar{display:grid;grid-template-columns:40px minmax(0,1fr) 40px;gap:8px;padding:0 2px;margin-bottom:16px}
   #mkToday .m-datemain{text-align:center}
-  #mkToday .m-datetitle{justify-content:center;font-size:20px}
-  #mkToday .m-phase{grid-column:1/-1;justify-content:center;margin:2px 0 0}
+  #mkToday .m-datetitle{justify-content:center;font-size:19px}
+  #mkToday .m-phase{grid-column:1/-1;justify-content:center;margin:4px 0 0}
+  #mkToday .m-phase-chip{padding:6px 10px;gap:8px}
   #mkToday .m-backtoday{margin:3px auto 0}
-  #mkToday .m-summary{padding:20px 18px;border-radius:15px}
-  #mkToday .m-nextlab{font-size:10px}
+  #mkToday .m-summary{grid-template-columns:minmax(0,1fr);gap:20px;padding:22px 20px}
   #mkToday .m-nexttitle{font-size:21px}
-  #mkToday .m-nextbtn{width:100%;margin-top:14px}
+  #mkToday .m-nextbtn{width:100%;min-height:44px}
+  #mkToday .m-nextstats{padding:18px 0 0;border-left:0;border-top:1px solid var(--line)}
   #mkToday .m-remain strong{font-size:34px}
-  #mkToday .m-statline{font-size:10.5px}
-  #mkToday .m-th2{font-size:19px}
-  #mkToday .m-task .m-t{font-size:14px}
-  #mkToday .m-task .m-jmp{display:none!important}
+  #mkToday .m-taskhead{padding:14px 14px 10px}
+  #mkToday .m-filter{width:100%}
+  #mkToday .m-fbtn{flex:1;min-height:34px}
+  #mkToday .m-tasklist{padding:2px 10px 10px}
+  #mkToday .m-tasklist .m-task{padding:14px 10px;gap:10px}
+  #mkToday .m-task .m-jmp{display:none}
   #mkToday .m-task .m-act{opacity:1}
-  #mkToday .m-task .m-actbtn{width:40px;height:40px}
-  #mkToday .m-addrow{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
-  #mkToday .m-addlab{grid-column:1/-1}
+  #mkToday .m-task .m-actbtn{width:32px;height:36px}
+  #mkToday .m-addrow{grid-template-columns:minmax(0,1fr) minmax(0,1fr);padding:16px}
   #mkToday .m-addinput{grid-column:1/-1;height:46px;font-size:16px}
-  #mkToday .m-addbtn{width:100%}
+  #mkToday .m-addbtn{width:100%;min-height:44px}
   #mkToday .m-addbtn.m-pri{grid-column:1}
-  #mkToday .m-addbtn.m-aibtn{grid-column:2;width:100%;margin:0}
-  #mkToday .m-side{margin-top:12px}
-  #mkToday .m-side-card{padding:17px 16px}
-  #mkToday .m-timetotal strong{font-size:30px}
+  #mkToday .m-addbtn.m-aibtn{grid-column:2}
+  #mkToday #plManage{margin:0 16px 12px}
+  #mkToday .m-side-card{padding:20px}
+  .pl-week-day{min-height:154px;padding:14px}
+  .pl-week-count{margin-top:18px;font-size:21px}
+  #mkPast .m-day{padding:14px;min-height:126px}
+  #mkPast .m-day .m-dh{margin-bottom:17px}
 }
-
 @media(prefers-reduced-motion:reduce){
-  #mkToday .m-nextbtn,#mkToday .m-tasklist .m-task{transition:none}
+  #mkToday .m-nextbtn,#mkToday .m-tasklist .m-task,.pl-manage>summary svg{transition:none}
 }
 
+html:not([data-theme="dark"]) #mkToday .m-nextbtn,html:not([data-theme="dark"]) #mkToday .m-addbtn.m-pri{background:var(--primary-700);border-color:var(--primary-700)}
+html:not([data-theme="dark"]) #mkToday .m-nextbtn:hover,html:not([data-theme="dark"]) #mkToday .m-addbtn.m-pri:hover{background:var(--primary-800);border-color:var(--primary-800)}
+html[data-theme="dark"] #mkToday .m-nextbtn,html[data-theme="dark"] #mkToday .m-addbtn.m-pri{color:var(--n-900)}
