@@ -191,7 +191,6 @@ body.hub-home .hero::before{ display:none; }
 .hmod .ic svg{width:16px;height:16px}
 .hmod .tx{min-width:0}
 .hmod b{display:block;font-size:12px;font-weight:800}
-.hmod .tx span{display:block;font-size:10.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* 🔴 .arrow 是稿里的右箭头，home.css 原先漏定义 → SVG 无尺寸按默认 300×150 撑开，
    把「常用模块」4 张卡顶到 602px（首屏 1295 的主因）。必须钉死尺寸。 */
 .hmod .arrow{width:14px;height:14px;flex:none;color:var(--muted);margin-left:auto;transition:color .16s,transform .15s}
