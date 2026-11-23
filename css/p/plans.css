@@ -208,10 +208,15 @@
 .plan-tabsbar #planTabs{margin:0}
 @media(max-width:860px){
   .plan-tabsbar{padding:14px 16px 4px}
-  .plan-tabsbar #planTabs{display:inline-flex;gap:4px}
-  .plan-tabsbar #planTabs .pill-tab{padding:5px 13px;font-size:13px;border:1px solid var(--primary-200);background:rgb(255,255,255);color:var(--primary-text);border-radius:999px}
-  .plan-tabsbar #planTabs .pill-tab.active{background:var(--primary);border-color:var(--primary);color:var(--on-primary)}
+  /* 11-23：手机端子导航统一成分段控件，与回顾/写作同一套——浅灰轨道 + 白色选中块 + 细边。 */
+  .plan-tabsbar #planTabs{display:flex;gap:2px;overflow-x:auto;padding:3px;background:var(--surface-2);border:1px solid var(--line);border-radius:12px;box-shadow:0 1px 2px rgba(28,55,48,.035);scrollbar-width:none}
+  .plan-tabsbar #planTabs::-webkit-scrollbar{display:none}
+  .plan-tabsbar #planTabs .pill-tab{flex:1;min-width:0;height:32px;padding:0 8px;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--muted);font:inherit;font-size:12px;font-weight:650;white-space:nowrap;cursor:pointer;transition:background .16s,border-color .16s,color .16s}
+  .plan-tabsbar #planTabs .pill-tab:hover{background:var(--n-100);color:var(--ink)}
+  .plan-tabsbar #planTabs .pill-tab.active{border-color:#cde5e1;background:var(--surface);color:var(--primary-700);font-weight:750;box-shadow:0 1px 2px rgba(16,24,40,.06)}
 }
+/* 11-23：夜间档选中态边框换成深色线，避免浅色 #cde5e1 在深底上割裂。 */
+[data-theme="dark"] .plan-tabsbar #planTabs .pill-tab.active{border-color:var(--line)}
 
 /* ═══ P-HEAD-1（10-25）首屏对齐 ═══
    她 17:0x 两条一起提：「计划这个页面第一尺寸跟其他页面不一样，不对」+
@@ -666,7 +671,7 @@ body .hub-main{padding:24px 28px 40px;overflow:auto}
   .pl-head-copy h1{font-size:17px}
   .pl-board-head .plan-tabsbar{grid-column:1/-1;grid-row:2}
   #planTabs{width:100%}
-  #planTabs .pill-tab{flex:1;min-height:36px}
+  #planTabs .pill-tab{flex:1}
   .pl-add-entry{min-height:36px;padding:0 12px;font-size:11.5px}
   #mkToday .m-ws{display:block}
   #mkToday .m-side{display:block;border-left:0;border-top:1px solid var(--line)}
@@ -901,9 +906,6 @@ body .hub-side{background:var(--bg)}   /* 侧栏只留导航，底色跟纸面�
   .pl-board-head{display:block!important;min-height:0;padding:2px 2px 12px;border:0;background:transparent}
   .pl-head-copy,.pl-add-entry{display:none!important}
   .pl-board-head .plan-tabsbar{display:block;padding:0}
-  #planTabs{display:flex;gap:6px;width:100%;padding:5px;border:1px solid var(--pd-line);border-radius:12px;background:var(--pd-card)}
-  #planTabs .pill-tab{flex:1;min-height:38px;border-radius:8px;background:transparent;color:var(--muted);font-size:12px}
-  #planTabs .pill-tab.active{background:var(--primary-50);color:var(--primary-700);box-shadow:none}
 }
 
 @media(max-width:560px){
