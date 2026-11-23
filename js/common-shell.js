@@ -1118,6 +1118,7 @@ async function softNavigate(t, isPop){
     if(!newMain || !main) throw new Error('目标页缺少 <main>');
     await swapPageStyles(doc, t.id);                    // 同步页面专属样式（内联 <style> + css/p/*.css），避免样式丢失/串页
     main.innerHTML = newMain.innerHTML;                 // 只换内容区，侧边栏/全局状态保留
+    syncMainAttrs(newMain, main);                       // 🔴 11-23 根因：同步 <main> 的 id/class，见函数注释
     /* 🔵 PERF-NAV-2A（10-26）：内容已经换成目标页了 → 立刻把「半透明等待态」收掉。
        不等脚本 eval 完（那还要一会儿），先把观感恢复成正常不透明；
        进度条留到 runPageScript 结束再收（hideHubLoader 那一行会一起收）。 */
@@ -1526,6 +1527,21 @@ function hubFitPageScroll(){
     const m = document.querySelector('main.container');
     if(!m) return;
     m.style.overflowY = (m.scrollHeight > m.clientHeight + 2) ? 'auto' : 'hidden';
+  }catch(_){}
+}
+
+/* 🔴 11-23 根因修复：软导航只换 <main>.innerHTML、不换 <main> 元素本身，于是上一页的
+   id / class 原样留在容器上。任何按 <main> id/class 写的页面样式（回顾 #reviewMain、
+   机经 .bn-page、模考 .stage 等）在软导航后全部失配——回顾页「手机端切 tab 页面没变化」
+   就是它：#reviewMain .rva-page[hidden] 这条高特异度隐藏规则匹配不到，被全局
+   .rva-page:has(...) 的 !important 显示规则压过，该藏的面板藏不住。
+   这里把目标页 <main> 的 id 与 class 一次性对齐，使软导航后的容器与直接打开该页完全一致。
+   ⚠️ 只动 id 与 class 两族：全文没有任何 JS 动态改 <main> 的 class，同步无副作用。 */
+function syncMainAttrs(src, cur){
+  try{
+    if(!src || !cur) return;
+    if(src.id){ cur.id = src.id; } else { cur.removeAttribute('id'); }
+    cur.className = src.getAttribute('class') || '';
   }catch(_){}
 }
 
