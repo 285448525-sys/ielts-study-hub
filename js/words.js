@@ -480,27 +480,41 @@ ready(() => {
   renderWords();
 });
 
-/* 从任意文本抽取英文词（不翻译）：供「无 Key 降级」与复用。
-   中英文混排时只取中文前面的英文片段；纯英文行直接取首个英文词/词组。 */
+/* 从任意文本抽取英文词、原文中文释义与行首词性标记（不翻译，只取原文已有内容）：
+   供「无 Key 降级」与复用。中英文混排时取中文前面的英文片段作词、中文部分作释义；
+   纯英文行只取首个英文词/词组，释义为空。英文尾部的词性标记（n./v./adj./phrase. 等）
+   剥离为 pos、不并入词形——避免「algorithm n. 算法」被存成「algorithm n.」；词性信息
+   也不浪费，降级导入时一并补全，导入即完全体。 */
 function extractWords(raw){
   const rows = [];
   const seen = new Set();
+  /* 尾部词性标记：n. v. adj. adv. prep. conj. pron. num. phrase.，可多个以 ; , 分隔 */
+  const POS_TAIL = /\s+(?:(?:n|v|adj|adv|prep|conj|pron|num|phrase)\.?\s*[;,]?\s*)+$/i;
   raw.split(/\n/).forEach(line => {
     line = line.trim(); if(!line) return;
-    let en = '';
+    let en = '', cn = '', pos = '';
     const cjk = line.search(/[一-鿿]/);
+    let headPart = '';
     if(cjk >= 0){
-      const eng = line.slice(0, cjk).match(/[A-Za-z][A-Za-z'.\-]*(?:\s+[A-Za-z][A-Za-z'.\-]*)*/);
-      en = eng ? eng[0].trim() : '';
+      headPart = line.slice(0, cjk);
+      cn = line.slice(cjk).trim();
     } else {
-      const eng = line.match(/[A-Za-z][A-Za-z'.\-]*(?:\s+[A-Za-z][A-Za-z'.\-]*)*/);
-      en = eng ? eng[0].trim() : '';
+      headPart = line;
     }
+    /* 先剥离尾部词性标记再提取英文：修正词形，顺带提取为 pos（词性信息不浪费，
+       且 ; , 分隔的多个词性不会因英文正则不匹配 ; 而被截断） */
+    const pm = headPart.match(POS_TAIL);
+    if(pm){
+      pos = pm[0].trim().replace(/[;,]/g, ';');
+      headPart = headPart.slice(0, pm.index).trim();
+    }
+    const eng = headPart.match(/[A-Za-z][A-Za-z'.\-]*(?:\s+[A-Za-z][A-Za-z'.\-]*)*/);
+    en = eng ? eng[0].trim() : '';
     if(!en) return;
     const key = en.toLowerCase();
     if(seen.has(key)) return;
     seen.add(key);
-    rows.push({ en });
+    rows.push({ en, cn, pos });
   });
   return rows;
 }
@@ -583,27 +597,32 @@ async function importSmart(){
       const key = r.en.toLowerCase();
       const tomb = 'en:' + key;
       if((DATA.deletedIds || []).includes(tomb)){ skippedDeleted++; return; }   // 已掌握/已删除：不复活
+      /* 降级路径也从原文提取中文释义与词性（extractWords 现在返回 cn/pos），与 AI 路径
+         同口径清洗，导入即完全体，不再把释义/词性丢掉。 */
+      const clean = salvageWordCn(r.cn || '', '', /\s/.test(r.en)).cn || (r.cn || '');
+      const pos = r.pos ? normPos(r.pos) : '';
       const exist = byKey.get(key);
       if(exist){
-        /* 本路径不产出 cn（extractWords 只抽词、丢掉中文），释义无从更新；
-           这里只降一级，提示语也不宣称「释义已更新」。 */
+        /* 已有词：原文带了中文就补释义、带了词性就补词性（都只补空、不覆盖已有），再降一级。 */
+        if(clean && (!exist.cn || !exist.cn.trim())){ exist.cn = clean; }
+        if(pos && (!exist.pos || !exist.pos.trim())){ exist.pos = pos; }
         demoteWordProgress(exist);
         updated++;
       } else {
-        const w = newWordV12(r.en, '');
+        const w = newWordV12(r.en, clean);
+        if(pos) w.pos = pos;
         byKey.set(key, w);
         DATA.words.push(w);
         added++;
       }
     });
     hubSave(); $('#smartInput').value = '';  renderWords();
-    let msg = '成功导入 ' + added + ' 个（AI 暂不可用，未翻译）';
+    let msg = '成功导入 ' + added + ' 个（AI 暂不可用，已从原文提取释义）';
     if(updated) msg += '，降级 ' + updated + ' 个已有词（各降一级，最早到 Lv 0）';
     if(skippedDeleted) msg += '，跳过已掌握 ' + skippedDeleted + ' 个';
-    /* 🔴 10/20 深夜：「AI 补全」按钮已删除，这里不再指引她去点按钮。
-       未登录 = 站内 AI 中继不可用，只能抽词不能翻译；登录后再导一次同一个词就能补全
-       （且按新口径只是降一级，不会归零），所以提示语直接指登录。 */
-    const guestTip = '。当前未登录，只抽出了单词、没翻译；登录后重新导入一次，释义/词性/音标会自动补全。';
+    /* 降级路径现在从原文提取中文释义；原文没有中文的纯英文词仍无释义，
+       登录后重新导入一次即可让 AI 补全（且按新口径只是降一级，不会归零）。 */
+    const guestTip = '。当前未登录，已从原文提取中文释义；原文没有中文的词，登录后重新导入一次即可自动补全。';
     toast(msg); if(hint) hint.textContent = msg + guestTip;
     return;
   }
