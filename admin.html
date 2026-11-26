@@ -48,7 +48,7 @@
       这是深色改造最常翻车的地方，三档都换成了亮一版的同色相。 */
 [data-theme="dark"]{
   --teal:#5cb3ab; --teal-d:#7ccac2; --teal-50:#12211f; --teal-bd:#1f3a37;
-  --ink:#e8eaec; --ink2:#a3aab2; --ink3:#7a828b;
+--ink:#e8eaec; --ink2:#a3aab2; --ink3:#848c95;  /* 深色下面板底上的次级字，#7a828b 差一档到 AA，提亮到 5.1:1 */
   --line:#2a2e33; --line2:#33383e; --bg:#0e1012; --surface:#181b1e;
   --surface-2:#1f2327;
   --panel:#181b1e;
@@ -91,6 +91,7 @@ body{
 .btn{height:34px;padding:0 14px;border:1px solid var(--teal);border-radius:8px;background:var(--teal);
   color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .12s,border-color .12s}
 .btn:hover{background:var(--teal-d);border-color:var(--teal-d)}
+[data-theme="dark"] .btn{background:var(--teal-deep);border-color:var(--teal-deep);color:var(--on)}
 .btn.ghost{background:var(--panel);color:var(--ink2);border-color:var(--line2)}
 .btn.ghost:hover{background:var(--surface-2);border-color:var(--line2);color:var(--ink)}
 .btn.small{height:28px;padding:0 10px;font-size:12.5px;border-radius:7px}

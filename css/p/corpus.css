@@ -287,7 +287,7 @@
 }
 [data-theme="dark"] .kc-page .kc-eb-input, [data-theme="dark"] .kc-page textarea{ background:var(--surface-2); border-color:var(--line); color:var(--ink); }
 [data-theme="dark"] .kc-page .kc-btn{ background:var(--surface); border-color:var(--line); color:var(--ink); }
-[data-theme="dark"] .kc-page .kc-btn-primary, [data-theme="dark"] .kc-page .kc-btn-primary:hover{ background:var(--primary); border-color:var(--primary); color:var(--on-primary); }
+[data-theme="dark"] .kc-page .kc-btn-primary, [data-theme="dark"] .kc-page .kc-btn-primary:hover{ background:var(--primary); border-color:var(--primary); color:#123f3a; }
 [data-theme="dark"] .kc-page .kc-view-switch{ background:var(--surface); border-color:var(--line); }
 [data-theme="dark"] .kc-page .kc-view-switch button.kc-active{ background:var(--primary-soft); color:var(--primary-text); }
 [data-theme="dark"] .kc-page .kc-card{ background:var(--surface); border-color:var(--line); }
@@ -349,6 +349,8 @@
 .lsr-btn:hover{border-color:var(--primary);color:var(--primary-d)}
 .lsr-btn-primary{background:var(--primary-d);border-color:var(--primary-d);color:var(--on-primary)}
 .lsr-btn-primary:hover{background:var(--primary-800);color:var(--on-primary)}
+/* 深色下 --primary-d 是中档青，白字不够，改深墨字（hover 亮青底同样适用） */
+[data-theme="dark"] .lsr-btn-primary,[data-theme="dark"] .lsr-btn-primary:hover{color:#081512}
 .lsr-btn-sm{padding:5px 12px;min-height:34px;font-size:12px}
 .lsr-btn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 

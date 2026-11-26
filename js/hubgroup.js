@@ -215,6 +215,16 @@ const HUBG_CSS = `
 .me-row .tx span{display:block;font-size:11.5px;color:var(--n-500);margin-top:1px}
 .me-row .ar{color:var(--n-400);font-size:17px;flex:none}
 .ln-search{margin:14px 2px 0}
+html[data-theme="dark"] .hg-loginbar .lb-tx span,html[data-theme="dark"] .sec-t span,
+html[data-theme="dark"] .ln-tile span,html[data-theme="dark"] .me-row .tx span,
+html[data-theme="dark"] .me-id .tx span{color:var(--n-600)}
+html[data-theme="dark"] .me-row .ar{color:var(--n-600)}
+html[data-theme="dark"] .hg-stat-v i{color:var(--n-600)}
+html[data-theme="dark"] .hg-loginbar a.lb-a,
+html[data-theme="dark"] .hg-loginbar a.lb-a:hover{color:#123f3a}
+html[data-theme="dark"] .me-av{border-color:var(--surface)}
+html[data-theme="dark"] .me-vip{background:linear-gradient(120deg,var(--primary-50),var(--surface));border-color:var(--line)}
+html[data-theme="dark"] .me-row .ic{background:var(--surface-2)}
 @media(max-width:360px){
   .ln-grid{gap:8px}
   .ln-tile{padding:11px}

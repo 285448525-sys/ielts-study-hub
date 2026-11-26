@@ -644,6 +644,8 @@ html[data-theme="dark"] .site-back:hover{background:var(--primary-soft);color:va
 /* 站内特有变体（非设计系统四变体，但要保留）：计时/服药/紧急操作色 */
 .btn-med{background:var(--med);color:var(--on-primary);border-color:var(--med)}
 .btn-med:hover{background:var(--med-ink);border-color:var(--med-ink)}
+/* 深色下 --med/--med-ink 是亮绿，白字发虚，改深墨字 */
+html[data-theme="dark"] .btn-med,html[data-theme="dark"] .btn-med:hover{color:#0d2a20}
 
 /* forms —— 按设计系统文档站 2026-10-03：height 44px tight、3.5px primary-soft-2 聚焦环 */
 /* 注意：以下全局 input/select/textarea 规则不作用于 checkbox/radio，避免它们被强制 width:100% 拉成巨型横条（2026-08-21 修复） */
@@ -2521,6 +2523,12 @@ button.side-item, button.sheet-item{
 .vip-cmp td.c3{font-weight:700;background:rgba(234,179,8,.06)}
 .vip-cmp td.c3 b{color:#b45309}
 .vip-cmp thead th.c3{color:#b45309}
+/* 深色下：虚线格用可读的中性字；会员列深琥珀改亮档（复用 --warn-ink） */
+[data-theme="dark"] .vip-cmp td.dash{color:var(--muted)}
+[data-theme="dark"] .vip-cmp td.c3 b,[data-theme="dark"] .vip-cmp thead th.c3{color:var(--warn-ink)}
+/* 侧栏「去计划页查看全部」链接：部分页面（如 plans-hub）未加载 hub-shell.css，
+   这里给一条低特异性基础色，页面专属规则（#hubTd 等）仍可覆盖；深浅两档都够 AA。 */
+.hub-td-more{color:var(--primary-700)}
 /* sprite 图标：✓ 跟单元格文字色，🔒 同；无尺寸 svg 默认 300×150 正是撑爆列的元凶 */
 .vip-cmp td svg,.vip-cmp .mx-foot svg{width:15px;height:15px;vertical-align:-2.5px;flex:none}
 .vip-cmp td.no svg{color:var(--warn-ink,var(--muted))}
@@ -2747,6 +2755,8 @@ body[data-shell="top"] .container{padding-top:14px}
 .tb-search kbd{position:absolute;right:7px;top:50%;transform:translateY(-50%);font-size:10px;font-weight:700;
   color:var(--n-500);border:1px solid var(--line);border-radius:5px;padding:1px 4px;background:var(--surface);
   pointer-events:none;font-family:inherit;letter-spacing:.02em}
+/* 深色下 kbd 提示字用更亮的中性档，避免 #6e6e73 压深底看不清 */
+[data-theme="dark"] .tb-search kbd{color:var(--n-600)}
 .tb-search .ss-panel{left:auto;right:0;min-width:296px}
 
 /* FE-DEAD-SWEEP-ALL-1 B3（11-01）：顶栏那份计时徽标容器 10-23 已撤，这条永命不中，留档注释。
@@ -3076,6 +3086,8 @@ body.hub-exam-locked #ancBarHost{ display:none !important }
   background:var(--danger);color:#fff;font-size:9.5px;font-weight:800;display:flex;
   align-items:center;justify-content:center;padding:0 3px;border:1.5px solid var(--surface);
   box-sizing:content-box;line-height:1}
+/* 深色下 --danger 是浅鲑红，白字压不住，改深墨字（各页本地 --danger 更浅也能读） */
+[data-theme="dark"] .bell .dot{color:#1a1a1c}
 
 .pop{position:absolute;top:36px;right:0;width:340px;max-width:calc(100vw - 32px);background:var(--surface);
   border:1px solid var(--line);border-radius:14px;box-shadow:0 12px 32px -12px rgba(0,0,0,.22);

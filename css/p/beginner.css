@@ -237,8 +237,8 @@
 [data-theme="dark"] .bn-page .bn-nav a{ color:var(--ink-2); }
 [data-theme="dark"] .bn-page .bn-nav a:hover{ background:var(--primary-50); color:var(--primary-text); }
 [data-theme="dark"] .bn-page .bn-btn{ background:var(--surface); border-color:var(--line); color:var(--ink); }
-[data-theme="dark"] .bn-page .bn-btn-p, [data-theme="dark"] .bn-page .bn-btn-p:hover{ background:var(--primary); border-color:var(--primary); color:var(--on-primary); }
-[data-theme="dark"] .bn-page .bn-no{ background:var(--primary); color:var(--on-primary); }
+[data-theme="dark"] .bn-page .bn-btn-p, [data-theme="dark"] .bn-page .bn-btn-p:hover{ background:var(--primary); border-color:var(--primary); color:#123f3a; }
+[data-theme="dark"] .bn-page .bn-no{ background:var(--primary); color:#123f3a; }
 
 /* 手机 ≤859：章节导航从侧栏变成横向折叠（稿子 @media 860 已经写了，这里补站点容器下的处理） */
 @media (max-width:860px){

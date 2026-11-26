@@ -240,4 +240,5 @@
 
 html:not([data-theme="dark"]) #mkToday .m-nextbtn,html:not([data-theme="dark"]) #mkToday .m-addbtn.m-pri{background:var(--primary-700);border-color:var(--primary-700)}
 html:not([data-theme="dark"]) #mkToday .m-nextbtn:hover,html:not([data-theme="dark"]) #mkToday .m-addbtn.m-pri:hover{background:var(--primary-800);border-color:var(--primary-800)}
-html[data-theme="dark"] #mkToday .m-nextbtn,html[data-theme="dark"] #mkToday .m-addbtn.m-pri{color:var(--n-900)}
+html[data-theme="dark"] #mkToday .m-nextbtn,html[data-theme="dark"] #mkToday .m-addbtn.m-pri{color:#123f3a}
+html[data-theme="dark"] body[data-hub-group] #mkToday .m-addbtn.m-pri{background:var(--primary-700);border-color:var(--primary-700);color:#fff}

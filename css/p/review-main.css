@@ -14,6 +14,7 @@ body{background:var(--rva-bg)}
 #reviewMain .rva-page[hidden]{display:none!important}
 .rva-primary{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:38px;padding:0 16px;border:1px solid var(--rva-teal);border-radius:10px;background:var(--rva-teal);color:#fff;font:inherit;font-size:12.5px;font-weight:700;white-space:nowrap;cursor:pointer;box-shadow:0 6px 16px -10px rgba(58,154,147,.8);transition:background .16s,border-color .16s,transform .12s}
 .rva-primary:hover{background:var(--rva-teal-d);border-color:var(--rva-teal-d)}
+[data-theme="dark"] .rva-primary{color:#123f3a}
 .rva-primary:active{transform:translateY(1px)}
 .rva-primary svg{width:15px;height:15px;flex:0 0 auto}
 .rva-btn-sm{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:30px;padding:0 11px;border:1px solid var(--rva-line);border-radius:8px;background:var(--rva-surface);color:var(--rva-teal-d);font:inherit;font-size:11.5px;font-weight:700;white-space:nowrap;cursor:pointer;transition:border-color .16s,background .16s}
