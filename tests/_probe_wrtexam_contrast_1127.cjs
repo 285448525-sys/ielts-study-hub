@@ -10,7 +10,7 @@ const SEED = `try{
 }catch(e){}`;
 
 async function run(theme, wtTheme) {
-  const b = await chromium.launch({ executablePath: EDGE, headless: true, args: ['--mute-audio'] });
+  const b = await chromium.launch({ executablePath: EDGE, headless: true, args: ['--mute-audio'].concat(IS_LOCAL ? [] : ['--proxy-server=direct://']) });
   const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } });
   const init = SEED + `try{const d=JSON.parse(localStorage.getItem('ielts_study_hub_v1')||'{}');d.settings=d.settings||{};d.settings.theme='${theme}';localStorage.setItem('ielts_study_hub_v1',JSON.stringify(d));}catch(e){}`
     + `try{localStorage.setItem('ielts_wt_theme_v1','${wtTheme}');}catch(e){}`;
