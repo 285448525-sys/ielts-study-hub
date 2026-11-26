@@ -3483,6 +3483,8 @@ body:not(.exam-fullscreen):not(.mock-immerse):not(.word-fullscreen):not(.hub-exa
 /* 单词空态父级旧 grid 会把卡片拉满剩余视口，改为内容高度。 */
 #studyView.is-empty,#studyView.is-empty #preStart{display:block!important;flex:0 0 auto!important;height:auto!important;min-height:0!important}
 #wdEmptyState{height:var(--hub-state-h)!important;flex:0 0 auto!important}
+/* 空态强制 display:block 不能盖过 tab 切换的 hidden，否则其他 tab 顶部会重复出现这张卡。 */
+#studyView.is-empty[hidden],#studyView.is-empty[hidden] #preStart{display:none!important}
 @media(max-width:760px){
   :root{--hub-state-h:320px}
   body:not(.exam-fullscreen):not(.mock-immerse):not(.word-fullscreen):not(.hub-exam-locked) :is(

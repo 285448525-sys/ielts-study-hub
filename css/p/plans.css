@@ -94,10 +94,13 @@
 #mkToday .m-task .m-actbtn{display:grid;place-items:center;width:30px;height:30px;padding:0;border:0;border-radius:8px;background:transparent;color:var(--muted);cursor:pointer}
 #mkToday .m-task .m-actbtn:hover{background:var(--n-100);color:var(--ink)}
 #mkToday .m-editinput{flex:1;min-width:0;min-height:40px;padding:7px 10px;border:1px solid var(--primary);border-radius:8px;background:var(--surface);color:var(--ink);font:inherit;outline:none;box-shadow:0 0 0 3px var(--primary-soft)}
-#mkToday .m-empty{display:flex;flex-direction:column;align-items:center;gap:8px;padding:42px 20px 34px;text-align:center;color:var(--muted);font-size:12px}
-#mkToday .m-empty[hidden]{display:none}
-#mkToday .m-empty b{margin:4px 0 0;color:var(--ink);font-size:15px}
-#mkToday .m-empty span:not(.m-empty-ic){line-height:1.7}
+.m-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:220px;padding:32px 20px;text-align:center;color:var(--muted);font-size:12px}
+.m-empty[hidden]{display:none}
+.m-empty b{margin:4px 0 0;color:var(--ink);font-size:15px}
+.m-empty span:not(.m-empty-ic){line-height:1.7}
+/* 空态统一卡片：今天/本周/往日都落在同款白卡里，不再是灰底裸放。 */
+#plWeekGrid > .plan-empty-unified,#mDays > .plan-empty-unified{background:var(--surface);border:1px solid var(--line);border-radius:14px;
+  min-height:280px;margin:0;grid-column:1/-1;width:100%;box-sizing:border-box;box-shadow:0 1px 0 rgba(18,63,58,.025)}
 .m-empty-ic{display:grid;place-items:center;width:46px;height:46px;border-radius:var(--radius-sm);background:var(--primary-50);color:var(--primary)}
 .m-empty-ic svg{width:23px;height:23px}
 

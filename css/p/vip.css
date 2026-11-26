@@ -1,6 +1,11 @@
 /* 10/17 拆分：只属于 vip.html 的样式块。
    ⚠️ 这里的样式只在这一个页面生效；改这里不用管别的页面。 */
 
+/* 会员页页头轻量化：一行标题 + 一行说明，不再用落地页式大字。 */
+body .su-page-head{margin-bottom:16px}
+body .su-page-head h1{font-size:17px;line-height:1.4;font-weight:700;letter-spacing:0}
+body .su-page-head p{margin-top:6px;font-size:12.5px;line-height:1.6}
+body .su-head-row{align-items:center}
 
 /* ===== 定价卡（10/12 全站设计改造批1：pricing.js / vip.js 共用，禁内联）=====
    原 vip.js 内联样式 11+22 处全部搬到这里；DOM class 与原渲染结果等价（零视觉变化）。

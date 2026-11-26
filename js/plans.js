@@ -1423,6 +1423,13 @@ function render(){
   renderWeekOverview();
 }
 
+/* 三个空态同一副骨架（她 11-26 批注：今天/本周/往日长得都不一样）。 */
+function planEmptyHtml(title, desc){
+  return '<div class="m-empty plan-empty-unified">'
+    + '<span class="m-empty-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="17" rx="3"/><path d="M8 2v4M16 2v4M8 11h8M8 15h5"/></svg></span>'
+    + '<b>' + escapeHtml(title) + '</b><span>' + escapeHtml(desc) + '</span></div>';
+}
+
 /* 本周只读汇总：从今天起七天，不写存储、不补不存在的数据。 */
 function renderWeekOverview(){
   const box = document.getElementById('plWeekGrid');
@@ -1434,7 +1441,7 @@ function renderWeekOverview(){
     return p && days.indexOf(p.date) >= 0 && Array.isArray(p.items) && p.items.length;
   });
   if(!records.length){
-    box.innerHTML = '<div class="pl-week-empty"><span class="m-empty-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="17" rx="3"/><path d="M8 2v4M16 2v4M8 11h8M8 15h5"/></svg></span><h2>这七天还没有计划</h2><p>需要时展开下面的「生成 / 调整计划」做诊断；<br>也可以直接回到今天，添加第一条任务。</p></div>';
+    box.innerHTML = planEmptyHtml('这七天还没有计划', '回到今天添加第一条任务，或展开下面的生成计划。');
   }else{
     box.innerHTML = days.map(function(date){
       const p = getPlan(date);
@@ -1483,7 +1490,7 @@ function renderHistory(curDate){
     .slice().sort((a,b) => b.date.localeCompare(a.date));
   const box = $('#histPlans');
   if(others.length === 0){
-    box.innerHTML = renderEmpty('还没有其它日期的计划。');
+    box.innerHTML = planEmptyHtml('还没有其它日期的计划', '在「今天」页添加任务后，往日记录会按天汇总在这里。');
     return;
   }
   // 10/1 晚 v2（她拍板）：每天一张独立日卡——日期块 + 完成度进度条 + 徽章；点开展开当天明细
@@ -1541,7 +1548,7 @@ function renderDays(){
     .filter(p => p && p.date && Array.isArray(p.items) && p.items.length)
     .slice().sort((a, b) => String(b.date).localeCompare(String(a.date)));
   if(!days.length){
-    box.innerHTML = renderEmpty('还没有计划记录。在「今天」页添加任务，完成后这里按天汇总。');
+    box.innerHTML = planEmptyHtml('还没有计划记录', '在「今天」页添加任务，完成后这里按天汇总。');
     if(head) head.textContent = '';
     return;
   }

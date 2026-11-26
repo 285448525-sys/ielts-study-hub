@@ -2,10 +2,7 @@
   'use strict';
   var TABS = [
     {id:'study', nm:'背词', ic:'study'},
-    {id:'books', nm:'词书', ic:'book'},
-    {id:'wrong', nm:'错词', ic:'wrong'},
-    {id:'data', nm:'数据', ic:'data'},
-    {id:'set', nm:'设置', ic:'set'}
+    {id:'phrase', nm:'词组', ic:'book'}
   ];
   var ICON = {
     study:'<path d="M4 19.5V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v14M4 19.5A2.5 2.5 0 0 1 6.5 17H19M8 7h7M8 11h5"/>',
@@ -43,7 +40,63 @@
   function wordFromBank(en, bankId){
     var key=String(en||'').trim().toLowerCase(), list=[];
     try{list=bankId==='custom' ? (DATA.words||[]) : ((window.__OB.banks[bankId]||{}).words||[]);}catch(e){}
-    return list.filter(function(w){return w && String(w.en||'').trim().toLowerCase()===key;})[0] || null;
+    return list.filter(function(w){return w && String(w.en||'').trim().toLowerCase()===key;})[0] || findAnyBank(key) || null;
+  }
+  function findAnyBank(key){
+    if(!key) return null;
+    try{
+      var m=DATA.words||[];
+      var hit=m.filter(function(w){return w && String(w.en||'').trim().toLowerCase()===key && (w.cn||w.pos||w.ipa);})[0];
+      if(hit) return hit;
+      var banks=window.__OB.banks||{}, ids=Object.keys(banks);
+      for(var i=0;i<ids.length;i++){
+        var ws=banks[ids[i]].words||[];
+        hit=ws.filter(function(w){return w && String(w.en||'').trim().toLowerCase()===key && (w.cn||w.pos||w.ipa);})[0];
+        if(hit) return hit;
+      }
+    }catch(e){}
+    return null;
+  }
+  function wrongSnap(bankId, key){
+    try{return (DATA.wrongSnaps||{})[bankId+'|'+key] || null;}catch(e){return null;}
+  }
+  /* 存量裸错词兜底：ssDictLookup 是 common.js 私有函数，这里自己加载 _index.json，
+     只做「去词尾」方向的词形归一（与 common.js 同口径），不写库不广播。 */
+  var _bankIdx = null, _bankIdxLoading = null;
+  function loadBankIndex(){
+    if(_bankIdx) return Promise.resolve(_bankIdx);
+    if(_bankIdxLoading) return _bankIdxLoading;
+    _bankIdxLoading = fetch('data/official-banks/_index.json',{cache:'no-cache'})
+      .then(function(r){return r.ok?r.json():null;})
+      .then(function(j){
+        var map=Object.create(null), rows=(j&&j.w)||[];
+        for(var i=0;i<rows.length;i++){var r=rows[i];if(r&&r[0]){var k=String(r[0]).trim().toLowerCase();if(k&&!map[k])map[k]=r;}}
+        _bankIdx=map;_bankIdxLoading=null;return map;
+      }).catch(function(){_bankIdxLoading=null;return null;});
+    return _bankIdxLoading;
+  }
+  function bankIndexLookup(key){
+    if(!_bankIdx||!key) return null;
+    function variants(w){
+      var out=[w],seen={};function push(x){if(x&&x.length>=2&&!seen[x]){seen[x]=1;out.push(x);}}
+      push(w);var base=w;
+      for(var round=0;round<3;round++){
+        var next=null;
+        if(/(ies)$/.test(base)&&base.length>4)next=base.slice(0,-3)+'y';
+        else if(/(ves)$/.test(base)&&base.length>4)next=base.slice(0,-3)+'f';
+        else if(/(es)$/.test(base)&&base.length>3)next=base.slice(0,-2);
+        else if(/(s)$/.test(base)&&base.length>3&&!/(ss|us|is)$/.test(base))next=base.slice(0,-1);
+        else if(/(ied)$/.test(base)&&base.length>4)next=base.slice(0,-3)+'y';
+        else if(/(ed)$/.test(base)&&base.length>4)next=base.slice(0,-2);
+        else if(/(ing)$/.test(base)&&base.length>5)next=base.slice(0,-3);
+        else if(/(est)$/.test(base)&&base.length>5)next=base.slice(0,-3);
+        if(!next)break;push(next);base=next;
+      }
+      return out;
+    }
+    var vs=variants(key);
+    for(var i=0;i<vs.length;i++){var row=_bankIdx[vs[i]];if(row&&row[1])return {cn:row[1]||'',pos:row[2]||'',ipa:row[3]||''};}
+    return null;
   }
   function prog(bankId, en){
     if(bankId==='custom')return wordFromBank(en,bankId)||{};
@@ -68,7 +121,7 @@
     var tot=total(id);
     return {m:mastered,l:learning,n:Math.max(0,tot-mastered-learning),t:tot};
   }
-  function hashTab(){var m=/(?:^#|&)wb=([a-z]+)/.exec(location.hash||'');return m&&['study','books','wrong','data','set','home'].indexOf(m[1])>=0?m[1]:'';}
+  function hashTab(){var m=/(?:^#|&)wb=([a-z]+)/.exec(location.hash||'');return m&&['study','phrase','books','wrong','data','set','home'].indexOf(m[1])>=0?m[1]:'';}
   function hashId(){return hashTab()||'study';}
   function renderNav(){
     var nav=$('wbNav'), current=window.__wbCur||'study';if(!nav)return;
@@ -80,11 +133,15 @@
   function show(id, opts){
     opts=opts||{};window.__wbCur=id;renderNav();
     if(id==='study'){
+      try{if(window.__phraseDrill)window.__phraseDrill.hide();}catch(e){}
       $('bankView').hidden=true;$('studyView').hidden=false;
       try{switchWordTab('study',false);}catch(e){}
       try{if(window.__wdSetView)window.__wdSetView('start');}catch(e){}
       renderStudy();
+    }else if(id==='phrase'){
+      try{if(window.__phraseDrill)window.__phraseDrill.show();}catch(e){}
     }else{
+      try{if(window.__phraseDrill)window.__phraseDrill.hide();}catch(e){}
       if(!$('studyView').hidden){try{switchWordTab('bank');}catch(e){}}
       panes().forEach(function(p){p.hidden=true;});
       var pane=document.querySelector('#bankView [data-wb-pane="'+id+'"]');
@@ -123,7 +180,9 @@
       var key=String(en||'').trim().toLowerCase();
       if(!key || seen[bankId+'|'+key] || (DATA.wrongRemoved&&DATA.wrongRemoved[bankId+'|'+key]))return;
       seen[bankId+'|'+key]=1;
-      var d=wordFromBank(key,bankId);
+      var snap=wrongSnap(bankId,key), d=wordFromBank(key,bankId);
+      if(!d){var local=bankIndexLookup(key);if(local)d={en:key,cn:local.cn,pos:local.pos,ipa:local.ipa};}
+      if(snap) d=Object.assign({}, d||{}, snap, {en:key});
       out.push({en:key,bankId:bankId,d:d,cn:d?d.cn||'':'',ipa:d?d.ipa||'':'',pos:d?d.pos||'':'',eg:d?d.eg||'':'',w:d,wrong:true});
     }
     var days=DATA.dailyWrong||{};Object.keys(days).forEach(function(day){(days[day]||[]).forEach(function(en){add(en,'custom');});});
@@ -133,8 +192,12 @@
   function loadWrongBanks(){
     var token=++wrongLoadToken, ids=[];
     wrongData().forEach(function(x){if(x.bankId!=='custom'&&ids.indexOf(x.bankId)<0)ids.push(x.bankId);});
-    if(!ids.length)return;
-    Promise.all(ids.map(function(id){return obBankReady(id).catch(function(){});})).then(function(){
+    var jobs=ids.map(function(id){return obBankReady(id).catch(function(){});});
+    /* 存量裸错词兜底：本地查词索引懒加载，第一次查词才 fetch；这里主动拉一次，
+       加载完 wrongData 里的 ssDictLookup 才能命中（含词形归一 conflicting→conflict）。 */
+    jobs.push(loadBankIndex());
+    if(!jobs.length)return;
+    Promise.all(jobs).then(function(){
       if(token===wrongLoadToken&&window.__wbCur==='wrong')renderWrong();
     });
   }
@@ -142,7 +205,9 @@
     var all=wrongData(), box=$('wbWrongList'), empty=$('wbWrongEmpty');setText('wbWrongCount',all.length?all.length+' 个词':'');
     if(!box)return;
     box.innerHTML=all.map(function(x,index){
-      return '<article class="wv-word" data-wrong-index="'+index+'"><button class="wv-word-open" type="button" data-wb-review="'+index+'"><span class="wv-word-title">'+esc(x.en)+'</span><span class="wv-word-ipa">'+esc(x.ipa)+'</span><span class="wv-word-cn">'+esc((x.pos?x.pos+' ':'')+x.cn)+'</span></button><div class="wv-word-actions"><button class="wv-icon-btn" type="button" data-wb-say="'+esc(x.en)+'" title="发音" aria-label="播放发音">'+ic('sound')+'<span>发音</span></button><button class="wv-review-btn" type="button" data-wb-review="'+index+'" title="回看">'+ic('eye')+'<span>回看</span></button><button class="wv-icon-btn wv-delete" type="button" data-wb-remove="'+index+'" title="移出" aria-label="移出错词">'+ic('trash')+'<span>移出</span></button></div></article>';
+      var cn = (x.pos?x.pos+' ':'')+x.cn;
+      if(!cn) cn='词条已删除';
+      return '<article class="wv-word" data-wrong-index="'+index+'"><button class="wv-word-open" type="button" data-wb-review="'+index+'"><span class="wv-word-title">'+esc(x.en)+'</span><span class="wv-word-ipa">'+esc(x.ipa)+'</span><span class="wv-word-cn'+(x.cn?'':' wv-cn-missing')+'">'+esc(cn)+'</span></button><div class="wv-word-actions"><button class="wv-icon-btn" type="button" data-wb-say="'+esc(x.en)+'" title="发音" aria-label="播放发音">'+ic('sound')+'<span>发音</span></button><button class="wv-review-btn" type="button" data-wb-review="'+index+'" title="回看">'+ic('eye')+'<span>回看</span></button><button class="wv-icon-btn wv-delete" type="button" data-wb-remove="'+index+'" title="移出" aria-label="移出错词">'+ic('trash')+'<span>移出</span></button></div></article>';
     }).join('');
     box.hidden=!all.length;empty.hidden=!!all.length;
     var review=$('wbWrongReview');if(review)review.disabled=!all.some(function(x){return !!x.w;});

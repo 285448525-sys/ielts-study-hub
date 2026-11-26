@@ -1766,7 +1766,7 @@
       /* W-EXTOP-1（10-25）：顶栏右侧加「暂停」，与底栏 #exPauseBtn 同一个开关、状态双向同步。
          🔴 showPause 条件与底栏完全同源（同一变量）—— 听力考试模式本来就不渲染 Pause，此处不另造判断。
          🔴 手机（≤860）由 CSS 隐藏，底栏 Pause 还在，功能不丢（见 bank.html 的 .ex-top-pause 规则）。 */
-      +      (showPause ? '<button class="ex-ico ex-top-pause" id="exTopPauseBtn" type="button" title="Pause">暂停</button>' : '')
+      +      (showPause ? '<button class="ex-ico ex-top-pause" id="exTopPauseBtn" type="button" title="Pause" aria-label="Pause">⏸</button>' : '')
       +      '<span class="ex-saved" id="exSaved" hidden>Saved</span>'
       +      '<button class="ex-ico ex-toolbtn" id="exFsBtn" type="button" title="Full screen" aria-label="Full screen">' + ICO_FULL + '</button>'
       +      '<button class="ex-ico ex-menubtn" type="button" title="Option">\u2630</button>'
@@ -2345,12 +2345,6 @@ window.__reportExamState = reportExamState;
       + '<button class="ea-ico ea-blind-btn" type="button" data-schide hidden'
       +   ' title="收起原文，回到盲听" aria-label="收起原文，回到盲听">' + icoEyeOff() + '</button>';
     return '<div class="ex-audio' + (exam ? ' locked' : '') + '" id="exAudioBar">'
-      /* MOCK-AUDIO-CTRL-1（10-31）：这行「Audio is Playing」原是流里的 flex 子项，
-         播放时从 hidden 变可见 → 凭空多 96px + gap 12 = 108px，把播放键/进度条整组右推。
-         **实测证据**：1280 下播放键 x 163→270、进度条宽 660→552；390 下播放键 12→116（出屏）。
-         这就是她 10-28 报的第④点「播放键抖动」。
-         修法 = 让它脱离 flex 流（CSS 改成绝对定位的顶部角标），节点与显隐逻辑一字不改。 */
-      + '<span class="ea-label" id="eaLabel" hidden>Audio is Playing</span>'
       + partChip
       + ctrl
       /* 音量键两种模式都保留（官方实锤有音量控制）。 */
@@ -2538,12 +2532,7 @@ window.__reportExamState = reportExamState;
     4: 'Source not supported (the URL is empty or not an audio file)'
   };
   function audioErrText(a){
-    var code = a && a.error ? a.error.code : 0;
-    var why = AUDIO_ERR_WHY[code] || 'Unknown error';
-    var src = '';
-    try{ src = (a && a.currentSrc || (a && a.src)) || ''; }catch(e){}
-    if(src) src = src.length > 60 ? src.slice(0, 30) + '…' + src.slice(-24) : src;
-    return 'Audio failed to load (' + why + ')' + (src ? ' · ' + src : '') + ' — tap to retry';
+    return '音频加载失败 · 点重试';
   }
   function showAudioErr(a){
     var bar = document.getElementById('exAudioBar'); if(!bar) return;
@@ -2561,7 +2550,9 @@ window.__reportExamState = reportExamState;
         if(cur && cur === a && !(cur.duration > 0) && !cur.error) showAudioErr(a);
       }, 6000);
     });
-    bar.appendChild(e);
+    /* 她 11-26：报错标签不能占右上角固定位（全屏/菜单在那一带），把它插在音量键左侧。 */
+    var volBtn = bar.querySelector('.ea-vol');
+    if(volBtn) bar.insertBefore(e, volBtn); else bar.appendChild(e);
   }
   function wireAudio(){
     var a = document.getElementById('exAudio');
@@ -2833,8 +2824,7 @@ window.__reportExamState = reportExamState;
         +     '<button type="button" class="sc-card mid" data-mark="mid"><span class="sc-card-lb">模糊</span><span class="sc-card-sub">快捷键 2</span></button>'
         +     '<button type="button" class="sc-card no" data-mark="no"><span class="sc-card-lb">茫然</span><span class="sc-card-sub">快捷键 3</span></button>'
         +   '</div>'
-        +   '<p class="sc-mk-tip">听一句 → 选一档 → 自动跳下一句。走完一遍再回头看标出来的句子。'
-        +     '<button type="button" class="sc-mk-rpt" data-mkreport="1">看报告 →</button></p>'
+        +   '<div class="sc-mk-tip"><button type="button" class="sc-mk-rpt" data-mkreport="1">看报告 →</button></div>'
         + '</div>'
         : '');
     /* 「已标记 N 句」：与 7-3 的「已收藏 N 句」并排挂在原文区底部 */
@@ -3515,12 +3505,7 @@ window.__reportExamState = reportExamState;
     var band=typeof estimateBand==='function'?estimateBand('listening',res.right,res.total):null;
     var sec=Math.max(0,Math.round(EX._usedSec||0));
     var time=sec?Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0'):'—';
-    var el=document.createElement('section'); el.className='lr-scoreband'; el.id='listenResultBand';
-    el.innerHTML='<div class="lr-band"><b>'+(band==null?'—':band)+'</b><span>/ 9<small>本次 · '+time+'</small></span></div>'
-      +'<div class="lr-stats"><span><b>'+res.right+'/'+res.total+'</b><small>正确题数</small></span><span><b>'+wrong+'</b><small>待复盘</small></span></div>'
-      +'<p>左边听一句、看一句；右边逐题看错因。</p>';
-    var audio=document.getElementById('exAudioBar');
-    if(audio && audio.parentNode===root) root.insertBefore(el,audio); else root.insertBefore(el,root.querySelector('.ex-listen'));
+    /* 她 11-26 批注：成绩概览条整块删掉，不再插入。 */
   }
   function mountListenResultLayout(){
     var root=document.getElementById('examRoot'), inner=document.getElementById('exListenIn');

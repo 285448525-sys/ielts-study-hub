@@ -84,13 +84,7 @@
       em.innerHTML = c.innerHTML;
       wireFocus(em);
     }
-    // 公告页没有「空卡」：把 B 卡作为长期简介插在更新日志列表最前，下面真实公告一字不动。
-    var list = document.getElementById('ancList');
-    if (list && list.parentNode && !document.querySelector('.es-box[data-es="announce"]')) {
-      var t2 = document.createElement('div'); t2.innerHTML = CARDS.announce;
-      var node = t2.firstElementChild;
-      if (node) { node.setAttribute('data-es-b', '1'); list.parentNode.insertBefore(node, list); }
-    }
+    /* 公告页不插任何空态/简介卡（她 11-26 批注：空态怪、没必要），公告条目直接顶头。 */
   }
 
   var scheduled = false;

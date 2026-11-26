@@ -18,13 +18,13 @@
     /* 10-24：题干高频词（她 18:0x 提供 outputs/雅思题干高频词_按频次分档.xlsx，2779 词）。
        数据来源 = 本站 627 篇真题（听力 347 + 阅读 280 / 7202 题）的**题目文字**统计，
        不是原文词表 —— 衡量「读懂题目要认得哪些词」。按出现次数从高到低切 50 章（每章 56 词）。 */
-    { id: 'qstem', file: 'data/official-banks/qstem.json', v: '20261024a', tag: '题干高频', total: 2779 },
+    { id: 'qstem', file: 'data/official-banks/qstem.json', v: '20261124b', tag: '题干高频', total: 2779 },
     /* 10-24：另外四本（她 18:2x「把剩余几个表格全放到我的词书里面去，记住是自动自带我官方的词书」）。
        全部来自 outputs/雅思词表汇总_五合一.xlsx 的 4 个页签，同一套「每章约 56 词、按出现次数从高到低」的切法。 */
-    { id: 'rdtext', file: 'data/official-banks/rdtext.json', v: '20261024b', tag: '阅读原文', total: 2651 },
-    { id: 'lstext', file: 'data/official-banks/lstext.json', v: '20261024b', tag: '听力原文', total: 1738 },
-    { id: 'lstans', file: 'data/official-banks/lstans.json', v: '20261120', tag: '听力答案', total: 452 },
-    { id: 'phr',    file: 'data/official-banks/phr.json',    v: '20261024b', tag: '高频词组', total: 2256 },
+    { id: 'rdtext', file: 'data/official-banks/rdtext.json', v: '20261124b', tag: '阅读原文', total: 2651 },
+    { id: 'lstext', file: 'data/official-banks/lstext.json', v: '20261124b', tag: '听力原文', total: 1738 },
+    { id: 'lstans', file: 'data/official-banks/lstans.json', v: '20261124b', tag: '听力答案', total: 452 },
+    { id: 'phr',    file: 'data/official-banks/phr.json',    v: '20261124b', tag: '高频词组', total: 1929 },
     /* 11-20 智能模式：虚拟词库，不 fetch json。合并 rdtext/lstext/lstans 三本，
        按词的最高身份（答案词 > 听力词 > 阅读词）自动标注练法：
          答案词 → dictation（听音写词）/ 听力词 → audio（听音选义）/ 阅读词 → visual（看词选义）。
@@ -537,15 +537,41 @@
     var k = String(en).toLowerCase();
     var a = wbActive();
     _markWrongRestored(_wrongKey(a, k));
+    /* 11-26：错词记录带词条快照——词条以后被删/换库也能显示释义、词性、音标。
+       只存轻量字段，重复记同一词不覆盖已有快照。 */
+    var snap = _wrongSnap(a, k);
     if(a === 'custom'){
       DATA.dailyWrong = DATA.dailyWrong || {};
       if(!DATA.dailyWrong[t]) DATA.dailyWrong[t] = [];
       if(!DATA.dailyWrong[t].includes(k)) DATA.dailyWrong[t].push(k);
+      if(snap) _saveWrongSnap(a, k, snap);
       return;
     }
     var rec = _rec(a);
     if(!rec.wrong[t]) rec.wrong[t] = [];
     if(!rec.wrong[t].includes(k)) rec.wrong[t].push(k);
+    if(snap) _saveWrongSnap(a, k, snap);
+  }
+  function _wrongSnap(bankId, key){
+    var w = null;
+    try{
+      if(bankId === 'custom') w = (DATA.words || []).filter(function(x){ return x && String(x.en || '').trim().toLowerCase() === key; })[0];
+      else w = ((window.__OB && window.__OB.banks && window.__OB.banks[bankId] && window.__OB.banks[bankId].words) || []).filter(function(x){ return x && String(x.en || '').trim().toLowerCase() === key; })[0];
+    }catch(e){}
+    if(!w) return null;
+    var o = {};
+    if(w.cn) o.cn = w.cn;
+    if(w.pos) o.pos = w.pos;
+    if(w.ipa) o.ipa = w.ipa;
+    if(w.eg) o.eg = w.eg;
+    return Object.keys(o).length ? o : null;
+  }
+  function _saveWrongSnap(bankId, key, snap){
+    try{
+      var all = (typeof DATA !== 'undefined' && DATA.wrongSnaps) || (DATA.wrongSnaps = {});
+      var k = bankId + '|' + key;
+      if(!all[k]) all[k] = snap;
+    }catch(e){}
   }
   function wbTodayWrongEns(){
     var t = todayKey();

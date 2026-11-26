@@ -31,10 +31,10 @@
 })();
 </script>
 <title>单词 · 雅思备考 Hub</title>
-<link rel="preload" as="script" href="js/practice.js?v=20261120a" /> <!-- W1-PRELOAD-1 (168KB)：与下方 defer 同串防双下载 -->
-<link rel="preload" as="script" href="js/words.js?v=20261121b" /> <!-- W1-PRELOAD-1 (90KB)：与下方 defer 同串防双下载 -->
+<link rel="preload" as="script" href="js/practice.js?v=20261124b" /> <!-- W1-PRELOAD-1 (168KB)：与下方 defer 同串防双下载 -->
+<link rel="preload" as="script" href="js/words.js?v=20261126b" /> <!-- W1-PRELOAD-1 (90KB)：与下方 defer 同串防双下载 -->
 <link rel="preload" as="script" href="js/common-shell.js?v=20261123a" /> <!-- W1-PRELOAD-1 (113KB)：与下方 defer 同串防双下载 -->
-<link rel="stylesheet" href="css/common.css?v=20261123d" />
+<link rel="stylesheet" href="css/common.css?v=20261126c" />
 <link rel="stylesheet" href="css/p/practice.css?v=20261120a" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
@@ -55,11 +55,11 @@
   <script defer src="js/common-pwa.js?v=20261120a"></script>
   <script defer src="js/feedback.js?v=20261111b"></script>
   <!-- design/78 双词库适配层：必须在 dhp_policy.js / practice.js / words.js 之前（defer 按文档序执行） -->
-  <script defer src="js/wordbank.js?v=20261120c"></script>
+  <script defer src="js/wordbank.js?v=20261126c"></script>
   <!-- design/77 DHP+SSP-MMC 策略表：必须在 practice.js 之前（defer 按文档序执行，表未加载时 practice.js 有回退兜底） -->
   <script defer src="js/dhp_policy.js?v=20260921a"></script>
-  <script src="js/practice.js?v=20261120a" defer></script>
-  <script src="js/words.js?v=20261121b" defer></script>
+  <script src="js/practice.js?v=20261124b" defer></script>
+  <script src="js/words.js?v=20261126b" defer></script>
   <script src="js/wd-dict.js?v=20261117e" defer></script>
 <style>
 /* ============================================================
@@ -904,10 +904,7 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
     <!-- 4 个功能视图：与 #vMall 并列，全部 hidden 起步，由 js/wb-tabs.js 的 show() 切 hidden。
          任务1 只给骨架 + 只读真值 + 诚实空态；交互与联动见任务 2~5 逐页补。 -->
     <section class="wb-pane wb-wrong-pane" data-wb-pane="wrong" hidden>
-      <div class="wb-wrong-head">
-        <div class="wb-wrong-heading"><b>错词本</b><span id="wbWrongCount"></span></div>
-        <button type="button" class="wv-secondary" id="wbWrongReview">重练这些词</button>
-      </div>
+      <div class="wb-wrong-actions"><span id="wbWrongCount"></span><button type="button" class="wv-secondary" id="wbWrongReview">重练这些词</button></div>
       <div class="wv-empty" id="wbWrongEmpty" hidden><span class="wv-empty-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z"/><path d="M9.5 8.5l5 5M14.5 8.5l-5 5"/></svg></span><b>还没有错词</b><p>背词时答错或标记的词会自动收进来，攒几个就能回来集中重练。</p><button type="button" class="wv-primary" id="wbWrongGoStudy">去背词</button></div>
       <div class="wv-wrong-list" id="wbWrongList" hidden></div>
     </section>
@@ -925,7 +922,6 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
 
     <section class="wb-pane" data-wb-pane="set" hidden>
       <div class="wbs-set wb-settings-page">
-        <div class="wv-panel-head"><b>设置</b></div>
         <section class="wb-settings-group">
           <h3>背词偏好 <span>每天练多少、怎么出题</span></h3>
           <div class="wb-setrow"><span class="grow"><span class="t">每天背多少词</span><span class="d">设为上限，达到后自动停；不限 = 0</span></span><span class="wb-stepper"><button id="wbCapMinus" type="button">−</button><b id="wbCapN">不限</b><button id="wbCapPlus" type="button">＋</button></span></div>
@@ -1187,6 +1183,31 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
     </div><!-- /.hub-main -->
   </div><!-- /.hub-shell -->
 </main>
+
+<section id="phraseView" hidden aria-label="词组训练">
+  <div class="phrase-wrap">
+    <div class="phrase-head">
+      <span class="phrase-kicker">阅读</span>
+      <h2>词组</h2>
+    </div>
+    <div id="phraseHome" class="phrase-home">
+      <button type="button" class="phrase-card" data-phrase-mode="new"><span>新语块</span><b id="phrNewCount">—</b></button>
+      <button type="button" class="phrase-card" data-phrase-mode="review"><span>复习</span><b id="phrReviewCount">—</b></button>
+      <button type="button" class="phrase-card" data-phrase-mode="wrong"><span>错词</span><b id="phrWrongCount">—</b></button>
+    </div>
+    <div id="phraseQuiz" class="phrase-quiz" hidden>
+      <div class="phrase-quiz-top"><span id="phrProgress">—</span><button type="button" id="phrExit">结束</button></div>
+      <p class="phrase-sentence" id="phrSentence"></p>
+      <div class="phrase-options" id="phrOptions"></div>
+      <p class="phrase-feedback" id="phrFeedback" hidden></p>
+      <button type="button" class="phrase-next" id="phrNext" hidden>下一题</button>
+    </div>
+    <div id="phraseDone" class="phrase-done" hidden>
+      <p id="phrDoneText">本轮完成</p>
+      <button type="button" class="phrase-again" data-phrase-mode="wrong">练错词</button>
+    </div>
+  </div>
+</section>
 
 
 <script>
@@ -1782,7 +1803,7 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
     { id: 'rdtext',  nm: '阅读原文高频词',   dir: 'reading',    own: 'official', mt: '280 篇阅读正文统计',   ic: 'book',   src: '真题来源' },
     { id: 'qstem',   nm: '题干高频词',       dir: 'reading',    own: 'official', mt: '627 篇真题题目统计',   ic: 'book',   src: '真题来源' },
     { id: 'lstext',  nm: '听力原文高频词',   dir: 'listening',  own: 'official', mt: '347 篇听力原文统计',   ic: 'audio',  src: '真题来源' },
-    { id: 'phr',     nm: '高频词组',         dir: 'listening',  own: 'official', mt: '1314 组固定搭配',      ic: 'audio',  src: '真题来源' },
+    { id: 'phr',     nm: '高频词组',         dir: 'reading',    own: 'official', mt: '1929 组固定搭配',      ic: 'book',   src: '真题来源' },
     { id: 'awl',     nm: '学术阅读核心词 AWL', dir: 'reading',   own: 'official', mt: 'Coxhead 学术词表',     ic: 'book',   src: '真题来源' },
     { id: 'lstans',  nm: '听力填空答案词',   dir: 'listening',  own: 'official', mt: '真题填空真答案',        ic: 'audio',  src: '真题来源' },
     { id: 'smart',   nm: '智能模式',           dir: 'smart',      own: 'official', mt: '阅读/听力/答案自动调配', ic: 'audio',  src: '三本合并' }
@@ -2492,8 +2513,10 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
 
 <link rel="stylesheet" href="css/p/hub-shell.css?v=20261120a" />
 <script defer src="js/hub-side-shell.js?v=20261118a"></script>
-  <link rel="stylesheet" href="css/p/word-master.css?v=20261120a" />
-<script defer src="js/wb-tabs.js?v=20261120a"></script>
+  <link rel="stylesheet" href="css/p/word-master.css?v=20261126c" />
+  <link rel="stylesheet" href="css/p/phrase-drill.css?v=20261124a" />
+<script defer src="js/wb-tabs.js?v=20261126c"></script>
+<script defer src="js/phrase-drill.js?v=20261124a"></script>
 </body>
 </html>
 
