@@ -838,6 +838,19 @@ body.mock-immerse{padding-left:0!important;padding-right:0!important}
 body.mock-immerse #hubDock{display:none!important}
 body.mock-immerse{overflow:hidden;height:100dvh}
 body.mock-immerse .container{height:100dvh;display:flex;flex-direction:column;overflow:hidden;padding-bottom:0}
+/* 🔴 11-26 修「口语模考页顶部多一块展开的侧栏、考官窗被挤」：10-22 换全站壳后引进了
+   .hub-shell/.hub-side/.hub-main，旧的 mock-immerse 规则只藏了 #mainNav/.spt-pane/#tabs，
+   没盖住新侧栏——进考场后 .hub-side 仍展示（题库/陪练/素材/模考/记录），占掉顶部一大块，
+   #mockStage 被压到只剩一条。这里在沉浸态把全站侧栏整块藏掉，主区满宽，考场上屏。 */
+body.mock-immerse .hub-side{display:none!important}
+body.mock-immerse .hub-shell{display:block;padding:0!important;margin:0!important;width:100%!important}
+body.mock-immerse .hub-main{width:100%!important;margin:0!important;padding:0!important;max-width:none!important}
+/* flex 链补齐：#mockView 的 flex:1 只有当每一层祖先都是 flex 容器且 min-height:0 时才拿到受限高度；
+   否则 #mockStage 又变成「内容多高就多高」，底部答题条被顶出 100dvh（她截图里考官窗下半截被裁）。 */
+body.mock-immerse .hub-shell{display:flex;flex-direction:column;flex:1;min-height:0}
+body.mock-immerse .hub-main{display:flex;flex-direction:column;flex:1;min-height:0}
+body.mock-immerse .spt-board{display:flex;flex-direction:column;flex:1;min-height:0}
+body.mock-immerse .spt-board-body,body.mock-immerse .spt-board-main{display:flex;flex-direction:column;flex:1;min-height:0}
 /* 10/8 修「整页锁死、提交够不着」（她实机报障）：#mockStage 不是 .container 的直接子级，
    中间隔着 #mockView —— flex 链在 #mockView 断掉（默认 min-height:auto 不缩），
    #mockStage 拿不到受限高度 → overflow:auto 永不触发 → 内容超屏被裁。
