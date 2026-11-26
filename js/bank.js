@@ -2302,6 +2302,14 @@ window.__reportExamState = reportExamState;
     for(var i = 0; i < parts.length; i++) if(parts[i].audioUrl) return parts[i];
     return null;
   }
+  /* 🔴 11-26 听力音频改走同源代理：第三方图床 static.9fnnn.com 在部分网络不可达（她报「别人的可以、
+     你这不行」）。浏览器不再直引第三方，改从本站 /audio/<路径> 取，由 Cloudflare 边缘 Function 回源，
+     把「跨域第三方源」这个单点去掉。只重写 static.9fnnn.com 的 URL，其余（本地 /sfx 等）原样返回。 */
+  function proxiedAudioUrl(u){
+    if(typeof u !== 'string') return u;
+    var m = u.match(/^https?:\/\/static\.9fnnn\.com\/(.+)$/);
+    return m ? '/audio/' + m[1] : u;
+  }
   function audioBarHtml(partLabel, nameText, timerText, showModes){   /* 10/16：nameText/timerText 参数保留签名兼容（顶栏已承载，不再渲染） */
     var p = listenPart();
     if(!p || !p.audioUrl) return '<div class="ex-audio" id="exAudioBar"><span class="ea-label">No audio for this part</span></div>';   /* 🔴 10/16：原「本部分没有音频」= 考场内中文，违反零中文铁律 */
@@ -2371,7 +2379,7 @@ window.__reportExamState = reportExamState;
       +   '<button class="ex-gate-btn" type="button" data-aplay aria-label="Play">'
       +     '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>Play</button>'
       + '</div>'
-      + '<audio id="exAudio" preload="auto" src="' + esc(p.audioUrl) + '"></audio>';
+      + '<audio id="exAudio" preload="auto" src="' + esc(proxiedAudioUrl(p.audioUrl)) + '"></audio>';
   }
   /* 10-22 官方口径：点 Play → 遮罩消失、开始播。遮罩只在「本篇没播过」时出现，
      状态记在 EX.audioGateDone[part] 上 —— 切 Part 再切回来不重出（官方同行为）。 */
