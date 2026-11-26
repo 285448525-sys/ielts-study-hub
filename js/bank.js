@@ -2303,12 +2303,12 @@ window.__reportExamState = reportExamState;
     return null;
   }
   /* 🔴 11-26 听力音频改走同源代理：第三方图床 static.9fnnn.com 在部分网络不可达（她报「别人的可以、
-     你这不行」）。浏览器不再直引第三方，改从本站 /audio/<路径> 取，由 Cloudflare 边缘 Function 回源，
+     你这不行」）。浏览器不再直引第三方，改从本站 /audio?u=<路径> 取，由 Cloudflare 边缘 Function 回源，
      把「跨域第三方源」这个单点去掉。只重写 static.9fnnn.com 的 URL，其余（本地 /sfx 等）原样返回。 */
   function proxiedAudioUrl(u){
     if(typeof u !== 'string') return u;
     var m = u.match(/^https?:\/\/static\.9fnnn\.com\/(.+)$/);
-    return m ? '/audio/' + m[1] : u;
+    return m ? '/audio?u=' + encodeURIComponent(m[1]) : u;
   }
   function audioBarHtml(partLabel, nameText, timerText, showModes){   /* 10/16：nameText/timerText 参数保留签名兼容（顶栏已承载，不再渲染） */
     var p = listenPart();

@@ -1,4 +1,4 @@
-// Cloudflare Pages Function: /audio/* —— 听力音频同源代理（她 11-26：「浏览器端第三方源问题，解决掉」）
+// Cloudflare Pages Function: /audio —— 听力音频同源代理（她 11-26：「浏览器端第三方源问题，解决掉」）
 //
 // 根因（已实测，非推测）：
 //   · 听力音频原样直引第三方图床 static.9fnnn.com（347 个 URL 全部 HTTP 200/206、audio/mpeg、
@@ -6,14 +6,15 @@
 //   · 失败只发生在**用户侧网络到不了该第三方源**时（她：「别人的可以，你就不行」）。
 //   · 音频总体积 3.17GB（347 个、平均 9.1MB），塞进仓库自托管不现实。
 // 解法：
-//   · 浏览器改从**自己域名** `/audio/<第三方路径>` 取音频；本 Function 在 Cloudflare 边缘
+//   · 浏览器改从**自己域名** `/audio?u=<第三方路径>` 取音频；本 Function 在 Cloudflare 边缘
 //     回源 static.9fnnn.com 并流式回传。用户到我们域名的链路稳定，第三方可达性由边缘兜，
 //     彻底摆脱「跨域第三方源直引」这个单点。
-//   · 透传 Range（媒体拖动/分片要 206），保留 Content-Type / Content-Length / Content-Range /
-//     Accept-Ranges，音频元素可正常播放与拖动。
+//   · 路径走查询参数 `u`（刻意不用 /audio/* 的 [...path].js —— 带方括号的文件名会让 CF Pages
+//     构建直接失败，已实测踩过），透传 Range（媒体拖动/分片要 206），保留
+//     Content-Type / Content-Length / Content-Range / Accept-Ranges，音频可正常播放与拖动。
 //
-// 红线：只代理 static.9fnnn.com 这一个上游；路径必须以该主机的合法路径开头，绝不把
-//       任意请求转发到其它主机（防 SSRF）。上游非 2xx 时回 502，交由前端既有报错兜底。
+// 红线：只代理 static.9fnnn.com 这一个上游；`u` 必须是纯路径，禁止协议/主机注入（防 SSRF）。
+//       上游非 2xx 时回 502，交由前端既有报错兜底。
 
 const UPSTREAM = 'https://static.9fnnn.com/';
 
@@ -21,16 +22,15 @@ const UPSTREAM = 'https://static.9fnnn.com/';
 const PASS_HEADERS = ['content-type', 'content-length', 'content-range', 'accept-ranges', 'last-modified', 'etag'];
 
 export async function onRequest(context) {
-  const { request, params } = context;
-  const segs = (params && params.path) || [];
-  const rel = segs.map(decodeURIComponent).join('/');
-  if (!rel) return new Response('missing audio path', { status: 400 });
+  const { request } = context;
+  const u = new URL(request.url).searchParams.get('u');
+  if (!u) return new Response('missing audio path', { status: 400 });
 
-  // 只接受纯路径拼接，禁止协议/主机注入（rel 里出现 "//" 或 ":" 直接拒）
-  if (rel.indexOf('//') >= 0 || rel.indexOf(':') >= 0 || rel.indexOf('\\') >= 0) {
+  // 只接受纯路径：禁止协议、主机、反斜杠、协议相对（防 SSRF 把请求转去任意主机）
+  if (u.indexOf('//') >= 0 || u.indexOf(':') >= 0 || u.indexOf('\\') >= 0 || u.indexOf('@') >= 0) {
     return new Response('bad audio path', { status: 400 });
   }
-  const target = UPSTREAM + rel;
+  const target = UPSTREAM + u;
 
   // 透传 Range（媒体分片/拖动），其余请求头不带，保持边缘回源干净
   const upHeaders = new Headers();
