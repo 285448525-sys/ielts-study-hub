@@ -96,7 +96,11 @@
   gap: 16px; min-height: 36px; height: 36px;
 }
 #examPractice .task-band .exam-part {
-  margin: 0; font-size: 17px; font-weight: 400; color: var(--ink); line-height: 1.25; flex: none;
+  /* 🔴 11-27 修：卷面默认是「白纸黑字」，背景在此文件里写死 #fff/#f8f8f8，
+     但字色此前走站点 token var(--ink)——深色站点下 --ink 翻成近白，白底上直接看不见。
+     卷面有自己的配色档（ct-dark/ct-yellow，特异性更高仍可覆盖），默认档必须钉死深色，
+     不随站点主题翻转。值取站点浅色档 --ink 原值，浅色站观感一字不变。 */
+  margin: 0; font-size: 17px; font-weight: 400; color: #24272c; line-height: 1.25; flex: none;
 }
 #examPractice .task-band .exam-instr { margin: 0; font-size: 12.5px; color: #4d5258; line-height: 1.4; }
 #examPractice .exam-split {
@@ -105,16 +109,17 @@
 }
 #examPractice .exam-q { width: auto; min-width: 0; min-height: 0; overflow: auto; background: #fff; padding: 2px 18px 28px 0; }
 #examPractice .exam-q .exam-q-body-wrap { padding: 0; }
-#examPractice .exam-q-lead { margin: 0 0 16px; font-size: 17px; font-weight: 700; line-height: 1.65; }
-#examPractice .exam-q-body { margin: 0 0 18px; font-size: 18px; font-weight: 400; line-height: 1.65; }
-#examPractice .exam-q-note { margin: 0; font-size: 15px; color: var(--muted); line-height: 1.65; }
+#examPractice .exam-q-lead { margin: 0 0 16px; font-size: 17px; font-weight: 700; line-height: 1.65; color: #24272c; }
+#examPractice .exam-q-body { margin: 0 0 18px; font-size: 18px; font-weight: 400; line-height: 1.65; color: #24272c; }
+#examPractice .exam-q-body .ei-en { color: #24272c; }
+#examPractice .exam-q-note { margin: 0; font-size: 15px; color: #677079; line-height: 1.65; }
 #examPractice .exam-a {
   width: auto; min-width: 0; min-height: 0; display: flex; flex-direction: column;
   padding: 2px 0 0 20px; overflow: hidden; border-left: 1px solid #bfc2c5;
 }
 #examPractice .exam-textarea {
   width: 100%; flex: 1; min-height: 0; resize: none; border: 1px solid #999da2;
-  border-radius: 3px; background: #fff; color: var(--ink); padding: 18px; line-height: 1.6;
+  border-radius: 3px; background: #fff; color: #24272c; padding: 18px; line-height: 1.6;
 }
 #examPractice .exam-a-foot { min-height: 44px; padding: 10px 2px 12px; flex-wrap: nowrap; }
 #examPractice .exam-wc { font-size: 14px; color: #555b61; font-weight: 500; }
@@ -140,6 +145,10 @@
 #examPractice.ct-dark .exam-body, #examPractice.ct-dark .exam-q,
 #examPractice.ct-yellow .exam-body, #examPractice.ct-yellow .exam-q { background: #161616; }
 #examPractice.ct-dark .task-band, #examPractice.ct-yellow .task-band { background: #202020; border-color: #5a5f66; }
+/* 🔴 11-27 配套：默认档字色已钉死深色（见 .task-band .exam-part 注释），但 ct-dark/ct-yellow 的
+   task-band 底是深色，必须用更高特异性把 Task 标题与指令翻回亮色，否则深色底上又变成近黑看不见。 */
+#examPractice.ct-dark .task-band .exam-part, #examPractice.ct-dark .task-band .exam-instr { color: #e8eaed; }
+#examPractice.ct-yellow .task-band .exam-part, #examPractice.ct-yellow .task-band .exam-instr { color: #f0e3a8; }
 
 @media (max-width: 860px) {
   #examRoot .ex-top, #examPractice .ex-top { flex-wrap: nowrap; gap: 8px; min-height: 40px; height: 40px; padding: 4px 10px; }
