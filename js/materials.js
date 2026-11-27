@@ -42,8 +42,8 @@
     /* 10/2 她拍板：标题只写「人设卡」，不要「一句话介绍你自己」这种一句话介绍式标题；
        也不要在 hint 里举例子（原 hint 带「例：杭州，大三计算机…」被她明确否掉），
        举例职责交给下面的 mat-persona-note 说明段。 */
-    { id:'A',  group:'persona', required:true,  title:'人设卡', hint:'城市、身份（学生/专业或工作）、性格、一个爱好。',
-      ph:'一句话说清你是谁、在哪、性格怎样、有什么爱好' },
+    { id:'A',  group:'persona', required:true,  title:'先说说你自己', hint:'尽可能多写一些真实细节，之后的题目会围绕你的生活来出。',
+      ph:'你的城市、专业或工作、兴趣爱好、日常习惯……' },
     { id:'B1', group:'core', required:true,  title:'一次你和某个重要的人一起做的事 / 外出', hint:'写全：和谁 / 什么时候 / 去哪 / 具体做了什么 / 一个当时看到的细节 / 当时感受。例：去年八月和男友去厦门，鼓浪屿沙滩边吃现做的海蛎煎，晚上海边散步看对岸灯火，觉得很踏实。' },
     { id:'B2', group:'core', required:true,  title:'一件你学会 / 克服 / 坚持的事', hint:'写全：学什么 / 难在哪 / 怎么熬过来的 / 现在做得怎样 / 感受。例：备考雅思练口语，一开始开口就卡，每天用 AI 对话半小时，两个月后能说满 2 分钟，很有成就感。' },
     { id:'B3', group:'core', required:true,  title:'一个每天用或离不开的东西 / 日常爱好', hint:'写全：是什么 / 什么时候开始用 / 每天怎么用 / 一个具体场景 / 为什么离不开。例：笔记本电脑，学代码写作业全靠它，每天背单词软件刷 20 分钟，屏幕边贴着便利贴。' },
@@ -507,7 +507,7 @@
     }
     // 「为什么要先填人设」折叠体（原 mat-why 整块内容，收进来）
     h += '<div class="mat-why-fold" id="matWhyBody" hidden><div class="mat-why-l">人设卡是<b>专门用来串题的</b>——它决定后面出的问题贴不贴你、生成的素材像不像你自己。'
-      + '填的时候尽量写一份<b>万用人设</b>：城市 + 身份 + 性格 + 一个爱好，P1 / P2 / P3 都能往上套的那种。<br>'
+      + '写得越具体、越丰富，后面的问题和故事越贴近真实的你。<br>'
       + '接下来你只要<b>按顺序把十几张卡逐个讲一遍</b>，AI 会把答案合成几个故事——'
       + '这些故事考场上加一两句过渡就能接到很多道真题上，<b>不用准备十篇范文</b>。你不需要知道哪道题对应哪张卡，照着问题讲就行。</div></div>';
     /* 🚨 14:45 P0：出题算法改版（旧 plan 含 prefill 污染）→ 顶部强制重出提示。
@@ -531,7 +531,7 @@
       + '<span class="mat-sec-note" style="font-weight:400;font-size:12.5px;color:var(--text-2,#6b7280);margin-left:8px">主要用来串 P1</span></div>';
     h += qCard('A');
     // 平台自带万用人设：想不出自己的就点一条填进去，之后还能接着改
-    h += '<div class="mat-presets"><div class="mat-presets-t">想不出来？用平台自带的万用人设，点一下就填进去（填完可以继续改成你自己的）</div>'
+    h += '<div class="mat-presets"><div class="mat-presets-t">想不出来？先用一个底子，再改成你的。</div>'
       + '<div class="mat-presets-row">'
       + PERSONA_PRESETS.map((p, i) => '<button class="mat-mini" type="button" data-preset="' + i + '"' + (p.fit ? ' title="能撑的题：' + escapeHtml(p.fit) + '"' : '') + '>' + escapeHtml(p.name) + '</button>').join('')
       + '</div></div>';
@@ -570,7 +570,7 @@
     }
     // 现成英文素材区块（design/86 改动三）
     h += '<div class="mat-sec-title"><span class="mat-step-n">2</span>复用我背过的英文素材 <span class="tag">选填</span></div>';
-    h += '<div class="mat-q"><div class="mat-q-hint">粘贴你以前背过的英文原文（可多段），<b>原样进入故事、AI 一字不改</b>。</div>';
+    h += '<div class="mat-q"><div class="mat-q-hint">英文原文会原样保留。</div>';
     (store.answers.customEn || []).forEach(x => {
       h += '<textarea data-en="' + x.id + '" placeholder="粘贴一段英文原文…（原样保留，不会改写）">' + escapeHtml(x.text || '') + '</textarea>'
         + '<div class="mat-char" data-enchar="' + x.id + '"></div>'
@@ -612,13 +612,13 @@
       + '<button class="btn btn-ghost btn-block" type="button" id="matImportToggle" aria-expanded="false" aria-controls="matImportBody">'
         + '我已经有素材了，直接导入整理</button>'
       + '<div class="mat-import-body" id="matImportBody" hidden>'
-        + '<div class="mat-q-hint">把你以前积累的<b>任何文字</b>粘进来——中文经历、零散笔记、写过的英文句子或段落，<b>中英混着也行</b>。'
-          + 'AI 会合并去重、归类成几个能反复用的故事，并算出每段能串当季题库的哪些题。'
-          + '<b>不需要填人设、不需要答题。</b></div>'
+        + '<div class="mat-q-hint">中文、英文或混合笔记都可以。'
+          + '会整理成可以反复使用的故事卡。'
+          + '不需要重新填写人设。</div>'
         + '<textarea id="matImportText" rows="9" placeholder="把你已有的素材粘在这里，一段一段分开写就行（空两行分段更清楚）…"></textarea>'
         + '<div class="mat-char" id="matImportChar"></div>'
         + '<div class="mat-actions"><button class="btn btn-primary" id="matImportGo" disabled>AI 整理成万能素材</button></div>'
-        + '<div class="mat-import-tip">AI 只会重新组织、合并、补过渡，<b>不会编造你没写过的经历</b>。纯英文段落按原样保留、一字不改。</div>'
+        + '<div class="mat-import-tip">只整理你写过的内容，不补造经历。</div>'
       + '</div></div>';
 
     /* ===== 10-23 T-017a 两栏骨架（她拍板照设计稿做）=====
@@ -1049,9 +1049,9 @@
     // anchor 数组本身一字未动 —— formatCard 生成素材时仍要靠它把真题喂给 AI，口语页覆盖矩阵照旧。
     // 大独白框（s.mono）
     // 🚨 10/4 13:43 她报「又让我填一个框填东西，我不知道这是何意味」→ placeholder 改成
-    // 「把这道题当聊天题，answer 后面那几行」的口吻，明确「用中文讲就行、当聊天说」。
+    // 「像聊天一样，用中文讲一遍」的口吻，明确「用中文讲就行、当聊天说」。
     const monoVal = st.s.mono || '';
-    h += '<textarea class="mat-mono-ta" data-step-card="' + escapeHtml(card.id) + '" data-step-k="mono" rows="5" placeholder="就像跟朋友聊天一样，用中文把上面这道题讲一遍：什么时候、和谁、发生了什么、有什么细节、当时什么感觉…想到哪说到哪，不用组织语言。">' + escapeHtml(monoVal) + '</textarea>'
+    h += '<textarea class="mat-mono-ta" data-step-card="' + escapeHtml(card.id) + '" data-step-k="mono" rows="5" placeholder="就像跟朋友聊天一样，用中文把上面这道题讲一遍：比如：什么时候、和谁、去了哪里、发生了什么……">' + escapeHtml(monoVal) + '</textarea>'
       + '<div class="mat-char" data-monochar="' + escapeHtml(card.id) + '">' + monoCounterTip(monoVal) + '</div>';
     // 折叠追问（followups 全部 optional，渲染复用 planStep；choice「其他」自填走既有链路）
     const fus = Array.isArray(card.followups) ? card.followups : [];
@@ -1078,10 +1078,10 @@
   }
   function monoCounterTip(v){
     const n = String(v || '').trim().length;
-    if(!n) return '还没写。目标 80 字以上，细节越多，AI 归纳出的素材越好用';
-    if(n < 40) return '已写 ' + n + ' 字 · 偏短，AI 可能归纳不出足够细节，建议再补';
-    if(n < 80) return '已写 ' + n + ' 字 · 可以了，再补 1-2 个画面细节更好';
-    return '已写 ' + n + ' 字 · 够了';
+    if(!n) return '有一个具体细节，就比完整但空泛的答案更有用';
+    if(n < 40) return '已写 ' + n + ' 字 · 可以再补一个细节';
+    if(n < 80) return '已写 ' + n + ' 字 · 可以了';
+    return '已写 ' + n + ' 字';
   }
   function planStep(cid, step, val){
     const reqTag = step.optional ? '<span class="opt-tag">可留空</span>' : '';
