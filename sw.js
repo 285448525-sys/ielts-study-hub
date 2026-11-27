@@ -77,7 +77,7 @@
 // bank.js → 20261012ac（仅 bank.html）。上一版 v409。
 // 注记：当前 CACHE v922 除设置页侧栏外，还含 11-16 AI-QUOTA-3（会员重活逐项 5 次、模考周 10 场、7 天卡 1/4）。
 // 11-16 v884 = BANK-V2：机经五格侧栏（阅读 / 听力 / 记录 / 错题 / 统计），听力中英双行、阅读源数据暂无中文先英文单行、整套收页首、目录扁平化、记录与统计重做空态和数据态、错题本轮只出「即将上线」罩衫、页底「机经是什么？」弹窗；判分与考场零改动。
-const CACHE = 'ielts-hub-v961';  // 11-27 v960 = 深色模式全站低对比修复：主按钮改深墨字，次级字提亮，口语徽标跟随深色底。
+const CACHE = 'ielts-hub-v962';  // 11-27 v960 = 深色模式全站低对比修复：主按钮改深墨字，次级字提亮，口语徽标跟随深色底。
 const _prevCacheNote199 = 'ielts-hub-v957'; // 11-26 v957 = AUDIO-PROXY-1：听力音频改走同源 /audio?u= 代理（Cloudflare 边缘回源 static.9fnnn.com），摆脱跨域第三方源单点；bank.js 引用串 20261126c→20261126e。
 const _prevCacheNote198 = 'ielts-hub-v956'; // 11-26 v956 = 批注批次：单词错词快照/空态去重、公告空态删除、会员页轻量、计划三空态统一、听力播放器压缩与报错瘦身。
 const _prevCacheNote197 = 'ielts-hub-v955'; // 11-26 v955 = WORD-STATUS-1：词库状态判定 wbWordState 修两处——①智能模式虚拟库 prog 恒空，改为读词对象自带进度字段（否则所有词都被判「到期」、已掌握/答错/过期恒为 0）；②官方词库「答错」口径由 p.mcLapses 改为 errTotal 优先（prog 存的是 errTotal），与 bankErrTier 等处一致。只改 js/words.js 本体，practice.html 引用串 20261121b→20261126b；判分/SRS/云同步/词包/导航壳本体一字未动。

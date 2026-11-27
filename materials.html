@@ -49,7 +49,7 @@
 <script defer src="js/common-shell.js?v=20261123a"></script>
 <script defer src="js/common-pwa.js?v=20261120a"></script>
   <script defer src="js/feedback.js?v=20261111b"></script>
-<script defer src="js/materials.js?v=20261127c"></script>
+<script defer src="js/materials.js?v=20261127d"></script>
 <style>
   /* === 万能素材生成器（沿用全站 Teal Token） === */
   .mat-intro{ padding:14px 16px; background:var(--primary); color:#fff; border-radius:var(--radius); font-size:13.5px; line-height:1.7; margin:12px 0; box-shadow:var(--shadow); }
@@ -512,6 +512,7 @@
      🔴 将来改本页样式时注意：若新增「内联故意输给 css/p/materials.css」的同特异度规则，
         软导航进来会与直开不一致 —— 那种情况要把规则写进 materials.css 而不是内联。 -->
 <link rel="stylesheet" href="css/p/materials.css?v=20261127b" />
+<link rel="stylesheet" href="css/p/materials-workbench.css?v=20261127b" />
 <link rel="stylesheet" href="css/shell-unify.css?v=20261127a" />
 </head>
 <body class="shell-unify" data-shell="top">
@@ -523,6 +524,68 @@
     <div id="matRoot"></div>
   </div>
 </main>
+
+<div id="matWorkbench" hidden>
+  <header class="wb-topbar"><a class="wb-brand" href="index.html"><span class="wb-brand-mark">✦</span>IELTS</a><nav class="wb-nav"><a href="index.html">首页</a><a href="bank.html">机经</a><a class="on" href="speaking.html">口语</a><a href="writing.html">写作</a><a href="practice.html">单词</a><a href="plans.html">计划</a></nav><div class="wb-user"><span>搜索功能、单词、句子</span><span class="wb-avatar">之</span></div></header>
+  <div class="wb-app">
+    <aside class="wb-sidebar"><a class="wb-side" href="bank.html">题库</a><a class="wb-side" href="speaking.html">陪练</a><a class="wb-side on" href="materials.html">素材</a><a class="wb-side" href="speaking.html#mock">模考</a><a class="wb-side" href="review.html">记录</a><div class="wb-side-foot">你的经历，才是最好记的素材。</div></aside>
+    <main class="wb-main">
+      <div class="wb-head"><div class="wb-title"><h1>素材</h1><span class="wb-save">✓ 已自动保存</span></div><button class="wb-btn wb-btn-secondary" id="wbExisting" type="button">查看已有素材</button></div>
+      <div class="wb-stepper" role="tablist" aria-label="素材生成步骤"><button class="wb-step on" type="button" data-wb-step="0"><span class="num">1</span><span>填写人设</span></button><span class="wb-line"></span><button class="wb-step" type="button" data-wb-step="1"><span class="num">2</span><span>讲出经历</span></button><span class="wb-line"></span><button class="wb-step" type="button" data-wb-step="2"><span class="num">3</span><span>生成素材</span></button></div>
+      <section id="wbPersona"><div class="wb-grid"><div class="wb-card"><div class="wb-head2"><div><div class="wb-eyebrow">第 1 步 · 主要用于 Part 1</div><h2>先说说你自己</h2><p class="wb-desc">尽可能多写一些真实细节，之后的题目会围绕你的生活来出。</p></div><span class="wb-mini-tag">必答</span></div><div class="wb-field"><label class="wb-label" for="wbPersonaInput">你的人设 <span>像平时介绍自己一样写</span></label><textarea class="wb-editor" id="wbPersonaInput" placeholder="你的城市、专业或工作、兴趣爱好、日常习惯……"></textarea><div class="wb-foot"><span id="wbPersonaHint">写得越具体、越丰富，后面的素材越贴近你</span><span id="wbPersonaCount">0 字</span></div></div><div class="wb-presets"><div class="wb-presets-title">不知道从何写起？先用一个底子，再改成你的。</div><div class="wb-preset-row" id="wbPresets"></div></div><div class="wb-actions"><div class="wb-note">下一步会根据当季题库，为你定制经历问题。</div><button class="wb-btn wb-btn-primary" id="wbContinue" type="button">生成专属问题 →</button></div><div class="wb-other"><button id="wbImport" type="button">＋ 已有素材，直接导入</button></div></div><aside class="wb-aside"><section><h3>尽量写得丰富一些</h3><p class="wb-copy">城市、学习或工作、兴趣爱好、日常习惯、难忘经历都可以写。细节越多，后面的问题和故事越贴近真实的你。</p></section><section><h3>你的人设</h3><div class="wb-tags" id="wbSummary"><span>写完后在这里整理</span></div></section><details class="wb-details"><summary>为什么要先填人设？</summary><p>它决定后面的问题是否贴近你的生活。认真写一次，之后生成故事时也能保持同一个人的经历和口吻。</p></details></aside></div></section>
+      <section id="wbQuestions" hidden><div class="wb-grid"><div class="wb-card"><div class="wb-head2"><div><div class="wb-eyebrow">第 2 步 · 用中文讲就好</div><h2 id="wbQuestionTitle"></h2></div><div class="wb-count"><b id="wbQuestionCurrent">1</b> / <span id="wbQuestionTotal">1</span></div></div><div class="wb-field"><label class="wb-label" for="wbAnswer">这段经历</label><textarea class="wb-editor" id="wbAnswer" placeholder="比如：什么时候、和谁、去了哪里、发生了什么……"></textarea><div class="wb-foot"><span>有一个具体细节，就比完整但空泛的答案更有用</span><span id="wbAnswerCount">0 字</span></div></div><div class="wb-cues"><button class="wb-cue" type="button" data-wb-cue="当时的时间和地点：">＋ 时间地点</button><button class="wb-cue" type="button" data-wb-cue="我记得最清楚的一个细节：">＋ 一个细节</button><button class="wb-cue" type="button" data-wb-cue="我当时的感受：">＋ 当时感受</button></div><div class="wb-actions"><button class="wb-btn wb-btn-secondary" id="wbPrev" type="button">← 上一题</button><button class="wb-btn wb-btn-primary" id="wbNext" type="button">保存，下一题 →</button></div></div><aside class="wb-aside"><section><h3>经历清单</h3><div class="wb-qlist" id="wbQuestionList"></div></section><button class="wb-btn wb-btn-primary" id="wbGenerate" type="button" style="width:100%">生成专属素材</button></aside></div></section>
+      <section id="wbResults" hidden><div class="wb-card" id="wbResultRoot"></div></section>
+    </main>
+  </div>
+  <div class="wb-toast" id="wbToast" role="status"></div>
+</div>
+<script>
+(function(){
+  const q=s=>document.querySelector(s), $=id=>document.getElementById(id);
+  if(!$('matWorkbench'))return;
+  const names=['大学生','考研/留学党','刚工作的年轻人','爱旅行的人'];
+  const texts=['在校大学生，城市里读书，成绩中等偏上。性格偏慢热但熟人面前话很多，喜欢尝试新鲜事，习惯自己安排时间。','正在集中备考的学生，每天大部分时间在自习室和图书馆。性格安静、自律，靠反复练习积累信心。','毕业没几年，在一线城市上班，做需要天天跟人打交道的工作。性格随和，从老家到城市独立生活。','喜欢旅行，每年至少出门两三次。性格开朗爱分享，习惯提前做攻略，对不同地方的人情最有兴趣。'];
+  let index=0;
+  function toast(t){const e=$('wbToast');e.textContent=t;e.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>e.classList.remove('show'),1800)}
+  function realA(){return q('#matRoot textarea[data-q="A"]')}
+  function planCards(){return q('#matRoot .mat-plan-card')?[...q('#matRoot').querySelectorAll('.mat-plan-card')]:[]}
+  function show(n){['wbPersona','wbQuestions','wbResults'].forEach((id,i)=>{$(id).hidden=i!==n});document.querySelectorAll('[data-wb-step]').forEach((b,i)=>{b.classList.toggle('on',i===n);b.classList.toggle('done',i<n);b.querySelector('.num').textContent=i<n?'✓':String(i+1)});window.scrollTo({top:0,behavior:'instant'})}
+  function paint(){const v=$('wbPersonaInput').value.trim();$('wbPersonaCount').textContent=v.length+' 字';$('wbPersonaHint').textContent=v.length>55?'内容很丰富，可以继续补充，也可以进入下一步':'写得越具体、越丰富，后面的素材越贴近你';const tags=[];['杭州','上海','北京','广州','深圳'].forEach(c=>{if(v.includes(c))tags.push(c)});if(/学生|大学|大四|备考/.test(v))tags.push('学生');if(/工作|上班|职业/.test(v))tags.push('工作');if(/旅行/.test(v))tags.push('旅行');if(/游戏/.test(v))tags.push('游戏');if(/饭|餐厅|吃|做饭/.test(v))tags.push('美食');$('wbSummary').innerHTML=tags.length?tags.slice(0,4).map(x=>'<span>'+x+'</span>').join(''):'<span>写完后在这里整理</span>'}
+  function renderQuestions(){
+    const cards=planCards();if(!cards.length)return;
+    if(index>=cards.length)index=0;
+    const card=cards[index],title=card.querySelector('.mat-q-title'),area=card.querySelector('textarea[data-step-k="mono"]')||card.querySelector('textarea');
+    $('wbQuestionTitle').textContent=(title?title.textContent.trim():'请讲一段经历').replace(/必填|选填/g,'').trim();
+    $('wbQuestionCurrent').textContent=String(index+1);$('wbQuestionTotal').textContent=String(cards.length);
+    $('wbAnswer').value=area?area.value:'';$('wbAnswerCount').textContent=$('wbAnswer').value.length+' 字';
+    $('wbPrev').disabled=index===0;$('wbNext').textContent=index===cards.length-1?'生成素材 →':'保存，下一题 →';
+    $('wbQuestionList').innerHTML=cards.map((c,i)=>{const t=c.querySelector('.mat-q-title');return '<button class="wb-qlink '+(i===index?'on ':'')+(c.classList.contains('filled')?'filled':'')+'" type="button" data-wb-q="'+i+'"><span class="q-check">'+(c.classList.contains('filled')?'✓':'')+'</span><span class="q-index">'+(i+1)+'.</span><span>'+(t?t.textContent.trim().replace(/必填|选填/g,''):'经历')+'</span></button>'}).join('');
+    document.querySelectorAll('[data-wb-q]').forEach(b=>b.onclick=()=>{index=Number(b.dataset.wbQ);renderQuestions()});
+  }
+  function syncAnswer(){
+    const cards=planCards(),card=cards[index];if(!card)return;const area=card.querySelector('textarea[data-step-k="mono"]')||card.querySelector('textarea');if(area){area.value=$('wbAnswer').value;area.dispatchEvent(new Event('input',{bubbles:true}))}
+  }
+  function enter(){
+    const intro=$('introView');if(intro&&intro.offsetParent!==null){const start=$('startGen');if(start)start.click()}
+    document.body.classList.add('wb-active');$('matWorkbench').hidden=false;
+    $('wbPresets').innerHTML=names.map((n,i)=>'<button class="wb-preset" type="button" data-wb-preset="'+i+'">'+n+'</button>').join('');
+    document.querySelectorAll('[data-wb-preset]').forEach(b=>b.onclick=()=>{$('wbPersonaInput').value=texts[Number(b.dataset.wbPreset)];paint()});
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(enter,100));else setTimeout(enter,100);
+  $('wbPersonaInput').addEventListener('input',paint);
+  document.querySelectorAll('[data-wb-step]').forEach(b=>b.onclick=()=>{const n=Number(b.dataset.wbStep);if(n===1)renderQuestions();if(n===2)renderResults();show(n)});
+  $('wbContinue').onclick=()=>{if(!$('wbPersonaInput').value.trim()){$('wbPersonaHint').textContent='先写一点自己的情况，再继续';$('wbPersonaInput').focus();return}const a=realA();if(a){a.value=$('wbPersonaInput').value;a.dispatchEvent(new Event('input',{bubbles:true}))}const gen=$('matPlanGen');if(gen)gen.click();setTimeout(()=>{show(1);renderQuestions()},500)};
+  $('wbAnswer').addEventListener('input',()=>{syncAnswer();$('wbAnswerCount').textContent=$('wbAnswer').value.length+' 字'});
+  document.querySelectorAll('[data-wb-cue]').forEach(b=>b.onclick=()=>{const ta=$('wbAnswer');ta.value+=(ta.value&&!/\n$/.test(ta.value)?'\n':'')+b.dataset.wbCue;ta.dispatchEvent(new Event('input'))});
+  $('wbPrev').onclick=()=>{if(index>0){index--;renderQuestions()}};
+  function goResult(){const gen=$('matGen');if(gen)gen.click();setTimeout(()=>{renderResults();show(2)},800)}
+  $('wbNext').onclick=()=>{const cards=planCards();syncAnswer();if(index<cards.length-1){index++;renderQuestions()}else goResult()};
+  $('wbGenerate').onclick=goResult;
+  $('wbImport').onclick=()=>{const t=$('matImportToggle');if(t)t.click();toast('已在原页面打开导入入口')};
+  $('wbExisting').onclick=()=>{renderResults();show(2)};
+  function renderResults(){const cards=[...document.querySelectorAll('#matRoot .mat-mat')].filter(c=>!c.querySelector('[data-edit-title]'));$('wbResultRoot').innerHTML='<div class="wb-result-top"><span class="wb-check">✓</span><div><h2>你的故事卡</h2><p class="wb-copy">'+(cards.length?'已经按你的经历整理好了。':'生成完成后，故事卡会显示在这里。')+'</p></div></div>'+cards.map(c=>{const title=c.querySelector('.mat-mat-title')?.textContent||'故事';const text=c.querySelector('.mat-story-en')?.textContent||c.querySelector('.mat-logic')?.textContent||'';return '<article class="wb-story"><h3>'+title+'</h3><p>'+text+'</p></article>'}).join('')+'<div class="wb-actions"><button class="wb-btn wb-btn-secondary" id="wbBackEdit" type="button">继续补充经历</button><a class="wb-btn wb-btn-primary" href="speaking.html">去练口语</a></div>';const back=$('wbBackEdit');if(back)back.onclick=()=>{show(1);renderQuestions()}}
+})();
+</script>
 
 </body>
 </html>
